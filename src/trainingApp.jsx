@@ -124,6 +124,9 @@ function TrainingApp() {
 
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [newPlayerName, setNewPlayerName] = useState("")
+  const [newPlayerPassword, setNewPlayerPassword] = useState("")
+  const [createdPlayer, setCreatedPlayer] = useState(null)    
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -144,30 +147,30 @@ function TrainingApp() {
   }, [user])
 
   const loadUser = async () => {
-  const { data, error } = await supabase.auth.getUser()
+    const { data, error } = await supabase.auth.getUser()
 
-  if (error) {
-    console.error(error)
-    return
-  }
-
-  setUser(data.user)
-
-  if (data.user) {
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", data.user.id)
-      .single()
-
-    if (profileError) {
-      console.error(profileError)
+    if (error) {
+      console.error(error)
       return
     }
 
-    setProfile(profileData)
+    setUser(data.user)
+
+    if (data.user) {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single()
+
+      if (profileError) {
+        console.error(profileError)
+        return
+      }
+
+      setProfile(profileData)
+    }
   }
-}
 
   const generateSessionId = () => {
     return `session-${Date.now()}`
@@ -414,6 +417,35 @@ function TrainingApp() {
     }
   }
 
+  const handleCreatePlayer = async (e) => {
+    e.preventDefault()
+    setStatus("")
+    setCreatedPlayer(null)
+
+    const { data, error } = await supabase.functions.invoke("create-player", {
+      body: {
+        full_name: newPlayerName,
+        password: newPlayerPassword,
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte skapa spelare")
+      return
+    }
+
+    if (data?.error) {
+      setStatus(data.error)
+      return
+    }
+
+    setCreatedPlayer(data)
+    setStatus("Spelare skapad ✅")
+    setNewPlayerName("")
+    setNewPlayerPassword("")
+  }
+
   if (!user) {
     return <div style={pageStyle}>Laddar användare...</div>
   }
@@ -422,13 +454,43 @@ function TrainingApp() {
     <div style={pageStyle}>
       <h1 style={titleStyle}>Träning</h1>
       {profile?.role === "coach" && (
-  <div style={cardStyle}>
-    <h3 style={cardTitleStyle}>Coachläge</h3>
-    <p style={mutedTextStyle}>
-      Du är inloggad som coach.
-    </p>
-  </div>
-)}
+        <div style={cardStyle}>
+          <h3 style={cardTitleStyle}>Skapa spelare</h3>
+
+          <form onSubmit={handleCreatePlayer}>
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="text"
+                placeholder="Fullständigt namn"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="text"
+                placeholder="Startlösenord"
+                value={newPlayerPassword}
+                onChange={(e) => setNewPlayerPassword(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+            </div>
+
+            <button type="submit" style={buttonStyle}>
+              Skapa spelare
+            </button>
+          </form>
+
+          {createdPlayer && (
+            <div style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>
+              <div><strong>Användarnamn:</strong> {createdPlayer.username}</div>
+              <div><strong>E-post:</strong> {createdPlayer.email}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ marginBottom: 20 }}>
         {!isWorkoutActive ? (
