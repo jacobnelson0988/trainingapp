@@ -421,6 +421,14 @@ function TrainingApp() {
   return (
     <div style={pageStyle}>
       <h1 style={titleStyle}>Träning</h1>
+      {profile?.role === "coach" && (
+  <div style={cardStyle}>
+    <h3 style={cardTitleStyle}>Coachläge</h3>
+    <p style={mutedTextStyle}>
+      Du är inloggad som coach.
+    </p>
+  </div>
+)}
 
       <div style={{ marginBottom: 20 }}>
         {!isWorkoutActive ? (
