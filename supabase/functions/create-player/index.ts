@@ -16,7 +16,7 @@ serve(async (req: Request) => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SERVICE_ROLE_KEY")!
     )
 
     const names = full_name.toLowerCase().trim().split(" ")
@@ -50,16 +50,13 @@ serve(async (req: Request) => {
       })
 
     if (userError) {
-      return new Response(
-        JSON.stringify({ error: userError.message }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      )
+      return new Response(JSON.stringify({ error: userError.message }), {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      })
     }
 
     const { error: profileError } = await supabase.from("profiles").insert({
@@ -70,31 +67,25 @@ serve(async (req: Request) => {
     })
 
     if (profileError) {
-      return new Response(
-        JSON.stringify({ error: profileError.message }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      )
-    }
-
-    return new Response(
-      JSON.stringify({ username, email }),
-      {
-        status: 200,
+      return new Response(JSON.stringify({ error: profileError.message }), {
+        status: 400,
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
         },
-      }
-    )
+      })
+    }
+
+    return new Response(JSON.stringify({ username, email }), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    })
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err.message || "Unknown error" }),
+      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       {
         status: 500,
         headers: {
