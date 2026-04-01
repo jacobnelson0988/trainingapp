@@ -26,19 +26,50 @@ function App() {
     e.preventDefault()
     setMessage("")
 
-    const fakeEmail = `${username}@example.com`
+    const cleanUsername = username.trim().toLowerCase()
+    const cleanPassword = password.trim()
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
-      password,
-    })
-
-    if (error) {
-      setMessage("Fel användarnamn eller lösenord")
+    if (!cleanUsername || !cleanPassword) {
+      setMessage("Fyll i användarnamn och lösenord")
       return
     }
 
-    setMessage("Inloggad ✅")
+    const normalizedUsername = cleanUsername
+      .replace(/[åä]/g, "a")
+      .replace(/ö/g, "o")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+
+    const compactUsername = normalizedUsername.replace(/[^a-z0-9]/g, "")
+
+    const candidateEmails = [
+      `${cleanUsername}@example.com`,
+      `${normalizedUsername}@example.com`,
+      `${compactUsername}@example.com`,
+      `${cleanUsername}@lagapp.local`,
+      `${cleanUsername}@lagapp.test`,
+    ]
+
+    const uniqueCandidateEmails = [...new Set(candidateEmails.filter(Boolean))]
+
+    let lastErrorMessage = "Fel användarnamn eller lösenord"
+
+    for (const email of uniqueCandidateEmails) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: cleanPassword,
+      })
+
+      if (!error) {
+        setMessage("Inloggad ✅")
+        return
+      }
+
+      console.error(`Login failed for ${email}:`, error)
+      lastErrorMessage = error.message || "Fel användarnamn eller lösenord"
+    }
+
+    setMessage(lastErrorMessage)
   }
 
   const handleLogout = async () => {
@@ -58,7 +89,14 @@ function App() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 500, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+    <div
+      style={{
+        padding: 24,
+        maxWidth: 500,
+        margin: "0 auto",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
       <h1>Logga in</h1>
 
       <form onSubmit={handleLogin}>

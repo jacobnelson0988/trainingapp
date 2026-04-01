@@ -12,27 +12,113 @@ serve(async (req: Request) => {
   }
 
   try {
+    console.log("create-player invoked")
+    const authHeader = req.headers.get("Authorization")
+
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!
+    const serviceRoleKey = Deno.env.get("SERVICE_ROLE_KEY")!
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    })
+
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser()
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const { data: profile, error: profileError } = await userClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    if (profile.role !== "coach") {
+      return new Response(JSON.stringify({ error: "Only coach can create players" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+    console.log("coach verified", { userId: user.id })
+
     const { full_name, password } = await req.json()
+    console.log("payload received", {
+      full_name,
+      passwordLength: typeof password === "string" ? password.length : 0,
+    })
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SERVICE_ROLE_KEY")!
-    )
+    if (!full_name || !password) {
+      return new Response(JSON.stringify({ error: "full_name or password missing" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
 
-    const names = full_name.toLowerCase().trim().split(" ")
-    const first = names[0]?.slice(0, 3) || ""
-    const last = names[names.length - 1]?.slice(0, 3) || ""
+    const adminClient = createClient(supabaseUrl, serviceRoleKey)
+
+    const normalizedName = full_name
+      .toLowerCase()
+      .trim()
+      .replace(/[åä]/g, "a")
+      .replace(/ö/g, "o")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+
+    const names = normalizedName.split(/\s+/).filter(Boolean)
+    const first = (names[0] || "").replace(/[^a-z0-9]/g, "").slice(0, 3)
+    const last = (names[names.length - 1] || "").replace(/[^a-z0-9]/g, "").slice(0, 3)
+
+    if (!first || !last) {
+      return new Response(JSON.stringify({ error: "Name must include first and last name" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
 
     const baseUsername = `${first}.${last}`
     let username = `${baseUsername}1`
     let counter = 1
 
     while (true) {
-      const { data } = await supabase
+      const { data, error } = await adminClient
         .from("profiles")
         .select("id")
         .eq("username", username)
         .maybeSingle()
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
 
       if (!data) break
 
@@ -40,58 +126,79 @@ serve(async (req: Request) => {
       username = `${baseUsername}${counter}`
     }
 
-    const email = `${username}@lagapp.local`
+    const safeFirst = first || "user"
+    const safeLast = last || "player"
+    const emailLocalPart = `${safeFirst}${safeLast}${counter}`
+    const email = `${emailLocalPart}@example.com`
+    console.log("generated credentials", { username, email })
 
-    const { data: userData, error: userError } =
-      await supabase.auth.admin.createUser({
+    const { data: userData, error: userCreateError } =
+      await adminClient.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
       })
 
-    if (userError) {
-      return new Response(JSON.stringify({ error: userError.message }), {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    if (userCreateError || !userData?.user) {
+      console.error("createUser failed", {
+        message: userCreateError?.message,
+        status: userCreateError?.status,
+        email,
+        username,
       })
+
+      return new Response(
+        JSON.stringify({
+          error: userCreateError?.message || "User creation failed",
+          step: "createUser",
+          email,
+          username,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      )
     }
 
-    const { error: profileError } = await supabase.from("profiles").insert({
+    const { error: insertError } = await adminClient.from("profiles").insert({
       id: userData.user.id,
       username,
       full_name,
       role: "player",
     })
 
-    if (profileError) {
-      return new Response(JSON.stringify({ error: profileError.message }), {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    if (insertError) {
+      console.error("profile insert failed", {
+        message: insertError.message,
+        userId: userData.user.id,
+        username,
       })
+
+      return new Response(
+        JSON.stringify({
+          error: insertError.message,
+          step: "profileInsert",
+          username,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      )
     }
 
+    console.log("player created successfully", { username, email, createdUserId: userData.user.id })
     return new Response(JSON.stringify({ username, email }), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       {
         status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     )
   }
