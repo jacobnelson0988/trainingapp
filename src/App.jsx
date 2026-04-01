@@ -26,7 +26,7 @@ function App() {
     e.preventDefault()
     setMessage("")
 
-    const fakeEmail = `${username}@lagapp.local`
+    const fakeEmail = `${username}@example.com`
 
     const { error } = await supabase.auth.signInWithPassword({
       email: fakeEmail,
