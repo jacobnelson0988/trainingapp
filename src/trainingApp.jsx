@@ -126,7 +126,8 @@ function TrainingApp() {
   const [profile, setProfile] = useState(null)
   const [newPlayerName, setNewPlayerName] = useState("")
   const [newPlayerPassword, setNewPlayerPassword] = useState("")
-  const [createdPlayer, setCreatedPlayer] = useState(null)    
+  const [createdPlayer, setCreatedPlayer] = useState(null)
+  const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -422,21 +423,30 @@ function TrainingApp() {
     setStatus("")
     setCreatedPlayer(null)
 
+    if (!newPlayerName.trim() || !newPlayerPassword.trim()) {
+      setStatus("Fyll i namn och startlösenord")
+      return
+    }
+
+    setIsCreatingPlayer(true)
+
     const { data, error } = await supabase.functions.invoke("create-player", {
       body: {
-        full_name: newPlayerName,
-        password: newPlayerPassword,
+        full_name: newPlayerName.trim(),
+        password: newPlayerPassword.trim(),
       },
     })
 
     if (error) {
       console.error(error)
-      setStatus("Kunde inte skapa spelare")
+      setStatus(error.message || "Kunde inte skapa spelare")
+      setIsCreatingPlayer(false)
       return
     }
 
     if (data?.error) {
       setStatus(data.error)
+      setIsCreatingPlayer(false)
       return
     }
 
@@ -444,6 +454,7 @@ function TrainingApp() {
     setStatus("Spelare skapad ✅")
     setNewPlayerName("")
     setNewPlayerPassword("")
+    setIsCreatingPlayer(false)
   }
 
   if (!user) {
@@ -478,8 +489,16 @@ function TrainingApp() {
               />
             </div>
 
-            <button type="submit" style={buttonStyle}>
-              Skapa spelare
+            <button
+              type="submit"
+              style={{
+                ...buttonStyle,
+                opacity: isCreatingPlayer ? 0.7 : 1,
+                cursor: isCreatingPlayer ? "default" : "pointer",
+              }}
+              disabled={isCreatingPlayer}
+            >
+              {isCreatingPlayer ? "Skapar..." : "Skapa spelare"}
             </button>
           </form>
 
