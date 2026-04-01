@@ -123,6 +123,7 @@ function TrainingApp() {
   }
 
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -143,15 +144,30 @@ function TrainingApp() {
   }, [user])
 
   const loadUser = async () => {
-    const { data, error } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getUser()
 
-    if (error) {
-      console.error(error)
+  if (error) {
+    console.error(error)
+    return
+  }
+
+  setUser(data.user)
+
+  if (data.user) {
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", data.user.id)
+      .single()
+
+    if (profileError) {
+      console.error(profileError)
       return
     }
 
-    setUser(data.user)
+    setProfile(profileData)
   }
+}
 
   const generateSessionId = () => {
     return `session-${Date.now()}`
