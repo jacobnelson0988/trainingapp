@@ -124,10 +124,14 @@ function TrainingApp() {
 
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [players, setPlayers] = useState([])
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
   const [newPlayerPassword, setNewPlayerPassword] = useState("")
   const [createdPlayer, setCreatedPlayer] = useState(null)
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
+  const [showPlayers, setShowPlayers] = useState(false)
+  const [showCreatePlayer, setShowCreatePlayer] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -146,6 +150,12 @@ function TrainingApp() {
       loadLatestData(user.id)
     }
   }, [user])
+
+  useEffect(() => {
+    if (profile?.role === "coach") {
+      loadPlayers()
+    }
+  }, [profile])
 
   const loadUser = async () => {
     const { data, error } = await supabase.auth.getUser()
@@ -171,6 +181,25 @@ function TrainingApp() {
 
       setProfile(profileData)
     }
+  }
+
+  const loadPlayers = async () => {
+    setIsLoadingPlayers(true)
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, username, role")
+      .eq("role", "player")
+      .order("full_name", { ascending: true })
+
+    if (error) {
+      console.error(error)
+      setIsLoadingPlayers(false)
+      return
+    }
+
+    setPlayers(data || [])
+    setIsLoadingPlayers(false)
   }
 
   const generateSessionId = () => {
@@ -455,6 +484,9 @@ function TrainingApp() {
     setNewPlayerName("")
     setNewPlayerPassword("")
     setIsCreatingPlayer(false)
+    loadPlayers()
+    setShowPlayers(true)
+    setShowCreatePlayer(false)
   }
 
   if (!user) {
@@ -466,47 +498,109 @@ function TrainingApp() {
       <h1 style={titleStyle}>Träning</h1>
       {profile?.role === "coach" && (
         <div style={cardStyle}>
-          <h3 style={cardTitleStyle}>Skapa spelare</h3>
-
-          <form onSubmit={handleCreatePlayer}>
-            <div style={{ marginBottom: "10px" }}>
-              <input
-                type="text"
-                placeholder="Fullständigt namn"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              />
-            </div>
-
-            <div style={{ marginBottom: "10px" }}>
-              <input
-                type="text"
-                placeholder="Startlösenord"
-                value={newPlayerPassword}
-                onChange={(e) => setNewPlayerPassword(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              />
-            </div>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
+            <button
+              type="button"
+              style={buttonStyle}
+              onClick={() => {
+                setShowCreatePlayer(false)
+                setShowPlayers(false)
+              }}
+            >
+              Starta pass
+            </button>
 
             <button
-              type="submit"
-              style={{
-                ...buttonStyle,
-                opacity: isCreatingPlayer ? 0.7 : 1,
-                cursor: isCreatingPlayer ? "default" : "pointer",
+              type="button"
+              style={secondaryButtonStyle}
+              onClick={() => {
+                setShowCreatePlayer((prev) => !prev)
+                setShowPlayers(false)
               }}
-              disabled={isCreatingPlayer}
             >
-              {isCreatingPlayer ? "Skapar..." : "Skapa spelare"}
+              Lägg till ny spelare
             </button>
-          </form>
 
-          {createdPlayer && (
-            <div style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>
-              <div><strong>Användarnamn:</strong> {createdPlayer.username}</div>
-              <div><strong>E-post:</strong> {createdPlayer.email}</div>
-            </div>
+            <button
+              type="button"
+              style={secondaryButtonStyle}
+              onClick={() => {
+                setShowPlayers((prev) => !prev)
+                setShowCreatePlayer(false)
+              }}
+            >
+              Mina spelare
+            </button>
+          </div>
+
+          {showCreatePlayer && (
+            <>
+              <h3 style={cardTitleStyle}>Skapa spelare</h3>
+
+              <form onSubmit={handleCreatePlayer}>
+                <div style={{ marginBottom: "10px" }}>
+                  <input
+                    type="text"
+                    placeholder="Fullständigt namn"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <input
+                    type="text"
+                    placeholder="Startlösenord"
+                    value={newPlayerPassword}
+                    onChange={(e) => setNewPlayerPassword(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  style={{
+                    ...buttonStyle,
+                    opacity: isCreatingPlayer ? 0.7 : 1,
+                    cursor: isCreatingPlayer ? "default" : "pointer",
+                  }}
+                  disabled={isCreatingPlayer}
+                >
+                  {isCreatingPlayer ? "Skapar..." : "Skapa spelare"}
+                </button>
+              </form>
+
+              {createdPlayer && (
+                <div style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>
+                  <div><strong>Användarnamn:</strong> {createdPlayer.username}</div>
+                  <div><strong>E-post:</strong> {createdPlayer.email}</div>
+                </div>
+              )}
+            </>
+          )}
+
+          {showPlayers && (
+            <>
+              <h3 style={cardTitleStyle}>Mina spelare</h3>
+
+              {isLoadingPlayers ? (
+                <p style={mutedTextStyle}>Laddar spelare...</p>
+              ) : players.length === 0 ? (
+                <p style={mutedTextStyle}>Inga spelare skapade ännu</p>
+              ) : (
+                <div>
+                  {players.map((player) => (
+                    <div key={player.id} style={{ marginBottom: "8px" }}>
+                      <strong>{player.full_name}</strong>
+                      <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                        {player.username}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
