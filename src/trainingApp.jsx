@@ -133,6 +133,7 @@ function TrainingApp() {
   const [showPlayers, setShowPlayers] = useState(false)
   const [showCreatePlayer, setShowCreatePlayer] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -189,7 +190,7 @@ function TrainingApp() {
 
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("id, full_name, username, role")
+      .select("id, full_name, username, role, comment")
       .eq("role", "player")
       .order("full_name", { ascending: true })
 
@@ -240,11 +241,17 @@ function TrainingApp() {
         ...player,
         latestPass: playerStats?.latestPass || "-",
         totalPasses: playerStats ? playerStats.sessionIds.size : 0,
-        comment: "-",
+        comment: player.comment || "",
       }
     })
 
     setPlayers(enrichedPlayers)
+    setCommentDrafts(
+      enrichedPlayers.reduce((acc, player) => {
+        acc[player.id] = player.comment || ""
+        return acc
+      }, {})
+    )
     setIsLoadingPlayers(false)
   }
 
@@ -493,6 +500,39 @@ function TrainingApp() {
     }
   }
 
+  const handleCommentChange = (playerId, value) => {
+    setCommentDrafts((prev) => ({
+      ...prev,
+      [playerId]: value,
+    }))
+  }
+
+  const handleCommentSave = async (playerId) => {
+    const commentValue = commentDrafts[playerId] || ""
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ comment: commentValue })
+      .eq("id", playerId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara kommentar")
+      return
+    }
+
+    setPlayers((prev) =>
+      prev.map((player) =>
+        player.id === playerId ? { ...player, comment: commentValue } : player
+      )
+    )
+
+    setSelectedPlayer((prev) =>
+      prev?.id === playerId ? { ...prev, comment: commentValue } : prev
+    )
+
+    setStatus("Kommentar sparad ✅")
+  }
   const handleCreatePlayer = async (e) => {
     e.preventDefault()
     setStatus("")
@@ -669,7 +709,26 @@ function TrainingApp() {
                             <td style={{ padding: "10px 8px", color: "#111827" }}>{lastName}</td>
                             <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.latestPass || "-"}</td>
                             <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.totalPasses ?? 0}</td>
-                            <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.comment || "-"}</td>
+                            <td style={{ padding: "10px 8px" }}>
+                              <input
+                                type="text"
+                                value={commentDrafts[player.id] ?? ""}
+                                placeholder="Skriv kommentar"
+                                onChange={(e) => handleCommentChange(player.id, e.target.value)}
+                                onBlur={() => handleCommentSave(player.id)}
+                                style={{
+                                  width: "100%",
+                                  minWidth: "140px",
+                                  padding: "8px 10px",
+                                  borderRadius: "8px",
+                                  border: "1px solid #d1d5db",
+                                  fontSize: "13px",
+                                  color: "#374151",
+                                  backgroundColor: "#fff",
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </td>
                           </tr>
                         )
                       })}
@@ -702,8 +761,12 @@ function TrainingApp() {
                     <strong>Senaste pass:</strong> {selectedPlayer.latestPass || "-"}
                   </div>
 
-                  <div style={{ fontSize: "14px", color: "#374151" }}>
+                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
                     <strong>Totalt antal pass:</strong> {selectedPlayer.totalPasses ?? 0}
+                  </div>
+
+                  <div style={{ fontSize: "14px", color: "#374151" }}>
+                    <strong>Kommentar:</strong> {selectedPlayer.comment || "-"}
                   </div>
                 </div>
               )}
