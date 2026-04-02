@@ -186,19 +186,64 @@ function TrainingApp() {
   const loadPlayers = async () => {
     setIsLoadingPlayers(true)
 
-    const { data, error } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name, username, role")
       .eq("role", "player")
       .order("full_name", { ascending: true })
 
-    if (error) {
-      console.error(error)
+    if (profileError) {
+      console.error(profileError)
       setIsLoadingPlayers(false)
       return
     }
 
-    setPlayers(data || [])
+    const { data: logData, error: logError } = await supabase
+      .from("workout_logs")
+      .select("user_id, pass_name, created_at, workout_session_id, is_completed")
+      .eq("is_completed", true)
+      .not("workout_session_id", "is", null)
+      .order("created_at", { ascending: false })
+
+    if (logError) {
+      console.error(logError)
+      setPlayers((profileData || []).map((player) => ({
+        ...player,
+        latestPass: "-",
+        totalPasses: 0,
+        comment: "-",
+      })))
+      setIsLoadingPlayers(false)
+      return
+    }
+
+    const statsByUser = {}
+
+    ;(logData || []).forEach((log) => {
+      if (!statsByUser[log.user_id]) {
+        statsByUser[log.user_id] = {
+          latestPass: log.pass_name || "-",
+          sessionIds: new Set(),
+        }
+      }
+
+      if (log.workout_session_id) {
+        statsByUser[log.user_id].sessionIds.add(log.workout_session_id)
+      }
+    })
+
+    const enrichedPlayers = (profileData || []).map((player) => {
+      const playerStats = statsByUser[player.id]
+
+      return {
+        ...player,
+        latestPass: playerStats?.latestPass || "-",
+        totalPasses: playerStats ? playerStats.sessionIds.size : 0,
+        comment: "-",
+      }
+    })
+
+    setPlayers(enrichedPlayers)
     setIsLoadingPlayers(false)
   }
 
@@ -589,15 +634,37 @@ function TrainingApp() {
               ) : players.length === 0 ? (
                 <p style={mutedTextStyle}>Inga spelare skapade ännu</p>
               ) : (
-                <div>
-                  {players.map((player) => (
-                    <div key={player.id} style={{ marginBottom: "8px" }}>
-                      <strong>{player.full_name}</strong>
-                      <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                        {player.username}
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left" }}>
+                        <th style={{ padding: "10px 8px" }}>Användarnamn</th>
+                        <th style={{ padding: "10px 8px" }}>Förnamn</th>
+                        <th style={{ padding: "10px 8px" }}>Efternamn</th>
+                        <th style={{ padding: "10px 8px" }}>Senaste pass</th>
+                        <th style={{ padding: "10px 8px" }}>Totalt antal pass</th>
+                        <th style={{ padding: "10px 8px" }}>Kommentar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {players.map((player) => {
+                        const names = (player.full_name || "").trim().split(/\s+/)
+                        const firstName = names[0] || ""
+                        const lastName = names.slice(1).join(" ")
+
+                        return (
+                          <tr key={player.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "10px 8px", color: "#374151" }}>{player.username}</td>
+                            <td style={{ padding: "10px 8px", color: "#111827" }}>{firstName}</td>
+                            <td style={{ padding: "10px 8px", color: "#111827" }}>{lastName}</td>
+                            <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.latestPass || "-"}</td>
+                            <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.totalPasses ?? 0}</td>
+                            <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.comment || "-"}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </>
