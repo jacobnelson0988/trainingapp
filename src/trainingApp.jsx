@@ -132,6 +132,7 @@ function TrainingApp() {
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
   const [showPlayers, setShowPlayers] = useState(false)
   const [showCreatePlayer, setShowCreatePlayer] = useState(false)
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -572,6 +573,7 @@ function TrainingApp() {
               onClick={() => {
                 setShowPlayers((prev) => !prev)
                 setShowCreatePlayer(false)
+                setSelectedPlayer(null)
               }}
             >
               Mina spelare
@@ -653,7 +655,15 @@ function TrainingApp() {
                         const lastName = names.slice(1).join(" ")
 
                         return (
-                          <tr key={player.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <tr
+                            key={player.id}
+                            style={{
+                              borderBottom: "1px solid #f1f5f9",
+                              cursor: "pointer",
+                              backgroundColor: selectedPlayer?.id === player.id ? "#f9fafb" : "transparent",
+                            }}
+                            onClick={() => setSelectedPlayer(player)}
+                          >
                             <td style={{ padding: "10px 8px", color: "#374151" }}>{player.username}</td>
                             <td style={{ padding: "10px 8px", color: "#111827" }}>{firstName}</td>
                             <td style={{ padding: "10px 8px", color: "#111827" }}>{lastName}</td>
@@ -665,6 +675,36 @@ function TrainingApp() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {selectedPlayer && (
+                <div
+                  style={{
+                    marginTop: "16px",
+                    padding: "14px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "10px",
+                    backgroundColor: "#f9fafb",
+                  }}
+                >
+                  <h3 style={cardTitleStyle}>Vald spelare</h3>
+
+                  <div style={{ fontSize: "14px", color: "#111827", marginBottom: "6px" }}>
+                    <strong>Namn:</strong> {selectedPlayer.full_name}
+                  </div>
+
+                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
+                    <strong>Användarnamn:</strong> {selectedPlayer.username}
+                  </div>
+
+                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
+                    <strong>Senaste pass:</strong> {selectedPlayer.latestPass || "-"}
+                  </div>
+
+                  <div style={{ fontSize: "14px", color: "#374151" }}>
+                    <strong>Totalt antal pass:</strong> {selectedPlayer.totalPasses ?? 0}
+                  </div>
                 </div>
               )}
             </>
