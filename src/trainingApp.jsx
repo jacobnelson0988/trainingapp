@@ -26,12 +26,14 @@ function TrainingApp() {
           name: "Chins",
           type: "reps_only",
           guide: "3 set x max antal",
+          defaultRepsMode: "max",
           info: ["Alternativ: assisterade chins", "Alternativ: excentriska chins", "Alternativ: scapula pull-ups"],
         },
         {
           name: "Draken",
           type: "reps_only",
           guide: "3 set x 8 per ben",
+          defaultRepsMode: "fixed",
           info: ["Balans", "Höftkontroll", "Långsam och kontrollerad rörelse"],
         },
         {
@@ -65,12 +67,14 @@ function TrainingApp() {
           name: "Dips",
           type: "reps_only",
           guide: "3 set x max antal",
+          defaultRepsMode: "max",
           info: ["Alternativ: assisterade dips med gummiband/maskin", "Alternativ: bänk-dips"],
         },
         {
           name: "Russian twist",
-          type: "reps_only",
+          type: "weight_reps",
           guide: "3 set x 20",
+          defaultRepsMode: "fixed",
           info: ["Kontrollerad rotation", "Stabil i bålen", "Jobba lugnt och tekniskt"],
         },
         {
@@ -104,12 +108,14 @@ function TrainingApp() {
           name: "Deadbugs",
           type: "reps_only",
           guide: "3 set x 20",
+          defaultRepsMode: "fixed",
           info: ["Stabil i bålen", "Långsamma rörelser", "Rör arm och ben samtidigt diagonalt"],
         },
         {
           name: "Bålkontroll diagonal rotation",
           type: "reps_only",
           guide: "3 set x 10 per sida",
+          defaultRepsMode: "fixed",
           info: ["Stabil i bålen", "Full rotation"],
         },
         {
@@ -185,7 +191,7 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select("exercise_name, target_sets, target_reps, target_weight, target_comment")
+      .select("exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
       .eq("player_id", userId)
       .eq("pass_name", passName)
 
@@ -202,6 +208,7 @@ function TrainingApp() {
       targetMap[row.exercise_name] = {
         target_sets: row.target_sets,
         target_reps: row.target_reps,
+        target_reps_mode: row.target_reps_mode || "fixed",
         target_weight: row.target_weight,
         target_comment: row.target_comment,
       }
@@ -312,7 +319,7 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select("exercise_name, target_sets, target_reps, target_weight, target_comment")
+      .select("exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
       .eq("player_id", playerId)
       .eq("pass_name", passName)
 
@@ -329,6 +336,7 @@ function TrainingApp() {
       draftMap[row.exercise_name] = {
         target_sets: row.target_sets ?? "",
         target_reps: row.target_reps ?? "",
+        target_reps_mode: row.target_reps_mode || "fixed",
         target_weight: row.target_weight ?? "",
         target_comment: row.target_comment ?? "",
       }
@@ -683,7 +691,8 @@ function TrainingApp() {
         pass_name: targetPassName,
         exercise_name: exercise.name,
         target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
-        target_reps: draft.target_reps === "" ? null : Number(draft.target_reps),
+        target_reps: draft.target_reps_mode === "max" ? null : (draft.target_reps === "" ? null : Number(draft.target_reps)),
+        target_reps_mode: draft.target_reps_mode || "fixed",
         target_weight: draft.target_weight === "" ? null : Number(draft.target_weight),
         target_comment: draft.target_comment || null,
       }
@@ -924,7 +933,10 @@ function TrainingApp() {
                     ) : (
                       <div>
                         {workouts[targetPassName].exercises.map((exercise) => {
-                          const draft = targetDrafts[exercise.name] || {}
+                          const draft = {
+                            target_reps_mode: exercise.defaultRepsMode || "fixed",
+                            ...(targetDrafts[exercise.name] || {}),
+                          }
 
                           return (
                             <div
@@ -955,10 +967,28 @@ function TrainingApp() {
                                 <input
                                   type="number"
                                   placeholder="Reps"
+                                  disabled={draft.target_reps_mode === "max"}
                                   value={draft.target_reps ?? ""}
                                   onChange={(e) => handleTargetDraftChange(exercise.name, "target_reps", e.target.value)}
-                                  style={inputStyle}
+                                  style={{ ...inputStyle, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
                                 />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleTargetDraftChange(
+                                      exercise.name,
+                                      "target_reps_mode",
+                                      draft.target_reps_mode === "max" ? "fixed" : "max"
+                                    )
+                                  }
+                                  style={{
+                                    ...secondaryButtonStyle,
+                                    backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
+                                    color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
+                                  }}
+                                >
+                                  {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
+                                </button>
                                 {exercise.type === "weight_reps" && (
                                   <input
                                     type="number"
@@ -1067,19 +1097,44 @@ function TrainingApp() {
                 <p style={guideStyle}>{exercise.guide}</p>
               </div>
 
-              {!isLoadingPlayerTargets && playerTargets[exercise.name] && (
+              {!isLoadingPlayerTargets && (
                 <div style={latestBoxStyle}>
                   <div style={latestBoxTitleStyle}>Dagens mål</div>
-                  <div style={latestRowStyle}>
-                    {playerTargets[exercise.name].target_sets ?? "-"} set × {playerTargets[exercise.name].target_reps ?? "-"}
-                    {exercise.type === "weight_reps" && playerTargets[exercise.name].target_weight != null
-                      ? ` @ ${playerTargets[exercise.name].target_weight} kg`
-                      : ""}
-                  </div>
-                  {playerTargets[exercise.name].target_comment && (
-                    <div style={{ ...latestRowStyle, marginTop: "4px" }}>
-                      Kommentar: {playerTargets[exercise.name].target_comment}
-                    </div>
+
+                  {playerTargets[exercise.name] ? (
+                    <>
+                      <div style={latestRowStyle}>
+                        <strong>Set:</strong> {playerTargets[exercise.name].target_sets ?? "-"}
+                      </div>
+
+                      {exercise.type === "seconds_only" ? (
+                        <div style={latestRowStyle}>
+                          <strong>Tid:</strong> {playerTargets[exercise.name].target_reps ?? "-"} sek
+                        </div>
+                      ) : (
+                        <div style={latestRowStyle}>
+                          <strong>Reps:</strong> {
+                            playerTargets[exercise.name].target_reps_mode === "max"
+                              ? "max"
+                              : (playerTargets[exercise.name].target_reps ?? "-")
+                          }
+                        </div>
+                      )}
+
+                      {exercise.type === "weight_reps" && (
+                        <div style={latestRowStyle}>
+                          <strong>Vikt:</strong> {playerTargets[exercise.name].target_weight != null ? `${playerTargets[exercise.name].target_weight} kg` : "-"}
+                        </div>
+                      )}
+
+                      {playerTargets[exercise.name].target_comment && (
+                        <div style={{ ...latestRowStyle, marginTop: "4px" }}>
+                          <strong>Kommentar:</strong> {playerTargets[exercise.name].target_comment}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={latestRowStyle}>Inget mål satt</div>
                   )}
                 </div>
               )}
