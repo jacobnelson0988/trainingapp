@@ -134,6 +134,12 @@ function TrainingApp() {
   const [showCreatePlayer, setShowCreatePlayer] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
+  const [targetPassName, setTargetPassName] = useState("A")
+  const [targetDrafts, setTargetDrafts] = useState({})
+  const [isLoadingTargets, setIsLoadingTargets] = useState(false)
+  const [isSavingTargets, setIsSavingTargets] = useState(false)
+  const [playerTargets, setPlayerTargets] = useState({})
+  const [isLoadingPlayerTargets, setIsLoadingPlayerTargets] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -158,6 +164,52 @@ function TrainingApp() {
       loadPlayers()
     }
   }, [profile])
+
+  useEffect(() => {
+    if (selectedPlayer) {
+      loadPlayerTargets(selectedPlayer.id, targetPassName)
+    } else {
+      setTargetDrafts({})
+    }
+  }, [selectedPlayer, targetPassName])
+
+  useEffect(() => {
+    if (user && selectedWorkout) {
+      loadCurrentUserTargets(user.id, selectedWorkout)
+    } else {
+      setPlayerTargets({})
+    }
+  }, [user, selectedWorkout])
+  const loadCurrentUserTargets = async (userId, passName) => {
+    setIsLoadingPlayerTargets(true)
+
+    const { data, error } = await supabase
+      .from("player_exercise_targets")
+      .select("exercise_name, target_sets, target_reps, target_weight, target_comment")
+      .eq("player_id", userId)
+      .eq("pass_name", passName)
+
+    if (error) {
+      console.error(error)
+      setPlayerTargets({})
+      setIsLoadingPlayerTargets(false)
+      return
+    }
+
+    const targetMap = {}
+
+    ;(data || []).forEach((row) => {
+      targetMap[row.exercise_name] = {
+        target_sets: row.target_sets,
+        target_reps: row.target_reps,
+        target_weight: row.target_weight,
+        target_comment: row.target_comment,
+      }
+    })
+
+    setPlayerTargets(targetMap)
+    setIsLoadingPlayerTargets(false)
+  }
 
   const loadUser = async () => {
     const { data, error } = await supabase.auth.getUser()
@@ -253,6 +305,37 @@ function TrainingApp() {
       }, {})
     )
     setIsLoadingPlayers(false)
+  }
+
+  const loadPlayerTargets = async (playerId, passName) => {
+    setIsLoadingTargets(true)
+
+    const { data, error } = await supabase
+      .from("player_exercise_targets")
+      .select("exercise_name, target_sets, target_reps, target_weight, target_comment")
+      .eq("player_id", playerId)
+      .eq("pass_name", passName)
+
+    if (error) {
+      console.error(error)
+      setTargetDrafts({})
+      setIsLoadingTargets(false)
+      return
+    }
+
+    const draftMap = {}
+
+    ;(data || []).forEach((row) => {
+      draftMap[row.exercise_name] = {
+        target_sets: row.target_sets ?? "",
+        target_reps: row.target_reps ?? "",
+        target_weight: row.target_weight ?? "",
+        target_comment: row.target_comment ?? "",
+      }
+    })
+
+    setTargetDrafts(draftMap)
+    setIsLoadingTargets(false)
   }
 
   const generateSessionId = () => {
@@ -575,6 +658,53 @@ function TrainingApp() {
     setShowCreatePlayer(false)
   }
 
+  const handleTargetDraftChange = (exerciseName, field, value) => {
+    setTargetDrafts((prev) => ({
+      ...prev,
+      [exerciseName]: {
+        ...(prev[exerciseName] || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleSaveTargets = async () => {
+    if (!selectedPlayer) return
+
+    setIsSavingTargets(true)
+
+    const exercises = workouts[targetPassName].exercises
+
+    const rows = exercises.map((exercise) => {
+      const draft = targetDrafts[exercise.name] || {}
+
+      return {
+        player_id: selectedPlayer.id,
+        pass_name: targetPassName,
+        exercise_name: exercise.name,
+        target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
+        target_reps: draft.target_reps === "" ? null : Number(draft.target_reps),
+        target_weight: draft.target_weight === "" ? null : Number(draft.target_weight),
+        target_comment: draft.target_comment || null,
+      }
+    })
+
+    const { error } = await supabase
+      .from("player_exercise_targets")
+      .upsert(rows, { onConflict: "player_id,pass_name,exercise_name" })
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara individuella mål")
+      setIsSavingTargets(false)
+      return
+    }
+
+    setStatus("Individuella mål sparade ✅")
+    setIsSavingTargets(false)
+    await loadPlayerTargets(selectedPlayer.id, targetPassName)
+  }
+
   if (!user) {
     return <div style={pageStyle}>Laddar användare...</div>
   }
@@ -765,8 +895,106 @@ function TrainingApp() {
                     <strong>Totalt antal pass:</strong> {selectedPlayer.totalPasses ?? 0}
                   </div>
 
-                  <div style={{ fontSize: "14px", color: "#374151" }}>
+                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "12px" }}>
                     <strong>Kommentar:</strong> {selectedPlayer.comment || "-"}
+                  </div>
+
+                  <div style={{ marginTop: "12px" }}>
+                    <h3 style={cardTitleStyle}>Individuella mål</h3>
+
+                    <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+                      {Object.keys(workouts).map((passKey) => (
+                        <button
+                          key={passKey}
+                          type="button"
+                          onClick={() => setTargetPassName(passKey)}
+                          style={{
+                            ...secondaryButtonStyle,
+                            backgroundColor: targetPassName === passKey ? "#111827" : "#ffffff",
+                            color: targetPassName === passKey ? "#ffffff" : "#111827",
+                          }}
+                        >
+                          {workouts[passKey].label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {isLoadingTargets ? (
+                      <p style={mutedTextStyle}>Laddar individuella mål...</p>
+                    ) : (
+                      <div>
+                        {workouts[targetPassName].exercises.map((exercise) => {
+                          const draft = targetDrafts[exercise.name] || {}
+
+                          return (
+                            <div
+                              key={exercise.name}
+                              style={{
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "10px",
+                                padding: "12px",
+                                marginBottom: "10px",
+                                backgroundColor: "#ffffff",
+                              }}
+                            >
+                              <div style={{ marginBottom: "8px" }}>
+                                <strong>{exercise.name}</strong>
+                                <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                                  {exercise.guide}
+                                </div>
+                              </div>
+
+                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                                <input
+                                  type="number"
+                                  placeholder="Set"
+                                  value={draft.target_sets ?? ""}
+                                  onChange={(e) => handleTargetDraftChange(exercise.name, "target_sets", e.target.value)}
+                                  style={inputStyle}
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="Reps"
+                                  value={draft.target_reps ?? ""}
+                                  onChange={(e) => handleTargetDraftChange(exercise.name, "target_reps", e.target.value)}
+                                  style={inputStyle}
+                                />
+                                {exercise.type === "weight_reps" && (
+                                  <input
+                                    type="number"
+                                    placeholder="Vikt"
+                                    value={draft.target_weight ?? ""}
+                                    onChange={(e) => handleTargetDraftChange(exercise.name, "target_weight", e.target.value)}
+                                    style={inputStyle}
+                                  />
+                                )}
+                              </div>
+
+                              <input
+                                type="text"
+                                placeholder="Kommentar / teknikfokus"
+                                value={draft.target_comment ?? ""}
+                                onChange={(e) => handleTargetDraftChange(exercise.name, "target_comment", e.target.value)}
+                                style={{ ...inputStyle, width: "100%" }}
+                              />
+                            </div>
+                          )
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={handleSaveTargets}
+                          disabled={isSavingTargets}
+                          style={{
+                            ...buttonStyle,
+                            opacity: isSavingTargets ? 0.7 : 1,
+                            cursor: isSavingTargets ? "default" : "pointer",
+                          }}
+                        >
+                          {isSavingTargets ? "Sparar..." : "Spara individuella mål"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -838,6 +1066,23 @@ function TrainingApp() {
                 <h3 style={cardTitleStyle}>{exercise.name}</h3>
                 <p style={guideStyle}>{exercise.guide}</p>
               </div>
+
+              {!isLoadingPlayerTargets && playerTargets[exercise.name] && (
+                <div style={latestBoxStyle}>
+                  <div style={latestBoxTitleStyle}>Dagens mål</div>
+                  <div style={latestRowStyle}>
+                    {playerTargets[exercise.name].target_sets ?? "-"} set × {playerTargets[exercise.name].target_reps ?? "-"}
+                    {exercise.type === "weight_reps" && playerTargets[exercise.name].target_weight != null
+                      ? ` @ ${playerTargets[exercise.name].target_weight} kg`
+                      : ""}
+                  </div>
+                  {playerTargets[exercise.name].target_comment && (
+                    <div style={{ ...latestRowStyle, marginTop: "4px" }}>
+                      Kommentar: {playerTargets[exercise.name].target_comment}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {latestWorkout[exercise.name]?.length > 0 && (
                 <div style={latestBoxStyle}>
