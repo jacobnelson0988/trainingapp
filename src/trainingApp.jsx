@@ -146,6 +146,7 @@ function TrainingApp() {
   const [isSavingTargets, setIsSavingTargets] = useState(false)
   const [playerTargets, setPlayerTargets] = useState({})
   const [isLoadingPlayerTargets, setIsLoadingPlayerTargets] = useState(false)
+  const [expandedInfo, setExpandedInfo] = useState({})
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -457,6 +458,7 @@ function TrainingApp() {
     setCurrentSessionId(newSessionId)
     setIsWorkoutActive(true)
     setShowPicker(false)
+    setExpandedInfo({})
 
     const defaultInputs = {}
     workout.exercises.forEach((exercise, index) => {
@@ -934,6 +936,7 @@ function TrainingApp() {
                       <div>
                         {workouts[targetPassName].exercises.map((exercise) => {
                           const draft = {
+                            target_sets: targetDrafts[exercise.name]?.target_sets ?? 3,
                             target_reps_mode: exercise.defaultRepsMode || "fixed",
                             ...(targetDrafts[exercise.name] || {}),
                           }
@@ -1090,97 +1093,99 @@ function TrainingApp() {
             </div>
           </div>
 
-          {workouts[selectedWorkout].exercises.map((exercise, i) => (
-            <div key={i} style={cardStyle}>
-              <div style={{ marginBottom: 10 }}>
-                <h3 style={cardTitleStyle}>{exercise.name}</h3>
-                <p style={guideStyle}>{exercise.guide}</p>
-              </div>
+          {workouts[selectedWorkout].exercises.map((exercise, i) => {
+            const totalExercises = workouts[selectedWorkout].exercises.length
+            const isInfoExpanded = !!expandedInfo[exercise.name]
 
-              {!isLoadingPlayerTargets && (
-                <div style={latestBoxStyle}>
-                  <div style={latestBoxTitleStyle}>Dagens mål</div>
-
-                  {playerTargets[exercise.name] ? (
-                    <>
-                      <div style={latestRowStyle}>
-                        <strong>Set:</strong> {playerTargets[exercise.name].target_sets ?? "-"}
-                      </div>
-
-                      {exercise.type === "seconds_only" ? (
-                        <div style={latestRowStyle}>
-                          <strong>Tid:</strong> {playerTargets[exercise.name].target_reps ?? "-"} sek
-                        </div>
-                      ) : (
-                        <div style={latestRowStyle}>
-                          <strong>Reps:</strong> {
-                            playerTargets[exercise.name].target_reps_mode === "max"
-                              ? "max"
-                              : (playerTargets[exercise.name].target_reps ?? "-")
-                          }
-                        </div>
-                      )}
-
-                      {exercise.type === "weight_reps" && (
-                        <div style={latestRowStyle}>
-                          <strong>Vikt:</strong> {playerTargets[exercise.name].target_weight != null ? `${playerTargets[exercise.name].target_weight} kg` : "-"}
-                        </div>
-                      )}
-
-                      {playerTargets[exercise.name].target_comment && (
-                        <div style={{ ...latestRowStyle, marginTop: "4px" }}>
-                          <strong>Kommentar:</strong> {playerTargets[exercise.name].target_comment}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={latestRowStyle}>Inget mål satt</div>
-                  )}
+            return (
+              <div key={i} style={cardStyle}>
+                <div style={exerciseProgressStyle}>
+                  Övning {i + 1} / {totalExercises}
                 </div>
-              )}
 
-              {latestWorkout[exercise.name]?.length > 0 && (
-                <div style={latestBoxStyle}>
-                  <div style={latestBoxTitleStyle}>Senaste träningspass</div>
-
-                  {latestWorkout[exercise.name].map((set) => (
-                    <div key={set.id} style={latestRowStyle}>
-                      Set {set.set_number} –{" "}
-                      {exercise.type === "weight_reps"
-                        ? `${set.weight} x ${set.reps}`
-                        : exercise.type === "reps_only"
-                        ? `${set.reps} reps`
-                        : `${set.seconds} sek`}
-                    </div>
-                  ))}
+                <div style={{ marginBottom: 14 }}>
+                  <h3 style={cardTitleStyle}>{exercise.name}</h3>
+                  <p style={guideStyle}>{exercise.guide}</p>
                 </div>
-              )}
 
-              {exercise.info.length > 0 && (
-                <div style={infoBoxStyle}>
-                  <div style={infoBoxTitleStyle}>Att tänka på</div>
-                  {exercise.info.map((item, index) => (
-                    <div key={index} style={infoRowStyle}>• {item}</div>
-                  ))}
-                </div>
-              )}
+                {!isLoadingPlayerTargets && (
+                  <div style={targetBoxStyle}>
+                    <div style={targetBoxTitleStyle}>Dagens mål</div>
 
-              {isWorkoutActive &&
-                (inputs[i] || []).map((set, j) => (
-                  <div key={set.client_set_id || j} style={setRowWrapperStyle}>
-                    <div style={setLabelStyle}>Set {j + 1}</div>
+                    {playerTargets[exercise.name] ? (
+                      <>
+                        <div style={targetRowStyle}>
+                          <span style={targetLabelStyle}>Set</span>
+                          <span style={targetValueStyle}>{playerTargets[exercise.name].target_sets ?? "-"}</span>
+                        </div>
 
-                    <div style={setInputsRowStyle}>
-                      {exercise.type === "weight_reps" && (
-                        <>
-                          <input
-                            placeholder="Vikt"
-                            value={set.weight || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "weight", e.target.value)
-                            }
-                            style={inputStyle}
-                          />
+                        {exercise.type === "seconds_only" ? (
+                          <div style={targetRowStyle}>
+                            <span style={targetLabelStyle}>Tid</span>
+                            <span style={targetValueStyle}>{playerTargets[exercise.name].target_reps ?? "-"} sek</span>
+                          </div>
+                        ) : (
+                          <div style={targetRowStyle}>
+                            <span style={targetLabelStyle}>Reps</span>
+                            <span style={targetValueStyle}>
+                              {playerTargets[exercise.name].target_reps_mode === "max"
+                                ? "max"
+                                : (playerTargets[exercise.name].target_reps ?? "-")}
+                            </span>
+                          </div>
+                        )}
+
+                        {exercise.type === "weight_reps" && (
+                          <div style={targetRowStyle}>
+                            <span style={targetLabelStyle}>Vikt</span>
+                            <span style={targetValueStyle}>
+                              {playerTargets[exercise.name].target_weight != null
+                                ? `${playerTargets[exercise.name].target_weight} kg`
+                                : "-"}
+                            </span>
+                          </div>
+                        )}
+
+                        {playerTargets[exercise.name].target_comment && (
+                          <div style={{ ...targetCommentStyle, marginTop: "8px" }}>
+                            <strong>Kommentar:</strong> {playerTargets[exercise.name].target_comment}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={emptyTargetStyle}>Inget mål satt</div>
+                    )}
+                  </div>
+                )}
+
+                {isWorkoutActive &&
+                  (inputs[i] || []).map((set, j) => (
+                    <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                      <div style={setLabelStyle}>Set {j + 1}</div>
+
+                      <div style={setInputsRowStyle}>
+                        {exercise.type === "weight_reps" && (
+                          <>
+                            <input
+                              placeholder={`Vikt (${latestWorkout[exercise.name]?.slice(-1)[0]?.weight ?? ""})`}
+                              value={set.weight || ""}
+                              onChange={(e) =>
+                                handleChange(i, j, "weight", e.target.value)
+                              }
+                              style={inputStyle}
+                            />
+                            <input
+                              placeholder="Reps"
+                              value={set.reps || ""}
+                              onChange={(e) =>
+                                handleChange(i, j, "reps", e.target.value)
+                              }
+                              style={inputStyle}
+                            />
+                          </>
+                        )}
+
+                        {exercise.type === "reps_only" && (
                           <input
                             placeholder="Reps"
                             value={set.reps || ""}
@@ -1189,45 +1194,77 @@ function TrainingApp() {
                             }
                             style={inputStyle}
                           />
-                        </>
-                      )}
+                        )}
 
-                      {exercise.type === "reps_only" && (
-                        <input
-                          placeholder="Reps"
-                          value={set.reps || ""}
-                          onChange={(e) =>
-                            handleChange(i, j, "reps", e.target.value)
-                          }
-                          style={inputStyle}
-                        />
-                      )}
+                        {exercise.type === "seconds_only" && (
+                          <input
+                            placeholder="Sekunder"
+                            value={set.seconds || ""}
+                            onChange={(e) =>
+                              handleChange(i, j, "seconds", e.target.value)
+                            }
+                            style={inputStyle}
+                          />
+                        )}
 
-                      {exercise.type === "seconds_only" && (
-                        <input
-                          placeholder="Sekunder"
-                          value={set.seconds || ""}
-                          onChange={(e) =>
-                            handleChange(i, j, "seconds", e.target.value)
-                          }
-                          style={inputStyle}
-                        />
-                      )}
-
-                      <button onClick={() => handleRemoveSet(i, j)} style={removeButtonStyle}>
-                        Ta bort
-                      </button>
+                        <button onClick={() => handleRemoveSet(i, j)} style={removeButtonStyle}>
+                          Ta bort
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-              {isWorkoutActive && (
-                <button onClick={() => handleAddSet(i)} style={secondaryButtonStyle}>
-                  + Lägg till set
-                </button>
-              )}
-            </div>
-          ))}
+                {isWorkoutActive && (
+                  <button onClick={() => handleAddSet(i)} style={secondaryButtonStyle}>
+                    + Lägg till set
+                  </button>
+                )}
+
+                {latestWorkout[exercise.name]?.length > 0 && (
+                  <div style={latestBoxStyle}>
+                    <div style={latestBoxTitleStyle}>Senaste träningspass</div>
+
+                    {latestWorkout[exercise.name].map((set) => (
+                      <div key={set.id} style={latestRowStyle}>
+                        Set {set.set_number} –{" "}
+                        {exercise.type === "weight_reps"
+                          ? `${set.weight} x ${set.reps}`
+                          : exercise.type === "reps_only"
+                          ? `${set.reps} reps`
+                          : `${set.seconds} sek`}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {exercise.info.length > 0 && (
+                  <div style={infoBoxStyle}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedInfo((prev) => ({
+                          ...prev,
+                          [exercise.name]: !prev[exercise.name],
+                        }))
+                      }
+                      style={infoToggleButtonStyle}
+                    >
+                      <span>Att tänka på</span>
+                      <span>{isInfoExpanded ? "−" : "+"}</span>
+                    </button>
+
+                    {isInfoExpanded && (
+                      <div style={{ marginTop: "8px" }}>
+                        {exercise.info.map((item, index) => (
+                          <div key={index} style={infoRowStyle}>• {item}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </>
       )}
     </div>
@@ -1291,6 +1328,62 @@ const mutedTextStyle = {
   lineHeight: 1.6,
 }
 
+const exerciseProgressStyle = {
+  display: "inline-block",
+  marginBottom: "12px",
+  padding: "4px 10px",
+  borderRadius: "999px",
+  backgroundColor: "#fee2e2",
+  color: "#b91c1c",
+  fontSize: "12px",
+  fontWeight: "700",
+}
+
+const targetBoxStyle = {
+  backgroundColor: "#fef2f2",
+  border: "1px solid #fecaca",
+  borderRadius: "12px",
+  padding: "14px 16px",
+  marginBottom: "14px",
+}
+
+const targetBoxTitleStyle = {
+  fontSize: "16px",
+  fontWeight: "700",
+  color: "#991b1b",
+  marginBottom: "10px",
+}
+
+const targetRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginBottom: "6px",
+  fontSize: "14px",
+}
+
+const targetLabelStyle = {
+  color: "#7f1d1d",
+  fontWeight: "700",
+}
+
+const targetValueStyle = {
+  color: "#111827",
+  fontWeight: "700",
+}
+
+const targetCommentStyle = {
+  fontSize: "14px",
+  color: "#7f1d1d",
+  lineHeight: 1.5,
+}
+
+const emptyTargetStyle = {
+  fontSize: "14px",
+  color: "#9ca3af",
+  fontStyle: "italic",
+}
+
 const latestBoxStyle = {
   backgroundColor: "#f3f4f6",
   border: "1px solid #e5e7eb",
@@ -1329,8 +1422,30 @@ const infoBoxTitleStyle = {
 
 const infoRowStyle = {
   fontSize: "13px",
-  color: "#9ca3af",
+  color: "#6b7280",
   lineHeight: 1.6,
+}
+
+const infoToggleButtonStyle = {
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  border: "none",
+  backgroundColor: "transparent",
+  padding: 0,
+  fontSize: "14px",
+  fontWeight: "700",
+  color: "#374151",
+  cursor: "pointer",
+}
+
+const activeSetCardStyle = {
+  marginBottom: "10px",
+  padding: "12px",
+  borderRadius: "10px",
+  backgroundColor: "#f9fafb",
+  border: "1px solid #e5e7eb",
 }
 
 const setRowWrapperStyle = {
