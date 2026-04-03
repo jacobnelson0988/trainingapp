@@ -129,6 +129,9 @@ function TrainingApp() {
   }
 
   const [user, setUser] = useState(null)
+  const [workoutsFromDB, setWorkoutsFromDB] = useState({})
+
+  const activeWorkouts = Object.keys(workoutsFromDB).length > 0 ? workoutsFromDB : workouts
   const [profile, setProfile] = useState(null)
   const [players, setPlayers] = useState([])
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
@@ -149,6 +152,9 @@ function TrainingApp() {
   const [expandedInfo, setExpandedInfo] = useState({})
   const [selectedWorkout, setSelectedWorkout] = useState(null)
   const [inputs, setInputs] = useState({})
+  const [exercisesFromDB, setExercisesFromDB] = useState([])
+  const [templatesFromDB, setTemplatesFromDB] = useState([])
+  const [templateExercisesFromDB, setTemplateExercisesFromDB] = useState([])
   const [latestWorkout, setLatestWorkout] = useState({})
   const [latestPassDates, setLatestPassDates] = useState({})
   const [status, setStatus] = useState("")
@@ -187,6 +193,101 @@ function TrainingApp() {
       setPlayerTargets({})
     }
   }, [user, selectedWorkout])
+
+  useEffect(() => {
+    const fetchExercises = async () => {
+      const { data, error } = await supabase
+        .from("exercises")
+        .select("*")
+        .order("name")
+
+      if (error) {
+        console.error("Error fetching exercises:", error)
+      } else {
+        setExercisesFromDB(data || [])
+        console.log("Exercises from DB:", data)
+      }
+    }
+
+    fetchExercises()
+  }, [])
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const { data, error } = await supabase
+        .from("workout_templates")
+        .select("*")
+        .order("code")
+
+      if (error) {
+        console.error("Error fetching templates:", error)
+      } else {
+        setTemplatesFromDB(data || [])
+        console.log("Templates from DB:", data)
+      }
+    }
+
+    fetchTemplates()
+  }, [])
+
+  useEffect(() => {
+    const fetchTemplateExercises = async () => {
+      const { data, error } = await supabase
+        .from("workout_template_exercises")
+        .select(`
+          id,
+          sort_order,
+          custom_guide,
+          workout_template_id,
+          exercise_id,
+          workout_templates ( code, label ),
+          exercises ( name, exercise_type, guide, default_reps_mode )
+        `)
+        .order("sort_order")
+
+      if (error) {
+        console.error("Error fetching template exercises:", error)
+      } else {
+        setTemplateExercisesFromDB(data || [])
+        console.log("Template exercises from DB:", data)
+      }
+    }
+
+    fetchTemplateExercises()
+  }, [])
+
+  useEffect(() => {
+    if (!templatesFromDB.length || !templateExercisesFromDB.length) return
+
+    const mapped = templatesFromDB.reduce((acc, template) => {
+      const relatedExercises = templateExercisesFromDB
+        .filter((row) => row.workout_templates?.code === template.code)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((row) => ({
+          name: row.exercises?.name || "",
+          type: row.exercises?.exercise_type || "reps_only",
+          guide: row.custom_guide || row.exercises?.guide || "",
+          defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
+          info: [],
+        }))
+
+      acc[template.code] = {
+        label: template.label,
+        warmup: workouts[template.code]?.warmup || {
+          cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
+          technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
+        },
+        exercises:
+          relatedExercises.length > 0
+            ? relatedExercises
+            : workouts[template.code]?.exercises || [],
+      }
+
+      return acc
+    }, {})
+
+    setWorkoutsFromDB(mapped)
+  }, [templatesFromDB, templateExercisesFromDB])
   const loadCurrentUserTargets = async (userId, passName) => {
     setIsLoadingPlayerTargets(true)
 
@@ -452,7 +553,7 @@ function TrainingApp() {
     if (!user) return
 
     const newSessionId = generateSessionId()
-    const workout = workouts[workoutKey]
+    const workout = activeWorkouts[workoutKey]
 
     setSelectedWorkout(workoutKey)
     setCurrentSessionId(newSessionId)
@@ -497,7 +598,7 @@ function TrainingApp() {
     setIsWorkoutActive(false)
     setCurrentSessionId(null)
     setInputs({})
-    setStatus(`${workouts[selectedWorkout].label} avslutat`)
+    setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
     await loadLatestWorkoutForPass(selectedWorkout, user.id)
     await loadLatestData(user.id)
@@ -565,7 +666,7 @@ function TrainingApp() {
 
     const current = inputs[exerciseIndex] || []
     const updated = [...current]
-    const exercise = workouts[selectedWorkout].exercises[exerciseIndex]
+    const exercise = activeWorkouts[selectedWorkout].exercises[exerciseIndex]
 
     updated[setIndex] = {
       ...updated[setIndex],
@@ -683,7 +784,7 @@ function TrainingApp() {
 
     setIsSavingTargets(true)
 
-    const exercises = workouts[targetPassName].exercises
+    const exercises = activeWorkouts[targetPassName].exercises
 
     const rows = exercises.map((exercise) => {
       const draft = targetDrafts[exercise.name] || {}
@@ -914,7 +1015,7 @@ function TrainingApp() {
                     <h3 style={cardTitleStyle}>Individuella mål</h3>
 
                     <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
-                      {Object.keys(workouts).map((passKey) => (
+                      {Object.keys(activeWorkouts).map((passKey) => (
                         <button
                           key={passKey}
                           type="button"
@@ -925,7 +1026,7 @@ function TrainingApp() {
                             color: targetPassName === passKey ? "#ffffff" : "#111827",
                           }}
                         >
-                          {workouts[passKey].label}
+                          {activeWorkouts[passKey].label}
                         </button>
                       ))}
                     </div>
@@ -934,9 +1035,8 @@ function TrainingApp() {
                       <p style={mutedTextStyle}>Laddar individuella mål...</p>
                     ) : (
                       <div>
-                        {workouts[targetPassName].exercises.map((exercise) => {
+                        {activeWorkouts[targetPassName].exercises.map((exercise) => {
                           const draft = {
-                            target_sets: targetDrafts[exercise.name]?.target_sets ?? 3,
                             target_reps_mode: exercise.defaultRepsMode || "fixed",
                             ...(targetDrafts[exercise.name] || {}),
                           }
@@ -1045,7 +1145,7 @@ function TrainingApp() {
 
             {showPicker && (
               <div style={pickerGridStyle}>
-                {Object.entries(workouts).map(([key, workout]) => (
+                {Object.entries(activeWorkouts).map(([key, workout]) => (
                   <button
                     key={key}
                     onClick={() => startWorkout(key)}
@@ -1071,7 +1171,7 @@ function TrainingApp() {
 
       {selectedWorkout && (
         <>
-          <h2 style={sectionTitleStyle}>{workouts[selectedWorkout].label}</h2>
+          <h2 style={sectionTitleStyle}>{activeWorkouts[selectedWorkout].label}</h2>
 
           <div style={cardStyle}>
             <h3 style={cardTitleStyle}>Uppvärmning</h3>
@@ -1079,22 +1179,22 @@ function TrainingApp() {
             <div style={{ marginBottom: 14 }}>
               <p style={subheadingStyle}>Pulshöjande aktivitet</p>
               <p style={mutedTextStyle}>
-                {workouts[selectedWorkout].warmup.cardio}
+                {activeWorkouts[selectedWorkout].warmup.cardio}
               </p>
             </div>
 
             <div>
               <p style={subheadingStyle}>Teknikuppvärmning</p>
               <div style={mutedTextStyle}>
-                {workouts[selectedWorkout].warmup.technique.map((item, index) => (
+                {activeWorkouts[selectedWorkout].warmup.technique.map((item, index) => (
                   <div key={index}>{index + 1}. {item}</div>
                 ))}
               </div>
             </div>
           </div>
 
-          {workouts[selectedWorkout].exercises.map((exercise, i) => {
-            const totalExercises = workouts[selectedWorkout].exercises.length
+          {activeWorkouts[selectedWorkout].exercises.map((exercise, i) => {
+            const totalExercises = activeWorkouts[selectedWorkout].exercises.length
             const isInfoExpanded = !!expandedInfo[exercise.name]
 
             return (
