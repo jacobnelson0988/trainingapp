@@ -91,39 +91,106 @@ function App() {
   return (
     <div
       style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#f3f4f6",
         padding: 24,
-        maxWidth: 500,
-        margin: "0 auto",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <h1>Logga in</h1>
-
-      <form onSubmit={handleLogin}>
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="text"
-            placeholder="Användarnamn"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={{ width: "100%", padding: 10 }}
-          />
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 380,
+          backgroundColor: "#ffffff",
+          borderRadius: 16,
+          padding: 32,
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              margin: "0 auto 12px",
+              borderRadius: "50%",
+              backgroundColor: "#dc2626",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 28,
+            }}
+          >
+            🏋️
+          </div>
+          <h1 style={{ margin: 0, fontSize: 28, color: "#111827" }}>Gurra Styrka</h1>
+          <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 14 }}>
+            Logga in för att starta ditt pass
+          </p>
         </div>
 
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="password"
-            placeholder="Lösenord"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: "100%", padding: 10 }}
-          />
-        </div>
+        <form onSubmit={handleLogin}>
+          <div style={{ marginBottom: 12 }}>
+            <input
+              type="text"
+              placeholder="Användarnamn"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 10,
+                border: "1px solid #d1d5db",
+                fontSize: 16,
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
 
-        <button type="submit">Logga in</button>
-      </form>
+          <div style={{ marginBottom: 16 }}>
+            <input
+              type="password"
+              placeholder="Lösenord"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 10,
+                border: "1px solid #d1d5db",
+                fontSize: 16,
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
 
-      {message && <p>{message}</p>}
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderRadius: 12,
+              border: "none",
+              backgroundColor: "#dc2626",
+              color: "#ffffff",
+              fontSize: 16,
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(220, 38, 38, 0.25)",
+            }}
+          >
+            Logga in
+          </button>
+        </form>
+
+        {message && (
+          <p style={{ marginTop: 16, textAlign: "center", color: "#6b7280" }}>{message}</p>
+        )}
+      </div>
     </div>
   )
 }
