@@ -78,14 +78,7 @@ function App() {
   }
 
   if (session) {
-    return (
-      <div>
-        <div style={{ padding: 16 }}>
-          <button onClick={handleLogout}>Logga ut</button>
-        </div>
-        <TrainingApp />
-      </div>
-    )
+    return <TrainingApp />
   }
 
   return (

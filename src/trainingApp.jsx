@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react"
 import { supabase } from "./supabase"
+import ExerciseBankPage from "./pages/ExerciseBankPage"
+import PlayersPage from "./pages/PlayersPage"
+import CreatePlayerPage from "./pages/CreatePlayerPage"
+import CoachHomePage from "./pages/CoachHomePage"
 
 function TrainingApp() {
   const workouts = {
@@ -139,8 +143,7 @@ function TrainingApp() {
   const [newPlayerPassword, setNewPlayerPassword] = useState("")
   const [createdPlayer, setCreatedPlayer] = useState(null)
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
-  const [showPlayers, setShowPlayers] = useState(false)
-  const [showCreatePlayer, setShowCreatePlayer] = useState(false)
+  const [coachView, setCoachView] = useState("home")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [targetPassName, setTargetPassName] = useState("A")
@@ -155,6 +158,12 @@ function TrainingApp() {
   const [exercisesFromDB, setExercisesFromDB] = useState([])
   const [templatesFromDB, setTemplatesFromDB] = useState([])
   const [templateExercisesFromDB, setTemplateExercisesFromDB] = useState([])
+  const [newExerciseName, setNewExerciseName] = useState("")
+  const [newExerciseType, setNewExerciseType] = useState("weight_reps")
+  const [newExerciseGuide, setNewExerciseGuide] = useState("")
+  const [newExerciseDefaultRepsMode, setNewExerciseDefaultRepsMode] = useState("fixed")
+  const [editingExerciseId, setEditingExerciseId] = useState(null)
+  const [isSavingExercise, setIsSavingExercise] = useState(false)
   const [latestWorkout, setLatestWorkout] = useState({})
   const [latestPassDates, setLatestPassDates] = useState({})
   const [status, setStatus] = useState("")
@@ -204,8 +213,9 @@ function TrainingApp() {
       if (error) {
         console.error("Error fetching exercises:", error)
       } else {
-        setExercisesFromDB(data || [])
-        console.log("Exercises from DB:", data)
+        const activeExercises = (data || []).filter((exercise) => exercise.is_active !== false)
+        setExercisesFromDB(activeExercises)
+        console.log("Exercises from DB:", activeExercises)
       }
     }
 
@@ -266,7 +276,7 @@ function TrainingApp() {
         .map((row) => ({
           name: row.exercises?.name || "",
           type: row.exercises?.exercise_type || "reps_only",
-          guide: row.custom_guide || row.exercises?.guide || "",
+          guide: row.custom_guide || "",
           defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
           info: [],
         }))
@@ -765,8 +775,7 @@ function TrainingApp() {
     setNewPlayerPassword("")
     setIsCreatingPlayer(false)
     loadPlayers()
-    setShowPlayers(true)
-    setShowCreatePlayer(false)
+    setCoachView("players")
   }
 
   const handleTargetDraftChange = (exerciseName, field, value) => {
@@ -817,326 +826,203 @@ function TrainingApp() {
     await loadPlayerTargets(selectedPlayer.id, targetPassName)
   }
 
+  const resetExerciseForm = () => {
+    setNewExerciseName("")
+    setNewExerciseType("weight_reps")
+    setNewExerciseGuide("")
+    setNewExerciseDefaultRepsMode("fixed")
+    setEditingExerciseId(null)
+  }
+
+  const handleStartEditExercise = (exercise) => {
+    setNewExerciseName(exercise.name || "")
+    setNewExerciseType(exercise.exercise_type || "weight_reps")
+    setNewExerciseGuide("")
+    setNewExerciseDefaultRepsMode(exercise.default_reps_mode || "fixed")
+    setEditingExerciseId(exercise.id)
+    setCoachView("exerciseBank")
+    setStatus("Redigerar övning")
+  }
+
+  const handleCreateExercise = async () => {
+    setStatus("")
+
+    if (!newExerciseName.trim()) {
+      setStatus("Fyll i namn på övning")
+      return
+    }
+
+    setIsSavingExercise(true)
+
+    const payload = {
+      name: newExerciseName.trim(),
+      exercise_type: newExerciseType,
+      guide: newExerciseGuide.trim() || null,
+      default_reps_mode: newExerciseType === "seconds_only" ? "fixed" : newExerciseDefaultRepsMode,
+    }
+
+    const query = editingExerciseId
+      ? supabase.from("exercises").update(payload).eq("id", editingExerciseId).select().single()
+      : supabase.from("exercises").insert(payload).select().single()
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error(error)
+      setStatus(editingExerciseId ? "Kunde inte uppdatera övning" : "Kunde inte spara övning")
+      setIsSavingExercise(false)
+      return
+    }
+
+    setExercisesFromDB((prev) => {
+      const withoutCurrent = prev.filter((exercise) => exercise.id !== data.id)
+      return [...withoutCurrent, data].sort((a, b) => a.name.localeCompare(b.name, "sv"))
+    })
+
+    resetExerciseForm()
+    setStatus(editingExerciseId ? "Övning uppdaterad ✅" : "Övning sparad ✅")
+    setIsSavingExercise(false)
+  }
+
+  const handleDeleteExercise = async (exerciseId) => {
+    const confirmDelete = window.confirm("Vill du ta bort denna övning?")
+    if (!confirmDelete) return
+
+    const { error } = await supabase
+      .from("exercises")
+      .update({ is_active: false })
+      .eq("id", exerciseId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ta bort övning")
+      return
+    }
+
+    setExercisesFromDB((prev) => prev.filter((ex) => ex.id !== exerciseId))
+    setStatus("Övning arkiverad ✅")
+  }
+
   if (!user) {
     return <div style={pageStyle}>Laddar användare...</div>
   }
 
   return (
     <div style={pageStyle}>
-      <h1 style={titleStyle}>Träning</h1>
+      <div style={headerStyle}>
+        <div>
+          <p style={eyebrowStyle}>{profile?.role === "coach" ? "Coachläge" : "Spelarläge"}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={async () => {
+            await supabase.auth.signOut()
+            window.location.reload()
+          }}
+          style={logoutButtonStyle}
+        >
+          Logga ut
+        </button>
+      </div>
+
       {profile?.role === "coach" && (
         <div style={cardStyle}>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
-            <button
-              type="button"
-              style={buttonStyle}
-              onClick={() => {
-                setShowCreatePlayer(false)
-                setShowPlayers(false)
-              }}
-            >
-              Starta pass
-            </button>
-
-            <button
-              type="button"
-              style={secondaryButtonStyle}
-              onClick={() => {
-                setShowCreatePlayer((prev) => !prev)
-                setShowPlayers(false)
-              }}
-            >
-              Lägg till ny spelare
-            </button>
-
-            <button
-              type="button"
-              style={secondaryButtonStyle}
-              onClick={() => {
-                setShowPlayers((prev) => !prev)
-                setShowCreatePlayer(false)
-                setSelectedPlayer(null)
-              }}
-            >
-              Mina spelare
-            </button>
-          </div>
-
-          {showCreatePlayer && (
-            <>
-              <h3 style={cardTitleStyle}>Skapa spelare</h3>
-
-              <form onSubmit={handleCreatePlayer}>
-                <div style={{ marginBottom: "10px" }}>
-                  <input
-                    type="text"
-                    placeholder="Fullständigt namn"
-                    value={newPlayerName}
-                    onChange={(e) => setNewPlayerName(e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: "10px" }}>
-                  <input
-                    type="text"
-                    placeholder="Startlösenord"
-                    value={newPlayerPassword}
-                    onChange={(e) => setNewPlayerPassword(e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  style={{
-                    ...buttonStyle,
-                    opacity: isCreatingPlayer ? 0.7 : 1,
-                    cursor: isCreatingPlayer ? "default" : "pointer",
-                  }}
-                  disabled={isCreatingPlayer}
-                >
-                  {isCreatingPlayer ? "Skapar..." : "Skapa spelare"}
-                </button>
-              </form>
-
-              {createdPlayer && (
-                <div style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>
-                  <div><strong>Användarnamn:</strong> {createdPlayer.username}</div>
-                  <div><strong>E-post:</strong> {createdPlayer.email}</div>
-                </div>
-              )}
-            </>
+          {coachView !== "home" && (
+            <div style={{ marginBottom: "16px" }}>
+              <button
+                type="button"
+                style={secondaryButtonStyle}
+                onClick={() => {
+                  setCoachView("home")
+                  setSelectedPlayer(null)
+                  resetExerciseForm()
+                }}
+              >
+                ← Tillbaka
+              </button>
+            </div>
           )}
 
-          {showPlayers && (
-            <>
-              <h3 style={cardTitleStyle}>Mina spelare</h3>
+          {coachView === "home" && (
+            <CoachHomePage
+              setCoachView={setCoachView}
+              setSelectedPlayer={setSelectedPlayer}
+              resetExerciseForm={resetExerciseForm}
+              mutedTextStyle={mutedTextStyle}
+              cardTitleStyle={cardTitleStyle}
+              coachNavCardStyle={coachNavCardStyle}
+              coachNavTitleStyle={coachNavTitleStyle}
+              coachNavTextStyle={coachNavTextStyle}
+            />
+          )}
 
-              {isLoadingPlayers ? (
-                <p style={mutedTextStyle}>Laddar spelare...</p>
-              ) : players.length === 0 ? (
-                <p style={mutedTextStyle}>Inga spelare skapade ännu</p>
-              ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left" }}>
-                        <th style={{ padding: "10px 8px" }}>Användarnamn</th>
-                        <th style={{ padding: "10px 8px" }}>Förnamn</th>
-                        <th style={{ padding: "10px 8px" }}>Efternamn</th>
-                        <th style={{ padding: "10px 8px" }}>Senaste pass</th>
-                        <th style={{ padding: "10px 8px" }}>Totalt antal pass</th>
-                        <th style={{ padding: "10px 8px" }}>Kommentar</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {players.map((player) => {
-                        const names = (player.full_name || "").trim().split(/\s+/)
-                        const firstName = names[0] || ""
-                        const lastName = names.slice(1).join(" ")
+          {coachView === "exerciseBank" && (
+            <ExerciseBankPage
+              newExerciseName={newExerciseName}
+              setNewExerciseName={setNewExerciseName}
+              newExerciseType={newExerciseType}
+              setNewExerciseType={setNewExerciseType}
+              newExerciseDefaultRepsMode={newExerciseDefaultRepsMode}
+              setNewExerciseDefaultRepsMode={setNewExerciseDefaultRepsMode}
+              newExerciseGuide={newExerciseGuide}
+              setNewExerciseGuide={setNewExerciseGuide}
+              editingExerciseId={editingExerciseId}
+              isSavingExercise={isSavingExercise}
+              handleCreateExercise={handleCreateExercise}
+              handleStartEditExercise={handleStartEditExercise}
+              handleDeleteExercise={handleDeleteExercise}
+              resetExerciseForm={resetExerciseForm}
+              exercisesFromDB={exercisesFromDB}
+              inputStyle={inputStyle}
+              buttonStyle={buttonStyle}
+              secondaryButtonStyle={secondaryButtonStyle}
+              mutedTextStyle={mutedTextStyle}
+              cardTitleStyle={cardTitleStyle}
+            />
+          )}
 
-                        return (
-                          <tr
-                            key={player.id}
-                            style={{
-                              borderBottom: "1px solid #f1f5f9",
-                              cursor: "pointer",
-                              backgroundColor: selectedPlayer?.id === player.id ? "#f9fafb" : "transparent",
-                            }}
-                            onClick={() => setSelectedPlayer(player)}
-                          >
-                            <td style={{ padding: "10px 8px", color: "#374151" }}>{player.username}</td>
-                            <td style={{ padding: "10px 8px", color: "#111827" }}>{firstName}</td>
-                            <td style={{ padding: "10px 8px", color: "#111827" }}>{lastName}</td>
-                            <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.latestPass || "-"}</td>
-                            <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.totalPasses ?? 0}</td>
-                            <td style={{ padding: "10px 8px" }}>
-                              <input
-                                type="text"
-                                value={commentDrafts[player.id] ?? ""}
-                                placeholder="Skriv kommentar"
-                                onChange={(e) => handleCommentChange(player.id, e.target.value)}
-                                onBlur={() => handleCommentSave(player.id)}
-                                style={{
-                                  width: "100%",
-                                  minWidth: "140px",
-                                  padding: "8px 10px",
-                                  borderRadius: "8px",
-                                  border: "1px solid #d1d5db",
-                                  fontSize: "13px",
-                                  color: "#374151",
-                                  backgroundColor: "#fff",
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {coachView === "createPlayer" && (
+            <CreatePlayerPage
+              newPlayerName={newPlayerName}
+              setNewPlayerName={setNewPlayerName}
+              newPlayerPassword={newPlayerPassword}
+              setNewPlayerPassword={setNewPlayerPassword}
+              handleCreatePlayer={handleCreatePlayer}
+              isCreatingPlayer={isCreatingPlayer}
+              createdPlayer={createdPlayer}
+              inputStyle={inputStyle}
+              buttonStyle={buttonStyle}
+              cardTitleStyle={cardTitleStyle}
+            />
+          )}
 
-              {selectedPlayer && (
-                <div
-                  style={{
-                    marginTop: "16px",
-                    padding: "14px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "10px",
-                    backgroundColor: "#f9fafb",
-                  }}
-                >
-                  <h3 style={cardTitleStyle}>Vald spelare</h3>
-
-                  <div style={{ fontSize: "14px", color: "#111827", marginBottom: "6px" }}>
-                    <strong>Namn:</strong> {selectedPlayer.full_name}
-                  </div>
-
-                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-                    <strong>Användarnamn:</strong> {selectedPlayer.username}
-                  </div>
-
-                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-                    <strong>Senaste pass:</strong> {selectedPlayer.latestPass || "-"}
-                  </div>
-
-                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-                    <strong>Totalt antal pass:</strong> {selectedPlayer.totalPasses ?? 0}
-                  </div>
-
-                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "12px" }}>
-                    <strong>Kommentar:</strong> {selectedPlayer.comment || "-"}
-                  </div>
-
-                  <div style={{ marginTop: "12px" }}>
-                    <h3 style={cardTitleStyle}>Individuella mål</h3>
-
-                    <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
-                      {Object.keys(activeWorkouts).map((passKey) => (
-                        <button
-                          key={passKey}
-                          type="button"
-                          onClick={() => setTargetPassName(passKey)}
-                          style={{
-                            ...secondaryButtonStyle,
-                            backgroundColor: targetPassName === passKey ? "#111827" : "#ffffff",
-                            color: targetPassName === passKey ? "#ffffff" : "#111827",
-                          }}
-                        >
-                          {activeWorkouts[passKey].label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {isLoadingTargets ? (
-                      <p style={mutedTextStyle}>Laddar individuella mål...</p>
-                    ) : (
-                      <div>
-                        {activeWorkouts[targetPassName].exercises.map((exercise) => {
-                          const draft = {
-                            target_reps_mode: exercise.defaultRepsMode || "fixed",
-                            ...(targetDrafts[exercise.name] || {}),
-                          }
-
-                          return (
-                            <div
-                              key={exercise.name}
-                              style={{
-                                border: "1px solid #e5e7eb",
-                                borderRadius: "10px",
-                                padding: "12px",
-                                marginBottom: "10px",
-                                backgroundColor: "#ffffff",
-                              }}
-                            >
-                              <div style={{ marginBottom: "8px" }}>
-                                <strong>{exercise.name}</strong>
-                                <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                                  {exercise.guide}
-                                </div>
-                              </div>
-
-                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                                <input
-                                  type="number"
-                                  placeholder="Set"
-                                  value={draft.target_sets ?? ""}
-                                  onChange={(e) => handleTargetDraftChange(exercise.name, "target_sets", e.target.value)}
-                                  style={inputStyle}
-                                />
-                                <input
-                                  type="number"
-                                  placeholder="Reps"
-                                  disabled={draft.target_reps_mode === "max"}
-                                  value={draft.target_reps ?? ""}
-                                  onChange={(e) => handleTargetDraftChange(exercise.name, "target_reps", e.target.value)}
-                                  style={{ ...inputStyle, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleTargetDraftChange(
-                                      exercise.name,
-                                      "target_reps_mode",
-                                      draft.target_reps_mode === "max" ? "fixed" : "max"
-                                    )
-                                  }
-                                  style={{
-                                    ...secondaryButtonStyle,
-                                    backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
-                                    color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
-                                  }}
-                                >
-                                  {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
-                                </button>
-                                {exercise.type === "weight_reps" && (
-                                  <input
-                                    type="number"
-                                    placeholder="Vikt"
-                                    value={draft.target_weight ?? ""}
-                                    onChange={(e) => handleTargetDraftChange(exercise.name, "target_weight", e.target.value)}
-                                    style={inputStyle}
-                                  />
-                                )}
-                              </div>
-
-                              <input
-                                type="text"
-                                placeholder="Kommentar / teknikfokus"
-                                value={draft.target_comment ?? ""}
-                                onChange={(e) => handleTargetDraftChange(exercise.name, "target_comment", e.target.value)}
-                                style={{ ...inputStyle, width: "100%" }}
-                              />
-                            </div>
-                          )
-                        })}
-
-                        <button
-                          type="button"
-                          onClick={handleSaveTargets}
-                          disabled={isSavingTargets}
-                          style={{
-                            ...buttonStyle,
-                            opacity: isSavingTargets ? 0.7 : 1,
-                            cursor: isSavingTargets ? "default" : "pointer",
-                          }}
-                        >
-                          {isSavingTargets ? "Sparar..." : "Spara individuella mål"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
+          {coachView === "players" && (
+            <PlayersPage
+              isLoadingPlayers={isLoadingPlayers}
+              players={players}
+              selectedPlayer={selectedPlayer}
+              setSelectedPlayer={setSelectedPlayer}
+              commentDrafts={commentDrafts}
+              handleCommentChange={handleCommentChange}
+              handleCommentSave={handleCommentSave}
+              mutedTextStyle={mutedTextStyle}
+              cardTitleStyle={cardTitleStyle}
+              inputStyle={inputStyle}
+              activeWorkouts={activeWorkouts}
+              targetPassName={targetPassName}
+              setTargetPassName={setTargetPassName}
+              isLoadingTargets={isLoadingTargets}
+              targetDrafts={targetDrafts}
+              handleTargetDraftChange={handleTargetDraftChange}
+              handleSaveTargets={handleSaveTargets}
+              isSavingTargets={isSavingTargets}
+            />
           )}
         </div>
       )}
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={workoutActionSectionStyle}>
         {!isWorkoutActive ? (
           <>
             <button onClick={() => setShowPicker(!showPicker)} style={buttonStyle}>
@@ -1372,8 +1258,8 @@ function TrainingApp() {
 }
 
 const pageStyle = {
-  padding: "24px",
-  maxWidth: "760px",
+  padding: "24px 20px 40px",
+  maxWidth: "860px",
   margin: "0 auto",
   backgroundColor: "#f7f8fa",
   minHeight: "100vh",
@@ -1381,9 +1267,47 @@ const pageStyle = {
 }
 
 const titleStyle = {
-  fontSize: "28px",
-  marginBottom: "16px",
+  fontSize: "34px",
+  margin: 0,
   color: "#111827",
+  lineHeight: 1.1,
+}
+
+const headerStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "24px",
+}
+
+const eyebrowStyle = {
+  margin: "0 0 6px 0",
+  fontSize: "12px",
+  fontWeight: "700",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const logoutButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "10px",
+  border: "1px solid #d1d5db",
+  backgroundColor: "#ffffff",
+  color: "#111827",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "700",
+  whiteSpace: "nowrap",
+}
+
+const workoutActionSectionStyle = {
+  marginBottom: "24px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "12px",
 }
 
 const sectionTitleStyle = {
@@ -1643,6 +1567,27 @@ const statusStyle = {
   color: "#6b7280",
   marginTop: 0,
   marginBottom: "16px",
+}
+
+const coachNavCardStyle = {
+  padding: "16px",
+  borderRadius: "12px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#ffffff",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const coachNavTitleStyle = {
+  fontWeight: "700",
+  fontSize: "16px",
+  color: "#111827",
+  marginBottom: "4px",
+}
+
+const coachNavTextStyle = {
+  fontSize: "13px",
+  color: "#6b7280",
 }
 
 export default TrainingApp
