@@ -22,7 +22,8 @@ function TrainingApp() {
   const [coachView, setCoachView] = useState("home")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
-  const [targetPassName, setTargetPassName] = useState("A")
+  const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
+  const [assignedWorkoutCodes, setAssignedWorkoutCodes] = useState([])
   const [selectedTemplateCode, setSelectedTemplateCode] = useState("A")
   const [newPassName, setNewPassName] = useState("")
   const [isCreatingPass, setIsCreatingPass] = useState(false)
@@ -72,19 +73,33 @@ function TrainingApp() {
 
   useEffect(() => {
     if (selectedPlayer) {
-      loadPlayerTargets(selectedPlayer.id, targetPassName)
+      loadPlayerTargets(selectedPlayer.id)
     } else {
       setTargetDrafts({})
+      setSelectedPlayerAssignedPasses([])
     }
-  }, [selectedPlayer, targetPassName])
+  }, [selectedPlayer])
 
   useEffect(() => {
-    if (user && selectedWorkout) {
+    if (user) {
       loadCurrentUserTargets(user.id, selectedWorkout)
     } else {
       setPlayerTargets({})
+      setAssignedWorkoutCodes([])
     }
   }, [user, selectedWorkout])
+
+  useEffect(() => {
+    if (profile?.role !== "player") return
+    if (!assignedWorkoutCodes.length) {
+      setSelectedWorkout(null)
+      return
+    }
+
+    if (!selectedWorkout || !assignedWorkoutCodes.includes(selectedWorkout)) {
+      setSelectedWorkout(assignedWorkoutCodes[0])
+    }
+  }, [assignedWorkoutCodes, profile?.role, selectedWorkout])
 
   useEffect(() => {
     if (!selectedTemplateCode || !templatesFromDB.length) return
@@ -212,21 +227,30 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select("exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
+      .select("pass_name, exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
       .eq("player_id", userId)
-      .eq("pass_name", passName)
 
     if (error) {
       console.error(error)
       setPlayerTargets({})
+      setAssignedWorkoutCodes([])
       setIsLoadingPlayerTargets(false)
       return
     }
 
-    const targetMap = {}
+    const targetsByPass = {}
+    const nextAssignedPasses = new Set()
 
     ;(data || []).forEach((row) => {
-      targetMap[row.exercise_name] = {
+      if (!row.pass_name) return
+
+      nextAssignedPasses.add(row.pass_name)
+
+      if (!targetsByPass[row.pass_name]) {
+        targetsByPass[row.pass_name] = {}
+      }
+
+      targetsByPass[row.pass_name][row.exercise_name] = {
         target_sets: row.target_sets,
         target_reps: row.target_reps,
         target_reps_mode: row.target_reps_mode || "fixed",
@@ -235,7 +259,8 @@ function TrainingApp() {
       }
     })
 
-    setPlayerTargets(targetMap)
+    setAssignedWorkoutCodes(Array.from(nextAssignedPasses))
+    setPlayerTargets(targetsByPass[passName] || {})
     setIsLoadingPlayerTargets(false)
   }
 
@@ -344,26 +369,35 @@ function TrainingApp() {
     setIsLoadingPlayers(false)
   }
 
-  const loadPlayerTargets = async (playerId, passName) => {
+  const loadPlayerTargets = async (playerId) => {
     setIsLoadingTargets(true)
 
     const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select("exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
+      .select("pass_name, exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
       .eq("player_id", playerId)
-      .eq("pass_name", passName)
 
     if (error) {
       console.error(error)
       setTargetDrafts({})
+      setSelectedPlayerAssignedPasses([])
       setIsLoadingTargets(false)
       return
     }
 
     const draftMap = {}
+    const assignedPasses = new Set()
 
     ;(data || []).forEach((row) => {
-      draftMap[row.exercise_name] = {
+      if (!row.pass_name) return
+
+      assignedPasses.add(row.pass_name)
+
+      if (!draftMap[row.pass_name]) {
+        draftMap[row.pass_name] = {}
+      }
+
+      draftMap[row.pass_name][row.exercise_name] = {
         target_sets: row.target_sets ?? "",
         target_reps: row.target_reps ?? "",
         target_reps_mode: row.target_reps_mode || "fixed",
@@ -373,6 +407,7 @@ function TrainingApp() {
     })
 
     setTargetDrafts(draftMap)
+    setSelectedPlayerAssignedPasses(Array.from(assignedPasses))
     setIsLoadingTargets(false)
   }
 
@@ -696,12 +731,15 @@ function TrainingApp() {
     setCoachView("players")
   }
 
-  const handleTargetDraftChange = (exerciseName, field, value) => {
+  const handleTargetDraftChange = (passName, exerciseName, field, value) => {
     setTargetDrafts((prev) => ({
       ...prev,
-      [exerciseName]: {
-        ...(prev[exerciseName] || {}),
-        [field]: value,
+      [passName]: {
+        ...(prev[passName] || {}),
+        [exerciseName]: {
+          ...((prev[passName] || {})[exerciseName] || {}),
+          [field]: value,
+        },
       },
     }))
   }
@@ -711,22 +749,35 @@ function TrainingApp() {
 
     setIsSavingTargets(true)
 
-    const exercises = activeWorkouts[targetPassName].exercises
+    const rows = selectedPlayerAssignedPasses.flatMap((passName) => {
+      const exercises = activeWorkouts[passName]?.exercises || []
 
-    const rows = exercises.map((exercise) => {
-      const draft = targetDrafts[exercise.name] || {}
+      return exercises.map((exercise) => {
+        const draft = targetDrafts[passName]?.[exercise.name] || {}
 
-      return {
-        player_id: selectedPlayer.id,
-        pass_name: targetPassName,
-        exercise_name: exercise.name,
-        target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
-        target_reps: draft.target_reps_mode === "max" ? null : (draft.target_reps === "" ? null : Number(draft.target_reps)),
-        target_reps_mode: draft.target_reps_mode || "fixed",
-        target_weight: draft.target_weight === "" ? null : Number(draft.target_weight),
-        target_comment: draft.target_comment || null,
-      }
+        return {
+          player_id: selectedPlayer.id,
+          pass_name: passName,
+          exercise_name: exercise.name,
+          target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
+          target_reps:
+            draft.target_reps_mode === "max"
+              ? null
+              : draft.target_reps === ""
+              ? null
+              : Number(draft.target_reps),
+          target_reps_mode: draft.target_reps_mode || "fixed",
+          target_weight: draft.target_weight === "" ? null : Number(draft.target_weight),
+          target_comment: draft.target_comment || null,
+        }
+      })
     })
+
+    if (rows.length === 0) {
+      setStatus("Tilldela minst ett pass först")
+      setIsSavingTargets(false)
+      return
+    }
 
     const { error } = await supabase
       .from("player_exercise_targets")
@@ -741,7 +792,61 @@ function TrainingApp() {
 
     setStatus("Individuella mål sparade ✅")
     setIsSavingTargets(false)
-    await loadPlayerTargets(selectedPlayer.id, targetPassName)
+    await loadPlayerTargets(selectedPlayer.id)
+  }
+
+  const handleAssignPassToPlayer = async (passName) => {
+    if (!selectedPlayer) return
+
+    const exercises = activeWorkouts[passName]?.exercises || []
+
+    if (exercises.length === 0) {
+      setStatus("Passet har inga övningar än")
+      return
+    }
+
+    const rows = exercises.map((exercise) => ({
+      player_id: selectedPlayer.id,
+      pass_name: passName,
+      exercise_name: exercise.name,
+      target_sets: null,
+      target_reps: null,
+      target_reps_mode: exercise.defaultRepsMode || "fixed",
+      target_weight: null,
+      target_comment: null,
+    }))
+
+    const { error } = await supabase
+      .from("player_exercise_targets")
+      .upsert(rows, { onConflict: "player_id,pass_name,exercise_name" })
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte tilldela pass")
+      return
+    }
+
+    setStatus(`${activeWorkouts[passName]?.label || passName} tilldelat ✅`)
+    await loadPlayerTargets(selectedPlayer.id)
+  }
+
+  const handleUnassignPassFromPlayer = async (passName) => {
+    if (!selectedPlayer) return
+
+    const { error } = await supabase
+      .from("player_exercise_targets")
+      .delete()
+      .eq("player_id", selectedPlayer.id)
+      .eq("pass_name", passName)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ta bort passtilldelning")
+      return
+    }
+
+    setStatus(`${activeWorkouts[passName]?.label || passName} borttaget ✅`)
+    await loadPlayerTargets(selectedPlayer.id)
   }
 
   const resetExerciseForm = () => {
@@ -1205,6 +1310,18 @@ function TrainingApp() {
     return <div style={pageStyle}>Laddar...</div>
   }
 
+  const visibleWorkouts =
+    profile?.role === "coach"
+      ? activeWorkouts
+      : assignedWorkoutCodes.reduce((acc, passCode) => {
+          if (activeWorkouts[passCode]) {
+            acc[passCode] = activeWorkouts[passCode]
+          }
+          return acc
+        }, {})
+
+  const currentWorkoutTargets = playerTargets || {}
+
   const coachTabs = [
     { key: "home", label: "Översikt" },
     { key: "players", label: "Spelare" },
@@ -1388,13 +1505,14 @@ function TrainingApp() {
                 cardTitleStyle={cardTitleStyle}
                 inputStyle={inputStyle}
                 activeWorkouts={activeWorkouts}
-                targetPassName={targetPassName}
-                setTargetPassName={setTargetPassName}
+                assignedPassCodes={selectedPlayerAssignedPasses}
                 isLoadingTargets={isLoadingTargets}
                 targetDrafts={targetDrafts}
                 handleTargetDraftChange={handleTargetDraftChange}
                 handleSaveTargets={handleSaveTargets}
                 isSavingTargets={isSavingTargets}
+                handleAssignPassToPlayer={handleAssignPassToPlayer}
+                handleUnassignPassFromPlayer={handleUnassignPassFromPlayer}
               />
             )}
           </div>
@@ -1404,13 +1522,23 @@ function TrainingApp() {
       <div style={workoutActionSectionStyle}>
         {!isWorkoutActive ? (
           <>
-            <button onClick={() => setShowPicker(!showPicker)} style={buttonStyle}>
+            <button
+              onClick={() => setShowPicker(!showPicker)}
+              style={buttonStyle}
+              disabled={profile?.role === "player" && Object.keys(visibleWorkouts).length === 0}
+            >
               Starta pass
             </button>
 
+            {profile?.role === "player" && Object.keys(visibleWorkouts).length === 0 && (
+              <p style={mutedTextStyle}>
+                Inga pass är tilldelade ännu. Be en tränare lägga till pass åt dig.
+              </p>
+            )}
+
             {showPicker && (
               <div style={pickerGridStyle}>
-                {Object.entries(activeWorkouts).map(([key, workout]) => (
+                {Object.entries(visibleWorkouts).map(([key, workout]) => (
                   <button
                     key={key}
                     onClick={() => startWorkout(key)}
@@ -1436,7 +1564,7 @@ function TrainingApp() {
 
       {selectedWorkout && (
         <>
-          <h2 style={sectionTitleStyle}>{activeWorkouts[selectedWorkout].label}</h2>
+          <h2 style={sectionTitleStyle}>{visibleWorkouts[selectedWorkout]?.label}</h2>
 
           <div style={cardStyle}>
             <h3 style={cardTitleStyle}>Uppvärmning</h3>
@@ -1444,22 +1572,22 @@ function TrainingApp() {
             <div style={{ marginBottom: 14 }}>
               <p style={subheadingStyle}>Pulshöjande aktivitet</p>
               <p style={mutedTextStyle}>
-                {activeWorkouts[selectedWorkout].warmup.cardio}
+                {visibleWorkouts[selectedWorkout]?.warmup.cardio}
               </p>
             </div>
 
             <div>
               <p style={subheadingStyle}>Teknikuppvärmning</p>
               <div style={mutedTextStyle}>
-                {activeWorkouts[selectedWorkout].warmup.technique.map((item, index) => (
+                {visibleWorkouts[selectedWorkout]?.warmup.technique.map((item, index) => (
                   <div key={index}>{index + 1}. {item}</div>
                 ))}
               </div>
             </div>
           </div>
 
-          {activeWorkouts[selectedWorkout].exercises.map((exercise, i) => {
-            const totalExercises = activeWorkouts[selectedWorkout].exercises.length
+          {visibleWorkouts[selectedWorkout]?.exercises.map((exercise, i) => {
+            const totalExercises = visibleWorkouts[selectedWorkout].exercises.length
             const isInfoExpanded = !!expandedInfo[exercise.name]
 
             return (
@@ -1477,25 +1605,25 @@ function TrainingApp() {
                   <div style={targetBoxStyle}>
                     <div style={targetBoxTitleStyle}>Dagens mål</div>
 
-                    {playerTargets[exercise.name] ? (
+                    {currentWorkoutTargets[exercise.name] ? (
                       <>
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Set</span>
-                          <span style={targetValueStyle}>{playerTargets[exercise.name].target_sets ?? "-"}</span>
+                          <span style={targetValueStyle}>{currentWorkoutTargets[exercise.name].target_sets ?? "-"}</span>
                         </div>
 
                         {exercise.type === "seconds_only" ? (
                           <div style={targetRowStyle}>
                             <span style={targetLabelStyle}>Tid</span>
-                            <span style={targetValueStyle}>{playerTargets[exercise.name].target_reps ?? "-"} sek</span>
+                            <span style={targetValueStyle}>{currentWorkoutTargets[exercise.name].target_reps ?? "-"} sek</span>
                           </div>
                         ) : (
                           <div style={targetRowStyle}>
                             <span style={targetLabelStyle}>Reps</span>
                             <span style={targetValueStyle}>
-                              {playerTargets[exercise.name].target_reps_mode === "max"
+                              {currentWorkoutTargets[exercise.name].target_reps_mode === "max"
                                 ? "max"
-                                : (playerTargets[exercise.name].target_reps ?? "-")}
+                                : (currentWorkoutTargets[exercise.name].target_reps ?? "-")}
                             </span>
                           </div>
                         )}
@@ -1504,16 +1632,16 @@ function TrainingApp() {
                           <div style={targetRowStyle}>
                             <span style={targetLabelStyle}>Vikt</span>
                             <span style={targetValueStyle}>
-                              {playerTargets[exercise.name].target_weight != null
-                                ? `${playerTargets[exercise.name].target_weight} kg`
+                              {currentWorkoutTargets[exercise.name].target_weight != null
+                                ? `${currentWorkoutTargets[exercise.name].target_weight} kg`
                                 : "-"}
                             </span>
                           </div>
                         )}
 
-                        {playerTargets[exercise.name].target_comment && (
+                        {currentWorkoutTargets[exercise.name].target_comment && (
                           <div style={{ ...targetCommentStyle, marginTop: "8px" }}>
-                            <strong>Kommentar:</strong> {playerTargets[exercise.name].target_comment}
+                            <strong>Kommentar:</strong> {currentWorkoutTargets[exercise.name].target_comment}
                           </div>
                         )}
                       </>

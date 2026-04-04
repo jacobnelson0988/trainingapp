@@ -10,14 +10,18 @@ function PlayersPage({
   cardTitleStyle,
   inputStyle,
   activeWorkouts,
-  targetPassName,
-  setTargetPassName,
+  assignedPassCodes,
   isLoadingTargets,
   targetDrafts,
   handleTargetDraftChange,
   handleSaveTargets,
   isSavingTargets,
+  handleAssignPassToPlayer,
+  handleUnassignPassFromPlayer,
 }) {
+  const allPassKeys = Object.keys(activeWorkouts)
+  const assignedPassSet = new Set(assignedPassCodes || [])
+
   return (
     <>
       <h3 style={cardTitleStyle}>Mina spelare</h3>
@@ -118,117 +122,143 @@ function PlayersPage({
           </div>
 
           <div style={{ marginTop: "12px" }}>
-            <h3 style={cardTitleStyle}>Individuella mål</h3>
+            <h3 style={cardTitleStyle}>Tilldelade pass</h3>
 
-            <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
-              {Object.keys(activeWorkouts).map((passKey) => (
+            <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+              {allPassKeys.map((passKey) => (
                 <button
                   key={passKey}
                   type="button"
-                  onClick={() => setTargetPassName(passKey)}
+                  onClick={() =>
+                    assignedPassSet.has(passKey)
+                      ? handleUnassignPassFromPlayer(passKey)
+                      : handleAssignPassToPlayer(passKey)
+                  }
                   style={{
                     padding: "10px 14px",
                     borderRadius: "10px",
                     border: "1px solid #d1d5db",
-                    backgroundColor: targetPassName === passKey ? "#111827" : "#ffffff",
-                    color: targetPassName === passKey ? "#ffffff" : "#111827",
+                    backgroundColor: assignedPassSet.has(passKey) ? "#111827" : "#ffffff",
+                    color: assignedPassSet.has(passKey) ? "#ffffff" : "#111827",
                     cursor: "pointer",
                     fontSize: "14px",
                     fontWeight: "700",
                   }}
                 >
-                  {activeWorkouts[passKey].label}
+                  {assignedPassSet.has(passKey) ? `Tilldelad: ${activeWorkouts[passKey].label}` : `Tilldela ${activeWorkouts[passKey].label}`}
                 </button>
               ))}
             </div>
 
+            <h3 style={cardTitleStyle}>Individuella mål per övning</h3>
+
             {isLoadingTargets ? (
               <p style={mutedTextStyle}>Laddar individuella mål...</p>
+            ) : assignedPassCodes.length === 0 ? (
+              <p style={mutedTextStyle}>Tilldela minst ett pass för att kunna sätta mål på övningarna.</p>
             ) : (
               <div>
-                {activeWorkouts[targetPassName].exercises.map((exercise) => {
-                  const draft = {
-                    target_reps_mode: exercise.defaultRepsMode || "fixed",
-                    ...(targetDrafts[exercise.name] || {}),
-                  }
+                {assignedPassCodes.map((passKey) => (
+                  <div
+                    key={passKey}
+                    style={{
+                      marginBottom: "16px",
+                      padding: "14px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      backgroundColor: "#f9fafb",
+                    }}
+                  >
+                    <div style={{ marginBottom: "12px" }}>
+                      <strong>{activeWorkouts[passKey]?.label || passKey}</strong>
+                    </div>
 
-                  return (
-                    <div
-                      key={exercise.name}
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        marginBottom: "10px",
-                        backgroundColor: "#ffffff",
-                      }}
-                    >
-                      <div style={{ marginBottom: "8px" }}>
-                        <strong>{exercise.name}</strong>
-                        <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                          {exercise.guide}
-                        </div>
-                      </div>
+                    {(activeWorkouts[passKey]?.exercises || []).map((exercise) => {
+                      const draft = {
+                        target_reps_mode: exercise.defaultRepsMode || "fixed",
+                        ...((targetDrafts[passKey] || {})[exercise.name] || {}),
+                      }
 
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                        <input
-                          type="number"
-                          placeholder="Set"
-                          value={draft.target_sets ?? ""}
-                          onChange={(e) => handleTargetDraftChange(exercise.name, "target_sets", e.target.value)}
-                          style={inputStyle}
-                        />
-                        <input
-                          type="number"
-                          placeholder="Reps"
-                          disabled={draft.target_reps_mode === "max"}
-                          value={draft.target_reps ?? ""}
-                          onChange={(e) => handleTargetDraftChange(exercise.name, "target_reps", e.target.value)}
-                          style={{ ...inputStyle, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleTargetDraftChange(
-                              exercise.name,
-                              "target_reps_mode",
-                              draft.target_reps_mode === "max" ? "fixed" : "max"
-                            )
-                          }
+                      return (
+                        <div
+                          key={`${passKey}-${exercise.name}`}
                           style={{
-                            padding: "10px 14px",
+                            border: "1px solid #e5e7eb",
                             borderRadius: "10px",
-                            border: "1px solid #d1d5db",
-                            backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
-                            color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            fontWeight: "700",
+                            padding: "12px",
+                            marginBottom: "10px",
+                            backgroundColor: "#ffffff",
                           }}
                         >
-                          {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
-                        </button>
-                        {exercise.type === "weight_reps" && (
-                          <input
-                            type="number"
-                            placeholder="Vikt"
-                            value={draft.target_weight ?? ""}
-                            onChange={(e) => handleTargetDraftChange(exercise.name, "target_weight", e.target.value)}
-                            style={inputStyle}
-                          />
-                        )}
-                      </div>
+                          <div style={{ marginBottom: "8px" }}>
+                            <strong>{exercise.name}</strong>
+                            <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                              {exercise.guide}
+                            </div>
+                          </div>
 
-                      <input
-                        type="text"
-                        placeholder="Kommentar / teknikfokus"
-                        value={draft.target_comment ?? ""}
-                        onChange={(e) => handleTargetDraftChange(exercise.name, "target_comment", e.target.value)}
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
-                    </div>
-                  )
-                })}
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                            <input
+                              type="number"
+                              placeholder="Set"
+                              value={draft.target_sets ?? ""}
+                              onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_sets", e.target.value)}
+                              style={inputStyle}
+                            />
+                            <input
+                              type="number"
+                              placeholder="Reps"
+                              disabled={draft.target_reps_mode === "max"}
+                              value={draft.target_reps ?? ""}
+                              onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_reps", e.target.value)}
+                              style={{ ...inputStyle, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleTargetDraftChange(
+                                  passKey,
+                                  exercise.name,
+                                  "target_reps_mode",
+                                  draft.target_reps_mode === "max" ? "fixed" : "max"
+                                )
+                              }
+                              style={{
+                                padding: "10px 14px",
+                                borderRadius: "10px",
+                                border: "1px solid #d1d5db",
+                                backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
+                                color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                fontWeight: "700",
+                              }}
+                            >
+                              {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
+                            </button>
+                            {exercise.type === "weight_reps" && (
+                              <input
+                                type="number"
+                                placeholder="Vikt"
+                                value={draft.target_weight ?? ""}
+                                onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_weight", e.target.value)}
+                                style={inputStyle}
+                              />
+                            )}
+                          </div>
+
+                          <input
+                            type="text"
+                            placeholder="Kommentar / teknikfokus"
+                            value={draft.target_comment ?? ""}
+                            onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_comment", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
 
                 <button
                   type="button"
