@@ -232,6 +232,9 @@ function PassBuilderPage({
 
                 return (
                   <div style={{ display: "grid", gap: "10px" }}>
+                    <div style={{ fontSize: "12px", color: "#6b7280", lineHeight: 1.5 }}>
+                      Standardtexten hämtas från övningsbanken. Ändra här om passet behöver en egen instruktion.
+                    </div>
                     <textarea
                       rows={3}
                       placeholder="Guide eller instruktion för övningen"

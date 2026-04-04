@@ -219,7 +219,8 @@ function TrainingApp() {
           sortOrder: row.sort_order,
           name: row.exercises?.name || "",
           type: row.exercises?.exercise_type || "reps_only",
-          guide: row.custom_guide || "",
+          baseGuide: row.exercises?.guide || "",
+          guide: row.custom_guide ?? row.exercises?.guide ?? "",
           defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
           targetSets: row.target_sets ?? null,
           targetReps: row.target_reps ?? null,
@@ -1124,7 +1125,7 @@ function TrainingApp() {
       workout_template_id: selectedTemplate.id,
       exercise_id: selectedExerciseId,
       sort_order: nextSortOrder,
-      custom_guide: selectedExercise.guide || null,
+      custom_guide: null,
     }
 
     const { data, error } = await supabase
@@ -1170,18 +1171,24 @@ function TrainingApp() {
   const handleSavePassExercises = async () => {
     setStatus("")
 
-    const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => ({
-      id: rowId,
-      custom_guide: draft.guide?.trim() || null,
-      target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
-      target_reps:
-        draft.targetRepsMode === "max"
-          ? null
-          : draft.targetReps === ""
-          ? null
-          : Number(draft.targetReps),
-      target_reps_mode: draft.targetRepsMode || "fixed",
-    }))
+    const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
+      const existingRow = templateExercisesFromDB.find((row) => row.id === rowId)
+      const baseGuide = existingRow?.exercises?.guide?.trim() || ""
+      const nextGuide = draft.guide?.trim() || ""
+
+      return {
+        id: rowId,
+        custom_guide: nextGuide && nextGuide !== baseGuide ? nextGuide : null,
+        target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
+        target_reps:
+          draft.targetRepsMode === "max"
+            ? null
+            : draft.targetReps === ""
+            ? null
+            : Number(draft.targetReps),
+        target_reps_mode: draft.targetRepsMode || "fixed",
+      }
+    })
 
     if (updates.length === 0) {
       setStatus("Inga ändringar att spara")
@@ -1204,11 +1211,15 @@ function TrainingApp() {
 
         if (!draft) return row
 
+        const baseGuide = row.exercises?.guide?.trim() || ""
+        const nextGuide = draft.guide?.trim() || ""
+        const nextCustomGuide = nextGuide && nextGuide !== baseGuide ? nextGuide : null
+
         return {
           ...row,
           custom_guide:
             draft.guide !== undefined
-              ? draft.guide.trim() || null
+              ? nextCustomGuide
               : row.custom_guide,
           target_sets:
             draft.targetSets !== undefined
