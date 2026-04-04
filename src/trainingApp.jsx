@@ -94,6 +94,19 @@ function TrainingApp() {
   }, [selectedTemplateCode, templatesFromDB])
 
   useEffect(() => {
+    if (!templatesFromDB.length) {
+      setSelectedTemplateCode("")
+      return
+    }
+
+    const hasSelectedTemplate = templatesFromDB.some((template) => template.code === selectedTemplateCode)
+
+    if (!hasSelectedTemplate) {
+      setSelectedTemplateCode(templatesFromDB[0].code)
+    }
+  }, [selectedTemplateCode, templatesFromDB])
+
+  useEffect(() => {
     const fetchExercises = async () => {
       const { data, error } = await supabase
         .from("exercises")
@@ -894,6 +907,7 @@ function TrainingApp() {
 
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => ({
       id: rowId,
+      custom_guide: draft.guide?.trim() || null,
       target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
       target_reps:
         draft.targetRepsMode === "max"
@@ -918,6 +932,37 @@ function TrainingApp() {
       setStatus("Kunde inte spara passändringar")
       return
     }
+
+    setTemplateExercisesFromDB((prev) =>
+      prev.map((row) => {
+        const draft = passExerciseDrafts[row.id]
+
+        if (!draft) return row
+
+        return {
+          ...row,
+          custom_guide:
+            draft.guide !== undefined
+              ? draft.guide.trim() || null
+              : row.custom_guide,
+          target_sets:
+            draft.targetSets !== undefined
+              ? draft.targetSets === ""
+                ? null
+                : Number(draft.targetSets)
+              : row.target_sets,
+          target_reps:
+            draft.targetRepsMode === "max"
+              ? null
+              : draft.targetReps !== undefined
+              ? draft.targetReps === ""
+                ? null
+                : Number(draft.targetReps)
+              : row.target_reps,
+          target_reps_mode: draft.targetRepsMode || row.target_reps_mode || "fixed",
+        }
+      })
+    )
 
     setStatus("Pass uppdaterat ✅")
     setPassExerciseDrafts({})
@@ -950,13 +995,11 @@ function TrainingApp() {
   }
 
   const handleMoveExerciseInPass = async (rowId, direction) => {
-    console.log("MOVE", { rowId, direction, selectedTemplateCode })
     setStatus("")
 
     const currentRows = templateExercisesFromDB
       .filter((row) => row.workout_templates?.code === selectedTemplateCode)
       .sort((a, b) => a.sort_order - b.sort_order)
-    console.log("MOVE currentRows", currentRows)
 
     const currentIndex = currentRows.findIndex((row) => row.id === rowId)
     if (currentIndex === -1) return
@@ -1011,11 +1054,31 @@ function TrainingApp() {
 
     setIsCreatingPass(true)
 
-    const code = newPassName.trim().toUpperCase().replace(/\s+/g, "_")
+    const normalizedCode = newPassName
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+
+    if (!normalizedCode) {
+      setStatus("Kunde inte skapa giltig passkod")
+      setIsCreatingPass(false)
+      return
+    }
+
+    const alreadyExists = templatesFromDB.some((template) => template.code === normalizedCode)
+
+    if (alreadyExists) {
+      setStatus("Det finns redan ett pass med det namnet")
+      setIsCreatingPass(false)
+      return
+    }
 
     const { data, error } = await supabase
       .from("workout_templates")
-      .insert({ code, label: newPassName.trim() })
+      .insert({ code: normalizedCode, label: newPassName.trim() })
       .select()
       .single()
 
@@ -1031,6 +1094,56 @@ function TrainingApp() {
     setSelectedTemplateCode(data.code)
     setStatus("Pass skapat ✅")
     setIsCreatingPass(false)
+  }
+
+  const handleDeleteSelectedPass = async () => {
+    setStatus("")
+
+    const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+
+    if (!selectedTemplate) {
+      setStatus("Kunde inte hitta valt pass")
+      return
+    }
+
+    const confirmed = window.confirm(`Vill du ta bort ${selectedTemplate.label}?`)
+    if (!confirmed) return
+
+    const relatedRowIds = templateExercisesFromDB
+      .filter((row) => row.workout_template_id === selectedTemplate.id)
+      .map((row) => row.id)
+
+    if (relatedRowIds.length > 0) {
+      const { error: exercisesError } = await supabase
+        .from("workout_template_exercises")
+        .delete()
+        .in("id", relatedRowIds)
+
+      if (exercisesError) {
+        console.error(exercisesError)
+        setStatus("Kunde inte ta bort övningarna i passet")
+        return
+      }
+    }
+
+    const { error } = await supabase
+      .from("workout_templates")
+      .delete()
+      .eq("id", selectedTemplate.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ta bort passet")
+      return
+    }
+
+    setTemplateExercisesFromDB((prev) =>
+      prev.filter((row) => row.workout_template_id !== selectedTemplate.id)
+    )
+    setTemplatesFromDB((prev) => prev.filter((template) => template.id !== selectedTemplate.id))
+    setPassExerciseDrafts({})
+    setSelectedExerciseId("")
+    setStatus("Pass borttaget ✅")
   }
 
   const handleRenamePass = async (templateId, newLabel) => {
@@ -1189,6 +1302,7 @@ function TrainingApp() {
               handleSavePassExercises={handleSavePassExercises}
               handleRemoveExerciseFromPass={handleRemoveExerciseFromPass}
               handleMoveExerciseInPass={handleMoveExerciseInPass}
+              handleDeletePass={handleDeleteSelectedPass}
               cardTitleStyle={cardTitleStyle}
               secondaryButtonStyle={secondaryButtonStyle}
               mutedTextStyle={mutedTextStyle}

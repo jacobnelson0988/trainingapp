@@ -19,6 +19,7 @@ function PassBuilderPage({
   handleSavePassExercises,
   handleRemoveExerciseFromPass,
   handleMoveExerciseInPass,
+  handleDeletePass,
   cardTitleStyle,
   secondaryButtonStyle,
   mutedTextStyle,
@@ -26,13 +27,18 @@ function PassBuilderPage({
   buttonStyle,
 }) {
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
+  const passKeys = Object.keys(activeWorkouts || {})
 
   return (
     <>
       <h3 style={cardTitleStyle}>Passhantering</h3>
 
+      <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
+        Bygg pass genom att skapa ett pass, lägga till övningar, ändra ordning och spara mål och guide per övning.
+      </p>
+
       <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
-        {Object.keys(activeWorkouts || {}).map((passKey) => (
+        {passKeys.map((passKey) => (
           <button
             key={passKey}
             type="button"
@@ -47,6 +53,12 @@ function PassBuilderPage({
           </button>
         ))}
       </div>
+
+      {passKeys.length === 0 && (
+        <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
+          Inga pass finns ännu. Skapa ditt första pass här nedanför.
+        </p>
+      )}
 
       <div
         style={{
@@ -115,6 +127,19 @@ function PassBuilderPage({
           >
             Spara namn
           </button>
+
+          <button
+            type="button"
+            onClick={handleDeletePass}
+            disabled={!selectedTemplateCode}
+            style={{
+              ...secondaryButtonStyle,
+              color: "#b91c1c",
+              borderColor: "#fecaca",
+            }}
+          >
+            Ta bort pass
+          </button>
         </div>
       </div>
 
@@ -180,12 +205,10 @@ function PassBuilderPage({
               <div style={{ fontSize: "15px", fontWeight: "700", marginBottom: "4px" }}>
                 {exercise.name}
               </div>
-              <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "10px" }}>
-                {exercise.guide || "Ingen guide satt"}
-              </div>
 
               {(() => {
                 const draft = {
+                  guide: exercise.guide || "",
                   targetSets: exercise.targetSets ?? "",
                   targetReps: exercise.targetReps ?? "",
                   targetRepsMode: exercise.targetRepsMode || "fixed",
@@ -193,7 +216,21 @@ function PassBuilderPage({
                 }
 
                 return (
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <textarea
+                      rows={3}
+                      placeholder="Guide eller instruktion för övningen"
+                      value={draft.guide}
+                      onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        width: "100%",
+                        resize: "vertical",
+                        minHeight: "84px",
+                      }}
+                    />
+
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
                     <input
                       type="number"
                       placeholder="Set"
@@ -259,6 +296,7 @@ function PassBuilderPage({
                     >
                       Ta bort
                     </button>
+                    </div>
                   </div>
                 )
               })()}
