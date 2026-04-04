@@ -20,6 +20,9 @@ function PlayersPage({
   isSavingTargets,
   handleAssignPassToPlayer,
   handleUnassignPassFromPlayer,
+  handleAssignAllPassesToPlayer,
+  handleClearAssignedPassesFromPlayer,
+  isUpdatingPassAssignments,
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
@@ -73,15 +76,68 @@ function PlayersPage({
 
       <div style={{ marginTop: "12px" }}>
         <h3 style={cardTitleStyle}>Tilldelade pass</h3>
+        <div
+          style={{
+            marginBottom: "12px",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            backgroundColor: "#fff7f7",
+            border: "1px solid #f0dada",
+          }}
+        >
+          <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "4px" }}>
+            {assignedPassCodes.length} av {allPassKeys.length} pass tilldelade
+          </div>
+          <div style={{ fontSize: "13px", color: "#6b7280" }}>
+            Välj pass nedan för att lägga till eller ta bort dem direkt för {player.full_name}.
+          </div>
+        </div>
 
         <div
           style={{
             display: "flex",
             gap: "8px",
+            flexWrap: "wrap",
+            marginBottom: "14px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleAssignAllPassesToPlayer}
+            disabled={isUpdatingPassAssignments || allPassKeys.length === 0}
+            style={{
+              ...quickActionButtonStyle,
+              opacity: isUpdatingPassAssignments || allPassKeys.length === 0 ? 0.7 : 1,
+              cursor: isUpdatingPassAssignments || allPassKeys.length === 0 ? "default" : "pointer",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            Tilldela alla pass
+          </button>
+          <button
+            type="button"
+            onClick={handleClearAssignedPassesFromPlayer}
+            disabled={isUpdatingPassAssignments || assignedPassCodes.length === 0}
+            style={{
+              ...quickActionButtonStyle,
+              backgroundColor: "#ffffff",
+              color: "#991b1b",
+              border: "1px solid #efc7c7",
+              opacity: isUpdatingPassAssignments || assignedPassCodes.length === 0 ? 0.7 : 1,
+              cursor: isUpdatingPassAssignments || assignedPassCodes.length === 0 ? "default" : "pointer",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            Rensa alla pass
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gap: "10px",
             marginBottom: "16px",
-            flexWrap: isMobile ? "nowrap" : "wrap",
-            overflowX: isMobile ? "auto" : "visible",
-            paddingBottom: isMobile ? "4px" : 0,
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))",
           }}
         >
           {allPassKeys.map((passKey) => (
@@ -94,20 +150,38 @@ function PlayersPage({
                   : handleAssignPassToPlayer(passKey)
               }
               style={{
-                padding: "10px 14px",
-                borderRadius: "10px",
-                border: "1px solid #d1d5db",
-                backgroundColor: assignedPassSet.has(passKey) ? "#111827" : "#ffffff",
-                color: assignedPassSet.has(passKey) ? "#ffffff" : "#111827",
-                whiteSpace: "nowrap",
-                cursor: "pointer",
+                padding: "14px",
+                borderRadius: "14px",
+                border: assignedPassSet.has(passKey) ? "2px solid #c62828" : "1px solid #e5e7eb",
+                backgroundColor: assignedPassSet.has(passKey) ? "#fff7f7" : "#ffffff",
+                color: "#111827",
+                cursor: isUpdatingPassAssignments ? "default" : "pointer",
                 fontSize: "14px",
                 fontWeight: "700",
+                textAlign: "left",
+                opacity: isUpdatingPassAssignments ? 0.7 : 1,
               }}
+              disabled={isUpdatingPassAssignments}
             >
-              {assignedPassSet.has(passKey)
-                ? `Tilldelad: ${activeWorkouts[passKey].label}`
-                : `Tilldela ${activeWorkouts[passKey].label}`}
+              <div style={{ fontSize: "15px", fontWeight: "800", marginBottom: "6px" }}>
+                {activeWorkouts[passKey].label}
+              </div>
+              <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                {(activeWorkouts[passKey].exercises || []).length} övningar
+              </div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  padding: "5px 9px",
+                  borderRadius: "999px",
+                  backgroundColor: assignedPassSet.has(passKey) ? "#c62828" : "#f3f4f6",
+                  color: assignedPassSet.has(passKey) ? "#ffffff" : "#4b5563",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                }}
+              >
+                {assignedPassSet.has(passKey) ? "Tilldelat" : "Ej tilldelat"}
+              </div>
             </button>
           ))}
         </div>
@@ -389,6 +463,16 @@ const tableCellStyle = {
   borderTop: "1px solid #e5e7eb",
   borderBottom: "1px solid #e5e7eb",
   color: "#18202b",
+}
+
+const quickActionButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "10px",
+  border: "1px solid #d1d5db",
+  backgroundColor: "#111827",
+  color: "#ffffff",
+  fontSize: "14px",
+  fontWeight: "700",
 }
 
 export default PlayersPage

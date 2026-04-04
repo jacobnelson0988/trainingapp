@@ -12,6 +12,7 @@ function CreatePlayerPage({
   isMobile,
   importedPlayers,
   importFileName,
+  isParsingImportFile,
   handlePlayerImportFile,
   handleImportPlayers,
   isImportingPlayers,
@@ -88,6 +89,7 @@ function CreatePlayerPage({
         {importFileName && (
           <div style={{ marginBottom: "12px", fontSize: "13px", color: "#566173" }}>
             <strong>Fil:</strong> {importFileName}
+            {isParsingImportFile ? " • Läser fil..." : ""}
           </div>
         )}
 
@@ -125,12 +127,12 @@ function CreatePlayerPage({
         <button
           type="button"
           onClick={handleImportPlayers}
-          disabled={isImportingPlayers || importedPlayers.length === 0}
+          disabled={isImportingPlayers || isParsingImportFile || importedPlayers.length === 0}
           style={{
             ...buttonStyle,
             width: isMobile ? "100%" : "auto",
-            opacity: isImportingPlayers || importedPlayers.length === 0 ? 0.7 : 1,
-            cursor: isImportingPlayers || importedPlayers.length === 0 ? "default" : "pointer",
+            opacity: isImportingPlayers || isParsingImportFile || importedPlayers.length === 0 ? 0.7 : 1,
+            cursor: isImportingPlayers || isParsingImportFile || importedPlayers.length === 0 ? "default" : "pointer",
           }}
         >
           {isImportingPlayers ? "Importerar..." : "Importera spelare"}

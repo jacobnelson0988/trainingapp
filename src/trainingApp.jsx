@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react"
-import * as XLSX from "xlsx"
 import { supabase } from "./supabase"
 import ExerciseBankPage from "./pages/ExerciseBankPage"
 import PlayersPage from "./pages/PlayersPage"
@@ -25,12 +24,14 @@ function TrainingApp() {
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
   const [importedPlayers, setImportedPlayers] = useState([])
   const [importFileName, setImportFileName] = useState("")
+  const [isParsingImportFile, setIsParsingImportFile] = useState(false)
   const [isImportingPlayers, setIsImportingPlayers] = useState(false)
   const [importResults, setImportResults] = useState([])
   const [coachView, setCoachView] = useState("home")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
+  const [isUpdatingPassAssignments, setIsUpdatingPassAssignments] = useState(false)
   const [assignedWorkoutCodes, setAssignedWorkoutCodes] = useState([])
   const [selectedTemplateCode, setSelectedTemplateCode] = useState("A")
   const [newPassName, setNewPassName] = useState("")
@@ -107,6 +108,17 @@ function TrainingApp() {
       setAssignedWorkoutCodes([])
     }
   }, [user, selectedWorkout])
+
+  useEffect(() => {
+    if (!user || profile?.role !== "player") return
+
+    if (!selectedWorkout) {
+      setLatestWorkout({})
+      return
+    }
+
+    loadLatestWorkoutForPass(selectedWorkout, user.id)
+  }, [user, profile?.role, selectedWorkout])
 
   useEffect(() => {
     if (profile?.role !== "player") return
@@ -457,6 +469,14 @@ function TrainingApp() {
     return `${diffDays} dagar sedan`
   }
 
+  const getDaysSinceNumber = (dateString) => {
+    if (!dateString) return Number.POSITIVE_INFINITY
+
+    const now = new Date()
+    const then = new Date(dateString)
+    return Math.max(0, Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24)))
+  }
+
   const getPassStatus = (dateString) => {
     if (!dateString) {
       return {
@@ -499,6 +519,109 @@ function TrainingApp() {
       backgroundColor: "#fef2f2",
       color: "#b91c1c",
     }
+  }
+
+  const formatLatestSetValue = (exerciseType, set) => {
+    if (!set) return "-"
+
+    if (exerciseType === "weight_reps") {
+      return `${set.weight ?? "-"} kg x ${set.reps ?? "-"} reps`
+    }
+
+    if (exerciseType === "reps_only") {
+      return `${set.reps ?? "-"} reps`
+    }
+
+    return `${set.seconds ?? "-"} sek`
+  }
+
+  const parseCsvLine = (line) => {
+    const values = []
+    let current = ""
+    let inQuotes = false
+
+    for (let i = 0; i < line.length; i += 1) {
+      const char = line[i]
+      const nextChar = line[i + 1]
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"'
+          i += 1
+        } else {
+          inQuotes = !inQuotes
+        }
+        continue
+      }
+
+      if ((char === "," || char === ";") && !inQuotes) {
+        values.push(current.trim())
+        current = ""
+        continue
+      }
+
+      current += char
+    }
+
+    values.push(current.trim())
+    return values
+  }
+
+  const parseImportedPlayersFromRows = (rows) => {
+    return rows
+      .map((row, index) => {
+        const normalizedEntries = Object.entries(row).reduce((acc, [key, value]) => {
+          acc[normalizeImportHeader(key)] = String(value || "").trim()
+          return acc
+        }, {})
+
+        const fullName =
+          normalizedEntries.fullname ||
+          normalizedEntries.namn ||
+          normalizedEntries.fullstandigtnamn ||
+          normalizedEntries.playername ||
+          normalizedEntries.name ||
+          ""
+
+        const password =
+          normalizedEntries.password ||
+          normalizedEntries.losenord ||
+          normalizedEntries.startlosenord ||
+          normalizedEntries.passord ||
+          ""
+
+        return {
+          rowNumber: index + 2,
+          full_name: fullName,
+          password,
+        }
+      })
+      .filter((row) => row.full_name || row.password)
+  }
+
+  const parseCsvContent = (content) => {
+    const lines = content
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .filter((line) => line.trim().length > 0)
+
+    if (lines.length < 2) {
+      return []
+    }
+
+    const headers = parseCsvLine(lines[0])
+
+    return parseImportedPlayersFromRows(
+      lines.slice(1).map((line) => {
+        const values = parseCsvLine(line)
+
+        return headers.reduce((acc, header, index) => {
+          acc[header] = values[index] ?? ""
+          return acc
+        }, {})
+      })
+    )
   }
 
   const loadLatestData = async (userId) => {
@@ -822,51 +945,32 @@ function TrainingApp() {
 
     setStatus("")
     setImportResults([])
+    setIsParsingImportFile(true)
 
     try {
-      const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, { type: "array" })
-      const firstSheetName = workbook.SheetNames[0]
+      const isCsv = file.name.toLowerCase().endsWith(".csv")
+      let parsedRows = []
 
-      if (!firstSheetName) {
-        setStatus("Kunde inte läsa någon flik i filen")
-        setImportedPlayers([])
-        setImportFileName("")
-        return
+      if (isCsv) {
+        const text = await file.text()
+        parsedRows = parseCsvContent(text)
+      } else {
+        const XLSX = await import("xlsx")
+        const buffer = await file.arrayBuffer()
+        const workbook = XLSX.read(buffer, { type: "array" })
+        const firstSheetName = workbook.SheetNames[0]
+
+        if (!firstSheetName) {
+          setStatus("Kunde inte läsa någon flik i filen")
+          setImportedPlayers([])
+          setImportFileName("")
+          return
+        }
+
+        const sheet = workbook.Sheets[firstSheetName]
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" })
+        parsedRows = parseImportedPlayersFromRows(rows)
       }
-
-      const sheet = workbook.Sheets[firstSheetName]
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" })
-
-      const parsedRows = rows
-        .map((row, index) => {
-          const normalizedEntries = Object.entries(row).reduce((acc, [key, value]) => {
-            acc[normalizeImportHeader(key)] = String(value || "").trim()
-            return acc
-          }, {})
-
-          const fullName =
-            normalizedEntries.fullname ||
-            normalizedEntries.namn ||
-            normalizedEntries.fullstandigtnamn ||
-            normalizedEntries.playername ||
-            normalizedEntries.name ||
-            ""
-
-          const password =
-            normalizedEntries.password ||
-            normalizedEntries.losenord ||
-            normalizedEntries.startlosenord ||
-            normalizedEntries.passord ||
-            ""
-
-          return {
-            rowNumber: index + 2,
-            full_name: fullName,
-            password,
-          }
-        })
-        .filter((row) => row.full_name || row.password)
 
       if (parsedRows.length === 0) {
         setStatus("Filen innehåller inga spelare att importera")
@@ -883,6 +987,8 @@ function TrainingApp() {
       setStatus("Kunde inte läsa filen")
       setImportedPlayers([])
       setImportFileName("")
+    } finally {
+      setIsParsingImportFile(false)
     }
   }
 
@@ -1034,6 +1140,8 @@ function TrainingApp() {
       target_comment: null,
     }))
 
+    setIsUpdatingPassAssignments(true)
+
     const { error } = await supabase
       .from("player_exercise_targets")
       .upsert(rows, { onConflict: "player_id,pass_name,exercise_name" })
@@ -1041,15 +1149,19 @@ function TrainingApp() {
     if (error) {
       console.error(error)
       setStatus("Kunde inte tilldela pass")
+      setIsUpdatingPassAssignments(false)
       return
     }
 
     setStatus(`${activeWorkouts[passName]?.label || passName} tilldelat ✅`)
     await loadPlayerTargets(selectedPlayer.id)
+    setIsUpdatingPassAssignments(false)
   }
 
   const handleUnassignPassFromPlayer = async (passName) => {
     if (!selectedPlayer) return
+
+    setIsUpdatingPassAssignments(true)
 
     const { error } = await supabase
       .from("player_exercise_targets")
@@ -1060,11 +1172,95 @@ function TrainingApp() {
     if (error) {
       console.error(error)
       setStatus("Kunde inte ta bort passtilldelning")
+      setIsUpdatingPassAssignments(false)
       return
     }
 
     setStatus(`${activeWorkouts[passName]?.label || passName} borttaget ✅`)
     await loadPlayerTargets(selectedPlayer.id)
+    setIsUpdatingPassAssignments(false)
+  }
+
+  const handleAssignAllPassesToPlayer = async () => {
+    if (!selectedPlayer) return
+
+    const passRows = Object.entries(activeWorkouts).flatMap(([passName, workout]) =>
+      (workout.exercises || []).map((exercise) => ({
+        player_id: selectedPlayer.id,
+        pass_name: passName,
+        exercise_name: exercise.name,
+        target_sets:
+          targetDrafts[passName]?.[exercise.name]?.target_sets === "" ||
+          targetDrafts[passName]?.[exercise.name]?.target_sets == null
+            ? null
+            : Number(targetDrafts[passName][exercise.name].target_sets),
+        target_reps:
+          targetDrafts[passName]?.[exercise.name]?.target_reps_mode === "max"
+            ? null
+            : targetDrafts[passName]?.[exercise.name]?.target_reps === "" ||
+              targetDrafts[passName]?.[exercise.name]?.target_reps == null
+            ? null
+            : Number(targetDrafts[passName][exercise.name].target_reps),
+        target_reps_mode:
+          targetDrafts[passName]?.[exercise.name]?.target_reps_mode || exercise.defaultRepsMode || "fixed",
+        target_weight:
+          targetDrafts[passName]?.[exercise.name]?.target_weight === "" ||
+          targetDrafts[passName]?.[exercise.name]?.target_weight == null
+            ? null
+            : Number(targetDrafts[passName][exercise.name].target_weight),
+        target_comment: targetDrafts[passName]?.[exercise.name]?.target_comment || null,
+      }))
+    )
+
+    if (passRows.length === 0) {
+      setStatus("Det finns inga pass med övningar att tilldela")
+      return
+    }
+
+    setIsUpdatingPassAssignments(true)
+
+    const { error } = await supabase
+      .from("player_exercise_targets")
+      .upsert(passRows, { onConflict: "player_id,pass_name,exercise_name" })
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte tilldela alla pass")
+      setIsUpdatingPassAssignments(false)
+      return
+    }
+
+    setStatus(`Alla pass tilldelade till ${selectedPlayer.full_name} ✅`)
+    await loadPlayerTargets(selectedPlayer.id)
+    setIsUpdatingPassAssignments(false)
+  }
+
+  const handleClearAssignedPassesFromPlayer = async () => {
+    if (!selectedPlayer) return
+
+    const confirmed = window.confirm(
+      `Vill du ta bort alla passtilldelningar för ${selectedPlayer.full_name}? Alla individuella mål försvinner också.`
+    )
+
+    if (!confirmed) return
+
+    setIsUpdatingPassAssignments(true)
+
+    const { error } = await supabase
+      .from("player_exercise_targets")
+      .delete()
+      .eq("player_id", selectedPlayer.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte rensa passtilldelningarna")
+      setIsUpdatingPassAssignments(false)
+      return
+    }
+
+    setStatus(`Alla pass borttagna för ${selectedPlayer.full_name} ✅`)
+    await loadPlayerTargets(selectedPlayer.id)
+    setIsUpdatingPassAssignments(false)
   }
 
   const resetExerciseForm = () => {
@@ -1549,6 +1745,16 @@ function TrainingApp() {
         }, {})
 
   const currentWorkoutTargets = playerTargets || {}
+  const sortedVisibleWorkoutEntries = Object.entries(visibleWorkouts).sort(([keyA, workoutA], [keyB, workoutB]) => {
+    const daysA = getDaysSinceNumber(latestPassDates[keyA])
+    const daysB = getDaysSinceNumber(latestPassDates[keyB])
+
+    if (daysA !== daysB) {
+      return daysB - daysA
+    }
+
+    return workoutA.label.localeCompare(workoutB.label, "sv")
+  })
 
   const coachTabs = [
     { key: "home", label: "Översikt" },
@@ -1742,6 +1948,7 @@ function TrainingApp() {
                 isMobile={isMobile}
                 importedPlayers={importedPlayers}
                 importFileName={importFileName}
+                isParsingImportFile={isParsingImportFile}
                 handlePlayerImportFile={handlePlayerImportFile}
                 handleImportPlayers={handleImportPlayers}
                 isImportingPlayers={isImportingPlayers}
@@ -1770,6 +1977,9 @@ function TrainingApp() {
                 isSavingTargets={isSavingTargets}
                 handleAssignPassToPlayer={handleAssignPassToPlayer}
                 handleUnassignPassFromPlayer={handleUnassignPassFromPlayer}
+                handleAssignAllPassesToPlayer={handleAssignAllPassesToPlayer}
+                handleClearAssignedPassesFromPlayer={handleClearAssignedPassesFromPlayer}
+                isUpdatingPassAssignments={isUpdatingPassAssignments}
                 isMobile={isMobile}
               />
             )}
@@ -1801,9 +2011,10 @@ function TrainingApp() {
                 </p>
               ) : (
                 <div style={pickerGridStyle}>
-                  {Object.entries(visibleWorkouts).map(([key, workout]) => {
+                  {sortedVisibleWorkoutEntries.map(([key, workout], index) => {
                     const isSelected = selectedWorkout === key
                     const passStatus = getPassStatus(latestPassDates[key])
+                    const isRecommended = index === 0 && Object.keys(visibleWorkouts).length > 1
 
                     return (
                       <button
@@ -1835,6 +2046,23 @@ function TrainingApp() {
                         >
                           {passStatus.label}
                         </div>
+                        {isRecommended && (
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              marginLeft: "8px",
+                              marginBottom: "10px",
+                              padding: "6px 10px",
+                              borderRadius: "999px",
+                              backgroundColor: "#18202b",
+                              color: "#ffffff",
+                              fontSize: "12px",
+                              fontWeight: "800",
+                            }}
+                          >
+                            Rekommenderat nu
+                          </div>
+                        )}
                         <div style={pickerTitleStyle}>{workout.label}</div>
                         <div style={pickerSubtitleStyle}>
                           Senast kört: {formatDate(latestPassDates[key])}
@@ -1921,6 +2149,8 @@ function TrainingApp() {
             const isInfoExpanded = !!expandedInfo[exercise.name]
             const latestExerciseSets = latestWorkout[exercise.name] || []
             const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
+            const latestExerciseDate = latestExerciseSets[0]?.created_at
+            const currentTarget = currentWorkoutTargets[exercise.name]
 
             return (
               <div key={i} style={cardStyle}>
@@ -1947,15 +2177,42 @@ function TrainingApp() {
                       Senast gjorde du
                     </div>
                     <div style={{ fontSize: "16px", fontWeight: "900", color: "#18202b" }}>
-                      {exercise.type === "weight_reps"
-                        ? `${latestExerciseTopSet.weight ?? "-"} kg x ${latestExerciseTopSet.reps ?? "-"} reps`
-                        : exercise.type === "reps_only"
-                        ? `${latestExerciseTopSet.reps ?? "-"} reps`
-                        : `${latestExerciseTopSet.seconds ?? "-"} sek`}
+                      {formatLatestSetValue(exercise.type, latestExerciseTopSet)}
                     </div>
                     <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
                       Set {latestExerciseTopSet.set_number} i senaste passet
                     </div>
+                    {latestExerciseDate && (
+                      <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                        Senaste pass: {formatDate(latestExerciseDate)}
+                      </div>
+                    )}
+                    {currentTarget && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          paddingTop: "10px",
+                          borderTop: "1px solid #f3d5d5",
+                          display: "grid",
+                          gap: "4px",
+                        }}
+                      >
+                        <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "800" }}>
+                          Jämför med dagens mål
+                        </div>
+                        <div style={{ fontSize: "14px", color: "#18202b", fontWeight: "700" }}>
+                          {currentTarget.target_sets ?? "-"} set •{" "}
+                          {exercise.type === "seconds_only"
+                            ? `${currentTarget.target_reps ?? "-"} sek`
+                            : currentTarget.target_reps_mode === "max"
+                            ? "max reps"
+                            : `${currentTarget.target_reps ?? "-"} reps`}
+                          {exercise.type === "weight_reps" && currentTarget.target_weight != null
+                            ? ` • ${currentTarget.target_weight} kg`
+                            : ""}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1963,25 +2220,25 @@ function TrainingApp() {
                   <div style={targetBoxStyle}>
                     <div style={targetBoxTitleStyle}>Dagens mål</div>
 
-                    {currentWorkoutTargets[exercise.name] ? (
+                    {currentTarget ? (
                       <>
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Set</span>
-                          <span style={targetValueStyle}>{currentWorkoutTargets[exercise.name].target_sets ?? "-"}</span>
+                          <span style={targetValueStyle}>{currentTarget.target_sets ?? "-"}</span>
                         </div>
 
                         {exercise.type === "seconds_only" ? (
                           <div style={targetRowStyle}>
                             <span style={targetLabelStyle}>Tid</span>
-                            <span style={targetValueStyle}>{currentWorkoutTargets[exercise.name].target_reps ?? "-"} sek</span>
+                            <span style={targetValueStyle}>{currentTarget.target_reps ?? "-"} sek</span>
                           </div>
                         ) : (
                           <div style={targetRowStyle}>
                             <span style={targetLabelStyle}>Reps</span>
                             <span style={targetValueStyle}>
-                              {currentWorkoutTargets[exercise.name].target_reps_mode === "max"
+                              {currentTarget.target_reps_mode === "max"
                                 ? "max"
-                                : (currentWorkoutTargets[exercise.name].target_reps ?? "-")}
+                                : (currentTarget.target_reps ?? "-")}
                             </span>
                           </div>
                         )}
@@ -1990,16 +2247,16 @@ function TrainingApp() {
                           <div style={targetRowStyle}>
                             <span style={targetLabelStyle}>Vikt</span>
                             <span style={targetValueStyle}>
-                              {currentWorkoutTargets[exercise.name].target_weight != null
-                                ? `${currentWorkoutTargets[exercise.name].target_weight} kg`
+                              {currentTarget.target_weight != null
+                                ? `${currentTarget.target_weight} kg`
                                 : "-"}
                             </span>
                           </div>
                         )}
 
-                        {currentWorkoutTargets[exercise.name].target_comment && (
+                        {currentTarget.target_comment && (
                           <div style={{ ...targetCommentStyle, marginTop: "8px" }}>
-                            <strong>Kommentar:</strong> {currentWorkoutTargets[exercise.name].target_comment}
+                            <strong>Kommentar:</strong> {currentTarget.target_comment}
                           </div>
                         )}
                       </>
