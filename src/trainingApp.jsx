@@ -1727,40 +1727,87 @@ function TrainingApp() {
             alignItems: isMobile ? "stretch" : "flex-start",
           }}
         >
-          {!isWorkoutActive ? (
+          {!isWorkoutActive && (
             <>
-              <button
-                onClick={() => setShowPicker(!showPicker)}
-                style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                disabled={Object.keys(visibleWorkouts).length === 0}
-              >
-                Starta pass
-              </button>
+              <div style={{ marginBottom: "4px" }}>
+                <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
+                  Dina pass
+                </h2>
+                <p style={mutedTextStyle}>
+                  Välj ett pass för att se när du körde det senast och starta direkt.
+                </p>
+              </div>
 
-              {Object.keys(visibleWorkouts).length === 0 && (
+              {Object.keys(visibleWorkouts).length === 0 ? (
                 <p style={mutedTextStyle}>
                   Inga pass är tilldelade ännu. Be en tränare lägga till pass åt dig.
                 </p>
+              ) : (
+                <div style={pickerGridStyle}>
+                  {Object.entries(visibleWorkouts).map(([key, workout]) => {
+                    const isSelected = selectedWorkout === key
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedWorkout(key)
+                          setShowPicker(false)
+                        }}
+                        style={{
+                          ...pickerButtonStyle,
+                          border: isSelected ? "2px solid #c62828" : pickerButtonStyle.border,
+                          background: isSelected
+                            ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
+                            : pickerButtonStyle.background,
+                        }}
+                      >
+                        <div style={pickerTitleStyle}>{workout.label}</div>
+                        <div style={pickerSubtitleStyle}>
+                          Senast kört: {formatDate(latestPassDates[key])}
+                        </div>
+                        <div style={{ ...pickerSubtitleStyle, marginTop: "8px", color: "#18202b", fontWeight: "700" }}>
+                          {isSelected ? "Valt pass" : "Tryck för att välja"}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               )}
 
-              {showPicker && (
-                <div style={pickerGridStyle}>
-                  {Object.entries(visibleWorkouts).map(([key, workout]) => (
-                    <button
-                      key={key}
-                      onClick={() => startWorkout(key)}
-                      style={pickerButtonStyle}
-                    >
-                      <div style={pickerTitleStyle}>{workout.label}</div>
-                      <div style={pickerSubtitleStyle}>
-                        Senast: {formatDate(latestPassDates[key])}
-                      </div>
-                    </button>
-                  ))}
+              {selectedWorkout && visibleWorkouts[selectedWorkout] && (
+                <div
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    padding: isMobile ? "16px" : "18px",
+                    borderRadius: "18px",
+                    border: "1px solid #ecdede",
+                    backgroundColor: "#fffdfd",
+                  }}
+                >
+                  <div style={{ fontSize: "14px", color: "#991b1b", fontWeight: "800", marginBottom: "6px" }}>
+                    Valt pass
+                  </div>
+                  <div style={{ fontSize: isMobile ? "20px" : "22px", color: "#18202b", fontWeight: "900", marginBottom: "6px" }}>
+                    {visibleWorkouts[selectedWorkout].label}
+                  </div>
+                  <div style={{ ...mutedTextStyle, marginBottom: "12px" }}>
+                    Senast kört: {formatDate(latestPassDates[selectedWorkout])}
+                  </div>
+                  <button
+                    onClick={() => startWorkout(selectedWorkout)}
+                    style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                  >
+                    Starta {visibleWorkouts[selectedWorkout].label}
+                  </button>
                 </div>
               )}
             </>
-          ) : (
+          )}
+
+          {isWorkoutActive && (
             <button onClick={finishWorkout} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
               Avsluta pass
             </button>
