@@ -7,6 +7,9 @@ import CoachHomePage from "./pages/CoachHomePage"
 import PassBuilderPage from "./pages/PassBuilderPage"
 
 function TrainingApp() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  )
   const [user, setUser] = useState(null)
   const [workoutsFromDB, setWorkoutsFromDB] = useState({})
 
@@ -57,6 +60,17 @@ function TrainingApp() {
 
   useEffect(() => {
     loadUser()
+  }, [])
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+
+    updateViewport()
+    window.addEventListener("resize", updateViewport)
+
+    return () => window.removeEventListener("resize", updateViewport)
   }, [])
 
   useEffect(() => {
@@ -1331,11 +1345,20 @@ function TrainingApp() {
   ]
 
   return (
-    <div style={pageStyle}>
-      <div style={headerStyle}>
+    <div style={{ ...pageStyle, padding: isMobile ? "14px 12px 36px" : pageStyle.padding }}>
+      <div
+        style={{
+          ...headerStyle,
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : headerStyle.alignItems,
+          marginBottom: isMobile ? "14px" : headerStyle.marginBottom,
+        }}
+      >
         <div style={{ flex: 1 }}>
           <p style={eyebrowStyle}>{profile?.role === "coach" ? "Coachläge" : "Spelarläge"}</p>
-          <h1 style={appTitleStyle}>Gurra Styrka</h1>
+          <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
+            Gurra Styrka
+          </h1>
           <p style={appSubtitleStyle}>
             Träning för Gustavsbergs Handboll med tydliga pass, enkel navigation och snabba val.
           </p>
@@ -1347,13 +1370,13 @@ function TrainingApp() {
             await supabase.auth.signOut()
             window.location.reload()
           }}
-          style={logoutButtonStyle}
+          style={{ ...logoutButtonStyle, width: isMobile ? "100%" : "auto" }}
         >
           Logga ut
         </button>
       </div>
 
-      <div style={heroCardStyle}>
+      <div style={{ ...heroCardStyle, padding: isMobile ? "18px 16px" : heroCardStyle.padding, borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius }}>
         <div style={heroBadgeStyle}>Gustavsbergs Handboll</div>
         <div style={heroHeadingStyle}>
           {profile?.role === "coach" ? "Led laget enkelt" : "Hitta ditt pass snabbt"}
@@ -1367,7 +1390,15 @@ function TrainingApp() {
 
       {profile?.role === "coach" && (
         <>
-          <div style={coachTabsWrapStyle}>
+          <div
+            style={{
+              ...coachTabsWrapStyle,
+              flexWrap: isMobile ? "nowrap" : coachTabsWrapStyle.flexWrap,
+              overflowX: isMobile ? "auto" : "visible",
+              paddingBottom: isMobile ? "4px" : 0,
+              marginInline: isMobile ? "-2px" : 0,
+            }}
+          >
             {coachTabs.map((tab) => (
               <button
                 key={tab.key}
@@ -1383,6 +1414,8 @@ function TrainingApp() {
                 }}
                 style={{
                   ...coachTabButtonStyle,
+                  flex: isMobile ? "0 0 auto" : undefined,
+                  whiteSpace: "nowrap",
                   ...(coachView === tab.key ? activeCoachTabButtonStyle : {}),
                 }}
               >
@@ -1391,7 +1424,7 @@ function TrainingApp() {
             ))}
           </div>
 
-          <div style={cardStyle}>
+          <div style={{ ...cardStyle, padding: isMobile ? "16px" : cardStyle.padding, borderRadius: isMobile ? "20px" : cardStyle.borderRadius }}>
             {coachView !== "home" && (
               <div style={{ marginBottom: "16px" }}>
               <button
@@ -1418,6 +1451,7 @@ function TrainingApp() {
                 coachNavCardStyle={coachNavCardStyle}
                 coachNavTitleStyle={coachNavTitleStyle}
                 coachNavTextStyle={coachNavTextStyle}
+                isMobile={isMobile}
               />
             )}
 
@@ -1443,6 +1477,7 @@ function TrainingApp() {
                 secondaryButtonStyle={secondaryButtonStyle}
                 mutedTextStyle={mutedTextStyle}
                 cardTitleStyle={cardTitleStyle}
+                isMobile={isMobile}
               />
             )}
 
@@ -1474,6 +1509,7 @@ function TrainingApp() {
                 mutedTextStyle={mutedTextStyle}
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
+                isMobile={isMobile}
               />
             )}
 
@@ -1489,6 +1525,7 @@ function TrainingApp() {
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
                 cardTitleStyle={cardTitleStyle}
+                isMobile={isMobile}
               />
             )}
 
@@ -1513,18 +1550,24 @@ function TrainingApp() {
                 isSavingTargets={isSavingTargets}
                 handleAssignPassToPlayer={handleAssignPassToPlayer}
                 handleUnassignPassFromPlayer={handleUnassignPassFromPlayer}
+                isMobile={isMobile}
               />
             )}
           </div>
         </>
       )}
 
-      <div style={workoutActionSectionStyle}>
+      <div
+        style={{
+          ...workoutActionSectionStyle,
+          alignItems: isMobile ? "stretch" : "flex-start",
+        }}
+      >
         {!isWorkoutActive ? (
           <>
             <button
               onClick={() => setShowPicker(!showPicker)}
-              style={buttonStyle}
+              style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
               disabled={profile?.role === "player" && Object.keys(visibleWorkouts).length === 0}
             >
               Starta pass
@@ -1554,7 +1597,7 @@ function TrainingApp() {
             )}
           </>
         ) : (
-          <button onClick={finishWorkout} style={buttonStyle}>
+          <button onClick={finishWorkout} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
             Avsluta pass
           </button>
         )}
@@ -1656,7 +1699,13 @@ function TrainingApp() {
                     <div key={set.client_set_id || j} style={activeSetCardStyle}>
                       <div style={setLabelStyle}>Set {j + 1}</div>
 
-                      <div style={setInputsRowStyle}>
+                      <div
+                        style={{
+                          ...setInputsRowStyle,
+                          flexDirection: isMobile ? "column" : "row",
+                          alignItems: isMobile ? "stretch" : "center",
+                        }}
+                      >
                         {exercise.type === "weight_reps" && (
                           <>
                             <input
@@ -1665,7 +1714,7 @@ function TrainingApp() {
                               onChange={(e) =>
                                 handleChange(i, j, "weight", e.target.value)
                               }
-                              style={inputStyle}
+                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                             />
                             <input
                               placeholder="Reps"
@@ -1673,7 +1722,7 @@ function TrainingApp() {
                               onChange={(e) =>
                                 handleChange(i, j, "reps", e.target.value)
                               }
-                              style={inputStyle}
+                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                             />
                           </>
                         )}
@@ -1685,7 +1734,7 @@ function TrainingApp() {
                             onChange={(e) =>
                               handleChange(i, j, "reps", e.target.value)
                             }
-                            style={inputStyle}
+                            style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                           />
                         )}
 
@@ -1696,11 +1745,14 @@ function TrainingApp() {
                             onChange={(e) =>
                               handleChange(i, j, "seconds", e.target.value)
                             }
-                            style={inputStyle}
+                            style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                           />
                         )}
 
-                        <button onClick={() => handleRemoveSet(i, j)} style={removeButtonStyle}>
+                        <button
+                          onClick={() => handleRemoveSet(i, j)}
+                          style={{ ...removeButtonStyle, width: isMobile ? "100%" : "auto" }}
+                        >
                           Ta bort
                         </button>
                       </div>
@@ -1708,7 +1760,10 @@ function TrainingApp() {
                   ))}
 
                 {isWorkoutActive && (
-                  <button onClick={() => handleAddSet(i)} style={secondaryButtonStyle}>
+                  <button
+                    onClick={() => handleAddSet(i)}
+                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                  >
                     + Lägg till set
                   </button>
                 )}

@@ -19,6 +19,7 @@ function ExerciseBankPage({
   secondaryButtonStyle,
   mutedTextStyle,
   cardTitleStyle,
+  isMobile,
 }) {
   return (
     <>
@@ -62,22 +63,43 @@ function ExerciseBankPage({
           style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
         />
 
-        <button onClick={handleCreateExercise} style={buttonStyle}>
+        <button onClick={handleCreateExercise} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
           {editingExerciseId ? "Uppdatera övning" : "Spara övning"}
         </button>
       </div>
 
-      <div>
+      <div style={{ display: "grid", gap: "10px" }}>
         {exercisesFromDB.map((exercise) => (
-          <div key={exercise.id} style={{ marginBottom: 10 }}>
+          <div
+            key={exercise.id}
+            style={{
+              padding: "14px",
+              borderRadius: "14px",
+              border: "1px solid #e8dddd",
+              backgroundColor: "#ffffff",
+            }}
+          >
             <strong>{exercise.name}</strong>
 
-            <div>
-              <button onClick={() => handleStartEditExercise(exercise)} style={secondaryButtonStyle}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexDirection: isMobile ? "column" : "row",
+                marginTop: "10px",
+              }}
+            >
+              <button
+                onClick={() => handleStartEditExercise(exercise)}
+                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+              >
                 Redigera
               </button>
 
-              <button onClick={() => handleDeleteExercise(exercise.id)} style={secondaryButtonStyle}>
+              <button
+                onClick={() => handleDeleteExercise(exercise.id)}
+                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+              >
                 Ta bort
               </button>
             </div>

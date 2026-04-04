@@ -7,6 +7,7 @@ function CoachHomePage({
   coachNavCardStyle,
   coachNavTitleStyle,
   coachNavTextStyle,
+  isMobile,
 }) {
   return (
     <>
@@ -15,7 +16,7 @@ function CoachHomePage({
         Välj vad du vill hantera.
       </p>
 
-      <div style={{ display: "grid", gap: "12px" }}>
+      <div style={{ display: "grid", gap: "12px", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
         <button
           type="button"
           onClick={() => setCoachView("createPlayer")}

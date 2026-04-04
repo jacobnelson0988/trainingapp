@@ -25,6 +25,7 @@ function PassBuilderPage({
   mutedTextStyle,
   inputStyle,
   buttonStyle,
+  isMobile,
 }) {
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
@@ -37,7 +38,16 @@ function PassBuilderPage({
         Bygg pass genom att skapa ett pass, lägga till övningar, ändra ordning och spara mål och guide per övning.
       </p>
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          marginBottom: "14px",
+          flexWrap: isMobile ? "nowrap" : "wrap",
+          overflowX: isMobile ? "auto" : "visible",
+          paddingBottom: isMobile ? "4px" : 0,
+        }}
+      >
         {passKeys.map((passKey) => (
           <button
             key={passKey}
@@ -45,6 +55,8 @@ function PassBuilderPage({
             onClick={() => setSelectedTemplateCode(passKey)}
             style={{
               ...secondaryButtonStyle,
+              flex: isMobile ? "0 0 auto" : undefined,
+              whiteSpace: "nowrap",
               backgroundColor: selectedTemplateCode === passKey ? "#111827" : "#ffffff",
               color: selectedTemplateCode === passKey ? "#ffffff" : "#111827",
             }}
@@ -73,13 +85,13 @@ function PassBuilderPage({
           Skapa nytt pass
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
           <input
             type="text"
             placeholder="T.ex. Pass D eller Benpass"
             value={newPassName}
             onChange={(e) => setNewPassName(e.target.value)}
-            style={{ ...inputStyle, minWidth: "220px" }}
+            style={{ ...inputStyle, minWidth: isMobile ? "100%" : "220px", width: isMobile ? "100%" : undefined }}
           />
 
           <button
@@ -88,6 +100,7 @@ function PassBuilderPage({
             disabled={isCreatingPass}
             style={{
               ...buttonStyle,
+              width: isMobile ? "100%" : "auto",
               opacity: isCreatingPass ? 0.7 : 1,
               cursor: isCreatingPass ? "default" : "pointer",
             }}
@@ -110,20 +123,20 @@ function PassBuilderPage({
           Byt namn på valt pass
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
           <input
             type="text"
             placeholder="Nytt namn på pass"
             value={renamePassName}
             onChange={(e) => setRenamePassName(e.target.value)}
-            style={{ ...inputStyle, minWidth: "220px" }}
+            style={{ ...inputStyle, minWidth: isMobile ? "100%" : "220px", width: isMobile ? "100%" : undefined }}
           />
 
           <button
             type="button"
             onClick={handleRenamePass}
             disabled={!selectedTemplateCode}
-            style={buttonStyle}
+            style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
           >
             Spara namn
           </button>
@@ -134,6 +147,7 @@ function PassBuilderPage({
             disabled={!selectedTemplateCode}
             style={{
               ...secondaryButtonStyle,
+              width: isMobile ? "100%" : "auto",
               color: "#b91c1c",
               borderColor: "#fecaca",
             }}
@@ -157,11 +171,11 @@ function PassBuilderPage({
           Lägg till övning
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
           <select
             value={selectedExerciseId}
             onChange={(e) => setSelectedExerciseId(e.target.value)}
-            style={{ ...inputStyle, minWidth: "200px" }}
+            style={{ ...inputStyle, minWidth: isMobile ? "100%" : "200px", width: isMobile ? "100%" : undefined }}
           >
             <option value="">Välj övning</option>
             {(exercisesFromDB || []).map((ex) => (
@@ -177,6 +191,7 @@ function PassBuilderPage({
             disabled={isSavingPassExercise}
             style={{
               ...buttonStyle,
+              width: isMobile ? "100%" : "auto",
               opacity: isSavingPassExercise ? 0.7 : 1,
             }}
           >
@@ -230,13 +245,21 @@ function PassBuilderPage({
                       }}
                     />
 
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        flexDirection: isMobile ? "column" : "row",
+                      }}
+                    >
                     <input
                       type="number"
                       placeholder="Set"
                       value={draft.targetSets}
                       onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
-                      style={{ ...inputStyle, width: "90px" }}
+                      style={{ ...inputStyle, width: isMobile ? "100%" : "90px" }}
                     />
 
                     <input
@@ -247,7 +270,7 @@ function PassBuilderPage({
                       onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
                       style={{
                         ...inputStyle,
-                        width: "90px",
+                        width: isMobile ? "100%" : "90px",
                         opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
                       }}
                     />
@@ -263,6 +286,7 @@ function PassBuilderPage({
                       }
                       style={{
                         ...secondaryButtonStyle,
+                        width: isMobile ? "100%" : "auto",
                         backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "#ffffff",
                         color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
                       }}
@@ -272,7 +296,7 @@ function PassBuilderPage({
                     <button
                       type="button"
                       onClick={() => handleMoveExerciseInPass && handleMoveExerciseInPass(exercise.id, "up")}
-                      style={secondaryButtonStyle}
+                      style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
                     >
                       ↑
                     </button>
@@ -280,7 +304,7 @@ function PassBuilderPage({
                     <button
                       type="button"
                       onClick={() => handleMoveExerciseInPass && handleMoveExerciseInPass(exercise.id, "down")}
-                      style={secondaryButtonStyle}
+                      style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
                     >
                       ↓
                     </button>
@@ -290,6 +314,7 @@ function PassBuilderPage({
                       onClick={() => handleRemoveExerciseFromPass && handleRemoveExerciseFromPass(exercise.id)}
                       style={{
                         ...secondaryButtonStyle,
+                        width: isMobile ? "100%" : "auto",
                         color: "#b91c1c",
                         borderColor: "#fecaca",
                       }}
@@ -312,7 +337,7 @@ function PassBuilderPage({
         <button
           type="button"
           onClick={handleSavePassExercises}
-          style={buttonStyle}
+          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
         >
           Spara ändringar
         </button>

@@ -18,6 +18,7 @@ function PlayersPage({
   isSavingTargets,
   handleAssignPassToPlayer,
   handleUnassignPassFromPlayer,
+  isMobile,
 }) {
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
@@ -30,6 +31,57 @@ function PlayersPage({
         <p style={mutedTextStyle}>Laddar spelare...</p>
       ) : players.length === 0 ? (
         <p style={mutedTextStyle}>Inga spelare skapade ännu</p>
+      ) : isMobile ? (
+        <div style={{ display: "grid", gap: "10px" }}>
+          {players.map((player) => {
+            const names = (player.full_name || "").trim().split(/\s+/)
+            const firstName = names[0] || ""
+            const lastName = names.slice(1).join(" ")
+
+            return (
+              <button
+                key={player.id}
+                type="button"
+                onClick={() => setSelectedPlayer(player)}
+                style={{
+                  textAlign: "left",
+                  padding: "14px",
+                  borderRadius: "14px",
+                  border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
+                  backgroundColor: "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: "16px", fontWeight: "800", color: "#111827", marginBottom: "6px" }}>
+                  {player.full_name}
+                </div>
+                <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "4px" }}>
+                  @{player.username}
+                </div>
+                <div style={{ fontSize: "13px", color: "#374151", marginBottom: "4px" }}>
+                  Senaste pass: {player.latestPass || "-"}
+                </div>
+                <div style={{ fontSize: "13px", color: "#374151", marginBottom: "10px" }}>
+                  Totalt antal pass: {player.totalPasses ?? 0}
+                </div>
+                <input
+                  type="text"
+                  value={commentDrafts[player.id] ?? ""}
+                  placeholder="Skriv kommentar"
+                  onChange={(e) => handleCommentChange(player.id, e.target.value)}
+                  onBlur={() => handleCommentSave(player.id)}
+                  style={{
+                    ...inputStyle,
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: "13px",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </button>
+            )
+          })}
+        </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
@@ -124,7 +176,16 @@ function PlayersPage({
           <div style={{ marginTop: "12px" }}>
             <h3 style={cardTitleStyle}>Tilldelade pass</h3>
 
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                marginBottom: "16px",
+                flexWrap: isMobile ? "nowrap" : "wrap",
+                overflowX: isMobile ? "auto" : "visible",
+                paddingBottom: isMobile ? "4px" : 0,
+              }}
+            >
               {allPassKeys.map((passKey) => (
                 <button
                   key={passKey}
@@ -140,6 +201,7 @@ function PlayersPage({
                     border: "1px solid #d1d5db",
                     backgroundColor: assignedPassSet.has(passKey) ? "#111827" : "#ffffff",
                     color: assignedPassSet.has(passKey) ? "#ffffff" : "#111827",
+                    whiteSpace: "nowrap",
                     cursor: "pointer",
                     fontSize: "14px",
                     fontWeight: "700",
@@ -197,13 +259,21 @@ function PlayersPage({
                             </div>
                           </div>
 
-                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              flexWrap: "wrap",
+                              marginBottom: "8px",
+                              flexDirection: isMobile ? "column" : "row",
+                            }}
+                          >
                             <input
                               type="number"
                               placeholder="Set"
                               value={draft.target_sets ?? ""}
                               onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_sets", e.target.value)}
-                              style={inputStyle}
+                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                             />
                             <input
                               type="number"
@@ -211,7 +281,7 @@ function PlayersPage({
                               disabled={draft.target_reps_mode === "max"}
                               value={draft.target_reps ?? ""}
                               onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_reps", e.target.value)}
-                              style={{ ...inputStyle, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
+                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
                             />
                             <button
                               type="button"
@@ -224,6 +294,7 @@ function PlayersPage({
                                 )
                               }
                               style={{
+                                width: isMobile ? "100%" : "auto",
                                 padding: "10px 14px",
                                 borderRadius: "10px",
                                 border: "1px solid #d1d5db",
@@ -242,7 +313,7 @@ function PlayersPage({
                                 placeholder="Vikt"
                                 value={draft.target_weight ?? ""}
                                 onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_weight", e.target.value)}
-                                style={inputStyle}
+                                style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                               />
                             )}
                           </div>
@@ -265,6 +336,7 @@ function PlayersPage({
                   onClick={handleSaveTargets}
                   disabled={isSavingTargets}
                   style={{
+                    width: isMobile ? "100%" : "auto",
                     padding: "10px 14px",
                     borderRadius: "10px",
                     border: "none",

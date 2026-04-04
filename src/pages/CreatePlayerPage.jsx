@@ -9,6 +9,7 @@ function CreatePlayerPage({
   inputStyle,
   buttonStyle,
   cardTitleStyle,
+  isMobile,
 }) {
   return (
     <>
@@ -39,6 +40,7 @@ function CreatePlayerPage({
           type="submit"
           style={{
             ...buttonStyle,
+            width: isMobile ? "100%" : "auto",
             opacity: isCreatingPlayer ? 0.7 : 1,
             cursor: isCreatingPlayer ? "default" : "pointer",
           }}
