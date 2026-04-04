@@ -285,6 +285,7 @@ function ExerciseBankPage({
                 setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))
               }
               style={{
+                position: "relative",
                 width: "100%",
                 padding: isMobile ? "14px" : "16px",
                 borderRadius: isMobile ? "16px" : "18px",
@@ -295,13 +296,16 @@ function ExerciseBankPage({
                 cursor: "pointer",
               }}
             >
+              <div style={expandIndicatorWrapStyle}>
+                <div style={expandIndicatorStyle}>{isExpanded ? "−" : "+"}</div>
+              </div>
+
               <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
                 <div style={{ flex: 1 }}>
-                  <div style={exerciseTitleRowStyle}>
+                  <div style={{ ...exerciseTitleRowStyle, paddingRight: "40px" }}>
                     <div style={{ fontSize: "16px", fontWeight: "800", color: "#18202b" }}>
                       {exercise.name}
                     </div>
-                    <div style={expandIndicatorStyle}>{isExpanded ? "−" : "+"}</div>
                   </div>
 
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
@@ -439,11 +443,13 @@ const fieldLabelStyle = {
 }
 
 const exerciseTitleRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
-  alignItems: "center",
   marginBottom: "4px",
+}
+
+const expandIndicatorWrapStyle = {
+  position: "absolute",
+  top: "14px",
+  right: "14px",
 }
 
 const expandIndicatorStyle = {
