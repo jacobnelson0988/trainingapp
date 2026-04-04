@@ -94,14 +94,20 @@ function ExerciseBankPage({
       <div
         style={{
           marginBottom: "18px",
-          padding: "18px",
-          borderRadius: "18px",
+          padding: isMobile ? "14px" : "18px",
+          borderRadius: isMobile ? "16px" : "18px",
           border: "1px solid #ece5e5",
           backgroundColor: "#ffffff",
           boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
         }}
       >
-        <div style={sectionHeaderStyle}>
+        <div
+          style={{
+            ...sectionHeaderStyle,
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : sectionHeaderStyle.alignItems,
+          }}
+        >
           <div>
             <div style={sectionEyebrowStyle}>{editingExerciseId ? "Redigering" : "Ny övning"}</div>
             <div style={sectionTitleStyle}>
@@ -119,7 +125,14 @@ function ExerciseBankPage({
           style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
         />
 
-        <div style={{ display: "grid", gap: "10px", marginBottom: "10px" }}>
+        <div
+          style={{
+            display: "grid",
+            gap: "10px",
+            marginBottom: "10px",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+          }}
+        >
           <select
             value={newExerciseType}
             onChange={(e) => setNewExerciseType(e.target.value)}
@@ -191,7 +204,10 @@ function ExerciseBankPage({
           </div>
         </div>
 
-        <button onClick={handleCreateExercise} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
+        <button
+          onClick={handleCreateExercise}
+          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
+        >
           {isSavingExercise ? "Sparar..." : "Spara ny övning"}
         </button>
       </div>
@@ -204,7 +220,17 @@ function ExerciseBankPage({
         style={{ ...inputStyle, width: "100%", marginBottom: "12px" }}
       />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: isMobile ? "nowrap" : "wrap",
+          overflowX: isMobile ? "auto" : "visible",
+          gap: "8px",
+          marginBottom: "14px",
+          paddingBottom: isMobile ? "4px" : 0,
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
         {allVisibleMuscleGroups.map((group) => {
           const isSelected = selectedMuscleFilter === group
 
@@ -215,6 +241,7 @@ function ExerciseBankPage({
               onClick={() => setSelectedMuscleFilter(group)}
               style={{
                 ...tagButtonStyle,
+                flex: isMobile ? "0 0 auto" : undefined,
                 backgroundColor: isSelected ? "#18202b" : "#ffffff",
                 color: isSelected ? "#ffffff" : "#374151",
                 border: isSelected ? "1px solid #18202b" : "1px solid #d9dee7",
@@ -234,8 +261,8 @@ function ExerciseBankPage({
             <div
               key={exercise.id}
               style={{
-                padding: "16px",
-                borderRadius: "18px",
+                padding: isMobile ? "14px" : "16px",
+                borderRadius: isMobile ? "16px" : "18px",
                 border: isEditing ? "2px solid #c62828" : "1px solid #ece5e5",
                 backgroundColor: "#ffffff",
                 boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
@@ -284,14 +311,14 @@ function ExerciseBankPage({
                 <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row", width: isMobile ? "100%" : "auto" }}>
                   <button
                     onClick={() => handleStartEditExercise(exercise)}
-                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "46px" }}
                   >
                     Redigera
                   </button>
 
                   <button
                     onClick={() => handleDeleteExercise(exercise.id)}
-                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "46px" }}
                   >
                     Ta bort
                   </button>
@@ -393,13 +420,13 @@ function ExerciseBankPage({
                   <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
                     <button
                       onClick={handleCreateExercise}
-                      style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                      style={{ ...buttonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
                     >
                       {isSavingExercise ? "Sparar..." : "Spara ändring"}
                     </button>
                     <button
                       onClick={resetExerciseForm}
-                      style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                      style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
                     >
                       Avbryt
                     </button>

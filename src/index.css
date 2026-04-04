@@ -48,6 +48,8 @@ select {
 
 button {
   transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 button:hover {
@@ -74,4 +76,30 @@ select:focus {
 
 #root {
   width: 100%;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(198, 40, 40, 0.1), transparent 34%),
+      radial-gradient(circle at top right, rgba(24, 32, 43, 0.06), transparent 28%),
+      var(--ghf-bg);
+  }
 }

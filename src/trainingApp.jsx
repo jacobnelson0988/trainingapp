@@ -65,7 +65,6 @@ function TrainingApp() {
   const [status, setStatus] = useState("")
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
-  const [showPicker, setShowPicker] = useState(false)
 
   useEffect(() => {
     loadUser()
@@ -730,7 +729,6 @@ function TrainingApp() {
     setSelectedWorkout(workoutKey)
     setCurrentSessionId(newSessionId)
     setIsWorkoutActive(true)
-    setShowPicker(false)
     setExpandedInfo({})
 
     const defaultInputs = {}
@@ -1847,13 +1845,21 @@ function TrainingApp() {
   ]
 
   return (
-    <div style={{ ...pageStyle, padding: isMobile ? "14px 12px 36px" : pageStyle.padding }}>
+    <div
+      style={{
+        ...pageStyle,
+        padding: isMobile
+          ? "max(14px, env(safe-area-inset-top)) 12px calc(36px + env(safe-area-inset-bottom))"
+          : pageStyle.padding,
+      }}
+    >
       <div
         style={{
           ...headerStyle,
           flexDirection: isMobile ? "column" : "row",
           alignItems: isMobile ? "stretch" : headerStyle.alignItems,
           marginBottom: isMobile ? "14px" : headerStyle.marginBottom,
+          gap: isMobile ? "12px" : headerStyle.gap,
         }}
       >
         <div style={{ flex: 1 }}>
@@ -1861,7 +1867,13 @@ function TrainingApp() {
           <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
             Gurra Styrka
           </h1>
-          <p style={appSubtitleStyle}>
+          <p
+            style={{
+              ...appSubtitleStyle,
+              maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
+              fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
+            }}
+          >
             Träning för Gustavsbergs Handboll med tydliga pass, enkel navigation och snabba val.
           </p>
         </div>
@@ -1878,12 +1890,31 @@ function TrainingApp() {
         </button>
       </div>
 
-      <div style={{ ...heroCardStyle, padding: isMobile ? "18px 16px" : heroCardStyle.padding, borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius }}>
+      <div
+        style={{
+          ...heroCardStyle,
+          padding: isMobile ? "18px 16px" : heroCardStyle.padding,
+          borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius,
+          marginBottom: isMobile ? "16px" : heroCardStyle.marginBottom,
+        }}
+      >
         <div style={heroBadgeStyle}>Gustavsbergs Handboll</div>
-        <div style={heroHeadingStyle}>
+        <div
+          style={{
+            ...heroHeadingStyle,
+            fontSize: isMobile ? "1.8rem" : heroHeadingStyle.fontSize,
+            lineHeight: isMobile ? 1.05 : heroHeadingStyle.lineHeight,
+          }}
+        >
           {profile?.role === "coach" ? "Led laget enkelt" : "Hitta ditt pass snabbt"}
         </div>
-        <div style={heroTextStyle}>
+        <div
+          style={{
+            ...heroTextStyle,
+            maxWidth: isMobile ? "100%" : heroTextStyle.maxWidth,
+            fontSize: isMobile ? "14px" : heroTextStyle.fontSize,
+          }}
+        >
           {profile?.role === "coach"
             ? "Skapa spelare, bygg pass och sätt mål utan att leta runt i appen."
             : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
@@ -1897,8 +1928,15 @@ function TrainingApp() {
               ...coachTabsWrapStyle,
               flexWrap: isMobile ? "nowrap" : coachTabsWrapStyle.flexWrap,
               overflowX: isMobile ? "auto" : "visible",
-              paddingBottom: isMobile ? "4px" : 0,
+              paddingBottom: isMobile ? "6px" : 0,
               marginInline: isMobile ? "-2px" : 0,
+              WebkitOverflowScrolling: "touch",
+              scrollSnapType: isMobile ? "x proximity" : "none",
+              position: isMobile ? "sticky" : "static",
+              top: isMobile ? "max(8px, env(safe-area-inset-top))" : "auto",
+              zIndex: isMobile ? 5 : "auto",
+              paddingTop: isMobile ? "4px" : 0,
+              backdropFilter: isMobile ? "blur(14px)" : "none",
             }}
           >
             {coachTabs.map((tab) => (
@@ -1918,6 +1956,8 @@ function TrainingApp() {
                   ...coachTabButtonStyle,
                   flex: isMobile ? "0 0 auto" : undefined,
                   whiteSpace: "nowrap",
+                  minHeight: isMobile ? "44px" : undefined,
+                  scrollSnapAlign: isMobile ? "start" : "none",
                   ...(coachView === tab.key ? activeCoachTabButtonStyle : {}),
                 }}
               >
@@ -1926,7 +1966,14 @@ function TrainingApp() {
             ))}
           </div>
 
-          <div style={{ ...cardStyle, padding: isMobile ? "16px" : cardStyle.padding, borderRadius: isMobile ? "20px" : cardStyle.borderRadius }}>
+          <div
+            style={{
+              ...cardStyle,
+              padding: isMobile ? "16px 14px" : cardStyle.padding,
+              borderRadius: isMobile ? "20px" : cardStyle.borderRadius,
+              marginBottom: isMobile ? "16px" : cardStyle.marginBottom,
+            }}
+          >
             {coachView !== "home" && (
               <div style={{ marginBottom: "16px" }}>
               <button
@@ -1949,7 +1996,6 @@ function TrainingApp() {
                 setSelectedPlayer={setSelectedPlayer}
                 resetExerciseForm={resetExerciseForm}
                 mutedTextStyle={mutedTextStyle}
-                cardTitleStyle={cardTitleStyle}
                 coachNavCardStyle={coachNavCardStyle}
                 coachNavTitleStyle={coachNavTitleStyle}
                 coachNavTextStyle={coachNavTextStyle}
@@ -2110,7 +2156,6 @@ function TrainingApp() {
                         type="button"
                         onClick={() => {
                           setSelectedWorkout(key)
-                          setShowPicker(false)
                         }}
                         style={{
                           ...pickerButtonStyle,

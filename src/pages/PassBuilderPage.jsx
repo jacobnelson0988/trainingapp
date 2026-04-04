@@ -41,12 +41,18 @@ function PassBuilderPage({
 
       <div style={pageStackStyle}>
         <section style={panelStyle}>
-          <div style={panelHeaderStyle}>
+          <div
+            style={{
+              ...panelHeaderStyle,
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : panelHeaderStyle.alignItems,
+            }}
+          >
             <div>
               <div style={sectionEyebrowStyle}>Steg 1</div>
               <div style={sectionTitleStyle}>Välj pass att jobba med</div>
             </div>
-            <div style={summaryBadgeStyle}>{passKeys.length} pass</div>
+            <div style={{ ...summaryBadgeStyle, alignSelf: isMobile ? "flex-start" : "auto" }}>{passKeys.length} pass</div>
           </div>
 
           {passKeys.length === 0 ? (
@@ -168,12 +174,18 @@ function PassBuilderPage({
           </section>
 
           <section style={panelStyle}>
-            <div style={panelHeaderStyle}>
+            <div
+              style={{
+                ...panelHeaderStyle,
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: isMobile ? "stretch" : panelHeaderStyle.alignItems,
+              }}
+            >
               <div>
                 <div style={sectionEyebrowStyle}>Steg 3</div>
                 <div style={sectionTitleStyle}>Lägg till övning i passet</div>
               </div>
-              {currentWorkout && <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>}
+              {currentWorkout && <div style={{ ...summaryBadgeStyle, alignSelf: isMobile ? "flex-start" : "auto" }}>{exerciseCount} övningar</div>}
             </div>
 
             <div style={innerPanelStyle}>
@@ -214,12 +226,18 @@ function PassBuilderPage({
         </div>
 
         <section style={panelStyle}>
-          <div style={panelHeaderStyle}>
+          <div
+            style={{
+              ...panelHeaderStyle,
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : panelHeaderStyle.alignItems,
+            }}
+          >
             <div>
               <div style={sectionEyebrowStyle}>Steg 4</div>
               <div style={sectionTitleStyle}>Redigera innehåll i valt pass</div>
             </div>
-            {currentWorkout && <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>}
+            {currentWorkout && <div style={{ ...summaryBadgeStyle, alignSelf: isMobile ? "flex-start" : "auto" }}>{exerciseCount} övningar</div>}
           </div>
 
           {!currentWorkout ? (

@@ -366,9 +366,13 @@ function PlayersPage({
               key={player.id}
               style={{
                 padding: "14px",
-                borderRadius: "14px",
+                borderRadius: "16px",
                 border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
                 backgroundColor: "#ffffff",
+                boxShadow:
+                  selectedPlayer?.id === player.id
+                    ? "0 12px 24px rgba(198, 40, 40, 0.08)"
+                    : "0 8px 18px rgba(24, 32, 43, 0.04)",
               }}
             >
               <button
@@ -386,14 +390,13 @@ function PlayersPage({
                 <div style={{ fontSize: "16px", fontWeight: "800", color: "#111827", marginBottom: "6px" }}>
                   {player.full_name}
                 </div>
-                <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "4px" }}>
-                  @{player.username}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "8px" }}>
+                  <span style={mobilePlayerMetaPillStyle}>@{player.username}</span>
+                  <span style={mobilePlayerMetaPillStyle}>Senaste: {player.latestPass || "-"}</span>
+                  <span style={mobilePlayerMetaPillStyle}>{player.totalPasses ?? 0} pass</span>
                 </div>
-                <div style={{ fontSize: "13px", color: "#374151", marginBottom: "4px" }}>
-                  Senaste pass: {player.latestPass || "-"}
-                </div>
-                <div style={{ fontSize: "13px", color: "#374151" }}>
-                  Totalt antal pass: {player.totalPasses ?? 0}
+                <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "700" }}>
+                  {selectedPlayer?.id === player.id ? "Tryck igen för att stänga" : "Tryck för att visa detaljer"}
                 </div>
               </button>
 
@@ -505,6 +508,16 @@ const summaryValueStyle = {
   fontSize: "14px",
   color: "#18202b",
   fontWeight: "800",
+}
+
+const mobilePlayerMetaPillStyle = {
+  display: "inline-flex",
+  padding: "5px 9px",
+  borderRadius: "999px",
+  backgroundColor: "#f8f0f0",
+  color: "#4b5563",
+  fontSize: "12px",
+  fontWeight: "700",
 }
 
 export default PlayersPage
