@@ -549,6 +549,26 @@ function TrainingApp() {
     return `${set.seconds ?? "-"} sek`
   }
 
+  const isMissingWorkoutTemplateInfoColumnError = (error) => {
+    const message = String(error?.message || "").toLowerCase()
+
+    return (
+      message.includes("info") &&
+      (message.includes("column") ||
+        message.includes("schema cache") ||
+        message.includes("could not find"))
+    )
+  }
+
+  const resetPassEditorState = (templateCode = selectedTemplateCode) => {
+    const selectedTemplate = templatesFromDB.find((template) => template.code === templateCode)
+
+    setRenamePassName(selectedTemplate?.label || "")
+    setRenamePassInfo(selectedTemplate?.info || "")
+    setPassExerciseDrafts({})
+    setSelectedExerciseId("")
+  }
+
   const isVideoUrl = (url) => {
     return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url || "")
   }
@@ -1381,7 +1401,7 @@ function TrainingApp() {
 
     if (!selectedExerciseId) {
       setStatus("Välj en övning")
-      return
+      return false
     }
 
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
@@ -1391,7 +1411,7 @@ function TrainingApp() {
 
     if (!selectedTemplate || !selectedExercise) {
       setStatus("Kunde inte hitta pass eller övning")
-      return
+      return false
     }
 
     const existingRowsForTemplate = templateExercisesFromDB.filter(
@@ -1404,7 +1424,7 @@ function TrainingApp() {
 
     if (alreadyExists) {
       setStatus("Övningen finns redan i passet")
-      return
+      return false
     }
 
     const nextSortOrder =
@@ -1450,13 +1470,14 @@ function TrainingApp() {
           : `Kunde inte lägga till övning i passet${error.message ? `: ${error.message}` : ""}`
       )
       setIsSavingPassExercise(false)
-      return
+      return false
     }
 
     setTemplateExercisesFromDB((prev) => [...prev, data])
     setSelectedExerciseId("")
     setStatus("Övning tillagd i passet ✅")
     setIsSavingPassExercise(false)
+    return true
   }
 
   const handlePassExerciseDraftChange = (rowId, field, value) => {
@@ -1471,14 +1492,16 @@ function TrainingApp() {
 
   const handleSavePassExercises = async () => {
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+    if (!selectedTemplate) {
+      setStatus("Kunde inte hitta valt pass")
+      return false
+    }
+
     const hasRenameChange =
-      !!selectedTemplate &&
       !!renamePassName.trim() &&
       renamePassName.trim() !== selectedTemplate.label
     const nextInfoValue = renamePassInfo.trim()
-    const hasInfoChange =
-      !!selectedTemplate &&
-      nextInfoValue !== (selectedTemplate.info || "")
+    const hasInfoChange = nextInfoValue !== (selectedTemplate.info || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const existingRow = templateExercisesFromDB.find((row) => row.id === rowId)
       const baseGuide = existingRow?.exercises?.guide?.trim() || ""
@@ -1500,13 +1523,14 @@ function TrainingApp() {
 
     if (!hasRenameChange && !hasInfoChange && updates.length === 0) {
       setStatus("Inga passändringar att spara")
-      return
+      return false
     }
 
     setStatus("")
+    let missingInfoColumn = false
 
     if (hasRenameChange || hasInfoChange) {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("workout_templates")
         .update({
           label: hasRenameChange ? renamePassName.trim() : selectedTemplate.label,
@@ -1516,10 +1540,22 @@ function TrainingApp() {
         .select()
         .single()
 
+      if (error && isMissingWorkoutTemplateInfoColumnError(error)) {
+        missingInfoColumn = true
+        ;({ data, error } = await supabase
+          .from("workout_templates")
+          .update({
+            label: hasRenameChange ? renamePassName.trim() : selectedTemplate.label,
+          })
+          .eq("id", selectedTemplate.id)
+          .select()
+          .single())
+      }
+
       if (error) {
         console.error(error)
-        setStatus("Kunde inte spara passnamnet")
-        return
+        setStatus("Kunde inte spara passet")
+        return false
       }
 
       setTemplatesFromDB((prev) =>
@@ -1542,8 +1578,13 @@ function TrainingApp() {
     }
 
     if (updates.length === 0) {
-      setStatus(hasRenameChange || hasInfoChange ? "Passinfo sparad ✅" : "Inga ändringar att spara")
-      return
+      resetPassEditorState(selectedTemplate.code)
+      setStatus(
+        missingInfoColumn
+          ? "Passnamn sparat, men passinfo kräver att nya SQL-migrationen körs i Supabase"
+          : "Pass sparat ✅"
+      )
+      return true
     }
 
     const { error } = await supabase
@@ -1553,7 +1594,7 @@ function TrainingApp() {
     if (error) {
       console.error(error)
       setStatus("Kunde inte spara passändringar")
-      return
+      return false
     }
 
     setTemplateExercisesFromDB((prev) =>
@@ -1591,8 +1632,13 @@ function TrainingApp() {
       })
     )
 
-    setStatus(hasRenameChange || hasInfoChange ? "Passinfo och övningar sparade ✅" : "Övningsändringar sparade ✅")
-    setPassExerciseDrafts({})
+    resetPassEditorState(selectedTemplate.code)
+    setStatus(
+      missingInfoColumn
+        ? "Övningar sparade, men passinfo kräver att nya SQL-migrationen körs i Supabase"
+        : "Pass sparat ✅"
+    )
+    return true
   }
 
   const handleRemoveExerciseFromPass = async (rowId) => {
@@ -1676,7 +1722,7 @@ function TrainingApp() {
 
     if (!newPassName.trim()) {
       setStatus("Fyll i namn på pass")
-      return
+      return false
     }
 
     setIsCreatingPass(true)
@@ -1692,7 +1738,7 @@ function TrainingApp() {
     if (!normalizedCode) {
       setStatus("Kunde inte skapa giltig passkod")
       setIsCreatingPass(false)
-      return
+      return false
     }
 
     const alreadyExists = templatesFromDB.some((template) => template.code === normalizedCode)
@@ -1700,28 +1746,45 @@ function TrainingApp() {
     if (alreadyExists) {
       setStatus("Det finns redan ett pass med det namnet")
       setIsCreatingPass(false)
-      return
+      return false
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("workout_templates")
       .insert({ code: normalizedCode, label: newPassName.trim(), info: newPassInfo.trim() || null })
       .select()
       .single()
 
+    let missingInfoColumn = false
+
+    if (error && isMissingWorkoutTemplateInfoColumnError(error)) {
+      missingInfoColumn = true
+      ;({ data, error } = await supabase
+        .from("workout_templates")
+        .insert({ code: normalizedCode, label: newPassName.trim() })
+        .select()
+        .single())
+    }
+
     if (error) {
       console.error(error)
       setStatus("Kunde inte skapa pass")
       setIsCreatingPass(false)
-      return
+      return false
     }
 
     setTemplatesFromDB((prev) => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)))
     setNewPassName("")
     setNewPassInfo("")
     setSelectedTemplateCode(data.code)
-    setStatus("Pass skapat ✅")
+    resetPassEditorState(data.code)
+    setStatus(
+      missingInfoColumn
+        ? "Pass skapat, men passinfo kräver att nya SQL-migrationen körs i Supabase"
+        : "Pass skapat ✅"
+    )
     setIsCreatingPass(false)
+    return true
   }
 
   const handleDeleteSelectedPass = async () => {
@@ -1731,11 +1794,11 @@ function TrainingApp() {
 
     if (!selectedTemplate) {
       setStatus("Kunde inte hitta valt pass")
-      return
+      return false
     }
 
     const confirmed = window.confirm(`Vill du ta bort ${selectedTemplate.label}?`)
-    if (!confirmed) return
+    if (!confirmed) return false
 
     const relatedRowIds = templateExercisesFromDB
       .filter((row) => row.workout_template_id === selectedTemplate.id)
@@ -1750,7 +1813,7 @@ function TrainingApp() {
       if (exercisesError) {
         console.error(exercisesError)
         setStatus("Kunde inte ta bort övningarna i passet")
-        return
+        return false
       }
     }
 
@@ -1762,7 +1825,7 @@ function TrainingApp() {
     if (error) {
       console.error(error)
       setStatus("Kunde inte ta bort passet")
-      return
+      return false
     }
 
     setTemplateExercisesFromDB((prev) =>
@@ -1771,7 +1834,10 @@ function TrainingApp() {
     setTemplatesFromDB((prev) => prev.filter((template) => template.id !== selectedTemplate.id))
     setPassExerciseDrafts({})
     setSelectedExerciseId("")
+    setRenamePassName("")
+    setRenamePassInfo("")
     setStatus("Pass borttaget ✅")
+    return true
   }
 
   const handleRenamePass = async (templateId, newLabel, newInfo) => {
@@ -2092,7 +2158,6 @@ function TrainingApp() {
                 setRenamePassName={setRenamePassName}
                 renamePassInfo={renamePassInfo}
                 setRenamePassInfo={setRenamePassInfo}
-                handleRenamePass={handleRenameSelectedPass}
                 exercisesFromDB={exercisesFromDB}
                 selectedExerciseId={selectedExerciseId}
                 setSelectedExerciseId={setSelectedExerciseId}
@@ -2104,6 +2169,7 @@ function TrainingApp() {
                 handleRemoveExerciseFromPass={handleRemoveExerciseFromPass}
                 handleMoveExerciseInPass={handleMoveExerciseInPass}
                 handleDeletePass={handleDeleteSelectedPass}
+                resetPassEditorState={resetPassEditorState}
                 cardTitleStyle={cardTitleStyle}
                 secondaryButtonStyle={secondaryButtonStyle}
                 mutedTextStyle={mutedTextStyle}

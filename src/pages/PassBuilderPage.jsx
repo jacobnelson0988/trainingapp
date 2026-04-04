@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+
 function PassBuilderPage({
   activeWorkouts,
   selectedTemplateCode,
@@ -12,7 +14,6 @@ function PassBuilderPage({
   setRenamePassName,
   renamePassInfo,
   setRenamePassInfo,
-  handleRenamePass,
   exercisesFromDB,
   selectedExerciseId,
   setSelectedExerciseId,
@@ -24,6 +25,7 @@ function PassBuilderPage({
   handleRemoveExerciseFromPass,
   handleMoveExerciseInPass,
   handleDeletePass,
+  resetPassEditorState,
   cardTitleStyle,
   secondaryButtonStyle,
   mutedTextStyle,
@@ -31,257 +33,229 @@ function PassBuilderPage({
   buttonStyle,
   isMobile,
 }) {
+  const [view, setView] = useState("overview")
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
   const exerciseCount = currentWorkout?.exercises?.length || 0
 
-  return (
-    <>
-      <h3 style={cardTitleStyle}>Passhantering</h3>
+  useEffect(() => {
+    if (view === "edit" && !currentWorkout) {
+      setView("overview")
+    }
+  }, [currentWorkout, view])
 
-      <p style={{ ...mutedTextStyle, marginBottom: "16px" }}>
-        Bygg pass i fyra steg: välj pass, justera passinfo, lägg till övningar och finjustera varje övning.
-      </p>
+  const openCreateView = () => {
+    setNewPassName("")
+    setNewPassInfo("")
+    setView("create")
+  }
 
-      <div style={pageStackStyle}>
-        <section style={panelStyle}>
-          <div
-            style={{
-              ...panelHeaderStyle,
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "stretch" : panelHeaderStyle.alignItems,
-            }}
-          >
-            <div>
-              <div style={sectionEyebrowStyle}>Steg 1</div>
-              <div style={sectionTitleStyle}>Välj pass att jobba med</div>
-            </div>
-            <div style={{ ...summaryBadgeStyle, alignSelf: isMobile ? "flex-start" : "auto" }}>{passKeys.length} pass</div>
+  const openEditView = () => {
+    if (!selectedTemplateCode) return
+    resetPassEditorState(selectedTemplateCode)
+    setView("edit")
+  }
+
+  const goToOverview = () => {
+    resetPassEditorState(selectedTemplateCode)
+    setSelectedExerciseId("")
+    setView("overview")
+  }
+
+  const handleCreateAndReturn = async () => {
+    const didCreate = await handleCreatePass()
+
+    if (didCreate) {
+      setView("overview")
+    }
+  }
+
+  const handleSaveAndReturn = async () => {
+    const didSave = await handleSavePassExercises()
+
+    if (didSave) {
+      setView("overview")
+    }
+  }
+
+  const handleDeleteAndReturn = async () => {
+    const didDelete = await handleDeletePass()
+
+    if (didDelete) {
+      setView("overview")
+    }
+  }
+
+  if (view === "create") {
+    return (
+      <>
+        <div style={topBarStyle}>
+          <button type="button" onClick={() => setView("overview")} style={secondaryButtonStyle}>
+            ← Tillbaka
+          </button>
+        </div>
+
+        <div style={panelStyle}>
+          <div style={sectionEyebrowStyle}>Nytt pass</div>
+          <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Skapa nytt pass</h3>
+          <p style={{ ...mutedTextStyle, marginBottom: "16px" }}>
+            Skapa först passet med namn och kort info. Du kan lägga till övningar efteråt.
+          </p>
+
+          <div style={formStackStyle}>
+            <input
+              type="text"
+              placeholder="T.ex. Pass D eller Benpass"
+              value={newPassName}
+              onChange={(e) => setNewPassName(e.target.value)}
+              style={{ ...inputStyle, width: "100%" }}
+            />
+
+            <textarea
+              rows={4}
+              placeholder="Kort info om passet som spelaren ser före start"
+              value={newPassInfo}
+              onChange={(e) => setNewPassInfo(e.target.value)}
+              style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+            />
+
+            <button
+              type="button"
+              onClick={handleCreateAndReturn}
+              disabled={isCreatingPass}
+              style={{
+                ...buttonStyle,
+                width: isMobile ? "100%" : "auto",
+                opacity: isCreatingPass ? 0.7 : 1,
+              }}
+            >
+              {isCreatingPass ? "Skapar..." : "Skapa pass"}
+            </button>
           </div>
+        </div>
+      </>
+    )
+  }
 
-          {passKeys.length === 0 ? (
-            <p style={mutedTextStyle}>Inga pass finns ännu. Skapa ditt första pass nedan.</p>
-          ) : (
-            <div style={{ ...passGridStyle, gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))" }}>
-              {passKeys.map((passKey) => {
-                const isSelected = selectedTemplateCode === passKey
-                const workout = activeWorkouts[passKey]
+  if (view === "edit" && currentWorkout) {
+    return (
+      <>
+        <div style={topBarStyle}>
+          <button type="button" onClick={goToOverview} style={secondaryButtonStyle}>
+            ← Tillbaka till pass
+          </button>
+        </div>
 
-                return (
-                  <button
-                    key={passKey}
-                    type="button"
-                    onClick={() => setSelectedTemplateCode(passKey)}
-                    style={{
-                      ...passCardButtonStyle,
-                      border: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb",
-                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
-                    }}
-                  >
-                    <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b", marginBottom: "6px" }}>
-                      {workout.label}
-                    </div>
-                    <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "8px" }}>
-                      {(workout.exercises || []).length} övningar
-                    </div>
-                    <div
-                      style={{
-                        ...chipStyle,
-                        backgroundColor: isSelected ? "#c62828" : "#f3f4f6",
-                        color: isSelected ? "#ffffff" : "#4b5563",
-                      }}
-                    >
-                      {isSelected ? "Valt pass" : "Tryck för att välja"}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        <div style={{ display: "grid", gap: "14px", gridTemplateColumns: isMobile ? "1fr" : "1.1fr 0.9fr" }}>
+        <div style={pageStackStyle}>
           <section style={panelStyle}>
-            <div style={panelHeaderStyle}>
+            <div style={editorHeaderStyle}>
               <div>
-                <div style={sectionEyebrowStyle}>Steg 2</div>
-                <div style={sectionTitleStyle}>Skapa eller byt namn på pass</div>
+                <div style={sectionEyebrowStyle}>Redigera pass</div>
+                <h3 style={{ ...cardTitleStyle, marginBottom: "6px" }}>{currentWorkout.label}</h3>
+                <p style={mutedTextStyle}>
+                  Ändra namn, info och övningsinnehåll. När du sparar går du tillbaka till startsidan för pass.
+                </p>
               </div>
-            </div>
 
-            <div style={innerPanelStyle}>
-              <div style={innerTitleStyle}>Nytt pass</div>
-              <div style={mutedBlockStyle}>Skapa ett nytt pass som du sedan kan fylla med övningar.</div>
-              <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
-                <input
-                  type="text"
-                  placeholder="T.ex. Pass D eller Benpass"
-                  value={newPassName}
-                  onChange={(e) => setNewPassName(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                />
+              <div style={editorActionsStyle}>
                 <button
                   type="button"
-                  onClick={handleCreatePass}
-                  disabled={isCreatingPass}
+                  onClick={handleDeleteAndReturn}
                   style={{
-                    ...buttonStyle,
+                    ...secondaryButtonStyle,
+                    color: "#b91c1c",
+                    borderColor: "#fecaca",
                     width: isMobile ? "100%" : "auto",
-                    opacity: isCreatingPass ? 0.7 : 1,
-                    cursor: isCreatingPass ? "default" : "pointer",
                   }}
                 >
-                  {isCreatingPass ? "Skapar..." : "Skapa pass"}
+                  Ta bort pass
                 </button>
-              </div>
-              <textarea
-                rows={4}
-                placeholder="Kort info om passet som spelaren ser före start"
-                value={newPassInfo}
-                onChange={(e) => setNewPassInfo(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%", marginTop: "10px" }}
-              />
-            </div>
-
-            <div style={{ ...innerPanelStyle, marginTop: "12px" }}>
-              <div style={innerTitleStyle}>Valt pass</div>
-              <div style={mutedBlockStyle}>
-                {currentWorkout
-                  ? `Du redigerar just nu ${currentWorkout.label}.`
-                  : "Välj ett pass ovan för att kunna byta namn eller ta bort det."}
-              </div>
-              <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
-                <input
-                  type="text"
-                  placeholder="Nytt namn på pass"
-                  value={renamePassName}
-                  onChange={(e) => setRenamePassName(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                />
                 <button
                   type="button"
-                  onClick={handleRenamePass}
-                  disabled={!selectedTemplateCode}
+                  onClick={handleSaveAndReturn}
                   style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                 >
-                  Spara passnamn
+                  Spara pass
                 </button>
               </div>
+            </div>
+          </section>
+
+          <section style={panelStyle}>
+            <div style={sectionEyebrowStyle}>Passinfo</div>
+            <div style={formStackStyle}>
+              <input
+                type="text"
+                placeholder="Namn på pass"
+                value={renamePassName}
+                onChange={(e) => setRenamePassName(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+
               <textarea
                 rows={4}
                 placeholder="Kort info om passet som spelaren ser före start"
                 value={renamePassInfo}
                 onChange={(e) => setRenamePassInfo(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%", marginTop: "10px" }}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
               />
+            </div>
+          </section>
+
+          <section style={panelStyle}>
+            <div style={panelHeaderStyle}>
+              <div>
+                <div style={sectionEyebrowStyle}>Övningar</div>
+                <div style={sectionTitleStyle}>Lägg till övning i passet</div>
+              </div>
+              <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>
+            </div>
+
+            <div style={addExercisePanelStyle}>
+              <select
+                value={selectedExerciseId}
+                onChange={(e) => setSelectedExerciseId(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              >
+                <option value="">Välj övning</option>
+                {(exercisesFromDB || []).map((exercise) => (
+                  <option key={exercise.id} value={String(exercise.id)}>
+                    {exercise.name}
+                  </option>
+                ))}
+              </select>
+
               <button
                 type="button"
-                onClick={handleDeletePass}
-                disabled={!selectedTemplateCode}
+                onClick={handleAddExerciseToPass}
+                disabled={isSavingPassExercise || !selectedTemplateCode}
                 style={{
-                  ...secondaryButtonStyle,
+                  ...buttonStyle,
                   width: isMobile ? "100%" : "auto",
-                  color: "#b91c1c",
-                  borderColor: "#fecaca",
-                  marginTop: "10px",
+                  opacity: isSavingPassExercise || !selectedTemplateCode ? 0.7 : 1,
                 }}
               >
-                Ta bort valt pass
+                {isSavingPassExercise ? "Lägger till..." : "Lägg till övning"}
               </button>
             </div>
           </section>
 
           <section style={panelStyle}>
-            <div
-              style={{
-                ...panelHeaderStyle,
-                flexDirection: isMobile ? "column" : "row",
-                alignItems: isMobile ? "stretch" : panelHeaderStyle.alignItems,
-              }}
-            >
+            <div style={panelHeaderStyle}>
               <div>
-                <div style={sectionEyebrowStyle}>Steg 3</div>
-                <div style={sectionTitleStyle}>Lägg till övning i passet</div>
+                <div style={sectionEyebrowStyle}>Innehåll</div>
+                <div style={sectionTitleStyle}>Redigera övningarna i passet</div>
               </div>
-              {currentWorkout && <div style={{ ...summaryBadgeStyle, alignSelf: isMobile ? "flex-start" : "auto" }}>{exerciseCount} övningar</div>}
+              <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>
             </div>
 
-            <div style={innerPanelStyle}>
-              <div style={mutedBlockStyle}>
-                {currentWorkout
-                  ? `Lägg till fler övningar i ${currentWorkout.label}.`
-                  : "Välj ett pass först och lägg sedan till övningar."}
+            {exerciseCount === 0 ? (
+              <div style={emptyStateStyle}>
+                <div style={emptyStateTitleStyle}>Passet är tomt just nu</div>
+                <div style={mutedTextStyle}>Lägg till den första övningen ovan för att komma igång.</div>
               </div>
-              <div style={{ display: "grid", gap: "10px" }}>
-                <select
-                  value={selectedExerciseId}
-                  onChange={(e) => setSelectedExerciseId(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                >
-                  <option value="">Välj övning</option>
-                  {(exercisesFromDB || []).map((exercise) => (
-                    <option key={exercise.id} value={String(exercise.id)}>
-                      {exercise.name}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={handleAddExerciseToPass}
-                  disabled={isSavingPassExercise || !selectedTemplateCode}
-                  style={{
-                    ...buttonStyle,
-                    width: "100%",
-                    opacity: isSavingPassExercise || !selectedTemplateCode ? 0.7 : 1,
-                  }}
-                >
-                  {isSavingPassExercise ? "Sparar..." : "Lägg till övning"}
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <section style={panelStyle}>
-          <div
-            style={{
-              ...panelHeaderStyle,
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "stretch" : panelHeaderStyle.alignItems,
-            }}
-          >
-            <div>
-              <div style={sectionEyebrowStyle}>Steg 4</div>
-              <div style={sectionTitleStyle}>Redigera innehåll i valt pass</div>
-            </div>
-            {currentWorkout && <div style={{ ...summaryBadgeStyle, alignSelf: isMobile ? "flex-start" : "auto" }}>{exerciseCount} övningar</div>}
-          </div>
-
-          {!currentWorkout ? (
-            <p style={mutedTextStyle}>Välj ett pass för att se och redigera innehållet.</p>
-          ) : exerciseCount === 0 ? (
-            <div style={emptyStateStyle}>
-              <div style={emptyStateTitleStyle}>Passet är tomt just nu</div>
-              <div style={mutedTextStyle}>Lägg till den första övningen ovan för att komma igång.</div>
-            </div>
-          ) : (
-            <>
-              <div style={workspaceSummaryStyle}>
-                <div>
-                  <div style={workspaceLabelStyle}>Nu redigerar du</div>
-                  <div style={workspaceTitleStyle}>{currentWorkout.label}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSavePassExercises}
-                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                >
-                  Spara passändringar
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gap: "12px" }}>
+            ) : (
+              <div style={exerciseListStyle}>
                 {(currentWorkout.exercises || []).map((exercise, index) => {
                   const draft = {
                     guide: exercise.guide || "",
@@ -298,29 +272,30 @@ function PassBuilderPage({
                           <div style={exerciseOrderStyle}>Övning {index + 1}</div>
                           <div style={exerciseNameStyle}>{exercise.name}</div>
                         </div>
-                        <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
+
+                        <div style={exerciseButtonRowStyle}>
                           <button
                             type="button"
-                            onClick={() => handleMoveExerciseInPass && handleMoveExerciseInPass(exercise.id, "up")}
+                            onClick={() => handleMoveExerciseInPass(exercise.id, "up")}
                             style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
                           >
                             Flytta upp
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleMoveExerciseInPass && handleMoveExerciseInPass(exercise.id, "down")}
+                            onClick={() => handleMoveExerciseInPass(exercise.id, "down")}
                             style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
                           >
                             Flytta ner
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleRemoveExerciseFromPass && handleRemoveExerciseFromPass(exercise.id)}
+                            onClick={() => handleRemoveExerciseFromPass(exercise.id)}
                             style={{
                               ...secondaryButtonStyle,
-                              width: isMobile ? "100%" : "auto",
                               color: "#b91c1c",
                               borderColor: "#fecaca",
+                              width: isMobile ? "100%" : "auto",
                             }}
                           >
                             Ta bort
@@ -332,18 +307,13 @@ function PassBuilderPage({
                         Standardtexten kommer från övningsbanken. Ändra den här bara om passet ska ha en egen instruktion.
                       </div>
 
-                      <div style={{ display: "grid", gap: "10px" }}>
+                      <div style={formStackStyle}>
                         <textarea
                           rows={3}
                           placeholder="Guide eller instruktion för övningen"
                           value={draft.guide}
                           onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
-                          style={{
-                            ...inputStyle,
-                            width: "100%",
-                            resize: "vertical",
-                            minHeight: "84px",
-                          }}
+                          style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "84px" }}
                         />
 
                         <div style={{ ...targetGridStyle, gridTemplateColumns: isMobile ? "1fr" : "92px 92px auto" }}>
@@ -392,12 +362,117 @@ function PassBuilderPage({
                   )
                 })}
               </div>
-            </>
+            )}
+          </section>
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div style={overviewHeaderStyle}>
+        <div>
+          <h3 style={cardTitleStyle}>Passhantering</h3>
+          <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
+            Välj ett pass för att öppna redigeringsläget, eller skapa ett nytt pass.
+          </p>
+        </div>
+
+        <button type="button" onClick={openCreateView} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
+          Skapa nytt pass
+        </button>
+      </div>
+
+      <div style={pageStackStyle}>
+        <section style={panelStyle}>
+          <div style={panelHeaderStyle}>
+            <div>
+              <div style={sectionEyebrowStyle}>Dina pass</div>
+              <div style={sectionTitleStyle}>Välj pass att redigera</div>
+            </div>
+            <div style={summaryBadgeStyle}>{passKeys.length} pass</div>
+          </div>
+
+          {passKeys.length === 0 ? (
+            <p style={mutedTextStyle}>Inga pass finns ännu. Skapa ditt första pass.</p>
+          ) : (
+            <div style={{ ...passGridStyle, gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              {passKeys.map((passKey) => {
+                const workout = activeWorkouts[passKey]
+                const isSelected = selectedTemplateCode === passKey
+
+                return (
+                  <button
+                    key={passKey}
+                    type="button"
+                    onClick={() => setSelectedTemplateCode(passKey)}
+                    style={{
+                      ...passCardButtonStyle,
+                      border: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb",
+                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                    }}
+                  >
+                    <div style={passCardTitleStyle}>{workout.label}</div>
+                    <div style={passCardMetaStyle}>{(workout.exercises || []).length} övningar</div>
+                    <div
+                      style={{
+                        ...chipStyle,
+                        backgroundColor: isSelected ? "#c62828" : "#f3f4f6",
+                        color: isSelected ? "#ffffff" : "#4b5563",
+                      }}
+                    >
+                      {isSelected ? "Valt pass" : "Markera pass"}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           )}
         </section>
+
+        {currentWorkout && (
+          <section style={panelStyle}>
+            <div style={panelHeaderStyle}>
+              <div>
+                <div style={sectionEyebrowStyle}>Valt pass</div>
+                <div style={sectionTitleStyle}>{currentWorkout.label}</div>
+              </div>
+              <button type="button" onClick={openEditView} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
+                Redigera pass
+              </button>
+            </div>
+
+            <div style={selectedPassInfoStyle}>
+              <div style={selectedPassMetricStyle}>
+                <div style={selectedPassMetricLabelStyle}>Övningar</div>
+                <div style={selectedPassMetricValueStyle}>{exerciseCount}</div>
+              </div>
+
+              {currentWorkout.info ? (
+                <div style={selectedPassDescriptionStyle}>{currentWorkout.info}</div>
+              ) : (
+                <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
     </>
   )
+}
+
+const topBarStyle = {
+  marginBottom: "12px",
+}
+
+const overviewHeaderStyle = {
+  marginBottom: "16px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+  flexWrap: "wrap",
 }
 
 const pageStackStyle = {
@@ -419,6 +494,21 @@ const panelHeaderStyle = {
   justifyContent: "space-between",
   gap: "12px",
   marginBottom: "14px",
+  flexWrap: "wrap",
+}
+
+const editorHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+  flexWrap: "wrap",
+}
+
+const editorActionsStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
 }
 
 const sectionEyebrowStyle = {
@@ -446,6 +536,11 @@ const summaryBadgeStyle = {
   fontWeight: "800",
 }
 
+const formStackStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
 const passGridStyle = {
   display: "grid",
   gap: "10px",
@@ -459,6 +554,19 @@ const passCardButtonStyle = {
   cursor: "pointer",
 }
 
+const passCardTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "6px",
+}
+
+const passCardMetaStyle = {
+  fontSize: "13px",
+  color: "#6b7280",
+  marginBottom: "8px",
+}
+
 const chipStyle = {
   display: "inline-flex",
   padding: "5px 9px",
@@ -467,25 +575,48 @@ const chipStyle = {
   fontWeight: "800",
 }
 
-const innerPanelStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #f0e5e5",
-  backgroundColor: "#fffdfd",
+const selectedPassInfoStyle = {
+  display: "grid",
+  gap: "12px",
 }
 
-const innerTitleStyle = {
-  marginBottom: "6px",
-  fontSize: "15px",
+const selectedPassMetricStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  backgroundColor: "#fff7f7",
+  border: "1px solid #f0dada",
+}
+
+const selectedPassMetricLabelStyle = {
+  marginBottom: "4px",
+  fontSize: "12px",
+  color: "#991b1b",
   fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+}
+
+const selectedPassMetricValueStyle = {
+  fontSize: "24px",
+  fontWeight: "900",
   color: "#18202b",
 }
 
-const mutedBlockStyle = {
-  marginBottom: "10px",
-  fontSize: "13px",
-  color: "#6b7280",
+const selectedPassDescriptionStyle = {
+  fontSize: "14px",
+  color: "#18202b",
   lineHeight: 1.6,
+}
+
+const selectedPassEmptyStyle = {
+  fontSize: "14px",
+  color: "#9ca3af",
+  fontStyle: "italic",
+}
+
+const addExercisePanelStyle = {
+  display: "grid",
+  gap: "10px",
 }
 
 const emptyStateStyle = {
@@ -502,32 +633,9 @@ const emptyStateTitleStyle = {
   color: "#18202b",
 }
 
-const workspaceSummaryStyle = {
-  marginBottom: "14px",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  border: "1px solid #f0dada",
-  backgroundColor: "#fff7f7",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
+const exerciseListStyle = {
+  display: "grid",
   gap: "12px",
-  flexWrap: "wrap",
-}
-
-const workspaceLabelStyle = {
-  marginBottom: "4px",
-  fontSize: "12px",
-  fontWeight: "800",
-  color: "#991b1b",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-}
-
-const workspaceTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
 }
 
 const exerciseEditorCardStyle = {
@@ -543,6 +651,12 @@ const exerciseEditorHeaderStyle = {
   alignItems: "flex-start",
   gap: "12px",
   marginBottom: "12px",
+  flexWrap: "wrap",
+}
+
+const exerciseButtonRowStyle = {
+  display: "flex",
+  gap: "8px",
   flexWrap: "wrap",
 }
 
