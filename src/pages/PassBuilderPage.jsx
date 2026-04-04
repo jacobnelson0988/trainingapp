@@ -147,7 +147,7 @@ function PassBuilderPage({
                   disabled={!selectedTemplateCode}
                   style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                 >
-                  Spara namn
+                  Spara passnamn
                 </button>
               </div>
               <button
@@ -241,7 +241,7 @@ function PassBuilderPage({
                   onClick={handleSavePassExercises}
                   style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                 >
-                  Spara alla ändringar
+                  Spara passändringar
                 </button>
               </div>
 

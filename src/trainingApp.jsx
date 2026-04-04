@@ -1462,8 +1462,11 @@ function TrainingApp() {
   }
 
   const handleSavePassExercises = async () => {
-    setStatus("")
-
+    const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+    const hasRenameChange =
+      !!selectedTemplate &&
+      !!renamePassName.trim() &&
+      renamePassName.trim() !== selectedTemplate.label
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const existingRow = templateExercisesFromDB.find((row) => row.id === rowId)
       const baseGuide = existingRow?.exercises?.guide?.trim() || ""
@@ -1483,8 +1486,47 @@ function TrainingApp() {
       }
     })
 
+    if (!hasRenameChange && updates.length === 0) {
+      setStatus("Inga passändringar att spara")
+      return
+    }
+
+    setStatus("")
+
+    if (hasRenameChange) {
+      const { data, error } = await supabase
+        .from("workout_templates")
+        .update({ label: renamePassName.trim() })
+        .eq("id", selectedTemplate.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error(error)
+        setStatus("Kunde inte spara passnamnet")
+        return
+      }
+
+      setTemplatesFromDB((prev) =>
+        prev.map((template) => (template.id === data.id ? data : template))
+      )
+
+      setWorkoutsFromDB((prev) => {
+        const next = { ...prev }
+
+        if (data.code && next[data.code]) {
+          next[data.code] = {
+            ...next[data.code],
+            label: data.label,
+          }
+        }
+
+        return next
+      })
+    }
+
     if (updates.length === 0) {
-      setStatus("Inga ändringar att spara")
+      setStatus("Passnamn sparat ✅")
       return
     }
 
@@ -1533,7 +1575,7 @@ function TrainingApp() {
       })
     )
 
-    setStatus("Pass uppdaterat ✅")
+    setStatus(hasRenameChange ? "Passnamn och övningar sparade ✅" : "Övningsändringar sparade ✅")
     setPassExerciseDrafts({})
   }
 
