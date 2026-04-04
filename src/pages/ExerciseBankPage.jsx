@@ -94,14 +94,21 @@ function ExerciseBankPage({
       <div
         style={{
           marginBottom: "18px",
-          padding: "16px",
-          borderRadius: "16px",
-          border: "1px solid #e8dddd",
-          backgroundColor: "#fffdfd",
+          padding: "18px",
+          borderRadius: "18px",
+          border: "1px solid #ece5e5",
+          backgroundColor: "#ffffff",
+          boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
         }}
       >
-        <div style={{ fontSize: "15px", fontWeight: "800", marginBottom: "10px", color: "#18202b" }}>
-          Lägg till ny övning
+        <div style={sectionHeaderStyle}>
+          <div>
+            <div style={sectionEyebrowStyle}>{editingExerciseId ? "Redigering" : "Ny ovning"}</div>
+            <div style={sectionTitleStyle}>
+              {editingExerciseId ? "Justera vald ovning" : "Lagg till ny ovning"}
+            </div>
+          </div>
+          <div style={countBadgeStyle}>{exercisesFromDB.length} ovningar</div>
         </div>
 
         <input
@@ -194,7 +201,7 @@ function ExerciseBankPage({
         placeholder="Sök övning"
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
-        style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
+        style={{ ...inputStyle, width: "100%", marginBottom: "12px" }}
       />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
@@ -227,10 +234,11 @@ function ExerciseBankPage({
             <div
               key={exercise.id}
               style={{
-                padding: "14px",
-                borderRadius: "16px",
-                border: isEditing ? "2px solid #c62828" : "1px solid #e8dddd",
+                padding: "16px",
+                borderRadius: "18px",
+                border: isEditing ? "2px solid #c62828" : "1px solid #ece5e5",
                 backgroundColor: "#ffffff",
+                boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
@@ -433,6 +441,39 @@ const tagButtonStyle = {
   fontSize: "13px",
   fontWeight: "700",
   cursor: "pointer",
+}
+
+const sectionHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginBottom: "12px",
+}
+
+const sectionEyebrowStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const sectionTitleStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const countBadgeStyle = {
+  display: "inline-flex",
+  padding: "6px 10px",
+  borderRadius: "999px",
+  backgroundColor: "#fff4f4",
+  color: "#991b1b",
+  fontSize: "12px",
+  fontWeight: "800",
 }
 
 const mediaPreviewStyle = {

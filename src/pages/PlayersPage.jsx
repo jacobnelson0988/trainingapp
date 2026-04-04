@@ -38,26 +38,36 @@ function PlayersPage({
     <div
       style={{
         marginTop: "12px",
-        padding: "14px",
-        border: "1px solid #e5e7eb",
-        borderRadius: "12px",
-        backgroundColor: "#f9fafb",
+        padding: "16px",
+        border: "1px solid #ece5e5",
+        borderRadius: "16px",
+        backgroundColor: "#fffdfd",
       }}
     >
-      <div style={{ fontSize: "14px", color: "#111827", marginBottom: "6px" }}>
-        <strong>Namn:</strong> {player.full_name}
-      </div>
-
-      <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-        <strong>Användarnamn:</strong> {player.username}
-      </div>
-
-      <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-        <strong>Senaste pass:</strong> {player.latestPass || "-"}
-      </div>
-
-      <div style={{ fontSize: "14px", color: "#374151", marginBottom: "10px" }}>
-        <strong>Totalt antal pass:</strong> {player.totalPasses ?? 0}
+      <div
+        style={{
+          display: "grid",
+          gap: "10px",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))",
+          marginBottom: "14px",
+        }}
+      >
+        <div style={summaryCardStyle}>
+          <div style={summaryLabelStyle}>Namn</div>
+          <div style={summaryValueStyle}>{player.full_name}</div>
+        </div>
+        <div style={summaryCardStyle}>
+          <div style={summaryLabelStyle}>Anvandarnamn</div>
+          <div style={summaryValueStyle}>@{player.username}</div>
+        </div>
+        <div style={summaryCardStyle}>
+          <div style={summaryLabelStyle}>Senaste pass</div>
+          <div style={summaryValueStyle}>{player.latestPass || "-"}</div>
+        </div>
+        <div style={summaryCardStyle}>
+          <div style={summaryLabelStyle}>Totalt antal pass</div>
+          <div style={summaryValueStyle}>{player.totalPasses ?? 0}</div>
+        </div>
       </div>
 
       <div style={{ marginBottom: "14px" }}>
@@ -195,16 +205,16 @@ function PlayersPage({
         ) : (
           <div>
             {assignedPassCodes.map((passKey) => (
-              <div
-                key={passKey}
-                style={{
-                  marginBottom: "16px",
-                  padding: "14px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  backgroundColor: "#ffffff",
-                }}
-              >
+            <div
+              key={passKey}
+              style={{
+                marginBottom: "16px",
+                padding: "16px",
+                border: "1px solid #ece5e5",
+                borderRadius: "16px",
+                backgroundColor: "#ffffff",
+              }}
+            >
                 <div style={{ marginBottom: "12px", fontWeight: "800", color: "#18202b" }}>
                   {activeWorkouts[passKey]?.label || passKey}
                 </div>
@@ -473,6 +483,28 @@ const quickActionButtonStyle = {
   color: "#ffffff",
   fontSize: "14px",
   fontWeight: "700",
+}
+
+const summaryCardStyle = {
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #f0e5e5",
+  backgroundColor: "#ffffff",
+}
+
+const summaryLabelStyle = {
+  marginBottom: "4px",
+  fontSize: "12px",
+  color: "#6b7280",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+}
+
+const summaryValueStyle = {
+  fontSize: "14px",
+  color: "#18202b",
+  fontWeight: "800",
 }
 
 export default PlayersPage
