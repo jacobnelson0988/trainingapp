@@ -2259,24 +2259,12 @@ function TrainingApp() {
                   <div
                     style={{
                       ...passPreviewStatsGridStyle,
-                      gridTemplateColumns: isMobile ? "1fr" : passPreviewStatsGridStyle.gridTemplateColumns,
+                      gridTemplateColumns: "1fr",
                     }}
                   >
                     <div style={passPreviewStatCardStyle}>
                       <div style={passPreviewStatLabelStyle}>Övningar</div>
                       <div style={passPreviewStatValueStyle}>{selectedWorkoutData.exercises.length}</div>
-                    </div>
-                    <div style={passPreviewStatCardStyle}>
-                      <div style={passPreviewStatLabelStyle}>Pulshöjare</div>
-                      <div style={passPreviewStatTextStyle}>
-                        {selectedWorkoutData.warmup?.cardio || "Ingen uppvärmning angiven"}
-                      </div>
-                    </div>
-                    <div style={passPreviewStatCardStyle}>
-                      <div style={passPreviewStatLabelStyle}>Teknikdel</div>
-                      <div style={passPreviewStatValueStyle}>
-                        {selectedWorkoutData.warmup?.technique?.length || 0}
-                      </div>
                     </div>
                   </div>
 
