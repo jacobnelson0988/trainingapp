@@ -1205,11 +1205,23 @@ function TrainingApp() {
     return <div style={pageStyle}>Laddar...</div>
   }
 
+  const coachTabs = [
+    { key: "home", label: "Översikt" },
+    { key: "players", label: "Spelare" },
+    { key: "exerciseBank", label: "Övningar" },
+    { key: "passBuilder", label: "Pass" },
+    { key: "createPlayer", label: "Ny spelare" },
+  ]
+
   return (
     <div style={pageStyle}>
       <div style={headerStyle}>
-        <div>
+        <div style={{ flex: 1 }}>
           <p style={eyebrowStyle}>{profile?.role === "coach" ? "Coachläge" : "Spelarläge"}</p>
+          <h1 style={appTitleStyle}>Gurra Styrka</h1>
+          <p style={appSubtitleStyle}>
+            Träning för Gustavsbergs Handboll med tydliga pass, enkel navigation och snabba val.
+          </p>
         </div>
 
         <button
@@ -1224,10 +1236,47 @@ function TrainingApp() {
         </button>
       </div>
 
+      <div style={heroCardStyle}>
+        <div style={heroBadgeStyle}>Gustavsbergs Handboll</div>
+        <div style={heroHeadingStyle}>
+          {profile?.role === "coach" ? "Led laget enkelt" : "Hitta ditt pass snabbt"}
+        </div>
+        <div style={heroTextStyle}>
+          {profile?.role === "coach"
+            ? "Skapa spelare, bygg pass och sätt mål utan att leta runt i appen."
+            : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
+        </div>
+      </div>
+
       {profile?.role === "coach" && (
-        <div style={cardStyle}>
-          {coachView !== "home" && (
-            <div style={{ marginBottom: "16px" }}>
+        <>
+          <div style={coachTabsWrapStyle}>
+            {coachTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setCoachView(tab.key)
+                  if (tab.key !== "players") {
+                    setSelectedPlayer(null)
+                  }
+                  if (tab.key !== "exerciseBank") {
+                    resetExerciseForm()
+                  }
+                }}
+                style={{
+                  ...coachTabButtonStyle,
+                  ...(coachView === tab.key ? activeCoachTabButtonStyle : {}),
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={cardStyle}>
+            {coachView !== "home" && (
+              <div style={{ marginBottom: "16px" }}>
               <button
                 type="button"
                 style={secondaryButtonStyle}
@@ -1239,116 +1288,117 @@ function TrainingApp() {
               >
                 ← Tillbaka
               </button>
-            </div>
-          )}
+              </div>
+            )}
 
-          {coachView === "home" && (
-            <CoachHomePage
-              setCoachView={setCoachView}
-              setSelectedPlayer={setSelectedPlayer}
-              resetExerciseForm={resetExerciseForm}
-              mutedTextStyle={mutedTextStyle}
-              cardTitleStyle={cardTitleStyle}
-              coachNavCardStyle={coachNavCardStyle}
-              coachNavTitleStyle={coachNavTitleStyle}
-              coachNavTextStyle={coachNavTextStyle}
-            />
-          )}
+            {coachView === "home" && (
+              <CoachHomePage
+                setCoachView={setCoachView}
+                setSelectedPlayer={setSelectedPlayer}
+                resetExerciseForm={resetExerciseForm}
+                mutedTextStyle={mutedTextStyle}
+                cardTitleStyle={cardTitleStyle}
+                coachNavCardStyle={coachNavCardStyle}
+                coachNavTitleStyle={coachNavTitleStyle}
+                coachNavTextStyle={coachNavTextStyle}
+              />
+            )}
 
-          {coachView === "exerciseBank" && (
-            <ExerciseBankPage
-              newExerciseName={newExerciseName}
-              setNewExerciseName={setNewExerciseName}
-              newExerciseType={newExerciseType}
-              setNewExerciseType={setNewExerciseType}
-              newExerciseDefaultRepsMode={newExerciseDefaultRepsMode}
-              setNewExerciseDefaultRepsMode={setNewExerciseDefaultRepsMode}
-              newExerciseGuide={newExerciseGuide}
-              setNewExerciseGuide={setNewExerciseGuide}
-              editingExerciseId={editingExerciseId}
-              isSavingExercise={isSavingExercise}
-              handleCreateExercise={handleCreateExercise}
-              handleStartEditExercise={handleStartEditExercise}
-              handleDeleteExercise={handleDeleteExercise}
-              resetExerciseForm={resetExerciseForm}
-              exercisesFromDB={exercisesFromDB}
-              inputStyle={inputStyle}
-              buttonStyle={buttonStyle}
-              secondaryButtonStyle={secondaryButtonStyle}
-              mutedTextStyle={mutedTextStyle}
-              cardTitleStyle={cardTitleStyle}
-            />
-          )}
+            {coachView === "exerciseBank" && (
+              <ExerciseBankPage
+                newExerciseName={newExerciseName}
+                setNewExerciseName={setNewExerciseName}
+                newExerciseType={newExerciseType}
+                setNewExerciseType={setNewExerciseType}
+                newExerciseDefaultRepsMode={newExerciseDefaultRepsMode}
+                setNewExerciseDefaultRepsMode={setNewExerciseDefaultRepsMode}
+                newExerciseGuide={newExerciseGuide}
+                setNewExerciseGuide={setNewExerciseGuide}
+                editingExerciseId={editingExerciseId}
+                isSavingExercise={isSavingExercise}
+                handleCreateExercise={handleCreateExercise}
+                handleStartEditExercise={handleStartEditExercise}
+                handleDeleteExercise={handleDeleteExercise}
+                resetExerciseForm={resetExerciseForm}
+                exercisesFromDB={exercisesFromDB}
+                inputStyle={inputStyle}
+                buttonStyle={buttonStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
+                mutedTextStyle={mutedTextStyle}
+                cardTitleStyle={cardTitleStyle}
+              />
+            )}
 
-          {coachView === "passBuilder" && (
-            <PassBuilderPage
-              activeWorkouts={activeWorkouts}
-              selectedTemplateCode={selectedTemplateCode}
-              setSelectedTemplateCode={setSelectedTemplateCode}
-              newPassName={newPassName}
-              setNewPassName={setNewPassName}
-              handleCreatePass={handleCreatePass}
-              isCreatingPass={isCreatingPass}
-              renamePassName={renamePassName}
-              setRenamePassName={setRenamePassName}
-              handleRenamePass={handleRenameSelectedPass}
-              exercisesFromDB={exercisesFromDB}
-              selectedExerciseId={selectedExerciseId}
-              setSelectedExerciseId={setSelectedExerciseId}
-              handleAddExerciseToPass={handleAddExerciseToPass}
-              isSavingPassExercise={isSavingPassExercise}
-              passExerciseDrafts={passExerciseDrafts}
-              handlePassExerciseDraftChange={handlePassExerciseDraftChange}
-              handleSavePassExercises={handleSavePassExercises}
-              handleRemoveExerciseFromPass={handleRemoveExerciseFromPass}
-              handleMoveExerciseInPass={handleMoveExerciseInPass}
-              handleDeletePass={handleDeleteSelectedPass}
-              cardTitleStyle={cardTitleStyle}
-              secondaryButtonStyle={secondaryButtonStyle}
-              mutedTextStyle={mutedTextStyle}
-              inputStyle={inputStyle}
-              buttonStyle={buttonStyle}
-            />
-          )}
+            {coachView === "passBuilder" && (
+              <PassBuilderPage
+                activeWorkouts={activeWorkouts}
+                selectedTemplateCode={selectedTemplateCode}
+                setSelectedTemplateCode={setSelectedTemplateCode}
+                newPassName={newPassName}
+                setNewPassName={setNewPassName}
+                handleCreatePass={handleCreatePass}
+                isCreatingPass={isCreatingPass}
+                renamePassName={renamePassName}
+                setRenamePassName={setRenamePassName}
+                handleRenamePass={handleRenameSelectedPass}
+                exercisesFromDB={exercisesFromDB}
+                selectedExerciseId={selectedExerciseId}
+                setSelectedExerciseId={setSelectedExerciseId}
+                handleAddExerciseToPass={handleAddExerciseToPass}
+                isSavingPassExercise={isSavingPassExercise}
+                passExerciseDrafts={passExerciseDrafts}
+                handlePassExerciseDraftChange={handlePassExerciseDraftChange}
+                handleSavePassExercises={handleSavePassExercises}
+                handleRemoveExerciseFromPass={handleRemoveExerciseFromPass}
+                handleMoveExerciseInPass={handleMoveExerciseInPass}
+                handleDeletePass={handleDeleteSelectedPass}
+                cardTitleStyle={cardTitleStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
+                mutedTextStyle={mutedTextStyle}
+                inputStyle={inputStyle}
+                buttonStyle={buttonStyle}
+              />
+            )}
 
-          {coachView === "createPlayer" && (
-            <CreatePlayerPage
-              newPlayerName={newPlayerName}
-              setNewPlayerName={setNewPlayerName}
-              newPlayerPassword={newPlayerPassword}
-              setNewPlayerPassword={setNewPlayerPassword}
-              handleCreatePlayer={handleCreatePlayer}
-              isCreatingPlayer={isCreatingPlayer}
-              createdPlayer={createdPlayer}
-              inputStyle={inputStyle}
-              buttonStyle={buttonStyle}
-              cardTitleStyle={cardTitleStyle}
-            />
-          )}
+            {coachView === "createPlayer" && (
+              <CreatePlayerPage
+                newPlayerName={newPlayerName}
+                setNewPlayerName={setNewPlayerName}
+                newPlayerPassword={newPlayerPassword}
+                setNewPlayerPassword={setNewPlayerPassword}
+                handleCreatePlayer={handleCreatePlayer}
+                isCreatingPlayer={isCreatingPlayer}
+                createdPlayer={createdPlayer}
+                inputStyle={inputStyle}
+                buttonStyle={buttonStyle}
+                cardTitleStyle={cardTitleStyle}
+              />
+            )}
 
-          {coachView === "players" && (
-            <PlayersPage
-              isLoadingPlayers={isLoadingPlayers}
-              players={players}
-              selectedPlayer={selectedPlayer}
-              setSelectedPlayer={setSelectedPlayer}
-              commentDrafts={commentDrafts}
-              handleCommentChange={handleCommentChange}
-              handleCommentSave={handleCommentSave}
-              mutedTextStyle={mutedTextStyle}
-              cardTitleStyle={cardTitleStyle}
-              inputStyle={inputStyle}
-              activeWorkouts={activeWorkouts}
-              targetPassName={targetPassName}
-              setTargetPassName={setTargetPassName}
-              isLoadingTargets={isLoadingTargets}
-              targetDrafts={targetDrafts}
-              handleTargetDraftChange={handleTargetDraftChange}
-              handleSaveTargets={handleSaveTargets}
-              isSavingTargets={isSavingTargets}
-            />
-          )}
-        </div>
+            {coachView === "players" && (
+              <PlayersPage
+                isLoadingPlayers={isLoadingPlayers}
+                players={players}
+                selectedPlayer={selectedPlayer}
+                setSelectedPlayer={setSelectedPlayer}
+                commentDrafts={commentDrafts}
+                handleCommentChange={handleCommentChange}
+                handleCommentSave={handleCommentSave}
+                mutedTextStyle={mutedTextStyle}
+                cardTitleStyle={cardTitleStyle}
+                inputStyle={inputStyle}
+                activeWorkouts={activeWorkouts}
+                targetPassName={targetPassName}
+                setTargetPassName={setTargetPassName}
+                isLoadingTargets={isLoadingTargets}
+                targetDrafts={targetDrafts}
+                handleTargetDraftChange={handleTargetDraftChange}
+                handleSaveTargets={handleSaveTargets}
+                isSavingTargets={isSavingTargets}
+              />
+            )}
+          </div>
+        </>
       )}
 
       <div style={workoutActionSectionStyle}>
@@ -1587,42 +1637,120 @@ function TrainingApp() {
 }
 
 const pageStyle = {
-  padding: "24px 20px 40px",
-  maxWidth: "860px",
+  padding: "20px 16px 48px",
+  maxWidth: "980px",
   margin: "0 auto",
-  backgroundColor: "#f7f8fa",
   minHeight: "100vh",
-  fontFamily: "Arial, sans-serif",
+  fontFamily: "Roboto, sans-serif",
 }
 
+const appTitleStyle = {
+  margin: "0 0 8px 0",
+  fontSize: "clamp(2rem, 4vw, 3.4rem)",
+  lineHeight: 0.95,
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const appSubtitleStyle = {
+  margin: 0,
+  maxWidth: "560px",
+  fontSize: "15px",
+  color: "#566173",
+  lineHeight: 1.6,
+}
 
 const headerStyle = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "16px",
-  marginBottom: "24px",
+  alignItems: "flex-end",
+  gap: "20px",
+  marginBottom: "18px",
 }
 
 const eyebrowStyle = {
-  margin: "0 0 6px 0",
+  margin: "0 0 10px 0",
   fontSize: "12px",
-  fontWeight: "700",
+  fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "#991b1b",
+}
+
+const heroCardStyle = {
+  marginBottom: "20px",
+  padding: "22px 22px 20px",
+  borderRadius: "26px",
+  background:
+    "linear-gradient(135deg, rgba(198, 40, 40, 0.98) 0%, rgba(153, 27, 27, 0.96) 48%, rgba(24, 32, 43, 0.94) 100%)",
+  color: "#ffffff",
+  boxShadow: "0 24px 42px rgba(24, 32, 43, 0.16)",
+}
+
+const heroBadgeStyle = {
+  display: "inline-flex",
+  marginBottom: "12px",
+  padding: "6px 12px",
+  borderRadius: "999px",
+  backgroundColor: "rgba(255,255,255,0.16)",
+  color: "#fff7f7",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+}
+
+const heroHeadingStyle = {
+  fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
+  fontWeight: "900",
+  lineHeight: 1,
+  marginBottom: "10px",
+}
+
+const heroTextStyle = {
+  maxWidth: "580px",
+  fontSize: "15px",
+  lineHeight: 1.6,
+  color: "rgba(255,255,255,0.9)",
 }
 
 const logoutButtonStyle = {
-  padding: "10px 14px",
-  borderRadius: "10px",
-  border: "1px solid #d1d5db",
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid #f0d4d4",
   backgroundColor: "#ffffff",
-  color: "#111827",
+  color: "#18202b",
   cursor: "pointer",
   fontSize: "14px",
-  fontWeight: "700",
+  fontWeight: "800",
   whiteSpace: "nowrap",
+  boxShadow: "0 10px 26px rgba(24, 32, 43, 0.08)",
+}
+
+const coachTabsWrapStyle = {
+  display: "flex",
+  gap: "10px",
+  marginBottom: "16px",
+  flexWrap: "wrap",
+}
+
+const coachTabButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid #f1d7d7",
+  backgroundColor: "rgba(255,255,255,0.92)",
+  color: "#18202b",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "800",
+  boxShadow: "0 8px 18px rgba(24, 32, 43, 0.06)",
+}
+
+const activeCoachTabButtonStyle = {
+  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
+  color: "#ffffff",
+  borderColor: "#b91c1c",
+  boxShadow: "0 16px 28px rgba(198, 40, 40, 0.24)",
 }
 
 const workoutActionSectionStyle = {
@@ -1634,69 +1762,72 @@ const workoutActionSectionStyle = {
 }
 
 const sectionTitleStyle = {
-  fontSize: "22px",
+  fontSize: "28px",
   marginBottom: "16px",
-  color: "#111827",
+  color: "#18202b",
+  fontWeight: "900",
 }
 
 const cardStyle = {
   marginBottom: "20px",
-  padding: "18px",
-  border: "1px solid #e5e7eb",
-  borderRadius: "14px",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+  padding: "20px",
+  border: "1px solid #f0dcdc",
+  borderRadius: "24px",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
+  boxShadow: "0 18px 40px rgba(24, 32, 43, 0.08)",
 }
 
 const cardTitleStyle = {
-  margin: "0 0 4px 0",
-  fontSize: "18px",
-  color: "#111827",
-  fontWeight: "700",
+  margin: "0 0 6px 0",
+  fontSize: "20px",
+  color: "#18202b",
+  fontWeight: "900",
 }
 
 const guideStyle = {
   margin: 0,
   fontSize: "14px",
-  color: "#6b7280",
+  color: "#566173",
+  lineHeight: 1.6,
 }
 
 const subheadingStyle = {
   margin: "0 0 6px 0",
   fontSize: "14px",
-  fontWeight: "700",
-  color: "#374151",
+  fontWeight: "800",
+  color: "#18202b",
 }
 
 const mutedTextStyle = {
   margin: 0,
   fontSize: "14px",
-  color: "#6b7280",
+  color: "#566173",
   lineHeight: 1.6,
 }
 
 const exerciseProgressStyle = {
   display: "inline-block",
   marginBottom: "12px",
-  padding: "4px 10px",
+  padding: "6px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fee2e2",
-  color: "#b91c1c",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
   fontSize: "12px",
-  fontWeight: "700",
+  fontWeight: "800",
 }
 
 const targetBoxStyle = {
-  backgroundColor: "#fef2f2",
-  border: "1px solid #fecaca",
-  borderRadius: "12px",
+  backgroundColor: "#fff3f3",
+  border: "1px solid #f5caca",
+  borderRadius: "18px",
   padding: "14px 16px",
   marginBottom: "14px",
 }
 
 const targetBoxTitleStyle = {
   fontSize: "16px",
-  fontWeight: "700",
+  fontWeight: "900",
   color: "#991b1b",
   marginBottom: "10px",
 }
@@ -1715,8 +1846,8 @@ const targetLabelStyle = {
 }
 
 const targetValueStyle = {
-  color: "#111827",
-  fontWeight: "700",
+  color: "#18202b",
+  fontWeight: "800",
 }
 
 const targetCommentStyle = {
@@ -1732,30 +1863,30 @@ const emptyTargetStyle = {
 }
 
 const latestBoxStyle = {
-  backgroundColor: "#f3f4f6",
-  border: "1px solid #e5e7eb",
-  borderRadius: "10px",
+  backgroundColor: "#fffafa",
+  border: "1px solid #efe2e2",
+  borderRadius: "16px",
   padding: "10px 12px",
   marginBottom: "12px",
 }
 
 const latestBoxTitleStyle = {
   fontSize: "13px",
-  fontWeight: "700",
-  color: "#4b5563",
+  fontWeight: "800",
+  color: "#566173",
   marginBottom: "6px",
 }
 
 const latestRowStyle = {
   fontSize: "13px",
-  color: "#374151",
+  color: "#334155",
   lineHeight: 1.6,
 }
 
 const infoBoxStyle = {
-  backgroundColor: "#f9fafb",
-  border: "1px solid #e5e7eb",
-  borderRadius: "10px",
+  backgroundColor: "#fffdfd",
+  border: "1px solid #efe4e4",
+  borderRadius: "16px",
   padding: "10px 12px",
   marginBottom: "14px",
 }
@@ -1763,7 +1894,7 @@ const infoBoxStyle = {
 
 const infoRowStyle = {
   fontSize: "13px",
-  color: "#6b7280",
+  color: "#566173",
   lineHeight: 1.6,
 }
 
@@ -1776,24 +1907,24 @@ const infoToggleButtonStyle = {
   backgroundColor: "transparent",
   padding: 0,
   fontSize: "14px",
-  fontWeight: "700",
-  color: "#374151",
+  fontWeight: "800",
+  color: "#18202b",
   cursor: "pointer",
 }
 
 const activeSetCardStyle = {
   marginBottom: "10px",
   padding: "12px",
-  borderRadius: "10px",
-  backgroundColor: "#f9fafb",
-  border: "1px solid #e5e7eb",
+  borderRadius: "16px",
+  backgroundColor: "#fffdfd",
+  border: "1px solid #efe2e2",
 }
 
 
 const setLabelStyle = {
   fontSize: "13px",
-  fontWeight: "700",
-  color: "#4b5563",
+  fontWeight: "800",
+  color: "#566173",
   marginBottom: "8px",
 }
 
@@ -1804,100 +1935,109 @@ const setInputsRowStyle = {
 }
 
 const inputStyle = {
-  padding: "10px 12px",
-  borderRadius: "8px",
-  border: "1px solid #d1d5db",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid #e9dada",
   fontSize: "14px",
   minWidth: "120px",
-  backgroundColor: "#fff",
-  color: "#111827",
+  backgroundColor: "#fffdfd",
+  color: "#18202b",
 }
 
 const buttonStyle = {
-  padding: "10px 14px",
-  borderRadius: "10px",
+  padding: "12px 16px",
+  borderRadius: "16px",
   border: "none",
-  backgroundColor: "#111827",
+  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
   color: "#ffffff",
   cursor: "pointer",
   fontSize: "14px",
-  fontWeight: "700",
+  fontWeight: "800",
+  boxShadow: "0 14px 28px rgba(198, 40, 40, 0.22)",
 }
 
 const secondaryButtonStyle = {
-  padding: "10px 14px",
-  borderRadius: "10px",
-  border: "1px solid #d1d5db",
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid #ecd6d6",
   backgroundColor: "#ffffff",
-  color: "#111827",
+  color: "#18202b",
   cursor: "pointer",
   fontSize: "14px",
-  fontWeight: "700",
+  fontWeight: "800",
 }
 
 const removeButtonStyle = {
   padding: "10px 12px",
-  borderRadius: "8px",
-  border: "1px solid #d1d5db",
+  borderRadius: "12px",
+  border: "1px solid #ecd6d6",
   backgroundColor: "#ffffff",
-  color: "#4b5563",
+  color: "#566173",
   cursor: "pointer",
   fontSize: "14px",
+  fontWeight: "700",
 }
 
 const pickerGridStyle = {
   marginTop: "12px",
   display: "grid",
   gap: "12px",
+  width: "100%",
 }
 
 const pickerButtonStyle = {
-  padding: "14px",
-  borderRadius: "12px",
-  border: "1px solid #d1d5db",
-  backgroundColor: "#ffffff",
+  padding: "18px",
+  borderRadius: "18px",
+  border: "1px solid #eddede",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,247,0.96))",
   textAlign: "left",
   cursor: "pointer",
+  boxShadow: "0 14px 28px rgba(24, 32, 43, 0.06)",
 }
 
 const pickerTitleStyle = {
-  fontWeight: "700",
-  fontSize: "16px",
-  color: "#111827",
+  fontWeight: "900",
+  fontSize: "18px",
+  color: "#18202b",
 }
 
 const pickerSubtitleStyle = {
   fontSize: "13px",
-  color: "#6b7280",
+  color: "#566173",
   marginTop: "4px",
 }
 
 const statusStyle = {
   fontSize: "14px",
-  color: "#6b7280",
+  color: "#991b1b",
   marginTop: 0,
   marginBottom: "16px",
+  fontWeight: "700",
 }
 
 const coachNavCardStyle = {
-  padding: "16px",
-  borderRadius: "12px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  padding: "18px",
+  borderRadius: "20px",
+  border: "1px solid #f0dcdc",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
   textAlign: "left",
   cursor: "pointer",
+  boxShadow: "0 14px 28px rgba(24, 32, 43, 0.06)",
 }
 
 const coachNavTitleStyle = {
-  fontWeight: "700",
-  fontSize: "16px",
-  color: "#111827",
-  marginBottom: "4px",
+  fontWeight: "900",
+  fontSize: "18px",
+  color: "#18202b",
+  marginBottom: "6px",
 }
 
 const coachNavTextStyle = {
-  fontSize: "13px",
-  color: "#6b7280",
+  fontSize: "14px",
+  color: "#566173",
+  lineHeight: 1.5,
 }
 
 export default TrainingApp

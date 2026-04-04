@@ -72,11 +72,6 @@ function App() {
     setMessage(lastErrorMessage)
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setMessage("Utloggad")
-  }
-
   if (session) {
     return <TrainingApp />
   }
@@ -88,41 +83,64 @@ function App() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#f3f4f6",
-        padding: 24,
-        fontFamily: "Arial, sans-serif",
+        padding: 20,
+        fontFamily: "Roboto, sans-serif",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: 380,
-          backgroundColor: "#ffffff",
-          borderRadius: 16,
+          maxWidth: 440,
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,248,248,0.96))",
+          borderRadius: 28,
           padding: 32,
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
+          boxShadow: "0 24px 60px rgba(24, 32, 43, 0.12)",
+          border: "1px solid rgba(198, 40, 40, 0.12)",
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div
             style={{
-              width: 64,
-              height: 64,
-              margin: "0 auto 12px",
-              borderRadius: "50%",
-              backgroundColor: "#dc2626",
+              width: 84,
+              height: 84,
+              margin: "0 auto 16px",
+              borderRadius: 24,
+              background:
+                "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
               color: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 28,
+              fontSize: 26,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              boxShadow: "0 16px 32px rgba(198, 40, 40, 0.28)",
             }}
           >
-            🏋️
+            GIF
           </div>
-          <h1 style={{ margin: 0, fontSize: 28, color: "#111827" }}>Gurra Styrka</h1>
-          <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 14 }}>
-            Logga in för att starta ditt pass
+          <div
+            style={{
+              display: "inline-flex",
+              padding: "6px 12px",
+              borderRadius: 999,
+              backgroundColor: "#fff1f1",
+              color: "#991b1b",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              marginBottom: 14,
+            }}
+          >
+            Gustavsbergs Handboll
+          </div>
+          <h1 style={{ margin: 0, fontSize: 34, color: "#18202b", lineHeight: 1 }}>
+            Gurra Styrka
+          </h1>
+          <p style={{ margin: "10px 0 0", color: "#566173", fontSize: 15, lineHeight: 1.6 }}>
+            Enkel träning för spelare och tränare. Logga in och hitta rätt pass direkt.
           </p>
         </div>
 
@@ -135,11 +153,13 @@ function App() {
               onChange={(e) => setUsername(e.target.value)}
               style={{
                 width: "100%",
-                padding: 12,
-                borderRadius: 10,
-                border: "1px solid #d1d5db",
+                padding: 14,
+                borderRadius: 16,
+                border: "1px solid #e6dada",
                 fontSize: 16,
                 boxSizing: "border-box",
+                backgroundColor: "#fffefe",
+                color: "#18202b",
               }}
             />
           </div>
@@ -152,11 +172,13 @@ function App() {
               onChange={(e) => setPassword(e.target.value)}
               style={{
                 width: "100%",
-                padding: 12,
-                borderRadius: 10,
-                border: "1px solid #d1d5db",
+                padding: 14,
+                borderRadius: 16,
+                border: "1px solid #e6dada",
                 fontSize: 16,
                 boxSizing: "border-box",
+                backgroundColor: "#fffefe",
+                color: "#18202b",
               }}
             />
           </div>
@@ -165,15 +187,16 @@ function App() {
             type="submit"
             style={{
               width: "100%",
-              padding: "14px 16px",
-              borderRadius: 12,
+              padding: "15px 18px",
+              borderRadius: 16,
               border: "none",
-              backgroundColor: "#dc2626",
+              background:
+                "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
               color: "#ffffff",
               fontSize: 16,
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(220, 38, 38, 0.25)",
+              boxShadow: "0 14px 30px rgba(198, 40, 40, 0.26)",
             }}
           >
             Logga in
@@ -181,7 +204,20 @@ function App() {
         </form>
 
         {message && (
-          <p style={{ marginTop: 16, textAlign: "center", color: "#6b7280" }}>{message}</p>
+          <p
+            style={{
+              marginTop: 16,
+              textAlign: "center",
+              color: "#566173",
+              backgroundColor: "#fff4f4",
+              border: "1px solid #f4d0d0",
+              borderRadius: 14,
+              padding: "12px 14px",
+              fontSize: 14,
+            }}
+          >
+            {message}
+          </p>
         )}
       </div>
     </div>
