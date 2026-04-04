@@ -57,7 +57,7 @@ function PlayersPage({
           <div style={summaryValueStyle}>{player.full_name}</div>
         </div>
         <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Anvandarnamn</div>
+          <div style={summaryLabelStyle}>Användarnamn</div>
           <div style={summaryValueStyle}>@{player.username}</div>
         </div>
         <div style={summaryCardStyle}>

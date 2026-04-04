@@ -103,12 +103,12 @@ function ExerciseBankPage({
       >
         <div style={sectionHeaderStyle}>
           <div>
-            <div style={sectionEyebrowStyle}>{editingExerciseId ? "Redigering" : "Ny ovning"}</div>
+            <div style={sectionEyebrowStyle}>{editingExerciseId ? "Redigering" : "Ny övning"}</div>
             <div style={sectionTitleStyle}>
-              {editingExerciseId ? "Justera vald ovning" : "Lagg till ny ovning"}
+              {editingExerciseId ? "Justera vald övning" : "Lägg till ny övning"}
             </div>
           </div>
-          <div style={countBadgeStyle}>{exercisesFromDB.length} ovningar</div>
+          <div style={countBadgeStyle}>{exercisesFromDB.length} övningar</div>
         </div>
 
         <input

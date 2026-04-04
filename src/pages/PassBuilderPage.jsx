@@ -36,7 +36,7 @@ function PassBuilderPage({
       <h3 style={cardTitleStyle}>Passhantering</h3>
 
       <p style={{ ...mutedTextStyle, marginBottom: "16px" }}>
-        Bygg pass i fyra steg: valj pass, justera passinfo, lagg till ovningar och finjustera varje ovning.
+        Bygg pass i fyra steg: välj pass, justera passinfo, lägg till övningar och finjustera varje övning.
       </p>
 
       <div style={pageStackStyle}>
@@ -44,13 +44,13 @@ function PassBuilderPage({
           <div style={panelHeaderStyle}>
             <div>
               <div style={sectionEyebrowStyle}>Steg 1</div>
-              <div style={sectionTitleStyle}>Valj pass att jobba med</div>
+              <div style={sectionTitleStyle}>Välj pass att jobba med</div>
             </div>
             <div style={summaryBadgeStyle}>{passKeys.length} pass</div>
           </div>
 
           {passKeys.length === 0 ? (
-            <p style={mutedTextStyle}>Inga pass finns ännu. Skapa ditt forsta pass nedan.</p>
+            <p style={mutedTextStyle}>Inga pass finns ännu. Skapa ditt första pass nedan.</p>
           ) : (
             <div style={{ ...passGridStyle, gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))" }}>
               {passKeys.map((passKey) => {
@@ -72,7 +72,7 @@ function PassBuilderPage({
                       {workout.label}
                     </div>
                     <div style={{ fontSize: "13px", color: "#6b7280", marginBottom: "8px" }}>
-                      {(workout.exercises || []).length} ovningar
+                      {(workout.exercises || []).length} övningar
                     </div>
                     <div
                       style={{
@@ -81,7 +81,7 @@ function PassBuilderPage({
                         color: isSelected ? "#ffffff" : "#4b5563",
                       }}
                     >
-                      {isSelected ? "Valt pass" : "Tryck for att valja"}
+                      {isSelected ? "Valt pass" : "Tryck för att välja"}
                     </div>
                   </button>
                 )
@@ -95,13 +95,13 @@ function PassBuilderPage({
             <div style={panelHeaderStyle}>
               <div>
                 <div style={sectionEyebrowStyle}>Steg 2</div>
-                <div style={sectionTitleStyle}>Skapa eller byt namn pa pass</div>
+                <div style={sectionTitleStyle}>Skapa eller byt namn på pass</div>
               </div>
             </div>
 
             <div style={innerPanelStyle}>
               <div style={innerTitleStyle}>Nytt pass</div>
-              <div style={mutedBlockStyle}>Skapa ett nytt pass som du sedan kan fylla med ovningar.</div>
+              <div style={mutedBlockStyle}>Skapa ett nytt pass som du sedan kan fylla med övningar.</div>
               <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
                 <input
                   type="text"
@@ -131,12 +131,12 @@ function PassBuilderPage({
               <div style={mutedBlockStyle}>
                 {currentWorkout
                   ? `Du redigerar just nu ${currentWorkout.label}.`
-                  : "Valj ett pass ovan for att kunna byta namn eller ta bort det."}
+                  : "Välj ett pass ovan för att kunna byta namn eller ta bort det."}
               </div>
               <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
                 <input
                   type="text"
-                  placeholder="Nytt namn pa pass"
+                  placeholder="Nytt namn på pass"
                   value={renamePassName}
                   onChange={(e) => setRenamePassName(e.target.value)}
                   style={{ ...inputStyle, width: "100%" }}
@@ -171,16 +171,16 @@ function PassBuilderPage({
             <div style={panelHeaderStyle}>
               <div>
                 <div style={sectionEyebrowStyle}>Steg 3</div>
-                <div style={sectionTitleStyle}>Lagg till ovning i passet</div>
+                <div style={sectionTitleStyle}>Lägg till övning i passet</div>
               </div>
-              {currentWorkout && <div style={summaryBadgeStyle}>{exerciseCount} ovningar</div>}
+              {currentWorkout && <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>}
             </div>
 
             <div style={innerPanelStyle}>
               <div style={mutedBlockStyle}>
                 {currentWorkout
-                  ? `Lagg till fler ovningar i ${currentWorkout.label}.`
-                  : "Valj ett pass forst och lagg sedan till ovningar."}
+                  ? `Lägg till fler övningar i ${currentWorkout.label}.`
+                  : "Välj ett pass först och lägg sedan till övningar."}
               </div>
               <div style={{ display: "grid", gap: "10px" }}>
                 <select
@@ -188,9 +188,9 @@ function PassBuilderPage({
                   onChange={(e) => setSelectedExerciseId(e.target.value)}
                   style={{ ...inputStyle, width: "100%" }}
                 >
-                  <option value="">Valj ovning</option>
+                  <option value="">Välj övning</option>
                   {(exercisesFromDB || []).map((exercise) => (
-                    <option key={exercise.id} value={exercise.id}>
+                    <option key={exercise.id} value={String(exercise.id)}>
                       {exercise.name}
                     </option>
                   ))}
@@ -206,7 +206,7 @@ function PassBuilderPage({
                     opacity: isSavingPassExercise || !selectedTemplateCode ? 0.7 : 1,
                   }}
                 >
-                  {isSavingPassExercise ? "Sparar..." : "Lagg till ovning"}
+                  {isSavingPassExercise ? "Sparar..." : "Lägg till övning"}
                 </button>
               </div>
             </div>
@@ -217,17 +217,17 @@ function PassBuilderPage({
           <div style={panelHeaderStyle}>
             <div>
               <div style={sectionEyebrowStyle}>Steg 4</div>
-              <div style={sectionTitleStyle}>Redigera innehall i valt pass</div>
+              <div style={sectionTitleStyle}>Redigera innehåll i valt pass</div>
             </div>
-            {currentWorkout && <div style={summaryBadgeStyle}>{exerciseCount} ovningar</div>}
+            {currentWorkout && <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>}
           </div>
 
           {!currentWorkout ? (
-            <p style={mutedTextStyle}>Valj ett pass for att se och redigera innehallet.</p>
+            <p style={mutedTextStyle}>Välj ett pass för att se och redigera innehållet.</p>
           ) : exerciseCount === 0 ? (
             <div style={emptyStateStyle}>
-              <div style={emptyStateTitleStyle}>Passet ar tomt just nu</div>
-              <div style={mutedTextStyle}>Lagg till den forsta ovningen ovan for att komma igang.</div>
+              <div style={emptyStateTitleStyle}>Passet är tomt just nu</div>
+              <div style={mutedTextStyle}>Lägg till den första övningen ovan för att komma igång.</div>
             </div>
           ) : (
             <>
@@ -241,7 +241,7 @@ function PassBuilderPage({
                   onClick={handleSavePassExercises}
                   style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                 >
-                  Spara alla andringar
+                  Spara alla ändringar
                 </button>
               </div>
 
@@ -259,7 +259,7 @@ function PassBuilderPage({
                     <div key={`${exercise.name}-${index}`} style={exerciseEditorCardStyle}>
                       <div style={exerciseEditorHeaderStyle}>
                         <div>
-                          <div style={exerciseOrderStyle}>Ovning {index + 1}</div>
+                          <div style={exerciseOrderStyle}>Övning {index + 1}</div>
                           <div style={exerciseNameStyle}>{exercise.name}</div>
                         </div>
                         <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
@@ -293,13 +293,13 @@ function PassBuilderPage({
                       </div>
 
                       <div style={hintBoxStyle}>
-                        Standardtexten kommer fran ovningsbanken. Andra den har bara om passet ska ha en egen instruktion.
+                        Standardtexten kommer från övningsbanken. Ändra den här bara om passet ska ha en egen instruktion.
                       </div>
 
                       <div style={{ display: "grid", gap: "10px" }}>
                         <textarea
                           rows={3}
-                          placeholder="Guide eller instruktion for ovningen"
+                          placeholder="Guide eller instruktion för övningen"
                           value={draft.guide}
                           onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
                           style={{
@@ -348,7 +348,7 @@ function PassBuilderPage({
                               color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
                             }}
                           >
-                            {draft.targetRepsMode === "max" ? "MAX-lage" : "Fast reps"}
+                            {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
                           </button>
                         </div>
                       </div>

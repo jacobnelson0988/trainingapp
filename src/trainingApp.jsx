@@ -1377,7 +1377,9 @@ function TrainingApp() {
     }
 
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
-    const selectedExercise = exercisesFromDB.find((exercise) => exercise.id === selectedExerciseId)
+    const selectedExercise = exercisesFromDB.find(
+      (exercise) => String(exercise.id) === String(selectedExerciseId)
+    )
 
     if (!selectedTemplate || !selectedExercise) {
       setStatus("Kunde inte hitta pass eller övning")
@@ -1388,7 +1390,9 @@ function TrainingApp() {
       (row) => row.workout_templates?.code === selectedTemplateCode
     )
 
-    const alreadyExists = existingRowsForTemplate.some((row) => row.exercise_id === selectedExerciseId)
+    const alreadyExists = existingRowsForTemplate.some(
+      (row) => String(row.exercise_id) === String(selectedExerciseId)
+    )
 
     if (alreadyExists) {
       setStatus("Övningen finns redan i passet")
@@ -1428,7 +1432,15 @@ function TrainingApp() {
 
     if (error) {
       console.error(error)
-      setStatus("Kunde inte lägga till övning i passet")
+      const errorMessage = String(error.message || "").toLowerCase()
+      const missingExerciseColumns =
+        errorMessage.includes("description") || errorMessage.includes("media_url")
+
+      setStatus(
+        missingExerciseColumns
+          ? "Kunde inte lägga till övning i passet. Kör SQL-ändringarna i Supabase först för description och media_url."
+          : `Kunde inte lägga till övning i passet${error.message ? `: ${error.message}` : ""}`
+      )
       setIsSavingPassExercise(false)
       return
     }
