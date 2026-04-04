@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from "./supabase"
 import ExerciseBankPage from "./pages/ExerciseBankPage"
 import PlayersPage from "./pages/PlayersPage"
@@ -65,6 +65,8 @@ function TrainingApp() {
   const [status, setStatus] = useState("")
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
+  const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
+  const exerciseCarouselRef = useRef(null)
 
   useEffect(() => {
     loadUser()
@@ -133,6 +135,10 @@ function TrainingApp() {
       setSelectedWorkout(assignedWorkoutCodes[0])
     }
   }, [assignedWorkoutCodes, profile?.role, selectedWorkout])
+
+  useEffect(() => {
+    setActiveExerciseIndex(0)
+  }, [selectedWorkout, isWorkoutActive])
 
   useEffect(() => {
     if (!selectedTemplateCode || !templatesFromDB.length) return
@@ -1806,6 +1812,22 @@ function TrainingApp() {
     await handleRenamePass(selectedTemplate.id, renamePassName)
   }
 
+  const scrollToExerciseCard = (index) => {
+    if (!exerciseCarouselRef.current) return
+
+    const cards = exerciseCarouselRef.current.querySelectorAll("[data-exercise-card='true']")
+    const targetCard = cards[index]
+
+    if (!targetCard) return
+
+    targetCard.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "start",
+    })
+    setActiveExerciseIndex(index)
+  }
+
   if (!user) {
     return <div style={pageStyle}>Laddar användare...</div>
   }
@@ -2277,6 +2299,76 @@ function TrainingApp() {
             </div>
           </div>
 
+          {isMobile && visibleWorkouts[selectedWorkout]?.exercises.length > 1 && (
+            <div style={exerciseCarouselToolbarStyle}>
+              <button
+                type="button"
+                onClick={() => scrollToExerciseCard(Math.max(activeExerciseIndex - 1, 0))}
+                disabled={activeExerciseIndex === 0}
+                style={{
+                  ...secondaryButtonStyle,
+                  padding: "10px 14px",
+                  opacity: activeExerciseIndex === 0 ? 0.45 : 1,
+                  cursor: activeExerciseIndex === 0 ? "default" : "pointer",
+                }}
+              >
+                Föregående
+              </button>
+
+              <div style={exerciseCarouselStatusStyle}>
+                Kort {activeExerciseIndex + 1} av {visibleWorkouts[selectedWorkout]?.exercises.length || 0}
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  scrollToExerciseCard(
+                    Math.min(
+                      activeExerciseIndex + 1,
+                      (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                    )
+                  )
+                }
+                disabled={
+                  activeExerciseIndex === (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                }
+                style={{
+                  ...secondaryButtonStyle,
+                  padding: "10px 14px",
+                  opacity:
+                    activeExerciseIndex === (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                      ? 0.45
+                      : 1,
+                  cursor:
+                    activeExerciseIndex === (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                Nästa
+              </button>
+            </div>
+          )}
+
+          <div
+            ref={exerciseCarouselRef}
+            style={
+              isMobile
+                ? exerciseCarouselViewportStyle
+                : undefined
+            }
+            onScroll={(event) => {
+              if (!isMobile) return
+
+              const viewport = event.currentTarget
+              const nextIndex = Math.round(viewport.scrollLeft / viewport.clientWidth)
+
+              if (Number.isFinite(nextIndex)) {
+                setActiveExerciseIndex(nextIndex)
+              }
+            }}
+          >
+            <div style={isMobile ? exerciseCarouselTrackStyle : undefined}>
           {visibleWorkouts[selectedWorkout]?.exercises.map((exercise, i) => {
             const totalExercises = visibleWorkouts[selectedWorkout].exercises.length
             const isInfoExpanded = !!expandedInfo[exercise.name]
@@ -2287,7 +2379,18 @@ function TrainingApp() {
             const hasExerciseDetails = !!(exercise.description || exercise.guide || exercise.mediaUrl)
 
             return (
-              <div key={i} style={cardStyle}>
+              <div
+                key={i}
+                data-exercise-card="true"
+                style={
+                  isMobile
+                    ? {
+                        ...cardStyle,
+                        ...exerciseSwipeCardStyle,
+                      }
+                    : cardStyle
+                }
+              >
                 <div style={exerciseProgressStyle}>
                   Övning {i + 1} / {totalExercises}
                 </div>
@@ -2356,62 +2459,32 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {latestExerciseTopSet && (
-                  <div
-                    style={{
-                      marginBottom: "14px",
-                      padding: "12px 14px",
-                      borderRadius: "16px",
-                      backgroundColor: "#fff8f8",
-                      border: "1px solid #f2dede",
-                    }}
-                  >
-                    <div style={{ fontSize: "13px", fontWeight: "800", color: "#991b1b", marginBottom: "6px" }}>
-                      Senast gjorde du
-                    </div>
-                    <div style={{ fontSize: "16px", fontWeight: "900", color: "#18202b" }}>
-                      {formatLatestSetValue(exercise.type, latestExerciseTopSet)}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-                      Set {latestExerciseTopSet.set_number} i senaste passet
-                    </div>
-                    {latestExerciseDate && (
-                      <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-                        Senaste pass: {formatDate(latestExerciseDate)}
-                      </div>
-                    )}
-                    {currentTarget && (
-                      <div
-                        style={{
-                          marginTop: "10px",
-                          paddingTop: "10px",
-                          borderTop: "1px solid #f3d5d5",
-                          display: "grid",
-                          gap: "4px",
-                        }}
-                      >
-                        <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "800" }}>
-                          Jämför med dagens mål
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#18202b", fontWeight: "700" }}>
-                          {currentTarget.target_sets ?? "-"} set •{" "}
-                          {exercise.type === "seconds_only"
-                            ? `${currentTarget.target_reps ?? "-"} sek`
-                            : currentTarget.target_reps_mode === "max"
-                            ? "max reps"
-                            : `${currentTarget.target_reps ?? "-"} reps`}
-                          {exercise.type === "weight_reps" && currentTarget.target_weight != null
-                            ? ` • ${currentTarget.target_weight} kg`
-                            : ""}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {!isLoadingPlayerTargets && (
                   <div style={targetBoxStyle}>
-                    <div style={targetBoxTitleStyle}>Dagens mål</div>
+                    <div style={targetBoxHeaderStyle}>
+                      <div style={targetBoxTitleStyle}>Resultat & mål</div>
+                      {latestExerciseTopSet && (
+                        <div style={targetHistoryBadgeStyle}>Senaste passet</div>
+                      )}
+                    </div>
+
+                    {latestExerciseTopSet ? (
+                      <div style={latestSummaryWrapStyle}>
+                        <div style={latestSummaryLabelStyle}>Senast gjorde du</div>
+                        <div style={latestSummaryValueStyle}>
+                          {formatLatestSetValue(exercise.type, latestExerciseTopSet)}
+                        </div>
+                        <div style={latestSummaryMetaStyle}>
+                          Set {latestExerciseTopSet.set_number}
+                          {latestExerciseDate ? ` • ${formatDate(latestExerciseDate)}` : ""}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={emptyTargetStyle}>Ingen historik ännu</div>
+                    )}
+
+                    <div style={targetSectionDividerStyle} />
+                    <div style={targetSectionLabelStyle}>Dagens mål</div>
 
                     {currentTarget ? (
                       <>
@@ -2452,9 +2525,46 @@ function TrainingApp() {
                             <strong>Kommentar:</strong> {currentTarget.target_comment}
                           </div>
                         )}
+
+                        {latestWorkout[exercise.name]?.length > 0 && (
+                          <>
+                            <div style={targetSectionDividerStyle} />
+                            <div style={targetSectionLabelStyle}>Senaste träningspass</div>
+
+                            {latestWorkout[exercise.name].map((set) => (
+                              <div key={set.id} style={latestRowStyle}>
+                                Set {set.set_number} –{" "}
+                                {exercise.type === "weight_reps"
+                                  ? `${set.weight} x ${set.reps}`
+                                  : exercise.type === "reps_only"
+                                  ? `${set.reps} reps`
+                                  : `${set.seconds} sek`}
+                              </div>
+                            ))}
+                          </>
+                        )}
                       </>
                     ) : (
-                      <div style={emptyTargetStyle}>Inget mål satt</div>
+                      <>
+                        <div style={emptyTargetStyle}>Inget mål satt</div>
+                        {latestWorkout[exercise.name]?.length > 0 && (
+                          <>
+                            <div style={targetSectionDividerStyle} />
+                            <div style={targetSectionLabelStyle}>Senaste träningspass</div>
+
+                            {latestWorkout[exercise.name].map((set) => (
+                              <div key={set.id} style={latestRowStyle}>
+                                Set {set.set_number} –{" "}
+                                {exercise.type === "weight_reps"
+                                  ? `${set.weight} x ${set.reps}`
+                                  : exercise.type === "reps_only"
+                                  ? `${set.reps} reps`
+                                  : `${set.seconds} sek`}
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -2467,7 +2577,7 @@ function TrainingApp() {
                       <div
                         style={{
                           ...setInputsRowStyle,
-                          flexDirection: isMobile ? "column" : "row",
+                          flexDirection: "row",
                           alignItems: isMobile ? "stretch" : "center",
                         }}
                       >
@@ -2479,7 +2589,7 @@ function TrainingApp() {
                               onChange={(e) =>
                                 handleChange(i, j, "weight", e.target.value)
                               }
-                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                              style={{ ...inputStyle, ...compactSetInputStyle }}
                             />
                             <input
                               placeholder="Reps"
@@ -2487,7 +2597,7 @@ function TrainingApp() {
                               onChange={(e) =>
                                 handleChange(i, j, "reps", e.target.value)
                               }
-                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                              style={{ ...inputStyle, ...compactSetInputStyle }}
                             />
                           </>
                         )}
@@ -2499,7 +2609,7 @@ function TrainingApp() {
                             onChange={(e) =>
                               handleChange(i, j, "reps", e.target.value)
                             }
-                            style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                            style={{ ...inputStyle, ...compactSetInputStyle }}
                           />
                         )}
 
@@ -2510,13 +2620,13 @@ function TrainingApp() {
                             onChange={(e) =>
                               handleChange(i, j, "seconds", e.target.value)
                             }
-                            style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                            style={{ ...inputStyle, ...compactSetInputStyle }}
                           />
                         )}
 
                         <button
                           onClick={() => handleRemoveSet(i, j)}
-                          style={{ ...removeButtonStyle, width: isMobile ? "100%" : "auto" }}
+                          style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
                         >
                           Ta bort
                         </button>
@@ -2531,23 +2641,6 @@ function TrainingApp() {
                   >
                     + Lägg till set
                   </button>
-                )}
-
-                {latestWorkout[exercise.name]?.length > 0 && (
-                  <div style={latestBoxStyle}>
-                    <div style={latestBoxTitleStyle}>Senaste träningspass</div>
-
-                    {latestWorkout[exercise.name].map((set) => (
-                      <div key={set.id} style={latestRowStyle}>
-                        Set {set.set_number} –{" "}
-                        {exercise.type === "weight_reps"
-                          ? `${set.weight} x ${set.reps}`
-                          : exercise.type === "reps_only"
-                          ? `${set.reps} reps`
-                          : `${set.seconds} sek`}
-                      </div>
-                    ))}
-                  </div>
                 )}
 
                 {exercise.info.length > 0 && (
@@ -2578,6 +2671,8 @@ function TrainingApp() {
               </div>
             )
           })}
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -2835,6 +2930,42 @@ const exerciseProgressStyle = {
   fontWeight: "800",
 }
 
+const exerciseCarouselToolbarStyle = {
+  marginBottom: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+}
+
+const exerciseCarouselStatusStyle = {
+  flex: 1,
+  textAlign: "center",
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#566173",
+}
+
+const exerciseCarouselViewportStyle = {
+  width: "100%",
+  overflowX: "auto",
+  WebkitOverflowScrolling: "touch",
+  scrollSnapType: "x mandatory",
+  paddingBottom: "4px",
+}
+
+const exerciseCarouselTrackStyle = {
+  display: "flex",
+  gap: "12px",
+}
+
+const exerciseSwipeCardStyle = {
+  flex: "0 0 100%",
+  width: "100%",
+  scrollSnapAlign: "start",
+  marginBottom: 0,
+}
+
 const targetBoxStyle = {
   backgroundColor: "#fff3f3",
   border: "1px solid #f5caca",
@@ -2843,11 +2974,69 @@ const targetBoxStyle = {
   marginBottom: "14px",
 }
 
+const targetBoxHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  marginBottom: "10px",
+}
+
 const targetBoxTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
   color: "#991b1b",
-  marginBottom: "10px",
+}
+
+const targetHistoryBadgeStyle = {
+  display: "inline-flex",
+  padding: "5px 9px",
+  borderRadius: "999px",
+  backgroundColor: "#ffffff",
+  color: "#991b1b",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const latestSummaryWrapStyle = {
+  padding: "12px 14px",
+  borderRadius: "16px",
+  backgroundColor: "#fff9f9",
+  border: "1px solid #f2dede",
+}
+
+const latestSummaryLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  color: "#991b1b",
+  marginBottom: "6px",
+}
+
+const latestSummaryValueStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const latestSummaryMetaStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  marginTop: "4px",
+}
+
+const targetSectionDividerStyle = {
+  height: "1px",
+  backgroundColor: "#f3d5d5",
+  margin: "12px 0",
+}
+
+const targetSectionLabelStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+  marginBottom: "8px",
 }
 
 const targetRowStyle = {
@@ -2878,21 +3067,6 @@ const emptyTargetStyle = {
   fontSize: "14px",
   color: "#9ca3af",
   fontStyle: "italic",
-}
-
-const latestBoxStyle = {
-  backgroundColor: "#fffafa",
-  border: "1px solid #efe2e2",
-  borderRadius: "16px",
-  padding: "10px 12px",
-  marginBottom: "12px",
-}
-
-const latestBoxTitleStyle = {
-  fontSize: "13px",
-  fontWeight: "800",
-  color: "#566173",
-  marginBottom: "6px",
 }
 
 const latestRowStyle = {
@@ -2949,7 +3123,17 @@ const setLabelStyle = {
 const setInputsRowStyle = {
   display: "flex",
   gap: "8px",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
+}
+
+const compactSetInputStyle = {
+  flex: 1,
+  minWidth: 0,
+}
+
+const compactSetRemoveButtonStyle = {
+  flex: "0 0 auto",
+  whiteSpace: "nowrap",
 }
 
 const inputStyle = {
