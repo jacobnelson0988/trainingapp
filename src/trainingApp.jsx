@@ -457,6 +457,50 @@ function TrainingApp() {
     return `${diffDays} dagar sedan`
   }
 
+  const getPassStatus = (dateString) => {
+    if (!dateString) {
+      return {
+        label: "Inte startat än",
+        backgroundColor: "#f3f4f6",
+        color: "#4b5563",
+      }
+    }
+
+    const now = new Date()
+    const then = new Date(dateString)
+    const diffDays = Math.max(0, Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24)))
+
+    if (diffDays === 0) {
+      return {
+        label: "Kört idag",
+        backgroundColor: "#ecfdf3",
+        color: "#166534",
+      }
+    }
+
+    if (diffDays <= 3) {
+      return {
+        label: "Kört nyligen",
+        backgroundColor: "#eff6ff",
+        color: "#1d4ed8",
+      }
+    }
+
+    if (diffDays <= 7) {
+      return {
+        label: "Dags snart igen",
+        backgroundColor: "#fff7ed",
+        color: "#c2410c",
+      }
+    }
+
+    return {
+      label: "Länge sedan",
+      backgroundColor: "#fef2f2",
+      color: "#b91c1c",
+    }
+  }
+
   const loadLatestData = async (userId) => {
     const { data, error } = await supabase
       .from("workout_logs")
@@ -1759,6 +1803,7 @@ function TrainingApp() {
                 <div style={pickerGridStyle}>
                   {Object.entries(visibleWorkouts).map(([key, workout]) => {
                     const isSelected = selectedWorkout === key
+                    const passStatus = getPassStatus(latestPassDates[key])
 
                     return (
                       <button
@@ -1776,6 +1821,20 @@ function TrainingApp() {
                             : pickerButtonStyle.background,
                         }}
                       >
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            marginBottom: "10px",
+                            padding: "6px 10px",
+                            borderRadius: "999px",
+                            backgroundColor: passStatus.backgroundColor,
+                            color: passStatus.color,
+                            fontSize: "12px",
+                            fontWeight: "800",
+                          }}
+                        >
+                          {passStatus.label}
+                        </div>
                         <div style={pickerTitleStyle}>{workout.label}</div>
                         <div style={pickerSubtitleStyle}>
                           Senast kört: {formatDate(latestPassDates[key])}
@@ -1860,6 +1919,8 @@ function TrainingApp() {
           {visibleWorkouts[selectedWorkout]?.exercises.map((exercise, i) => {
             const totalExercises = visibleWorkouts[selectedWorkout].exercises.length
             const isInfoExpanded = !!expandedInfo[exercise.name]
+            const latestExerciseSets = latestWorkout[exercise.name] || []
+            const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
 
             return (
               <div key={i} style={cardStyle}>
@@ -1871,6 +1932,32 @@ function TrainingApp() {
                   <h3 style={cardTitleStyle}>{exercise.name}</h3>
                   <p style={guideStyle}>{exercise.guide}</p>
                 </div>
+
+                {latestExerciseTopSet && (
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      padding: "12px 14px",
+                      borderRadius: "16px",
+                      backgroundColor: "#fff8f8",
+                      border: "1px solid #f2dede",
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: "#991b1b", marginBottom: "6px" }}>
+                      Senast gjorde du
+                    </div>
+                    <div style={{ fontSize: "16px", fontWeight: "900", color: "#18202b" }}>
+                      {exercise.type === "weight_reps"
+                        ? `${latestExerciseTopSet.weight ?? "-"} kg x ${latestExerciseTopSet.reps ?? "-"} reps`
+                        : exercise.type === "reps_only"
+                        ? `${latestExerciseTopSet.reps ?? "-"} reps`
+                        : `${latestExerciseTopSet.seconds ?? "-"} sek`}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                      Set {latestExerciseTopSet.set_number} i senaste passet
+                    </div>
+                  </div>
+                )}
 
                 {!isLoadingPlayerTargets && (
                   <div style={targetBoxStyle}>
