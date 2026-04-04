@@ -54,6 +54,8 @@ function TrainingApp() {
   const [newExerciseName, setNewExerciseName] = useState("")
   const [newExerciseType, setNewExerciseType] = useState("weight_reps")
   const [newExerciseGuide, setNewExerciseGuide] = useState("")
+  const [newExerciseDescription, setNewExerciseDescription] = useState("")
+  const [newExerciseMediaUrl, setNewExerciseMediaUrl] = useState("")
   const [newExerciseDefaultRepsMode, setNewExerciseDefaultRepsMode] = useState("fixed")
   const [newExerciseMuscleGroups, setNewExerciseMuscleGroups] = useState([])
   const [editingExerciseId, setEditingExerciseId] = useState(null)
@@ -204,7 +206,7 @@ function TrainingApp() {
           workout_template_id,
           exercise_id,
           workout_templates ( code, label ),
-          exercises ( name, exercise_type, guide, default_reps_mode )
+          exercises ( name, exercise_type, guide, description, media_url, default_reps_mode )
         `)
         .order("sort_order")
 
@@ -234,6 +236,8 @@ function TrainingApp() {
           type: row.exercises?.exercise_type || "reps_only",
           baseGuide: row.exercises?.guide || "",
           guide: row.custom_guide ?? row.exercises?.guide ?? "",
+          description: row.exercises?.description || "",
+          mediaUrl: row.exercises?.media_url || "",
           defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
           targetSets: row.target_sets ?? null,
           targetReps: row.target_reps ?? null,
@@ -534,6 +538,10 @@ function TrainingApp() {
     }
 
     return `${set.seconds ?? "-"} sek`
+  }
+
+  const isVideoUrl = (url) => {
+    return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url || "")
   }
 
   const parseCsvLine = (line) => {
@@ -1268,6 +1276,8 @@ function TrainingApp() {
     setNewExerciseName("")
     setNewExerciseType("weight_reps")
     setNewExerciseGuide("")
+    setNewExerciseDescription("")
+    setNewExerciseMediaUrl("")
     setNewExerciseDefaultRepsMode("fixed")
     setNewExerciseMuscleGroups([])
     setEditingExerciseId(null)
@@ -1277,6 +1287,8 @@ function TrainingApp() {
     setNewExerciseName(exercise.name || "")
     setNewExerciseType(exercise.exercise_type || "weight_reps")
     setNewExerciseGuide(exercise.guide || "")
+    setNewExerciseDescription(exercise.description || "")
+    setNewExerciseMediaUrl(exercise.media_url || "")
     setNewExerciseDefaultRepsMode(exercise.default_reps_mode || "fixed")
     setNewExerciseMuscleGroups(Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : [])
     setEditingExerciseId(exercise.id)
@@ -1298,6 +1310,8 @@ function TrainingApp() {
       name: newExerciseName.trim(),
       exercise_type: newExerciseType,
       guide: newExerciseGuide.trim() || null,
+      description: newExerciseDescription.trim() || null,
+      media_url: newExerciseMediaUrl.trim() || null,
       default_reps_mode: newExerciseType === "seconds_only" ? "fixed" : newExerciseDefaultRepsMode,
       muscle_groups: newExerciseMuscleGroups,
     }
@@ -1398,7 +1412,7 @@ function TrainingApp() {
         workout_template_id,
         exercise_id,
         workout_templates ( code, label ),
-        exercises ( name, exercise_type, guide, default_reps_mode )
+        exercises ( name, exercise_type, guide, description, media_url, default_reps_mode )
       `)
       .single()
 
@@ -1889,6 +1903,10 @@ function TrainingApp() {
                 setNewExerciseDefaultRepsMode={setNewExerciseDefaultRepsMode}
                 newExerciseGuide={newExerciseGuide}
                 setNewExerciseGuide={setNewExerciseGuide}
+                newExerciseDescription={newExerciseDescription}
+                setNewExerciseDescription={setNewExerciseDescription}
+                newExerciseMediaUrl={newExerciseMediaUrl}
+                setNewExerciseMediaUrl={setNewExerciseMediaUrl}
                 newExerciseMuscleGroups={newExerciseMuscleGroups}
                 setNewExerciseMuscleGroups={setNewExerciseMuscleGroups}
                 editingExerciseId={editingExerciseId}
@@ -2166,8 +2184,30 @@ function TrainingApp() {
 
                 <div style={{ marginBottom: 14 }}>
                   <h3 style={cardTitleStyle}>{exercise.name}</h3>
+                  {exercise.description && (
+                    <p style={exerciseDescriptionStyle}>{exercise.description}</p>
+                  )}
                   <p style={guideStyle}>{exercise.guide}</p>
                 </div>
+
+                {exercise.mediaUrl && (
+                  <div style={exerciseMediaWrapStyle}>
+                    {isVideoUrl(exercise.mediaUrl) ? (
+                      <video
+                        src={exercise.mediaUrl}
+                        controls
+                        playsInline
+                        style={exerciseMediaStyle}
+                      />
+                    ) : (
+                      <img
+                        src={exercise.mediaUrl}
+                        alt={`${exercise.name} demo`}
+                        style={exerciseMediaStyle}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {latestExerciseTopSet && (
                   <div
@@ -2551,6 +2591,27 @@ const guideStyle = {
   fontSize: "14px",
   color: "#566173",
   lineHeight: 1.6,
+}
+
+const exerciseDescriptionStyle = {
+  margin: "0 0 8px 0",
+  fontSize: "14px",
+  color: "#18202b",
+  lineHeight: 1.6,
+  fontWeight: "700",
+}
+
+const exerciseMediaWrapStyle = {
+  marginBottom: "14px",
+}
+
+const exerciseMediaStyle = {
+  display: "block",
+  width: "100%",
+  maxWidth: "420px",
+  borderRadius: "16px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#111827",
 }
 
 const subheadingStyle = {

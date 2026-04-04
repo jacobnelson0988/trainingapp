@@ -26,6 +26,10 @@ function ExerciseBankPage({
   setNewExerciseDefaultRepsMode,
   newExerciseGuide,
   setNewExerciseGuide,
+  newExerciseDescription,
+  setNewExerciseDescription,
+  newExerciseMediaUrl,
+  setNewExerciseMediaUrl,
   newExerciseMuscleGroups,
   setNewExerciseMuscleGroups,
   editingExerciseId,
@@ -59,6 +63,10 @@ function ExerciseBankPage({
     if (type === "weight_reps") return "Vikt + reps"
     if (type === "seconds_only") return "Sekunder"
     return "Bara reps"
+  }
+
+  const isVideoUrl = (url) => {
+    return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url || "")
   }
 
   const toggleMuscleGroup = (group) => {
@@ -130,6 +138,22 @@ function ExerciseBankPage({
           placeholder="Guide"
           value={newExerciseGuide}
           onChange={(e) => setNewExerciseGuide(e.target.value)}
+          style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+        />
+
+        <textarea
+          rows={3}
+          placeholder="Kort beskrivning av övningen"
+          value={newExerciseDescription}
+          onChange={(e) => setNewExerciseDescription(e.target.value)}
+          style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
+        />
+
+        <input
+          type="url"
+          placeholder="Länk till video eller gif"
+          value={newExerciseMediaUrl}
+          onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
           style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
         />
 
@@ -221,9 +245,32 @@ function ExerciseBankPage({
                       <span key={group} style={musclePillStyle}>{group}</span>
                     ))}
                   </div>
+                  {exercise.description && (
+                    <div style={{ fontSize: "13px", color: "#374151", lineHeight: 1.6, marginBottom: "8px" }}>
+                      {exercise.description}
+                    </div>
+                  )}
                   <div style={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.5 }}>
                     {exercise.guide || "Ingen guide ännu"}
                   </div>
+                  {exercise.media_url && (
+                    <div style={{ marginTop: "10px" }}>
+                      {isVideoUrl(exercise.media_url) ? (
+                        <video
+                          src={exercise.media_url}
+                          controls
+                          playsInline
+                          style={mediaPreviewStyle}
+                        />
+                      ) : (
+                        <img
+                          src={exercise.media_url}
+                          alt={`${exercise.name} demo`}
+                          style={mediaPreviewStyle}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row", width: isMobile ? "100%" : "auto" }}>
@@ -289,6 +336,22 @@ function ExerciseBankPage({
                     placeholder="Guide"
                     value={newExerciseGuide}
                     onChange={(e) => setNewExerciseGuide(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+
+                  <textarea
+                    rows={3}
+                    placeholder="Kort beskrivning av övningen"
+                    value={newExerciseDescription}
+                    onChange={(e) => setNewExerciseDescription(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                  />
+
+                  <input
+                    type="url"
+                    placeholder="Länk till video eller gif"
+                    value={newExerciseMediaUrl}
+                    onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
                     style={{ ...inputStyle, width: "100%" }}
                   />
 
@@ -370,6 +433,15 @@ const tagButtonStyle = {
   fontSize: "13px",
   fontWeight: "700",
   cursor: "pointer",
+}
+
+const mediaPreviewStyle = {
+  display: "block",
+  width: "100%",
+  maxWidth: "360px",
+  borderRadius: "12px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#111827",
 }
 
 export default ExerciseBankPage
