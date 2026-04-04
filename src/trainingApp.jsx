@@ -2175,6 +2175,7 @@ function TrainingApp() {
             const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
             const latestExerciseDate = latestExerciseSets[0]?.created_at
             const currentTarget = currentWorkoutTargets[exercise.name]
+            const hasExerciseDetails = !!(exercise.description || exercise.guide || exercise.mediaUrl)
 
             return (
               <div key={i} style={cardStyle}>
@@ -2182,29 +2183,66 @@ function TrainingApp() {
                   Övning {i + 1} / {totalExercises}
                 </div>
 
-                <div style={{ marginBottom: 14 }}>
-                  <h3 style={cardTitleStyle}>{exercise.name}</h3>
-                  {exercise.description && (
-                    <p style={exerciseDescriptionStyle}>{exercise.description}</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedInfo((prev) => ({
+                      ...prev,
+                      [exercise.name]: !prev[exercise.name],
+                    }))
+                  }
+                  style={{
+                    ...exerciseHeaderButtonStyle,
+                    marginBottom: hasExerciseDetails && isInfoExpanded ? "14px" : "10px",
+                    cursor: hasExerciseDetails ? "pointer" : "default",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>{exercise.name}</h3>
+                    <div style={exerciseHeaderHintStyle}>
+                      {hasExerciseDetails
+                        ? isInfoExpanded
+                          ? "Dölj beskrivning och video"
+                          : "Tryck för att se beskrivning och video"
+                        : "Ingen extra information tillagd ännu"}
+                    </div>
+                  </div>
+                  {hasExerciseDetails && (
+                    <div style={exerciseHeaderIconStyle}>{isInfoExpanded ? "−" : "+"}</div>
                   )}
-                  <p style={guideStyle}>{exercise.guide}</p>
-                </div>
+                </button>
 
-                {exercise.mediaUrl && (
-                  <div style={exerciseMediaWrapStyle}>
-                    {isVideoUrl(exercise.mediaUrl) ? (
-                      <video
-                        src={exercise.mediaUrl}
-                        controls
-                        playsInline
-                        style={exerciseMediaStyle}
-                      />
-                    ) : (
-                      <img
-                        src={exercise.mediaUrl}
-                        alt={`${exercise.name} demo`}
-                        style={exerciseMediaStyle}
-                      />
+                {hasExerciseDetails && isInfoExpanded && (
+                  <div style={exerciseDetailsPanelStyle}>
+                    {exercise.description && (
+                      <p style={exerciseDescriptionStyle}>{exercise.description}</p>
+                    )}
+
+                    {exercise.guide && (
+                      <div style={{ marginTop: exercise.description ? "10px" : 0 }}>
+                        <div style={exerciseDetailsLabelStyle}>Så gör du</div>
+                        <p style={guideStyle}>{exercise.guide}</p>
+                      </div>
+                    )}
+
+                    {exercise.mediaUrl && (
+                      <div style={{ ...exerciseMediaWrapStyle, marginTop: exercise.description || exercise.guide ? "12px" : 0 }}>
+                        <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
+                        {isVideoUrl(exercise.mediaUrl) ? (
+                          <video
+                            src={exercise.mediaUrl}
+                            controls
+                            playsInline
+                            style={exerciseMediaStyle}
+                          />
+                        ) : (
+                          <img
+                            src={exercise.mediaUrl}
+                            alt={`${exercise.name} demo`}
+                            style={exerciseMediaStyle}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -2594,15 +2632,64 @@ const guideStyle = {
 }
 
 const exerciseDescriptionStyle = {
-  margin: "0 0 8px 0",
+  margin: 0,
   fontSize: "14px",
   color: "#18202b",
   lineHeight: 1.6,
   fontWeight: "700",
 }
 
-const exerciseMediaWrapStyle = {
+const exerciseHeaderButtonStyle = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  textAlign: "left",
+}
+
+const exerciseHeaderHintStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  fontWeight: "700",
+}
+
+const exerciseHeaderIconStyle = {
+  width: "34px",
+  height: "34px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  backgroundColor: "#fff4f4",
+  color: "#991b1b",
+  fontSize: "22px",
+  fontWeight: "700",
+  flexShrink: 0,
+}
+
+const exerciseDetailsPanelStyle = {
   marginBottom: "14px",
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffdfd",
+}
+
+const exerciseDetailsLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "12px",
+  color: "#991b1b",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+}
+
+const exerciseMediaWrapStyle = {
+  marginBottom: 0,
 }
 
 const exerciseMediaStyle = {
