@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import * as XLSX from "xlsx"
 import { supabase } from "./supabase"
 import ExerciseBankPage from "./pages/ExerciseBankPage"
 import PlayersPage from "./pages/PlayersPage"
@@ -22,6 +23,10 @@ function TrainingApp() {
   const [newPlayerPassword, setNewPlayerPassword] = useState("")
   const [createdPlayer, setCreatedPlayer] = useState(null)
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
+  const [importedPlayers, setImportedPlayers] = useState([])
+  const [importFileName, setImportFileName] = useState("")
+  const [isImportingPlayers, setIsImportingPlayers] = useState(false)
+  const [importResults, setImportResults] = useState([])
   const [coachView, setCoachView] = useState("home")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
@@ -743,6 +748,147 @@ function TrainingApp() {
     setIsCreatingPlayer(false)
     loadPlayers()
     setCoachView("players")
+  }
+
+  const normalizeImportHeader = (value) => {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "")
+  }
+
+  const handlePlayerImportFile = async (file) => {
+    if (!file) return
+
+    setStatus("")
+    setImportResults([])
+
+    try {
+      const buffer = await file.arrayBuffer()
+      const workbook = XLSX.read(buffer, { type: "array" })
+      const firstSheetName = workbook.SheetNames[0]
+
+      if (!firstSheetName) {
+        setStatus("Kunde inte läsa någon flik i filen")
+        setImportedPlayers([])
+        setImportFileName("")
+        return
+      }
+
+      const sheet = workbook.Sheets[firstSheetName]
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" })
+
+      const parsedRows = rows
+        .map((row, index) => {
+          const normalizedEntries = Object.entries(row).reduce((acc, [key, value]) => {
+            acc[normalizeImportHeader(key)] = String(value || "").trim()
+            return acc
+          }, {})
+
+          const fullName =
+            normalizedEntries.fullname ||
+            normalizedEntries.namn ||
+            normalizedEntries.fullstandigtnamn ||
+            normalizedEntries.playername ||
+            normalizedEntries.name ||
+            ""
+
+          const password =
+            normalizedEntries.password ||
+            normalizedEntries.losenord ||
+            normalizedEntries.startlosenord ||
+            normalizedEntries.passord ||
+            ""
+
+          return {
+            rowNumber: index + 2,
+            full_name: fullName,
+            password,
+          }
+        })
+        .filter((row) => row.full_name || row.password)
+
+      if (parsedRows.length === 0) {
+        setStatus("Filen innehåller inga spelare att importera")
+        setImportedPlayers([])
+        setImportFileName(file.name)
+        return
+      }
+
+      setImportedPlayers(parsedRows)
+      setImportFileName(file.name)
+      setStatus(`${parsedRows.length} spelare redo för import`)
+    } catch (error) {
+      console.error(error)
+      setStatus("Kunde inte läsa filen")
+      setImportedPlayers([])
+      setImportFileName("")
+    }
+  }
+
+  const handleImportPlayers = async () => {
+    if (!importedPlayers.length) {
+      setStatus("Ladda upp en fil först")
+      return
+    }
+
+    setIsImportingPlayers(true)
+    setStatus("")
+
+    const results = []
+
+    for (const player of importedPlayers) {
+      if (!player.full_name || !player.password) {
+        results.push({
+          ...player,
+          success: false,
+          message: "Saknar namn eller lösenord",
+        })
+        continue
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-player", {
+        body: {
+          full_name: player.full_name,
+          password: player.password,
+        },
+      })
+
+      if (error || data?.error) {
+        results.push({
+          ...player,
+          success: false,
+          message: data?.error || error?.message || "Kunde inte skapa spelare",
+        })
+        continue
+      }
+
+      results.push({
+        ...player,
+        success: true,
+        username: data.username,
+        email: data.email,
+        message: "Skapad",
+      })
+    }
+
+    setImportResults(results)
+    setIsImportingPlayers(false)
+
+    const successCount = results.filter((result) => result.success).length
+    const failedCount = results.length - successCount
+
+    if (successCount > 0) {
+      await loadPlayers()
+    }
+
+    setStatus(
+      failedCount > 0
+        ? `${successCount} spelare skapade, ${failedCount} misslyckades`
+        : `${successCount} spelare skapade ✅`
+    )
   }
 
   const handleTargetDraftChange = (passName, exerciseName, field, value) => {
@@ -1526,6 +1672,12 @@ function TrainingApp() {
                 buttonStyle={buttonStyle}
                 cardTitleStyle={cardTitleStyle}
                 isMobile={isMobile}
+                importedPlayers={importedPlayers}
+                importFileName={importFileName}
+                handlePlayerImportFile={handlePlayerImportFile}
+                handleImportPlayers={handleImportPlayers}
+                isImportingPlayers={isImportingPlayers}
+                importResults={importResults}
               />
             )}
 
