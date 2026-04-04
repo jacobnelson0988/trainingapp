@@ -1857,6 +1857,12 @@ function TrainingApp() {
 
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
+  const selectedWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
+  const selectedWorkoutPreviewExercises = (selectedWorkoutData?.exercises || []).slice(0, 3)
+  const selectedWorkoutRemainingExerciseCount = Math.max(
+    (selectedWorkoutData?.exercises || []).length - selectedWorkoutPreviewExercises.length,
+    0
+  )
 
   const coachTabs = [
     { key: "home", label: "Översikt" },
@@ -2157,7 +2163,7 @@ function TrainingApp() {
                   Dina pass
                 </h2>
                 <p style={mutedTextStyle}>
-                  Välj ett pass för att se när du körde det senast och starta direkt.
+                  Välj ett pass för att se en kort översikt. All övningsinfo visas först när du startar passet.
                 </p>
               </div>
 
@@ -2226,7 +2232,7 @@ function TrainingApp() {
                           {formatDaysSince(latestPassDates[key])}
                         </div>
                         <div style={{ ...pickerSubtitleStyle, marginTop: "8px", color: "#18202b", fontWeight: "700" }}>
-                          {isSelected ? "Valt pass" : "Tryck för att välja"}
+                          {workout.exercises.length} övningar
                         </div>
                       </button>
                     )
@@ -2234,31 +2240,69 @@ function TrainingApp() {
                 </div>
               )}
 
-              {selectedWorkout && visibleWorkouts[selectedWorkout] && (
+              {selectedWorkoutData && (
                 <div
                   style={{
-                    width: "100%",
+                    ...passPreviewCardStyle,
                     marginTop: "8px",
-                    padding: isMobile ? "16px" : "18px",
-                    borderRadius: "18px",
-                    border: "1px solid #ecdede",
-                    backgroundColor: "#fffdfd",
+                    padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
                   }}
                 >
-                  <div style={{ fontSize: "14px", color: "#991b1b", fontWeight: "800", marginBottom: "6px" }}>
-                    Valt pass
-                  </div>
-                  <div style={{ fontSize: isMobile ? "20px" : "22px", color: "#18202b", fontWeight: "900", marginBottom: "6px" }}>
-                    {visibleWorkouts[selectedWorkout].label}
+                  <div style={passPreviewEyebrowStyle}>Valt pass</div>
+                  <div style={{ ...passPreviewTitleStyle, fontSize: isMobile ? "20px" : passPreviewTitleStyle.fontSize }}>
+                    {selectedWorkoutData.label}
                   </div>
                   <div style={{ ...mutedTextStyle, marginBottom: "12px" }}>
                     Senast kört: {formatDate(latestPassDates[selectedWorkout])} • {formatDaysSince(latestPassDates[selectedWorkout])}
                   </div>
+
+                  <div
+                    style={{
+                      ...passPreviewStatsGridStyle,
+                      gridTemplateColumns: isMobile ? "1fr" : passPreviewStatsGridStyle.gridTemplateColumns,
+                    }}
+                  >
+                    <div style={passPreviewStatCardStyle}>
+                      <div style={passPreviewStatLabelStyle}>Övningar</div>
+                      <div style={passPreviewStatValueStyle}>{selectedWorkoutData.exercises.length}</div>
+                    </div>
+                    <div style={passPreviewStatCardStyle}>
+                      <div style={passPreviewStatLabelStyle}>Pulshöjare</div>
+                      <div style={passPreviewStatTextStyle}>
+                        {selectedWorkoutData.warmup?.cardio || "Ingen uppvärmning angiven"}
+                      </div>
+                    </div>
+                    <div style={passPreviewStatCardStyle}>
+                      <div style={passPreviewStatLabelStyle}>Teknikdel</div>
+                      <div style={passPreviewStatValueStyle}>
+                        {selectedWorkoutData.warmup?.technique?.length || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedWorkoutPreviewExercises.length > 0 && (
+                    <div style={passPreviewListWrapStyle}>
+                      <div style={passPreviewListLabelStyle}>Övningar i passet</div>
+                      <div style={passPreviewListStyle}>
+                        {selectedWorkoutPreviewExercises.map((exercise) => (
+                          <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
+                            {exercise.name}
+                          </div>
+                        ))}
+                        {selectedWorkoutRemainingExerciseCount > 0 && (
+                          <div style={passPreviewListMoreStyle}>
+                            +{selectedWorkoutRemainingExerciseCount} till
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     onClick={() => startWorkout(selectedWorkout)}
                     style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                   >
-                    Starta {visibleWorkouts[selectedWorkout].label}
+                    Starta {selectedWorkoutData.label}
                   </button>
                 </div>
               )}
@@ -2275,7 +2319,7 @@ function TrainingApp() {
 
       {status && <p style={statusStyle}>{status}</p>}
 
-      {selectedWorkout && (
+      {selectedWorkout && isWorkoutActive && (
         <>
           <h2 style={sectionTitleStyle}>{visibleWorkouts[selectedWorkout]?.label}</h2>
 
@@ -3208,6 +3252,106 @@ const pickerSubtitleStyle = {
   fontSize: "13px",
   color: "#566173",
   marginTop: "4px",
+}
+
+const passPreviewCardStyle = {
+  width: "100%",
+  padding: "22px",
+  borderRadius: "24px",
+  border: "1px solid #ecdede",
+  background: "linear-gradient(180deg, rgba(255,253,253,1), rgba(255,247,247,0.98))",
+  boxShadow: "0 18px 36px rgba(24, 32, 43, 0.08)",
+}
+
+const passPreviewEyebrowStyle = {
+  fontSize: "12px",
+  color: "#991b1b",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  marginBottom: "8px",
+}
+
+const passPreviewTitleStyle = {
+  fontSize: "24px",
+  color: "#18202b",
+  fontWeight: "900",
+  marginBottom: "6px",
+}
+
+const passPreviewStatsGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "10px",
+  marginBottom: "14px",
+}
+
+const passPreviewStatCardStyle = {
+  padding: "14px",
+  borderRadius: "18px",
+  border: "1px solid #f0e2e2",
+  backgroundColor: "#fffdfd",
+}
+
+const passPreviewStatLabelStyle = {
+  fontSize: "11px",
+  color: "#7f1d1d",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  marginBottom: "6px",
+}
+
+const passPreviewStatValueStyle = {
+  fontSize: "22px",
+  color: "#18202b",
+  fontWeight: "900",
+}
+
+const passPreviewStatTextStyle = {
+  fontSize: "14px",
+  color: "#18202b",
+  fontWeight: "700",
+  lineHeight: 1.5,
+}
+
+const passPreviewListWrapStyle = {
+  marginBottom: "16px",
+}
+
+const passPreviewListLabelStyle = {
+  fontSize: "12px",
+  color: "#566173",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+  marginBottom: "8px",
+}
+
+const passPreviewListStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+}
+
+const passPreviewListItemStyle = {
+  display: "inline-flex",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "13px",
+  fontWeight: "800",
+}
+
+const passPreviewListMoreStyle = {
+  display: "inline-flex",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  backgroundColor: "#f5f6f8",
+  color: "#566173",
+  fontSize: "13px",
+  fontWeight: "800",
 }
 
 const statusStyle = {
