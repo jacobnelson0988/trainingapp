@@ -444,6 +444,19 @@ function TrainingApp() {
     return new Date(dateString).toLocaleDateString("sv-SE")
   }
 
+  const formatDaysSince = (dateString) => {
+    if (!dateString) return "aldrig kört"
+
+    const now = new Date()
+    const then = new Date(dateString)
+    const diffMs = now.getTime() - then.getTime()
+    const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)))
+
+    if (diffDays === 0) return "idag"
+    if (diffDays === 1) return "1 dag sedan"
+    return `${diffDays} dagar sedan`
+  }
+
   const loadLatestData = async (userId) => {
     const { data, error } = await supabase
       .from("workout_logs")
@@ -1767,6 +1780,9 @@ function TrainingApp() {
                         <div style={pickerSubtitleStyle}>
                           Senast kört: {formatDate(latestPassDates[key])}
                         </div>
+                        <div style={{ ...pickerSubtitleStyle, marginTop: "4px" }}>
+                          {formatDaysSince(latestPassDates[key])}
+                        </div>
                         <div style={{ ...pickerSubtitleStyle, marginTop: "8px", color: "#18202b", fontWeight: "700" }}>
                           {isSelected ? "Valt pass" : "Tryck för att välja"}
                         </div>
@@ -1794,7 +1810,7 @@ function TrainingApp() {
                     {visibleWorkouts[selectedWorkout].label}
                   </div>
                   <div style={{ ...mutedTextStyle, marginBottom: "12px" }}>
-                    Senast kört: {formatDate(latestPassDates[selectedWorkout])}
+                    Senast kört: {formatDate(latestPassDates[selectedWorkout])} • {formatDaysSince(latestPassDates[selectedWorkout])}
                   </div>
                   <button
                     onClick={() => startWorkout(selectedWorkout)}
