@@ -1557,51 +1557,53 @@ function TrainingApp() {
         </>
       )}
 
-      <div
-        style={{
-          ...workoutActionSectionStyle,
-          alignItems: isMobile ? "stretch" : "flex-start",
-        }}
-      >
-        {!isWorkoutActive ? (
-          <>
-            <button
-              onClick={() => setShowPicker(!showPicker)}
-              style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-              disabled={profile?.role === "player" && Object.keys(visibleWorkouts).length === 0}
-            >
-              Starta pass
+      {profile?.role === "player" && (
+        <div
+          style={{
+            ...workoutActionSectionStyle,
+            alignItems: isMobile ? "stretch" : "flex-start",
+          }}
+        >
+          {!isWorkoutActive ? (
+            <>
+              <button
+                onClick={() => setShowPicker(!showPicker)}
+                style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                disabled={Object.keys(visibleWorkouts).length === 0}
+              >
+                Starta pass
+              </button>
+
+              {Object.keys(visibleWorkouts).length === 0 && (
+                <p style={mutedTextStyle}>
+                  Inga pass är tilldelade ännu. Be en tränare lägga till pass åt dig.
+                </p>
+              )}
+
+              {showPicker && (
+                <div style={pickerGridStyle}>
+                  {Object.entries(visibleWorkouts).map(([key, workout]) => (
+                    <button
+                      key={key}
+                      onClick={() => startWorkout(key)}
+                      style={pickerButtonStyle}
+                    >
+                      <div style={pickerTitleStyle}>{workout.label}</div>
+                      <div style={pickerSubtitleStyle}>
+                        Senast: {formatDate(latestPassDates[key])}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <button onClick={finishWorkout} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
+              Avsluta pass
             </button>
-
-            {profile?.role === "player" && Object.keys(visibleWorkouts).length === 0 && (
-              <p style={mutedTextStyle}>
-                Inga pass är tilldelade ännu. Be en tränare lägga till pass åt dig.
-              </p>
-            )}
-
-            {showPicker && (
-              <div style={pickerGridStyle}>
-                {Object.entries(visibleWorkouts).map(([key, workout]) => (
-                  <button
-                    key={key}
-                    onClick={() => startWorkout(key)}
-                    style={pickerButtonStyle}
-                  >
-                    <div style={pickerTitleStyle}>{workout.label}</div>
-                    <div style={pickerSubtitleStyle}>
-                      Senast: {formatDate(latestPassDates[key])}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <button onClick={finishWorkout} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
-            Avsluta pass
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {status && <p style={statusStyle}>{status}</p>}
 
