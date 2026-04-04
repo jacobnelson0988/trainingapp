@@ -1,5 +1,5 @@
 [functions.create-player]
-verify_jwt = false
+verify_jwt = true
 enabled = true
 entrypoint = "./functions/create-player/index.ts"
 import_map = "./functions/create-player/deno.json"

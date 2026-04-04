@@ -49,6 +49,18 @@ function CoachHomePage({
           <div style={coachNavTitleStyle}>Övningsbank</div>
           <div style={coachNavTextStyle}>Skapa, redigera och arkivera övningar</div>
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setCoachView("passBuilder")
+            setSelectedPlayer(null)
+            resetExerciseForm()
+          }}
+          style={coachNavCardStyle}
+        >
+          <div style={coachNavTitleStyle}>Passhantering</div>
+          <div style={coachNavTextStyle}>Visa och bygg innehållet i Pass A, B och C</div>
+        </button>
       </div>
     </>
   )

@@ -4,139 +4,15 @@ import ExerciseBankPage from "./pages/ExerciseBankPage"
 import PlayersPage from "./pages/PlayersPage"
 import CreatePlayerPage from "./pages/CreatePlayerPage"
 import CoachHomePage from "./pages/CoachHomePage"
+import PassBuilderPage from "./pages/PassBuilderPage"
 
 function TrainingApp() {
-  const workouts = {
-    A: {
-      label: "Pass A",
-      warmup: {
-        cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
-        technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
-      },
-      exercises: [
-        {
-          name: "Knäböj",
-          type: "weight_reps",
-          guide: "4 set x 6–10 reps",
-          info: ["Bra djup", "Stabil bål", "Teknik före belastning", "Vila: 1,5–2 minuter"],
-        },
-        {
-          name: "Stående rodd",
-          type: "weight_reps",
-          guide: "4 set x 6–10 reps",
-          info: ["Dra armbågar bakåt", "Stabil bål", "Vila: 1,5–2 minuter"],
-        },
-        {
-          name: "Chins",
-          type: "reps_only",
-          guide: "3 set x max antal",
-          defaultRepsMode: "max",
-          info: ["Alternativ: assisterade chins", "Alternativ: excentriska chins", "Alternativ: scapula pull-ups"],
-        },
-        {
-          name: "Draken",
-          type: "reps_only",
-          guide: "3 set x 8 per ben",
-          defaultRepsMode: "fixed",
-          info: ["Balans", "Höftkontroll", "Långsam och kontrollerad rörelse"],
-        },
-        {
-          name: "Planka med rotation",
-          type: "seconds_only",
-          guide: "3 set x 20–30 sek",
-          info: [],
-        },
-      ],
-    },
-    B: {
-      label: "Pass B",
-      warmup: {
-        cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
-        technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
-      },
-      exercises: [
-        {
-          name: "Frontböj",
-          type: "weight_reps",
-          guide: "4 set x 6–10 reps",
-          info: ["Bra djup", "Stabil bål", "Teknik före belastning", "Vila: 1,5–2 minuter"],
-        },
-        {
-          name: "Militärpress",
-          type: "weight_reps",
-          guide: "4 set x 6–10 reps",
-          info: ["Stabil bål", "Ett ben framåt", "Pressa uppåt och lite framåt", "Kontrollerad rörelse", "Vila: 1,5–2 minuter"],
-        },
-        {
-          name: "Dips",
-          type: "reps_only",
-          guide: "3 set x max antal",
-          defaultRepsMode: "max",
-          info: ["Alternativ: assisterade dips med gummiband/maskin", "Alternativ: bänk-dips"],
-        },
-        {
-          name: "Russian twist",
-          type: "weight_reps",
-          guide: "3 set x 20",
-          defaultRepsMode: "fixed",
-          info: ["Kontrollerad rotation", "Stabil i bålen", "Jobba lugnt och tekniskt"],
-        },
-        {
-          name: "Sidoplanka",
-          type: "seconds_only",
-          guide: "3 set x 20–30 sek per sida",
-          info: ["Extra utmaning: lyft armar och ben på övre sidan"],
-        },
-      ],
-    },
-    C: {
-      label: "Pass C",
-      warmup: {
-        cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
-        technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
-      },
-      exercises: [
-        {
-          name: "Marklyft",
-          type: "weight_reps",
-          guide: "4 set x 6–10 reps",
-          info: ["Rak och stabil rygg", "Tryck genom benen", "Kontrollerad rörelse", "Vila: 1,5–2 minuter"],
-        },
-        {
-          name: "Stående axelpress med hantel",
-          type: "weight_reps",
-          guide: "4 set x 6–10 reps",
-          info: ["Stabil bål", "Pressa rakt upp", "Kontrollerad rörelse", "Vila: 1,5–2 minuter"],
-        },
-        {
-          name: "Deadbugs",
-          type: "reps_only",
-          guide: "3 set x 20",
-          defaultRepsMode: "fixed",
-          info: ["Stabil i bålen", "Långsamma rörelser", "Rör arm och ben samtidigt diagonalt"],
-        },
-        {
-          name: "Bålkontroll diagonal rotation",
-          type: "reps_only",
-          guide: "3 set x 10 per sida",
-          defaultRepsMode: "fixed",
-          info: ["Stabil i bålen", "Full rotation"],
-        },
-        {
-          name: "Klättrande planka",
-          type: "seconds_only",
-          guide: "3 set x 20–30 sek",
-          info: ["Stabil i bålen"],
-        },
-      ],
-    },
-  }
-
   const [user, setUser] = useState(null)
   const [workoutsFromDB, setWorkoutsFromDB] = useState({})
 
-  const activeWorkouts = Object.keys(workoutsFromDB).length > 0 ? workoutsFromDB : workouts
+  const activeWorkouts = workoutsFromDB
   const [profile, setProfile] = useState(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [players, setPlayers] = useState([])
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
@@ -147,6 +23,13 @@ function TrainingApp() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [targetPassName, setTargetPassName] = useState("A")
+  const [selectedTemplateCode, setSelectedTemplateCode] = useState("A")
+  const [newPassName, setNewPassName] = useState("")
+  const [isCreatingPass, setIsCreatingPass] = useState(false)
+  const [renamePassName, setRenamePassName] = useState("")
+  const [selectedExerciseId, setSelectedExerciseId] = useState("")
+  const [isSavingPassExercise, setIsSavingPassExercise] = useState(false)
+  const [passExerciseDrafts, setPassExerciseDrafts] = useState({})
   const [targetDrafts, setTargetDrafts] = useState({})
   const [isLoadingTargets, setIsLoadingTargets] = useState(false)
   const [isSavingTargets, setIsSavingTargets] = useState(false)
@@ -204,6 +87,13 @@ function TrainingApp() {
   }, [user, selectedWorkout])
 
   useEffect(() => {
+    if (!selectedTemplateCode || !templatesFromDB.length) return
+
+    const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+    setRenamePassName(selectedTemplate?.label || "")
+  }, [selectedTemplateCode, templatesFromDB])
+
+  useEffect(() => {
     const fetchExercises = async () => {
       const { data, error } = await supabase
         .from("exercises")
@@ -248,6 +138,9 @@ function TrainingApp() {
           id,
           sort_order,
           custom_guide,
+          target_sets,
+          target_reps,
+          target_reps_mode,
           workout_template_id,
           exercise_id,
           workout_templates ( code, label ),
@@ -267,30 +160,33 @@ function TrainingApp() {
   }, [])
 
   useEffect(() => {
-    if (!templatesFromDB.length || !templateExercisesFromDB.length) return
+    if (!templatesFromDB.length) return
 
     const mapped = templatesFromDB.reduce((acc, template) => {
       const relatedExercises = templateExercisesFromDB
         .filter((row) => row.workout_templates?.code === template.code)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((row) => ({
+          id: row.id,
+          exerciseId: row.exercise_id,
+          sortOrder: row.sort_order,
           name: row.exercises?.name || "",
           type: row.exercises?.exercise_type || "reps_only",
           guide: row.custom_guide || "",
           defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
+          targetSets: row.target_sets ?? null,
+          targetReps: row.target_reps ?? null,
+          targetRepsMode: row.target_reps_mode || "fixed",
           info: [],
         }))
 
       acc[template.code] = {
         label: template.label,
-        warmup: workouts[template.code]?.warmup || {
+        warmup: {
           cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
           technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
         },
-        exercises:
-          relatedExercises.length > 0
-            ? relatedExercises
-            : workouts[template.code]?.exercises || [],
+        exercises: relatedExercises,
       }
 
       return acc
@@ -331,29 +227,38 @@ function TrainingApp() {
   }
 
   const loadUser = async () => {
+    setIsLoadingProfile(true)
+
     const { data, error } = await supabase.auth.getUser()
 
     if (error) {
       console.error(error)
+      setIsLoadingProfile(false)
       return
     }
 
     setUser(data.user)
 
-    if (data.user) {
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .single()
-
-      if (profileError) {
-        console.error(profileError)
-        return
-      }
-
-      setProfile(profileData)
+    if (!data.user) {
+      setProfile(null)
+      setIsLoadingProfile(false)
+      return
     }
+
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", data.user.id)
+      .single()
+
+    if (profileError) {
+      console.error(profileError)
+      setIsLoadingProfile(false)
+      return
+    }
+
+    setProfile(profileData)
+    setIsLoadingProfile(false)
   }
 
   const loadPlayers = async () => {
@@ -903,8 +808,288 @@ function TrainingApp() {
     setStatus("Övning arkiverad ✅")
   }
 
+  const handleAddExerciseToPass = async () => {
+    setStatus("")
+
+    if (!selectedExerciseId) {
+      setStatus("Välj en övning")
+      return
+    }
+
+    const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+    const selectedExercise = exercisesFromDB.find((exercise) => exercise.id === selectedExerciseId)
+
+    if (!selectedTemplate || !selectedExercise) {
+      setStatus("Kunde inte hitta pass eller övning")
+      return
+    }
+
+    const existingRowsForTemplate = templateExercisesFromDB.filter(
+      (row) => row.workout_templates?.code === selectedTemplateCode
+    )
+
+    const alreadyExists = existingRowsForTemplate.some((row) => row.exercise_id === selectedExerciseId)
+
+    if (alreadyExists) {
+      setStatus("Övningen finns redan i passet")
+      return
+    }
+
+    const nextSortOrder =
+      existingRowsForTemplate.length > 0
+        ? Math.max(...existingRowsForTemplate.map((row) => row.sort_order || 0)) + 1
+        : 1
+
+    setIsSavingPassExercise(true)
+
+    const insertPayload = {
+      workout_template_id: selectedTemplate.id,
+      exercise_id: selectedExerciseId,
+      sort_order: nextSortOrder,
+      custom_guide: selectedExercise.guide || null,
+    }
+
+    const { data, error } = await supabase
+      .from("workout_template_exercises")
+      .insert(insertPayload)
+      .select(`
+        id,
+        sort_order,
+        custom_guide,
+        target_sets,
+        target_reps,
+        target_reps_mode,
+        workout_template_id,
+        exercise_id,
+        workout_templates ( code, label ),
+        exercises ( name, exercise_type, guide, default_reps_mode )
+      `)
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte lägga till övning i passet")
+      setIsSavingPassExercise(false)
+      return
+    }
+
+    setTemplateExercisesFromDB((prev) => [...prev, data])
+    setSelectedExerciseId("")
+    setStatus("Övning tillagd i passet ✅")
+    setIsSavingPassExercise(false)
+  }
+
+  const handlePassExerciseDraftChange = (rowId, field, value) => {
+    setPassExerciseDrafts((prev) => ({
+      ...prev,
+      [rowId]: {
+        ...(prev[rowId] || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleSavePassExercises = async () => {
+    setStatus("")
+
+    const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => ({
+      id: rowId,
+      target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
+      target_reps:
+        draft.targetRepsMode === "max"
+          ? null
+          : draft.targetReps === ""
+          ? null
+          : Number(draft.targetReps),
+      target_reps_mode: draft.targetRepsMode || "fixed",
+    }))
+
+    if (updates.length === 0) {
+      setStatus("Inga ändringar att spara")
+      return
+    }
+
+    const { error } = await supabase
+      .from("workout_template_exercises")
+      .upsert(updates, { onConflict: "id" })
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara passändringar")
+      return
+    }
+
+    setStatus("Pass uppdaterat ✅")
+    setPassExerciseDrafts({})
+  }
+
+  const handleRemoveExerciseFromPass = async (rowId) => {
+    setStatus("")
+
+    const confirmed = window.confirm("Vill du ta bort övningen från passet?")
+    if (!confirmed) return
+
+    const { error } = await supabase
+      .from("workout_template_exercises")
+      .delete()
+      .eq("id", rowId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ta bort övning från passet")
+      return
+    }
+
+    setTemplateExercisesFromDB((prev) => prev.filter((row) => row.id !== rowId))
+    setPassExerciseDrafts((prev) => {
+      const next = { ...prev }
+      delete next[rowId]
+      return next
+    })
+    setStatus("Övning borttagen från passet ✅")
+  }
+
+  const handleMoveExerciseInPass = async (rowId, direction) => {
+    console.log("MOVE", { rowId, direction, selectedTemplateCode })
+    setStatus("")
+
+    const currentRows = templateExercisesFromDB
+      .filter((row) => row.workout_templates?.code === selectedTemplateCode)
+      .sort((a, b) => a.sort_order - b.sort_order)
+    console.log("MOVE currentRows", currentRows)
+
+    const currentIndex = currentRows.findIndex((row) => row.id === rowId)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= currentRows.length) return
+
+    const currentRow = currentRows[currentIndex]
+    const targetRow = currentRows[targetIndex]
+
+    const [{ error: firstError }, { error: secondError }] = await Promise.all([
+      supabase
+        .from("workout_template_exercises")
+        .update({ sort_order: targetRow.sort_order })
+        .eq("id", currentRow.id),
+      supabase
+        .from("workout_template_exercises")
+        .update({ sort_order: currentRow.sort_order })
+        .eq("id", targetRow.id),
+    ])
+
+    const error = firstError || secondError
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ändra ordning på övning")
+      return
+    }
+
+    setTemplateExercisesFromDB((prev) =>
+      prev.map((row) => {
+        if (row.id === currentRow.id) {
+          return { ...row, sort_order: targetRow.sort_order }
+        }
+        if (row.id === targetRow.id) {
+          return { ...row, sort_order: currentRow.sort_order }
+        }
+        return row
+      })
+    )
+
+    setStatus("Ordning uppdaterad ✅")
+  }
+
+  const handleCreatePass = async () => {
+    setStatus("")
+
+    if (!newPassName.trim()) {
+      setStatus("Fyll i namn på pass")
+      return
+    }
+
+    setIsCreatingPass(true)
+
+    const code = newPassName.trim().toUpperCase().replace(/\s+/g, "_")
+
+    const { data, error } = await supabase
+      .from("workout_templates")
+      .insert({ code, label: newPassName.trim() })
+      .select()
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte skapa pass")
+      setIsCreatingPass(false)
+      return
+    }
+
+    setTemplatesFromDB((prev) => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)))
+    setNewPassName("")
+    setSelectedTemplateCode(data.code)
+    setStatus("Pass skapat ✅")
+    setIsCreatingPass(false)
+  }
+
+  const handleRenamePass = async (templateId, newLabel) => {
+    setStatus("")
+
+    if (!newLabel.trim()) {
+      setStatus("Ange ett namn")
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("workout_templates")
+      .update({ label: newLabel.trim() })
+      .eq("id", templateId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte byta namn")
+      return
+    }
+
+    setTemplatesFromDB((prev) =>
+      prev.map((t) => (t.id === templateId ? data : t))
+    )
+
+    setWorkoutsFromDB((prev) => {
+      const next = { ...prev }
+
+      if (data.code && next[data.code]) {
+        next[data.code] = {
+          ...next[data.code],
+          label: data.label,
+        }
+      }
+
+      return next
+    })
+
+    setStatus("Pass uppdaterat ✅")
+  }
+
+  const handleRenameSelectedPass = async () => {
+    const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+    if (!selectedTemplate) {
+      setStatus("Kunde inte hitta valt pass")
+      return
+    }
+
+    await handleRenamePass(selectedTemplate.id, renamePassName)
+  }
+
   if (!user) {
     return <div style={pageStyle}>Laddar användare...</div>
+  }
+
+  if (isLoadingProfile || !profile) {
+    return <div style={pageStyle}>Laddar...</div>
   }
 
   return (
@@ -979,6 +1164,36 @@ function TrainingApp() {
               secondaryButtonStyle={secondaryButtonStyle}
               mutedTextStyle={mutedTextStyle}
               cardTitleStyle={cardTitleStyle}
+            />
+          )}
+
+          {coachView === "passBuilder" && (
+            <PassBuilderPage
+              activeWorkouts={activeWorkouts}
+              selectedTemplateCode={selectedTemplateCode}
+              setSelectedTemplateCode={setSelectedTemplateCode}
+              newPassName={newPassName}
+              setNewPassName={setNewPassName}
+              handleCreatePass={handleCreatePass}
+              isCreatingPass={isCreatingPass}
+              renamePassName={renamePassName}
+              setRenamePassName={setRenamePassName}
+              handleRenamePass={handleRenameSelectedPass}
+              exercisesFromDB={exercisesFromDB}
+              selectedExerciseId={selectedExerciseId}
+              setSelectedExerciseId={setSelectedExerciseId}
+              handleAddExerciseToPass={handleAddExerciseToPass}
+              isSavingPassExercise={isSavingPassExercise}
+              passExerciseDrafts={passExerciseDrafts}
+              handlePassExerciseDraftChange={handlePassExerciseDraftChange}
+              handleSavePassExercises={handleSavePassExercises}
+              handleRemoveExerciseFromPass={handleRemoveExerciseFromPass}
+              handleMoveExerciseInPass={handleMoveExerciseInPass}
+              cardTitleStyle={cardTitleStyle}
+              secondaryButtonStyle={secondaryButtonStyle}
+              mutedTextStyle={mutedTextStyle}
+              inputStyle={inputStyle}
+              buttonStyle={buttonStyle}
             />
           )}
 
@@ -1266,12 +1481,6 @@ const pageStyle = {
   fontFamily: "Arial, sans-serif",
 }
 
-const titleStyle = {
-  fontSize: "34px",
-  margin: 0,
-  color: "#111827",
-  lineHeight: 1.1,
-}
 
 const headerStyle = {
   display: "flex",
@@ -1437,12 +1646,6 @@ const infoBoxStyle = {
   marginBottom: "14px",
 }
 
-const infoBoxTitleStyle = {
-  fontSize: "13px",
-  fontWeight: "700",
-  color: "#9ca3af",
-  marginBottom: "4px",
-}
 
 const infoRowStyle = {
   fontSize: "13px",
@@ -1472,13 +1675,6 @@ const activeSetCardStyle = {
   border: "1px solid #e5e7eb",
 }
 
-const setRowWrapperStyle = {
-  marginBottom: "10px",
-  padding: "12px",
-  borderRadius: "10px",
-  backgroundColor: "#f9fafb",
-  border: "1px solid #e5e7eb",
-}
 
 const setLabelStyle = {
   fontSize: "13px",
