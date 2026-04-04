@@ -55,6 +55,7 @@ function TrainingApp() {
   const [newExerciseType, setNewExerciseType] = useState("weight_reps")
   const [newExerciseGuide, setNewExerciseGuide] = useState("")
   const [newExerciseDefaultRepsMode, setNewExerciseDefaultRepsMode] = useState("fixed")
+  const [newExerciseMuscleGroups, setNewExerciseMuscleGroups] = useState([])
   const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [isSavingExercise, setIsSavingExercise] = useState(false)
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -1268,6 +1269,7 @@ function TrainingApp() {
     setNewExerciseType("weight_reps")
     setNewExerciseGuide("")
     setNewExerciseDefaultRepsMode("fixed")
+    setNewExerciseMuscleGroups([])
     setEditingExerciseId(null)
   }
 
@@ -1276,6 +1278,7 @@ function TrainingApp() {
     setNewExerciseType(exercise.exercise_type || "weight_reps")
     setNewExerciseGuide(exercise.guide || "")
     setNewExerciseDefaultRepsMode(exercise.default_reps_mode || "fixed")
+    setNewExerciseMuscleGroups(Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : [])
     setEditingExerciseId(exercise.id)
     setCoachView("exerciseBank")
     setStatus("Redigerar övning")
@@ -1296,6 +1299,7 @@ function TrainingApp() {
       exercise_type: newExerciseType,
       guide: newExerciseGuide.trim() || null,
       default_reps_mode: newExerciseType === "seconds_only" ? "fixed" : newExerciseDefaultRepsMode,
+      muscle_groups: newExerciseMuscleGroups,
     }
 
     const query = editingExerciseId
@@ -1885,6 +1889,8 @@ function TrainingApp() {
                 setNewExerciseDefaultRepsMode={setNewExerciseDefaultRepsMode}
                 newExerciseGuide={newExerciseGuide}
                 setNewExerciseGuide={setNewExerciseGuide}
+                newExerciseMuscleGroups={newExerciseMuscleGroups}
+                setNewExerciseMuscleGroups={setNewExerciseMuscleGroups}
                 editingExerciseId={editingExerciseId}
                 isSavingExercise={isSavingExercise}
                 handleCreateExercise={handleCreateExercise}

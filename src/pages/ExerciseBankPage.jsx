@@ -1,5 +1,22 @@
 import { useState } from "react"
 
+const muscleGroupOptions = [
+  "Helkropp",
+  "Ben",
+  "Baksida lår",
+  "Säte",
+  "Bröst",
+  "Rygg",
+  "Axlar",
+  "Biceps",
+  "Triceps",
+  "Bål",
+  "Explosivitet",
+  "Grepp",
+  "Kondition",
+  "Rörlighet",
+]
+
 function ExerciseBankPage({
   newExerciseName,
   setNewExerciseName,
@@ -9,6 +26,8 @@ function ExerciseBankPage({
   setNewExerciseDefaultRepsMode,
   newExerciseGuide,
   setNewExerciseGuide,
+  newExerciseMuscleGroups,
+  setNewExerciseMuscleGroups,
   editingExerciseId,
   isSavingExercise,
   handleCreateExercise,
@@ -24,10 +43,16 @@ function ExerciseBankPage({
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [selectedMuscleFilter, setSelectedMuscleFilter] = useState("Alla")
 
   const filteredExercises = exercisesFromDB.filter((exercise) => {
-    const haystack = `${exercise.name} ${exercise.exercise_type}`.toLowerCase()
-    return haystack.includes(searchValue.trim().toLowerCase())
+    const exerciseMuscleGroups = Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : []
+    const haystack = `${exercise.name} ${exercise.exercise_type} ${exerciseMuscleGroups.join(" ")}`.toLowerCase()
+    const matchesSearch = haystack.includes(searchValue.trim().toLowerCase())
+    const matchesFilter =
+      selectedMuscleFilter === "Alla" || exerciseMuscleGroups.includes(selectedMuscleFilter)
+
+    return matchesSearch && matchesFilter
   })
 
   const exerciseTypeLabel = (type) => {
@@ -35,6 +60,21 @@ function ExerciseBankPage({
     if (type === "seconds_only") return "Sekunder"
     return "Bara reps"
   }
+
+  const toggleMuscleGroup = (group) => {
+    setNewExerciseMuscleGroups((prev) =>
+      prev.includes(group)
+        ? prev.filter((item) => item !== group)
+        : [...prev, group]
+    )
+  }
+
+  const allVisibleMuscleGroups = [
+    "Alla",
+    ...muscleGroupOptions.filter((group) =>
+      exercisesFromDB.some((exercise) => (exercise.muscle_groups || []).includes(group))
+    ),
+  ]
 
   return (
     <>
@@ -93,6 +133,33 @@ function ExerciseBankPage({
           style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
         />
 
+        <div style={{ marginBottom: "12px" }}>
+          <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
+            Muskelgrupper
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {muscleGroupOptions.map((group) => {
+              const isSelected = newExerciseMuscleGroups.includes(group)
+
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => toggleMuscleGroup(group)}
+                  style={{
+                    ...tagButtonStyle,
+                    backgroundColor: isSelected ? "#c62828" : "#ffffff",
+                    color: isSelected ? "#ffffff" : "#991b1b",
+                    border: isSelected ? "1px solid #c62828" : "1px solid #efc7c7",
+                  }}
+                >
+                  {group}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <button onClick={handleCreateExercise} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
           {isSavingExercise ? "Sparar..." : "Spara ny övning"}
         </button>
@@ -105,6 +172,28 @@ function ExerciseBankPage({
         onChange={(e) => setSearchValue(e.target.value)}
         style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
       />
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+        {allVisibleMuscleGroups.map((group) => {
+          const isSelected = selectedMuscleFilter === group
+
+          return (
+            <button
+              key={group}
+              type="button"
+              onClick={() => setSelectedMuscleFilter(group)}
+              style={{
+                ...tagButtonStyle,
+                backgroundColor: isSelected ? "#18202b" : "#ffffff",
+                color: isSelected ? "#ffffff" : "#374151",
+                border: isSelected ? "1px solid #18202b" : "1px solid #d9dee7",
+              }}
+            >
+              {group}
+            </button>
+          )
+        })}
+      </div>
 
       <div style={{ display: "grid", gap: "10px" }}>
         {filteredExercises.map((exercise) => {
@@ -128,6 +217,9 @@ function ExerciseBankPage({
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
                     <span style={pillStyle}>{exerciseTypeLabel(exercise.exercise_type)}</span>
                     <span style={pillStyle}>{exercise.default_reps_mode === "max" ? "Max reps" : "Fast reps"}</span>
+                    {(exercise.muscle_groups || []).map((group) => (
+                      <span key={group} style={musclePillStyle}>{group}</span>
+                    ))}
                   </div>
                   <div style={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.5 }}>
                     {exercise.guide || "Ingen guide ännu"}
@@ -200,6 +292,33 @@ function ExerciseBankPage({
                     style={{ ...inputStyle, width: "100%" }}
                   />
 
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
+                      Muskelgrupper
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {muscleGroupOptions.map((group) => {
+                        const isSelected = newExerciseMuscleGroups.includes(group)
+
+                        return (
+                          <button
+                            key={group}
+                            type="button"
+                            onClick={() => toggleMuscleGroup(group)}
+                            style={{
+                              ...tagButtonStyle,
+                              backgroundColor: isSelected ? "#c62828" : "#ffffff",
+                              color: isSelected ? "#ffffff" : "#991b1b",
+                              border: isSelected ? "1px solid #c62828" : "1px solid #efc7c7",
+                            }}
+                          >
+                            {group}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
                   <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
                     <button
                       onClick={handleCreateExercise}
@@ -232,6 +351,25 @@ const pillStyle = {
   color: "#991b1b",
   fontSize: "12px",
   fontWeight: "700",
+}
+
+const musclePillStyle = {
+  display: "inline-flex",
+  padding: "4px 8px",
+  borderRadius: "999px",
+  backgroundColor: "#eef2ff",
+  color: "#3730a3",
+  fontSize: "12px",
+  fontWeight: "700",
+}
+
+const tagButtonStyle = {
+  padding: "8px 10px",
+  borderRadius: "999px",
+  backgroundColor: "#ffffff",
+  fontSize: "13px",
+  fontWeight: "700",
+  cursor: "pointer",
 }
 
 export default ExerciseBankPage
