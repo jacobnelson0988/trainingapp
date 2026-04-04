@@ -1324,7 +1324,17 @@ function TrainingApp() {
 
     if (error) {
       console.error(error)
-      setStatus(editingExerciseId ? "Kunde inte uppdatera övning" : "Kunde inte spara övning")
+      const errorMessage = String(error.message || "").toLowerCase()
+      const missingExerciseColumns =
+        errorMessage.includes("muscle_groups") ||
+        errorMessage.includes("description") ||
+        errorMessage.includes("media_url")
+
+      setStatus(
+        missingExerciseColumns
+          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description och media_url."
+          : `${editingExerciseId ? "Kunde inte uppdatera övning" : "Kunde inte spara övning"}${error.message ? `: ${error.message}` : ""}`
+      )
       setIsSavingExercise(false)
       return
     }
