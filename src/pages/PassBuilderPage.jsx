@@ -454,6 +454,23 @@ function PassBuilderPage({
               ) : (
                 <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
               )}
+
+              <div style={selectedPassExerciseListCardStyle}>
+                <div style={selectedPassMetricLabelStyle}>Övningar i passet</div>
+
+                {exerciseCount > 0 ? (
+                  <div style={selectedPassExerciseListStyle}>
+                    {(currentWorkout.exercises || []).map((exercise, index) => (
+                      <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>
+                        <span style={selectedPassExerciseIndexStyle}>{index + 1}</span>
+                        <span>{exercise.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={selectedPassEmptyStyle}>Inga övningar tillagda ännu.</div>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -606,6 +623,41 @@ const selectedPassDescriptionStyle = {
   fontSize: "14px",
   color: "#18202b",
   lineHeight: 1.6,
+}
+
+const selectedPassExerciseListCardStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #f0e5e5",
+  backgroundColor: "#fffdfd",
+}
+
+const selectedPassExerciseListStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const selectedPassExerciseItemStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "14px",
+  color: "#18202b",
+  fontWeight: "700",
+}
+
+const selectedPassExerciseIndexStyle = {
+  width: "24px",
+  height: "24px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "12px",
+  fontWeight: "800",
+  flexShrink: 0,
 }
 
 const selectedPassEmptyStyle = {
