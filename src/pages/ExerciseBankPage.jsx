@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const muscleGroupOptions = [
   "Helkropp",
@@ -48,6 +48,7 @@ function ExerciseBankPage({
 }) {
   const [searchValue, setSearchValue] = useState("")
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState("Alla")
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
 
   const filteredExercises = exercisesFromDB.filter((exercise) => {
     const exerciseMuscleGroups = Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : []
@@ -84,6 +85,12 @@ function ExerciseBankPage({
     ),
   ]
 
+  useEffect(() => {
+    if (editingExerciseId) {
+      setIsCreateFormOpen(true)
+    }
+  }, [editingExerciseId])
+
   return (
     <>
       <h3 style={cardTitleStyle}>Övningsbank</h3>
@@ -100,116 +107,144 @@ function ExerciseBankPage({
           backgroundColor: "#ffffff",
           boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
         }}
-      >
-        <div
+        >
+          <div
           style={{
             ...sectionHeaderStyle,
             flexDirection: isMobile ? "column" : "row",
             alignItems: isMobile ? "stretch" : sectionHeaderStyle.alignItems,
           }}
-        >
-          <div>
-            <div style={sectionEyebrowStyle}>{editingExerciseId ? "Redigering" : "Ny övning"}</div>
-            <div style={sectionTitleStyle}>
-              {editingExerciseId ? "Justera vald övning" : "Lägg till ny övning"}
+          >
+            <div>
+              <div style={sectionEyebrowStyle}>{editingExerciseId ? "Redigering" : "Ny övning"}</div>
+              <div style={sectionTitleStyle}>
+                {editingExerciseId ? "Justera vald övning" : "Lägg till ny övning"}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {!editingExerciseId && (
+                <button
+                  type="button"
+                  onClick={() => setIsCreateFormOpen((prev) => !prev)}
+                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto", minHeight: "46px" }}
+                >
+                  {isCreateFormOpen ? "Stäng formulär" : "Lägg till ny övning"}
+                </button>
+              )}
+              <div style={countBadgeStyle}>{exercisesFromDB.length} övningar</div>
             </div>
           </div>
-          <div style={countBadgeStyle}>{exercisesFromDB.length} övningar</div>
-        </div>
 
-        <input
-          type="text"
-          placeholder="Namn på övning"
-          value={newExerciseName}
-          onChange={(e) => setNewExerciseName(e.target.value)}
-          style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-        />
+        {(editingExerciseId || isCreateFormOpen) && (
+          <>
+            <input
+              type="text"
+              placeholder="Namn på övning"
+              value={newExerciseName}
+              onChange={(e) => setNewExerciseName(e.target.value)}
+              style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+            />
 
-        <div
-          style={{
-            display: "grid",
-            gap: "10px",
-            marginBottom: "10px",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-          }}
-        >
-          <select
-            value={newExerciseType}
-            onChange={(e) => setNewExerciseType(e.target.value)}
-            style={{ ...inputStyle, width: "100%" }}
-          >
-            <option value="weight_reps">Vikt + reps</option>
-            <option value="reps_only">Bara reps</option>
-            <option value="seconds_only">Sekunder</option>
-          </select>
+            <div
+              style={{
+                display: "grid",
+                gap: "10px",
+                marginBottom: "10px",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+              }}
+            >
+              <select
+                value={newExerciseType}
+                onChange={(e) => setNewExerciseType(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              >
+                <option value="weight_reps">Vikt + reps</option>
+                <option value="reps_only">Bara reps</option>
+                <option value="seconds_only">Sekunder</option>
+              </select>
 
-          <select
-            value={newExerciseDefaultRepsMode}
-            onChange={(e) => setNewExerciseDefaultRepsMode(e.target.value)}
-            style={{ ...inputStyle, width: "100%" }}
-          >
-            <option value="fixed">Fast reps</option>
-            <option value="max">Max</option>
-          </select>
-        </div>
+              <select
+                value={newExerciseDefaultRepsMode}
+                onChange={(e) => setNewExerciseDefaultRepsMode(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              >
+                <option value="fixed">Fast reps</option>
+                <option value="max">Max</option>
+              </select>
+            </div>
 
-        <input
-          type="text"
-          placeholder="Guide"
-          value={newExerciseGuide}
-          onChange={(e) => setNewExerciseGuide(e.target.value)}
-          style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-        />
+            <input
+              type="text"
+              placeholder="Guide"
+              value={newExerciseGuide}
+              onChange={(e) => setNewExerciseGuide(e.target.value)}
+              style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+            />
 
-        <textarea
-          rows={3}
-          placeholder="Kort beskrivning av övningen"
-          value={newExerciseDescription}
-          onChange={(e) => setNewExerciseDescription(e.target.value)}
-          style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
-        />
+            <textarea
+              rows={3}
+              placeholder="Kort beskrivning av övningen"
+              value={newExerciseDescription}
+              onChange={(e) => setNewExerciseDescription(e.target.value)}
+              style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
+            />
 
-        <input
-          type="url"
-          placeholder="Länk till video eller gif"
-          value={newExerciseMediaUrl}
-          onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
-          style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-        />
+            <input
+              type="url"
+              placeholder="Länk till video eller gif"
+              value={newExerciseMediaUrl}
+              onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
+              style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+            />
 
-        <div style={{ marginBottom: "12px" }}>
-          <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
-            Muskelgrupper
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            {muscleGroupOptions.map((group) => {
-              const isSelected = newExerciseMuscleGroups.includes(group)
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
+                Muskelgrupper
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {muscleGroupOptions.map((group) => {
+                  const isSelected = newExerciseMuscleGroups.includes(group)
 
-              return (
-                <button
-                  key={group}
-                  type="button"
-                  onClick={() => toggleMuscleGroup(group)}
-                  style={{
-                    ...tagButtonStyle,
-                    backgroundColor: isSelected ? "#c62828" : "#ffffff",
-                    color: isSelected ? "#ffffff" : "#991b1b",
-                    border: isSelected ? "1px solid #c62828" : "1px solid #efc7c7",
-                  }}
-                >
-                  {group}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+                  return (
+                    <button
+                      key={group}
+                      type="button"
+                      onClick={() => toggleMuscleGroup(group)}
+                      style={{
+                        ...tagButtonStyle,
+                        backgroundColor: isSelected ? "#c62828" : "#ffffff",
+                        color: isSelected ? "#ffffff" : "#991b1b",
+                        border: isSelected ? "1px solid #c62828" : "1px solid #efc7c7",
+                      }}
+                    >
+                      {group}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-        <button
-          onClick={handleCreateExercise}
-          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
-        >
-          {isSavingExercise ? "Sparar..." : "Spara ny övning"}
-        </button>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                onClick={handleCreateExercise}
+                style={{ ...buttonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
+              >
+                {isSavingExercise ? "Sparar..." : editingExerciseId ? "Spara ändringar" : "Spara ny övning"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  resetExerciseForm()
+                  setIsCreateFormOpen(false)
+                }}
+                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
+              >
+                Avbryt
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <input
