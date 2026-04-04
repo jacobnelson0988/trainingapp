@@ -1020,7 +1020,7 @@ function TrainingApp() {
   const handleStartEditExercise = (exercise) => {
     setNewExerciseName(exercise.name || "")
     setNewExerciseType(exercise.exercise_type || "weight_reps")
-    setNewExerciseGuide("")
+    setNewExerciseGuide(exercise.guide || "")
     setNewExerciseDefaultRepsMode(exercise.default_reps_mode || "fixed")
     setEditingExerciseId(exercise.id)
     setCoachView("exerciseBank")

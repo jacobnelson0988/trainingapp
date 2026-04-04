@@ -1,3 +1,5 @@
+import { useState } from "react"
+
 function PlayersPage({
   isLoadingPlayers,
   players,
@@ -20,35 +22,280 @@ function PlayersPage({
   handleUnassignPassFromPlayer,
   isMobile,
 }) {
+  const [searchValue, setSearchValue] = useState("")
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
+
+  const filteredPlayers = players.filter((player) => {
+    const haystack = `${player.full_name} ${player.username} ${player.latestPass}`.toLowerCase()
+    return haystack.includes(searchValue.trim().toLowerCase())
+  })
+
+  const renderPlayerEditor = (player) => (
+    <div
+      style={{
+        marginTop: "12px",
+        padding: "14px",
+        border: "1px solid #e5e7eb",
+        borderRadius: "12px",
+        backgroundColor: "#f9fafb",
+      }}
+    >
+      <div style={{ fontSize: "14px", color: "#111827", marginBottom: "6px" }}>
+        <strong>Namn:</strong> {player.full_name}
+      </div>
+
+      <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
+        <strong>Användarnamn:</strong> {player.username}
+      </div>
+
+      <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
+        <strong>Senaste pass:</strong> {player.latestPass || "-"}
+      </div>
+
+      <div style={{ fontSize: "14px", color: "#374151", marginBottom: "10px" }}>
+        <strong>Totalt antal pass:</strong> {player.totalPasses ?? 0}
+      </div>
+
+      <div style={{ marginBottom: "14px" }}>
+        <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
+          Kommentar
+        </div>
+        <input
+          type="text"
+          value={commentDrafts[player.id] ?? ""}
+          placeholder="Skriv kommentar"
+          onChange={(e) => handleCommentChange(player.id, e.target.value)}
+          onBlur={() => handleCommentSave(player.id)}
+          style={{ ...inputStyle, width: "100%" }}
+        />
+      </div>
+
+      <div style={{ marginTop: "12px" }}>
+        <h3 style={cardTitleStyle}>Tilldelade pass</h3>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginBottom: "16px",
+            flexWrap: isMobile ? "nowrap" : "wrap",
+            overflowX: isMobile ? "auto" : "visible",
+            paddingBottom: isMobile ? "4px" : 0,
+          }}
+        >
+          {allPassKeys.map((passKey) => (
+            <button
+              key={passKey}
+              type="button"
+              onClick={() =>
+                assignedPassSet.has(passKey)
+                  ? handleUnassignPassFromPlayer(passKey)
+                  : handleAssignPassToPlayer(passKey)
+              }
+              style={{
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "1px solid #d1d5db",
+                backgroundColor: assignedPassSet.has(passKey) ? "#111827" : "#ffffff",
+                color: assignedPassSet.has(passKey) ? "#ffffff" : "#111827",
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "700",
+              }}
+            >
+              {assignedPassSet.has(passKey)
+                ? `Tilldelad: ${activeWorkouts[passKey].label}`
+                : `Tilldela ${activeWorkouts[passKey].label}`}
+            </button>
+          ))}
+        </div>
+
+        <h3 style={cardTitleStyle}>Individuella mål per övning</h3>
+
+        {isLoadingTargets ? (
+          <p style={mutedTextStyle}>Laddar individuella mål...</p>
+        ) : assignedPassCodes.length === 0 ? (
+          <p style={mutedTextStyle}>Tilldela minst ett pass för att kunna sätta mål på övningarna.</p>
+        ) : (
+          <div>
+            {assignedPassCodes.map((passKey) => (
+              <div
+                key={passKey}
+                style={{
+                  marginBottom: "16px",
+                  padding: "14px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <div style={{ marginBottom: "12px", fontWeight: "800", color: "#18202b" }}>
+                  {activeWorkouts[passKey]?.label || passKey}
+                </div>
+
+                {(activeWorkouts[passKey]?.exercises || []).map((exercise) => {
+                  const draft = {
+                    target_reps_mode: exercise.defaultRepsMode || "fixed",
+                    ...((targetDrafts[passKey] || {})[exercise.name] || {}),
+                  }
+
+                  return (
+                    <div
+                      key={`${passKey}-${exercise.name}`}
+                      style={{
+                        border: "1px solid #ece5e5",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        marginBottom: "10px",
+                        backgroundColor: "#fffdfd",
+                      }}
+                    >
+                      <div style={{ marginBottom: "8px" }}>
+                        <strong>{exercise.name}</strong>
+                        <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                          {exercise.guide}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                          marginBottom: "8px",
+                          flexDirection: isMobile ? "column" : "row",
+                        }}
+                      >
+                        <input
+                          type="number"
+                          placeholder="Set"
+                          value={draft.target_sets ?? ""}
+                          onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_sets", e.target.value)}
+                          style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Reps"
+                          disabled={draft.target_reps_mode === "max"}
+                          value={draft.target_reps ?? ""}
+                          onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_reps", e.target.value)}
+                          style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleTargetDraftChange(
+                              passKey,
+                              exercise.name,
+                              "target_reps_mode",
+                              draft.target_reps_mode === "max" ? "fixed" : "max"
+                            )
+                          }
+                          style={{
+                            width: isMobile ? "100%" : "auto",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            border: "1px solid #d1d5db",
+                            backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
+                            color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "700",
+                          }}
+                        >
+                          {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
+                        </button>
+                        {exercise.type === "weight_reps" && (
+                          <input
+                            type="number"
+                            placeholder="Vikt"
+                            value={draft.target_weight ?? ""}
+                            onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_weight", e.target.value)}
+                            style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                          />
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Kommentar / teknikfokus"
+                        value={draft.target_comment ?? ""}
+                        onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_comment", e.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleSaveTargets}
+              disabled={isSavingTargets}
+              style={{
+                width: isMobile ? "100%" : "auto",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "none",
+                backgroundColor: "#111827",
+                color: "#ffffff",
+                cursor: isSavingTargets ? "default" : "pointer",
+                fontSize: "14px",
+                fontWeight: "700",
+                opacity: isSavingTargets ? 0.7 : 1,
+              }}
+            >
+              {isSavingTargets ? "Sparar..." : "Spara individuella mål"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <>
       <h3 style={cardTitleStyle}>Mina spelare</h3>
+      <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
+        Sök fram spelare snabbt och redigera direkt under vald rad eller kort.
+      </p>
+
+      <input
+        type="text"
+        placeholder="Sök spelare"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
+      />
 
       {isLoadingPlayers ? (
         <p style={mutedTextStyle}>Laddar spelare...</p>
-      ) : players.length === 0 ? (
-        <p style={mutedTextStyle}>Inga spelare skapade ännu</p>
+      ) : filteredPlayers.length === 0 ? (
+        <p style={mutedTextStyle}>Inga spelare matchar sökningen</p>
       ) : isMobile ? (
         <div style={{ display: "grid", gap: "10px" }}>
-          {players.map((player) => {
-            const names = (player.full_name || "").trim().split(/\s+/)
-            const firstName = names[0] || ""
-            const lastName = names.slice(1).join(" ")
-
-            return (
+          {filteredPlayers.map((player) => (
+            <div
+              key={player.id}
+              style={{
+                padding: "14px",
+                borderRadius: "14px",
+                border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
+                backgroundColor: "#ffffff",
+              }}
+            >
               <button
-                key={player.id}
                 type="button"
-                onClick={() => setSelectedPlayer(player)}
+                onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
                 style={{
+                  width: "100%",
                   textAlign: "left",
-                  padding: "14px",
-                  borderRadius: "14px",
-                  border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
-                  backgroundColor: "#ffffff",
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
                   cursor: "pointer",
                 }}
               >
@@ -61,302 +308,87 @@ function PlayersPage({
                 <div style={{ fontSize: "13px", color: "#374151", marginBottom: "4px" }}>
                   Senaste pass: {player.latestPass || "-"}
                 </div>
-                <div style={{ fontSize: "13px", color: "#374151", marginBottom: "10px" }}>
+                <div style={{ fontSize: "13px", color: "#374151" }}>
                   Totalt antal pass: {player.totalPasses ?? 0}
                 </div>
-                <input
-                  type="text"
-                  value={commentDrafts[player.id] ?? ""}
-                  placeholder="Skriv kommentar"
-                  onChange={(e) => handleCommentChange(player.id, e.target.value)}
-                  onBlur={() => handleCommentSave(player.id)}
-                  style={{
-                    ...inputStyle,
-                    width: "100%",
-                    padding: "10px 12px",
-                    fontSize: "13px",
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
               </button>
-            )
-          })}
+
+              {selectedPlayer?.id === player.id && renderPlayerEditor(player)}
+            </div>
+          ))}
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px", fontSize: "14px" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left" }}>
-                <th style={{ padding: "10px 8px" }}>Användarnamn</th>
-                <th style={{ padding: "10px 8px" }}>Förnamn</th>
-                <th style={{ padding: "10px 8px" }}>Efternamn</th>
-                <th style={{ padding: "10px 8px" }}>Senaste pass</th>
-                <th style={{ padding: "10px 8px" }}>Totalt antal pass</th>
-                <th style={{ padding: "10px 8px" }}>Kommentar</th>
+              <tr style={{ textAlign: "left" }}>
+                <th style={tableHeadStyle}>Användarnamn</th>
+                <th style={tableHeadStyle}>Förnamn</th>
+                <th style={tableHeadStyle}>Efternamn</th>
+                <th style={tableHeadStyle}>Senaste pass</th>
+                <th style={tableHeadStyle}>Totalt antal pass</th>
               </tr>
             </thead>
             <tbody>
-              {players.map((player) => {
+              {filteredPlayers.map((player) => {
                 const names = (player.full_name || "").trim().split(/\s+/)
                 const firstName = names[0] || ""
                 const lastName = names.slice(1).join(" ")
+                const isSelected = selectedPlayer?.id === player.id
 
                 return (
-                  <tr
-                    key={player.id}
-                    style={{
-                      borderBottom: "1px solid #f1f5f9",
-                      cursor: "pointer",
-                      backgroundColor: selectedPlayer?.id === player.id ? "#f9fafb" : "transparent",
-                    }}
-                    onClick={() => setSelectedPlayer(player)}
-                  >
-                    <td style={{ padding: "10px 8px", color: "#374151" }}>{player.username}</td>
-                    <td style={{ padding: "10px 8px", color: "#111827" }}>{firstName}</td>
-                    <td style={{ padding: "10px 8px", color: "#111827" }}>{lastName}</td>
-                    <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.latestPass || "-"}</td>
-                    <td style={{ padding: "10px 8px", color: "#6b7280" }}>{player.totalPasses ?? 0}</td>
-                    <td style={{ padding: "10px 8px" }}>
-                      <input
-                        type="text"
-                        value={commentDrafts[player.id] ?? ""}
-                        placeholder="Skriv kommentar"
-                        onChange={(e) => handleCommentChange(player.id, e.target.value)}
-                        onBlur={() => handleCommentSave(player.id)}
-                        style={{
-                          ...inputStyle,
-                          width: "100%",
-                          minWidth: "140px",
-                          padding: "8px 10px",
-                          fontSize: "13px",
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={player.id}
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor: "#ffffff",
+                      }}
+                      onClick={() => setSelectedPlayer(isSelected ? null : player)}
+                    >
+                      <td style={{ ...tableCellStyle, borderTopLeftRadius: "12px", borderBottomLeftRadius: "12px", borderLeft: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
+                        {player.username}
+                      </td>
+                      <td style={tableCellStyle}>{firstName}</td>
+                      <td style={tableCellStyle}>{lastName}</td>
+                      <td style={tableCellStyle}>{player.latestPass || "-"}</td>
+                      <td style={{ ...tableCellStyle, borderTopRightRadius: "12px", borderBottomRightRadius: "12px", borderRight: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
+                        {player.totalPasses ?? 0}
+                      </td>
+                    </tr>
+                    {isSelected && (
+                      <tr key={`${player.id}-editor`}>
+                        <td colSpan={5} style={{ padding: 0 }}>
+                          {renderPlayerEditor(player)}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )
               })}
             </tbody>
           </table>
         </div>
       )}
-
-      {selectedPlayer && (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "14px",
-            border: "1px solid #e5e7eb",
-            borderRadius: "10px",
-            backgroundColor: "#f9fafb",
-          }}
-        >
-          <h3 style={cardTitleStyle}>Vald spelare</h3>
-
-          <div style={{ fontSize: "14px", color: "#111827", marginBottom: "6px" }}>
-            <strong>Namn:</strong> {selectedPlayer.full_name}
-          </div>
-
-          <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-            <strong>Användarnamn:</strong> {selectedPlayer.username}
-          </div>
-
-          <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-            <strong>Senaste pass:</strong> {selectedPlayer.latestPass || "-"}
-          </div>
-
-          <div style={{ fontSize: "14px", color: "#374151", marginBottom: "6px" }}>
-            <strong>Totalt antal pass:</strong> {selectedPlayer.totalPasses ?? 0}
-          </div>
-
-          <div style={{ fontSize: "14px", color: "#374151", marginBottom: "12px" }}>
-            <strong>Kommentar:</strong> {selectedPlayer.comment || "-"}
-          </div>
-
-          <div style={{ marginTop: "12px" }}>
-            <h3 style={cardTitleStyle}>Tilldelade pass</h3>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginBottom: "16px",
-                flexWrap: isMobile ? "nowrap" : "wrap",
-                overflowX: isMobile ? "auto" : "visible",
-                paddingBottom: isMobile ? "4px" : 0,
-              }}
-            >
-              {allPassKeys.map((passKey) => (
-                <button
-                  key={passKey}
-                  type="button"
-                  onClick={() =>
-                    assignedPassSet.has(passKey)
-                      ? handleUnassignPassFromPlayer(passKey)
-                      : handleAssignPassToPlayer(passKey)
-                  }
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db",
-                    backgroundColor: assignedPassSet.has(passKey) ? "#111827" : "#ffffff",
-                    color: assignedPassSet.has(passKey) ? "#ffffff" : "#111827",
-                    whiteSpace: "nowrap",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "700",
-                  }}
-                >
-                  {assignedPassSet.has(passKey) ? `Tilldelad: ${activeWorkouts[passKey].label}` : `Tilldela ${activeWorkouts[passKey].label}`}
-                </button>
-              ))}
-            </div>
-
-            <h3 style={cardTitleStyle}>Individuella mål per övning</h3>
-
-            {isLoadingTargets ? (
-              <p style={mutedTextStyle}>Laddar individuella mål...</p>
-            ) : assignedPassCodes.length === 0 ? (
-              <p style={mutedTextStyle}>Tilldela minst ett pass för att kunna sätta mål på övningarna.</p>
-            ) : (
-              <div>
-                {assignedPassCodes.map((passKey) => (
-                  <div
-                    key={passKey}
-                    style={{
-                      marginBottom: "16px",
-                      padding: "14px",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "12px",
-                      backgroundColor: "#f9fafb",
-                    }}
-                  >
-                    <div style={{ marginBottom: "12px" }}>
-                      <strong>{activeWorkouts[passKey]?.label || passKey}</strong>
-                    </div>
-
-                    {(activeWorkouts[passKey]?.exercises || []).map((exercise) => {
-                      const draft = {
-                        target_reps_mode: exercise.defaultRepsMode || "fixed",
-                        ...((targetDrafts[passKey] || {})[exercise.name] || {}),
-                      }
-
-                      return (
-                        <div
-                          key={`${passKey}-${exercise.name}`}
-                          style={{
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "10px",
-                            padding: "12px",
-                            marginBottom: "10px",
-                            backgroundColor: "#ffffff",
-                          }}
-                        >
-                          <div style={{ marginBottom: "8px" }}>
-                            <strong>{exercise.name}</strong>
-                            <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                              {exercise.guide}
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              flexWrap: "wrap",
-                              marginBottom: "8px",
-                              flexDirection: isMobile ? "column" : "row",
-                            }}
-                          >
-                            <input
-                              type="number"
-                              placeholder="Set"
-                              value={draft.target_sets ?? ""}
-                              onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_sets", e.target.value)}
-                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
-                            />
-                            <input
-                              type="number"
-                              placeholder="Reps"
-                              disabled={draft.target_reps_mode === "max"}
-                              value={draft.target_reps ?? ""}
-                              onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_reps", e.target.value)}
-                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleTargetDraftChange(
-                                  passKey,
-                                  exercise.name,
-                                  "target_reps_mode",
-                                  draft.target_reps_mode === "max" ? "fixed" : "max"
-                                )
-                              }
-                              style={{
-                                width: isMobile ? "100%" : "auto",
-                                padding: "10px 14px",
-                                borderRadius: "10px",
-                                border: "1px solid #d1d5db",
-                                backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
-                                color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "700",
-                              }}
-                            >
-                              {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
-                            </button>
-                            {exercise.type === "weight_reps" && (
-                              <input
-                                type="number"
-                                placeholder="Vikt"
-                                value={draft.target_weight ?? ""}
-                                onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_weight", e.target.value)}
-                                style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
-                              />
-                            )}
-                          </div>
-
-                          <input
-                            type="text"
-                            placeholder="Kommentar / teknikfokus"
-                            value={draft.target_comment ?? ""}
-                            onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_comment", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={handleSaveTargets}
-                  disabled={isSavingTargets}
-                  style={{
-                    width: isMobile ? "100%" : "auto",
-                    padding: "10px 14px",
-                    borderRadius: "10px",
-                    border: "none",
-                    backgroundColor: "#111827",
-                    color: "#ffffff",
-                    cursor: isSavingTargets ? "default" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: "700",
-                    opacity: isSavingTargets ? 0.7 : 1,
-                  }}
-                >
-                  {isSavingTargets ? "Sparar..." : "Spara individuella mål"}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </>
   )
+}
+
+const tableHeadStyle = {
+  padding: "8px 12px",
+  color: "#6b7280",
+  fontSize: "12px",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+}
+
+const tableCellStyle = {
+  padding: "14px 12px",
+  backgroundColor: "#ffffff",
+  borderTop: "1px solid #e5e7eb",
+  borderBottom: "1px solid #e5e7eb",
+  color: "#18202b",
 }
 
 export default PlayersPage
