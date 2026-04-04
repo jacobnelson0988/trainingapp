@@ -4,10 +4,14 @@ function PassBuilderPage({
   setSelectedTemplateCode,
   newPassName,
   setNewPassName,
+  newPassInfo,
+  setNewPassInfo,
   handleCreatePass,
   isCreatingPass,
   renamePassName,
   setRenamePassName,
+  renamePassInfo,
+  setRenamePassInfo,
   handleRenamePass,
   exercisesFromDB,
   selectedExerciseId,
@@ -130,6 +134,13 @@ function PassBuilderPage({
                   {isCreatingPass ? "Skapar..." : "Skapa pass"}
                 </button>
               </div>
+              <textarea
+                rows={4}
+                placeholder="Kort info om passet som spelaren ser före start"
+                value={newPassInfo}
+                onChange={(e) => setNewPassInfo(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%", marginTop: "10px" }}
+              />
             </div>
 
             <div style={{ ...innerPanelStyle, marginTop: "12px" }}>
@@ -156,6 +167,13 @@ function PassBuilderPage({
                   Spara passnamn
                 </button>
               </div>
+              <textarea
+                rows={4}
+                placeholder="Kort info om passet som spelaren ser före start"
+                value={renamePassInfo}
+                onChange={(e) => setRenamePassInfo(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%", marginTop: "10px" }}
+              />
               <button
                 type="button"
                 onClick={handleDeletePass}
@@ -555,6 +573,12 @@ const targetGridStyle = {
   display: "grid",
   gap: "8px",
   alignItems: "center",
+}
+
+const textareaStyle = {
+  resize: "vertical",
+  minHeight: "104px",
+  fontFamily: "inherit",
 }
 
 export default PassBuilderPage

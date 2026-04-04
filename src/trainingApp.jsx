@@ -35,8 +35,10 @@ function TrainingApp() {
   const [assignedWorkoutCodes, setAssignedWorkoutCodes] = useState([])
   const [selectedTemplateCode, setSelectedTemplateCode] = useState("A")
   const [newPassName, setNewPassName] = useState("")
+  const [newPassInfo, setNewPassInfo] = useState("")
   const [isCreatingPass, setIsCreatingPass] = useState(false)
   const [renamePassName, setRenamePassName] = useState("")
+  const [renamePassInfo, setRenamePassInfo] = useState("")
   const [selectedExerciseId, setSelectedExerciseId] = useState("")
   const [isSavingPassExercise, setIsSavingPassExercise] = useState(false)
   const [passExerciseDrafts, setPassExerciseDrafts] = useState({})
@@ -145,6 +147,7 @@ function TrainingApp() {
 
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
     setRenamePassName(selectedTemplate?.label || "")
+    setRenamePassInfo(selectedTemplate?.info || "")
   }, [selectedTemplateCode, templatesFromDB])
 
   useEffect(() => {
@@ -252,6 +255,7 @@ function TrainingApp() {
 
       acc[template.code] = {
         label: template.label,
+        info: template.info || "",
         warmup: {
           cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
           technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
@@ -1471,6 +1475,10 @@ function TrainingApp() {
       !!selectedTemplate &&
       !!renamePassName.trim() &&
       renamePassName.trim() !== selectedTemplate.label
+    const nextInfoValue = renamePassInfo.trim()
+    const hasInfoChange =
+      !!selectedTemplate &&
+      nextInfoValue !== (selectedTemplate.info || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const existingRow = templateExercisesFromDB.find((row) => row.id === rowId)
       const baseGuide = existingRow?.exercises?.guide?.trim() || ""
@@ -1490,17 +1498,20 @@ function TrainingApp() {
       }
     })
 
-    if (!hasRenameChange && updates.length === 0) {
+    if (!hasRenameChange && !hasInfoChange && updates.length === 0) {
       setStatus("Inga passändringar att spara")
       return
     }
 
     setStatus("")
 
-    if (hasRenameChange) {
+    if (hasRenameChange || hasInfoChange) {
       const { data, error } = await supabase
         .from("workout_templates")
-        .update({ label: renamePassName.trim() })
+        .update({
+          label: hasRenameChange ? renamePassName.trim() : selectedTemplate.label,
+          info: nextInfoValue || null,
+        })
         .eq("id", selectedTemplate.id)
         .select()
         .single()
@@ -1522,6 +1533,7 @@ function TrainingApp() {
           next[data.code] = {
             ...next[data.code],
             label: data.label,
+            info: data.info || "",
           }
         }
 
@@ -1530,7 +1542,7 @@ function TrainingApp() {
     }
 
     if (updates.length === 0) {
-      setStatus("Passnamn sparat ✅")
+      setStatus(hasRenameChange || hasInfoChange ? "Passinfo sparad ✅" : "Inga ändringar att spara")
       return
     }
 
@@ -1579,7 +1591,7 @@ function TrainingApp() {
       })
     )
 
-    setStatus(hasRenameChange ? "Passnamn och övningar sparade ✅" : "Övningsändringar sparade ✅")
+    setStatus(hasRenameChange || hasInfoChange ? "Passinfo och övningar sparade ✅" : "Övningsändringar sparade ✅")
     setPassExerciseDrafts({})
   }
 
@@ -1693,7 +1705,7 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("workout_templates")
-      .insert({ code: normalizedCode, label: newPassName.trim() })
+      .insert({ code: normalizedCode, label: newPassName.trim(), info: newPassInfo.trim() || null })
       .select()
       .single()
 
@@ -1706,6 +1718,7 @@ function TrainingApp() {
 
     setTemplatesFromDB((prev) => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)))
     setNewPassName("")
+    setNewPassInfo("")
     setSelectedTemplateCode(data.code)
     setStatus("Pass skapat ✅")
     setIsCreatingPass(false)
@@ -1761,7 +1774,7 @@ function TrainingApp() {
     setStatus("Pass borttaget ✅")
   }
 
-  const handleRenamePass = async (templateId, newLabel) => {
+  const handleRenamePass = async (templateId, newLabel, newInfo) => {
     setStatus("")
 
     if (!newLabel.trim()) {
@@ -1771,7 +1784,7 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("workout_templates")
-      .update({ label: newLabel.trim() })
+      .update({ label: newLabel.trim(), info: newInfo.trim() || null })
       .eq("id", templateId)
       .select()
       .single()
@@ -1793,6 +1806,7 @@ function TrainingApp() {
         next[data.code] = {
           ...next[data.code],
           label: data.label,
+          info: data.info || "",
         }
       }
 
@@ -1809,7 +1823,7 @@ function TrainingApp() {
       return
     }
 
-    await handleRenamePass(selectedTemplate.id, renamePassName)
+    await handleRenamePass(selectedTemplate.id, renamePassName, renamePassInfo)
   }
 
   const scrollToExerciseCard = (index) => {
@@ -2070,10 +2084,14 @@ function TrainingApp() {
                 setSelectedTemplateCode={setSelectedTemplateCode}
                 newPassName={newPassName}
                 setNewPassName={setNewPassName}
+                newPassInfo={newPassInfo}
+                setNewPassInfo={setNewPassInfo}
                 handleCreatePass={handleCreatePass}
                 isCreatingPass={isCreatingPass}
                 renamePassName={renamePassName}
                 setRenamePassName={setRenamePassName}
+                renamePassInfo={renamePassInfo}
+                setRenamePassInfo={setRenamePassInfo}
                 handleRenamePass={handleRenameSelectedPass}
                 exercisesFromDB={exercisesFromDB}
                 selectedExerciseId={selectedExerciseId}
@@ -2256,35 +2274,38 @@ function TrainingApp() {
                     Senast kört: {formatDate(latestPassDates[selectedWorkout])} • {formatDaysSince(latestPassDates[selectedWorkout])}
                   </div>
 
-                  <div
-                    style={{
-                      ...passPreviewStatsGridStyle,
-                      gridTemplateColumns: "1fr",
-                    }}
-                  >
-                    <div style={passPreviewStatCardStyle}>
-                      <div style={passPreviewStatLabelStyle}>Övningar</div>
-                      <div style={passPreviewStatValueStyle}>{selectedWorkoutData.exercises.length}</div>
-                    </div>
-                  </div>
-
-                  {selectedWorkoutPreviewExercises.length > 0 && (
-                    <div style={passPreviewListWrapStyle}>
-                      <div style={passPreviewListLabelStyle}>Övningar i passet</div>
-                      <div style={passPreviewListStyle}>
-                        {selectedWorkoutPreviewExercises.map((exercise) => (
-                          <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                            {exercise.name}
-                          </div>
-                        ))}
-                        {selectedWorkoutRemainingExerciseCount > 0 && (
-                          <div style={passPreviewListMoreStyle}>
-                            +{selectedWorkoutRemainingExerciseCount} till
-                          </div>
-                        )}
+                  <div style={passPreviewContentCardStyle}>
+                    {selectedWorkoutData.info && (
+                      <div style={{ marginBottom: "14px" }}>
+                        <div style={passPreviewStatLabelStyle}>Info om passet</div>
+                        <div style={passPreviewInfoTextStyle}>{selectedWorkoutData.info}</div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    <div style={passPreviewStatLabelStyle}>Övningar</div>
+                    <div style={passPreviewExerciseCountStyle}>{selectedWorkoutData.exercises.length} st</div>
+
+                    {selectedWorkoutPreviewExercises.length > 0 && (
+                      <div style={passPreviewListWrapStyle}>
+                        <div style={passPreviewListStyle}>
+                          {selectedWorkoutPreviewExercises.map((exercise) => (
+                            <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
+                              {exercise.name}
+                            </div>
+                          ))}
+                          {selectedWorkoutRemainingExerciseCount > 0 && (
+                            <div style={passPreviewListMoreStyle}>
+                              +{selectedWorkoutRemainingExerciseCount} till
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedWorkoutData.exercises.length === 0 && (
+                      <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
+                    )}
+                  </div>
 
                   <button
                     onClick={() => startWorkout(selectedWorkout)}
@@ -3267,18 +3288,12 @@ const passPreviewTitleStyle = {
   marginBottom: "6px",
 }
 
-const passPreviewStatsGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "10px",
-  marginBottom: "14px",
-}
-
-const passPreviewStatCardStyle = {
+const passPreviewContentCardStyle = {
   padding: "14px",
   borderRadius: "18px",
   border: "1px solid #f0e2e2",
   backgroundColor: "#fffdfd",
+  marginBottom: "14px",
 }
 
 const passPreviewStatLabelStyle = {
@@ -3290,30 +3305,22 @@ const passPreviewStatLabelStyle = {
   marginBottom: "6px",
 }
 
-const passPreviewStatValueStyle = {
-  fontSize: "22px",
-  color: "#18202b",
-  fontWeight: "900",
-}
-
-const passPreviewStatTextStyle = {
+const passPreviewInfoTextStyle = {
   fontSize: "14px",
   color: "#18202b",
   fontWeight: "700",
   lineHeight: 1.5,
 }
 
-const passPreviewListWrapStyle = {
-  marginBottom: "16px",
+const passPreviewExerciseCountStyle = {
+  fontSize: "22px",
+  color: "#18202b",
+  fontWeight: "900",
+  marginBottom: "10px",
 }
 
-const passPreviewListLabelStyle = {
-  fontSize: "12px",
-  color: "#566173",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.04em",
-  marginBottom: "8px",
+const passPreviewListWrapStyle = {
+  marginBottom: 0,
 }
 
 const passPreviewListStyle = {
@@ -3340,6 +3347,12 @@ const passPreviewListMoreStyle = {
   color: "#566173",
   fontSize: "13px",
   fontWeight: "800",
+}
+
+const passPreviewEmptyStyle = {
+  fontSize: "14px",
+  color: "#9ca3af",
+  fontStyle: "italic",
 }
 
 const statusStyle = {
