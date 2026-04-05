@@ -304,8 +304,25 @@ function PassBuilderPage({
                       </div>
 
                       <div style={hintBoxStyle}>
-                        Standardtexten kommer från övningsbanken. Ändra den här bara om passet ska ha en egen instruktion.
+                        Lämna fältet tomt om passet inte behöver en egen instruktion för övningen.
                       </div>
+
+                      {!draft.guide.trim() && exercise.suggestedGuide && (
+                        <div style={suggestionBoxStyle}>
+                          <div style={suggestionTextStyle}>
+                            Tidigare instruktion i ditt lag: {exercise.suggestedGuide}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handlePassExerciseDraftChange(exercise.id, "guide", exercise.suggestedGuide)
+                            }
+                            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                          >
+                            Använd förslag
+                          </button>
+                        </div>
+                      )}
 
                       <div style={formStackStyle}>
                         <textarea
@@ -732,6 +749,22 @@ const hintBoxStyle = {
   backgroundColor: "#f9fafb",
   color: "#6b7280",
   fontSize: "13px",
+  lineHeight: 1.6,
+}
+
+const suggestionBoxStyle = {
+  marginBottom: "12px",
+  padding: "12px",
+  borderRadius: "12px",
+  border: "1px solid #ddd6fe",
+  backgroundColor: "#f5f3ff",
+  display: "grid",
+  gap: "10px",
+}
+
+const suggestionTextStyle = {
+  fontSize: "13px",
+  color: "#4c1d95",
   lineHeight: 1.6,
 }
 

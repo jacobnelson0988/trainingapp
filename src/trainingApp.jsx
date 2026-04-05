@@ -293,22 +293,35 @@ function TrainingApp() {
       const relatedExercises = templateExercisesFromDB
         .filter((row) => row.workout_templates?.code === template.code)
         .sort((a, b) => a.sort_order - b.sort_order)
-        .map((row) => ({
-          id: row.id,
-          exerciseId: row.exercise_id,
-          sortOrder: row.sort_order,
-          name: row.exercises?.name || "",
-          type: row.exercises?.exercise_type || "reps_only",
-          baseGuide: row.exercises?.guide || "",
-          guide: row.custom_guide ?? row.exercises?.guide ?? "",
-          description: row.exercises?.description || "",
-          mediaUrl: row.exercises?.media_url || "",
-          defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
-          targetSets: row.target_sets ?? null,
-          targetReps: row.target_reps ?? null,
-          targetRepsMode: row.target_reps_mode || "fixed",
-          info: [],
-        }))
+        .map((row) => {
+          const suggestedGuide =
+            templateExercisesFromDB
+              .slice()
+              .reverse()
+              .find(
+                (candidate) =>
+                  candidate.id !== row.id &&
+                  String(candidate.exercise_id) === String(row.exercise_id) &&
+                  (candidate.custom_guide || "").trim()
+              )?.custom_guide || ""
+
+          return {
+            id: row.id,
+            exerciseId: row.exercise_id,
+            sortOrder: row.sort_order,
+            name: row.exercises?.name || "",
+            type: row.exercises?.exercise_type || "reps_only",
+            guide: row.custom_guide || "",
+            suggestedGuide,
+            description: row.exercises?.description || "",
+            mediaUrl: row.exercises?.media_url || "",
+            defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
+            targetSets: row.target_sets ?? null,
+            targetReps: row.target_reps ?? null,
+            targetRepsMode: row.target_reps_mode || "fixed",
+            info: [],
+          }
+        })
 
       acc[template.code] = {
         label: template.label,
@@ -1826,12 +1839,11 @@ function TrainingApp() {
     const hasInfoChange = nextInfoValue !== (selectedTemplate.info || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const existingRow = templateExercisesFromDB.find((row) => row.id === rowId)
-      const baseGuide = existingRow?.exercises?.guide?.trim() || ""
       const nextGuide = draft.guide?.trim() || ""
 
       return {
         id: rowId,
-        custom_guide: nextGuide && nextGuide !== baseGuide ? nextGuide : null,
+        custom_guide: nextGuide || null,
         target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
         target_reps:
           draft.targetRepsMode === "max"
@@ -1925,9 +1937,8 @@ function TrainingApp() {
 
         if (!draft) return row
 
-        const baseGuide = row.exercises?.guide?.trim() || ""
         const nextGuide = draft.guide?.trim() || ""
-        const nextCustomGuide = nextGuide && nextGuide !== baseGuide ? nextGuide : null
+        const nextCustomGuide = nextGuide || null
 
         return {
           ...row,
