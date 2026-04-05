@@ -418,20 +418,15 @@ function TrainingApp() {
 
     setWorkoutsFromDB(mapped)
   }, [templatesFromDB, templateExercisesFromDB])
-  const loadCurrentUserTargets = async (userId, passName) => {
-    setIsLoadingPlayerTargets(true)
 
+  const fetchTargetsByPassForUser = async (userId) => {
     const { data, error } = await supabase
       .from("player_exercise_targets")
       .select("pass_name, exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
       .eq("player_id", userId)
 
     if (error) {
-      console.error(error)
-      setPlayerTargets({})
-      setAssignedWorkoutCodes([])
-      setIsLoadingPlayerTargets(false)
-      return
+      return { error, targetsByPass: {}, assignedPasses: [] }
     }
 
     const targetsByPass = {}
@@ -455,7 +450,27 @@ function TrainingApp() {
       }
     })
 
-    setAssignedWorkoutCodes(Array.from(nextAssignedPasses))
+    return {
+      error: null,
+      targetsByPass,
+      assignedPasses: Array.from(nextAssignedPasses),
+    }
+  }
+
+  const loadCurrentUserTargets = async (userId, passName) => {
+    setIsLoadingPlayerTargets(true)
+
+    const { error, targetsByPass, assignedPasses } = await fetchTargetsByPassForUser(userId)
+
+    if (error) {
+      console.error(error)
+      setPlayerTargets({})
+      setAssignedWorkoutCodes([])
+      setIsLoadingPlayerTargets(false)
+      return
+    }
+
+    setAssignedWorkoutCodes(assignedPasses)
     setPlayerTargets(targetsByPass[passName] || {})
     setIsLoadingPlayerTargets(false)
   }
@@ -1622,7 +1637,17 @@ function TrainingApp() {
       setStatus("Kunde inte starta passet")
       return
     }
-    const workoutTargets = playerTargets || {}
+    const { error, targetsByPass, assignedPasses } = await fetchTargetsByPassForUser(user.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte läsa dagens mål för passet")
+      return
+    }
+
+    const workoutTargets = targetsByPass[workoutKey] || {}
+    setAssignedWorkoutCodes(assignedPasses)
+    setPlayerTargets(workoutTargets)
 
     setSelectedWorkout(workoutKey)
     setCurrentSessionId(newSessionId)
@@ -4528,8 +4553,8 @@ const exerciseHeaderIconStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#fff4f4",
-  color: "#991b1b",
+  backgroundColor: "#eef4ff",
+  color: "#274690",
   fontSize: "22px",
   fontWeight: "700",
   flexShrink: 0,
@@ -4546,7 +4571,7 @@ const exerciseDetailsPanelStyle = {
 const exerciseDetailsLabelStyle = {
   marginBottom: "6px",
   fontSize: "12px",
-  color: "#991b1b",
+  color: "#46607a",
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -4584,8 +4609,8 @@ const exerciseProgressStyle = {
   marginBottom: "12px",
   padding: "6px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "#eef4ff",
+  color: "#274690",
   fontSize: "12px",
   fontWeight: "800",
 }
@@ -4627,8 +4652,8 @@ const exerciseSwipeCardStyle = {
 }
 
 const targetBoxStyle = {
-  backgroundColor: "#fff3f3",
-  border: "1px solid #f5caca",
+  backgroundColor: "#f7fafc",
+  border: "1px solid #dbe6f0",
   borderRadius: "18px",
   padding: "14px 16px",
   marginBottom: "14px",
@@ -4645,7 +4670,7 @@ const targetBoxHeaderStyle = {
 const targetBoxTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
-  color: "#991b1b",
+  color: "#1f3b57",
 }
 
 const targetHistoryBadgeStyle = {
@@ -4653,22 +4678,23 @@ const targetHistoryBadgeStyle = {
   padding: "5px 9px",
   borderRadius: "999px",
   backgroundColor: "#ffffff",
-  color: "#991b1b",
+  color: "#46607a",
   fontSize: "12px",
   fontWeight: "800",
+  border: "1px solid #d8e3ef",
 }
 
 const latestSummaryWrapStyle = {
   padding: "12px 14px",
   borderRadius: "16px",
-  backgroundColor: "#fff9f9",
-  border: "1px solid #f2dede",
+  backgroundColor: "#ffffff",
+  border: "1px solid #e1e8f0",
 }
 
 const latestSummaryLabelStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#991b1b",
+  color: "#46607a",
   marginBottom: "6px",
 }
 
@@ -4686,7 +4712,7 @@ const latestSummaryMetaStyle = {
 
 const targetSectionDividerStyle = {
   height: "1px",
-  backgroundColor: "#f3d5d5",
+  backgroundColor: "#e2e8f0",
   margin: "12px 0",
 }
 
@@ -4708,7 +4734,7 @@ const targetRowStyle = {
 }
 
 const targetLabelStyle = {
-  color: "#7f1d1d",
+  color: "#46607a",
   fontWeight: "700",
 }
 
@@ -4719,7 +4745,7 @@ const targetValueStyle = {
 
 const targetCommentStyle = {
   fontSize: "14px",
-  color: "#7f1d1d",
+  color: "#334155",
   lineHeight: 1.5,
 }
 
@@ -4736,8 +4762,8 @@ const latestRowStyle = {
 }
 
 const infoBoxStyle = {
-  backgroundColor: "#fffdfd",
-  border: "1px solid #efe4e4",
+  backgroundColor: "#f8fafc",
+  border: "1px solid #dbe5ef",
   borderRadius: "16px",
   padding: "10px 12px",
   marginBottom: "14px",
@@ -4824,10 +4850,10 @@ const compactSetRemoveButtonStyle = {
 const inputStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #e9dada",
+  border: "1px solid #d9e2ec",
   fontSize: "14px",
   minWidth: "120px",
-  backgroundColor: "#fffdfd",
+  backgroundColor: "#ffffff",
   color: "#18202b",
 }
 
@@ -4846,7 +4872,7 @@ const buttonStyle = {
 const secondaryButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
-  border: "1px solid #ecd6d6",
+  border: "1px solid #d8e3ef",
   backgroundColor: "#ffffff",
   color: "#18202b",
   cursor: "pointer",
@@ -4857,7 +4883,7 @@ const secondaryButtonStyle = {
 const removeButtonStyle = {
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #ecd6d6",
+  border: "1px solid #d8e3ef",
   backgroundColor: "#ffffff",
   color: "#566173",
   cursor: "pointer",
@@ -4875,9 +4901,9 @@ const pickerGridStyle = {
 const pickerButtonStyle = {
   padding: "18px",
   borderRadius: "18px",
-  border: "1px solid #eddede",
+  border: "1px solid #dfe7ef",
   background:
-    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,247,0.96))",
+    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,252,0.96))",
   textAlign: "left",
   cursor: "pointer",
   boxShadow: "0 14px 28px rgba(24, 32, 43, 0.06)",
@@ -4899,14 +4925,14 @@ const passPreviewCardStyle = {
   width: "100%",
   padding: "22px",
   borderRadius: "24px",
-  border: "1px solid #ecdede",
-  background: "linear-gradient(180deg, rgba(255,253,253,1), rgba(255,247,247,0.98))",
+  border: "1px solid #dfe7ef",
+  background: "linear-gradient(180deg, rgba(255,255,255,1), rgba(247,250,252,0.98))",
   boxShadow: "0 18px 36px rgba(24, 32, 43, 0.08)",
 }
 
 const passPreviewEyebrowStyle = {
   fontSize: "12px",
-  color: "#991b1b",
+  color: "#46607a",
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -4923,14 +4949,14 @@ const passPreviewTitleStyle = {
 const passPreviewContentCardStyle = {
   padding: "14px",
   borderRadius: "18px",
-  border: "1px solid #f0e2e2",
-  backgroundColor: "#fffdfd",
+  border: "1px solid #e1e8f0",
+  backgroundColor: "#ffffff",
   marginBottom: "14px",
 }
 
 const passPreviewStatLabelStyle = {
   fontSize: "11px",
-  color: "#7f1d1d",
+  color: "#46607a",
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -4965,8 +4991,8 @@ const passPreviewListItemStyle = {
   display: "inline-flex",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "#eef4ff",
+  color: "#274690",
   fontSize: "13px",
   fontWeight: "800",
 }
