@@ -29,6 +29,7 @@ function TrainingApp() {
   const [updatingUserTeamId, setUpdatingUserTeamId] = useState(null)
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null)
   const [repairingLoginUserId, setRepairingLoginUserId] = useState(null)
+  const [deletingUserId, setDeletingUserId] = useState(null)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [messageRecipients, setMessageRecipients] = useState([])
@@ -1164,6 +1165,51 @@ function TrainingApp() {
 
     setStatus(`Login reparerat ✅ ${data?.email || ""}`.trim())
     setRepairingLoginUserId(null)
+  }
+
+  const handleDeleteUser = async (userId, fullName) => {
+    if (!userId) return
+
+    const confirmed = window.confirm(`Vill du ta bort ${fullName || "den här användaren"}?`)
+    if (!confirmed) return
+
+    const accessToken = await ensureFreshSession()
+
+    if (!accessToken) {
+      return
+    }
+
+    setDeletingUserId(userId)
+
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        user_id: userId,
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus(await getFunctionErrorMessage(error, "Kunde inte ta bort användaren"))
+      setDeletingUserId(null)
+      return
+    }
+
+    if (data?.error) {
+      setStatus(data.error)
+      setDeletingUserId(null)
+      return
+    }
+
+    setAllUsers((prev) => prev.filter((entry) => entry.id !== userId))
+    setPlayers((prev) => prev.filter((entry) => entry.id !== userId))
+    setTeamCoaches((prev) => prev.filter((entry) => entry.id !== userId))
+    setMessageRecipients((prev) => prev.filter((entry) => entry.id !== userId))
+    setSelectedPlayer((prev) => (prev?.id === userId ? null : prev))
+    setStatus("Användare borttagen ✅")
+    setDeletingUserId(null)
   }
 
   const loadPlayerTargets = async (playerId) => {
@@ -3051,7 +3097,6 @@ function TrainingApp() {
       label: unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden",
     },
     { key: "feedback", label: "Feedback" },
-    { key: "createPlayer", label: "Ny användare" },
   ]
 
   const managementTabs = profile?.role === "head_admin" ? headAdminTabs : coachTabs
@@ -3261,22 +3306,6 @@ function TrainingApp() {
               marginBottom: isMobile ? "16px" : cardStyle.marginBottom,
             }}
           >
-            {coachView !== "home" && coachView !== "passBuilder" && (
-              <div style={{ marginBottom: "16px" }}>
-              <button
-                type="button"
-                style={secondaryButtonStyle}
-                onClick={() => {
-                  setCoachView("home")
-                  setSelectedPlayer(null)
-                  resetExerciseForm()
-                }}
-              >
-                ← Tillbaka
-              </button>
-              </div>
-            )}
-
             {coachView === "home" && (
               profile?.role === "head_admin" ? (
                 <AdminHomePage
@@ -3306,14 +3335,30 @@ function TrainingApp() {
                 users={allUsers}
                 teams={teams}
                 isLoadingUsers={isLoadingAllUsers}
+                newUserName={newPlayerName}
+                setNewUserName={setNewPlayerName}
+                newUserPassword={newPlayerPassword}
+                setNewUserPassword={setNewPlayerPassword}
+                newUserRole={newUserRole}
+                setNewUserRole={setNewUserRole}
+                selectedTeamId={selectedTeamId}
+                setSelectedTeamId={setSelectedTeamId}
+                handleCreateUser={handleCreatePlayer}
+                isCreatingUser={isCreatingPlayer}
+                createdUser={createdPlayer}
                 updatingUserTeamId={updatingUserTeamId}
                 resettingPasswordUserId={resettingPasswordUserId}
                 repairingLoginUserId={repairingLoginUserId}
+                deletingUserId={deletingUserId}
                 handleChangeUserTeam={handleChangeUserTeam}
                 handleResetUserPassword={handleResetUserPassword}
                 handleRepairUserLogin={handleRepairUserLogin}
+                handleDeleteUser={handleDeleteUser}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
+                inputStyle={inputStyle}
+                buttonStyle={buttonStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
                 isMobile={isMobile}
               />
             )}
@@ -3466,7 +3511,7 @@ function TrainingApp() {
               />
             )}
 
-            {coachView === "createPlayer" && (
+            {coachView === "createPlayer" && profile?.role === "coach" && (
               <CreateUserPage
                 isHeadAdmin={profile?.role === "head_admin"}
                 teams={teams}

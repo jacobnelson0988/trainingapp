@@ -15,3 +15,9 @@ verify_jwt = false
 enabled = true
 entrypoint = "./functions/repair-user-login/index.ts"
 import_map = "./functions/repair-user-login/deno.json"
+
+[functions.delete-user]
+verify_jwt = false
+enabled = true
+entrypoint = "./functions/delete-user/index.ts"
+import_map = "./functions/delete-user/deno.json"
