@@ -25,6 +25,7 @@ function TrainingApp() {
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false)
   const [updatingUserTeamId, setUpdatingUserTeamId] = useState(null)
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null)
+  const [repairingLoginUserId, setRepairingLoginUserId] = useState(null)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
@@ -564,6 +565,43 @@ function TrainingApp() {
 
     setStatus("Lösenord uppdaterat ✅")
     setResettingPasswordUserId(null)
+  }
+
+  const handleRepairUserLogin = async (userId) => {
+    if (!userId) return
+
+    const accessToken = await ensureFreshSession()
+
+    if (!accessToken) {
+      return
+    }
+
+    setRepairingLoginUserId(userId)
+
+    const { data, error } = await supabase.functions.invoke("repair-user-login", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        user_id: userId,
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus(await getFunctionErrorMessage(error, "Kunde inte reparera login"))
+      setRepairingLoginUserId(null)
+      return
+    }
+
+    if (data?.error) {
+      setStatus(data.error)
+      setRepairingLoginUserId(null)
+      return
+    }
+
+    setStatus(`Login reparerat ✅ ${data?.email || ""}`.trim())
+    setRepairingLoginUserId(null)
   }
 
   const loadPlayerTargets = async (playerId) => {
@@ -2407,8 +2445,10 @@ function TrainingApp() {
                 isLoadingUsers={isLoadingAllUsers}
                 updatingUserTeamId={updatingUserTeamId}
                 resettingPasswordUserId={resettingPasswordUserId}
+                repairingLoginUserId={repairingLoginUserId}
                 handleChangeUserTeam={handleChangeUserTeam}
                 handleResetUserPassword={handleResetUserPassword}
+                handleRepairUserLogin={handleRepairUserLogin}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 isMobile={isMobile}

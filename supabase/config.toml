@@ -9,3 +9,9 @@ verify_jwt = false
 enabled = true
 entrypoint = "./functions/reset-user-password/index.ts"
 import_map = "./functions/reset-user-password/deno.json"
+
+[functions.repair-user-login]
+verify_jwt = false
+enabled = true
+entrypoint = "./functions/repair-user-login/index.ts"
+import_map = "./functions/repair-user-login/deno.json"

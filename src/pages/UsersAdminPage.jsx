@@ -6,8 +6,10 @@ function UsersAdminPage({
   isLoadingUsers,
   updatingUserTeamId,
   resettingPasswordUserId,
+  repairingLoginUserId,
   handleChangeUserTeam,
   handleResetUserPassword,
+  handleRepairUserLogin,
   cardTitleStyle,
   mutedTextStyle,
   isMobile,
@@ -89,6 +91,17 @@ function UsersAdminPage({
                         disabled={resettingPasswordUserId === entry.id}
                       >
                         {resettingPasswordUserId === entry.id ? "Sparar..." : "Sätt nytt lösenord"}
+                      </button>
+                    </div>
+
+                    <div style={loginRepairWrapStyle}>
+                      <button
+                        type="button"
+                        onClick={() => handleRepairUserLogin(entry.id)}
+                        style={repairButtonStyle}
+                        disabled={repairingLoginUserId === entry.id}
+                      >
+                        {repairingLoginUserId === entry.id ? "Reparerar..." : "Reparera login"}
                       </button>
                     </div>
                   </>
@@ -203,6 +216,24 @@ const passwordButtonStyle = {
   border: "none",
   backgroundColor: "#18202b",
   color: "#ffffff",
+  fontSize: "13px",
+  fontWeight: "800",
+  cursor: "pointer",
+}
+
+const loginRepairWrapStyle = {
+  marginTop: "8px",
+}
+
+const repairButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "9px 12px",
+  borderRadius: "12px",
+  border: "1px solid #d6d3f5",
+  backgroundColor: "#f5f3ff",
+  color: "#4338ca",
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",

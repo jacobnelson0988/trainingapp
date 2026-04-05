@@ -139,7 +139,7 @@ serve(async (req: Request) => {
       username = `${baseUsername}${counter}`
     }
 
-    const email = `${username}-${crypto.randomUUID().slice(0, 8)}@example.com`
+    const email = `${username}@example.com`
     console.log("generated credentials", { username, email })
 
     const { data: userData, error: userCreateError } =
