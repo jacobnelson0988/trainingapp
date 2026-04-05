@@ -5,12 +5,15 @@ function UsersAdminPage({
   teams,
   isLoadingUsers,
   updatingUserTeamId,
+  resettingPasswordUserId,
   handleChangeUserTeam,
+  handleResetUserPassword,
   cardTitleStyle,
   mutedTextStyle,
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [passwordDrafts, setPasswordDrafts] = useState({})
   const teamMap = Object.fromEntries((teams || []).map((team) => [team.id, team.name]))
 
   const filteredUsers = (users || []).filter((entry) => {
@@ -43,24 +46,52 @@ function UsersAdminPage({
                 <div style={userNameStyle}>{entry.full_name}</div>
                 <div style={userMetaStyle}>@{entry.username}</div>
                 {entry.role !== "head_admin" && (
-                  <div style={userTeamControlWrapStyle(isMobile)}>
-                    <select
-                      value={entry.team_id || ""}
-                      onChange={(e) => handleChangeUserTeam(entry.id, e.target.value)}
-                      style={teamSelectStyle}
-                      disabled={updatingUserTeamId === entry.id}
-                    >
-                      <option value="">Välj lag</option>
-                      {(teams || []).map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                    <span style={teamHelpTextStyle}>
-                      {updatingUserTeamId === entry.id ? "Uppdaterar..." : "Byt lag"}
-                    </span>
-                  </div>
+                  <>
+                    <div style={userTeamControlWrapStyle(isMobile)}>
+                      <select
+                        value={entry.team_id || ""}
+                        onChange={(e) => handleChangeUserTeam(entry.id, e.target.value)}
+                        style={teamSelectStyle}
+                        disabled={updatingUserTeamId === entry.id}
+                      >
+                        <option value="">Välj lag</option>
+                        {(teams || []).map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span style={teamHelpTextStyle}>
+                        {updatingUserTeamId === entry.id ? "Uppdaterar..." : "Byt lag"}
+                      </span>
+                    </div>
+
+                    <div style={passwordControlWrapStyle(isMobile)}>
+                      <input
+                        type="text"
+                        placeholder="Nytt lösenord"
+                        value={passwordDrafts[entry.id] || ""}
+                        onChange={(e) =>
+                          setPasswordDrafts((prev) => ({
+                            ...prev,
+                            [entry.id]: e.target.value,
+                          }))
+                        }
+                        style={passwordInputStyle}
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await handleResetUserPassword(entry.id, passwordDrafts[entry.id] || "")
+                          setPasswordDrafts((prev) => ({ ...prev, [entry.id]: "" }))
+                        }}
+                        style={passwordButtonStyle}
+                        disabled={resettingPasswordUserId === entry.id}
+                      >
+                        {resettingPasswordUserId === entry.id ? "Sparar..." : "Sätt nytt lösenord"}
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
               <div style={userBadgeWrapStyle}>
@@ -143,6 +174,38 @@ const teamHelpTextStyle = {
   fontSize: "12px",
   color: "#6b7280",
   fontWeight: "700",
+}
+
+const passwordControlWrapStyle = (isMobile) => ({
+  marginTop: "10px",
+  display: "flex",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "8px",
+  alignItems: isMobile ? "stretch" : "center",
+})
+
+const passwordInputStyle = {
+  minWidth: "180px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #eadfdf",
+  backgroundColor: "#fffefe",
+  fontSize: "13px",
+  color: "#18202b",
+}
+
+const passwordButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "none",
+  backgroundColor: "#18202b",
+  color: "#ffffff",
+  fontSize: "13px",
+  fontWeight: "800",
+  cursor: "pointer",
 }
 
 const roleBadgeStyle = {

@@ -24,6 +24,7 @@ function TrainingApp() {
   const [allUsers, setAllUsers] = useState([])
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false)
   const [updatingUserTeamId, setUpdatingUserTeamId] = useState(null)
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
@@ -522,6 +523,47 @@ function TrainingApp() {
     setSelectedPlayer((prev) => (prev?.id === userId ? { ...prev, team_id: nextTeamId } : prev))
     setStatus("Lag uppdaterat ✅")
     setUpdatingUserTeamId(null)
+  }
+
+  const handleResetUserPassword = async (userId, nextPassword) => {
+    if (!userId || !nextPassword.trim()) {
+      setStatus("Ange ett nytt lösenord först")
+      return
+    }
+
+    const accessToken = await ensureFreshSession()
+
+    if (!accessToken) {
+      return
+    }
+
+    setResettingPasswordUserId(userId)
+
+    const { data, error } = await supabase.functions.invoke("reset-user-password", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        user_id: userId,
+        password: nextPassword.trim(),
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus(await getFunctionErrorMessage(error, "Kunde inte byta lösenord"))
+      setResettingPasswordUserId(null)
+      return
+    }
+
+    if (data?.error) {
+      setStatus(data.error)
+      setResettingPasswordUserId(null)
+      return
+    }
+
+    setStatus("Lösenord uppdaterat ✅")
+    setResettingPasswordUserId(null)
   }
 
   const loadPlayerTargets = async (playerId) => {
@@ -2364,7 +2406,9 @@ function TrainingApp() {
                 teams={teams}
                 isLoadingUsers={isLoadingAllUsers}
                 updatingUserTeamId={updatingUserTeamId}
+                resettingPasswordUserId={resettingPasswordUserId}
                 handleChangeUserTeam={handleChangeUserTeam}
+                handleResetUserPassword={handleResetUserPassword}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 isMobile={isMobile}
