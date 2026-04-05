@@ -45,6 +45,10 @@ function TrainingApp() {
   const [feedbackItems, setFeedbackItems] = useState([])
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false)
   const [updatingFeedbackId, setUpdatingFeedbackId] = useState(null)
+  const [exerciseRequests, setExerciseRequests] = useState([])
+  const [isLoadingExerciseRequests, setIsLoadingExerciseRequests] = useState(false)
+  const [updatingExerciseRequestId, setUpdatingExerciseRequestId] = useState(null)
+  const [isSubmittingExerciseRequest, setIsSubmittingExerciseRequest] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
   const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
@@ -170,8 +174,10 @@ function TrainingApp() {
 
     if (profile.role === "head_admin") {
       loadFeedback()
+      loadExerciseRequests()
     } else {
       setFeedbackItems([])
+      setExerciseRequests([])
     }
   }, [user, profile])
 
@@ -997,6 +1003,32 @@ function TrainingApp() {
     setIsLoadingFeedback(false)
   }
 
+  const loadExerciseRequests = async () => {
+    if (profile?.role !== "head_admin") {
+      setExerciseRequests([])
+      return
+    }
+
+    setIsLoadingExerciseRequests(true)
+
+    const { data, error } = await supabase
+      .from("exercise_requests")
+      .select(
+        "id, requester_id, team_id, name, exercise_type, reps_mode, muscle_groups, description, equipment, reference_url, status, status_updated_at, created_at"
+      )
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setExerciseRequests([])
+      setIsLoadingExerciseRequests(false)
+      return
+    }
+
+    setExerciseRequests(data || [])
+    setIsLoadingExerciseRequests(false)
+  }
+
   const handleSubmitFeedback = async () => {
     const trimmedBody = feedbackText.trim()
 
@@ -1032,6 +1064,136 @@ function TrainingApp() {
     setIsFeedbackOpen(false)
     setStatus("Feedback sparad ✅")
     setIsSubmittingFeedback(false)
+  }
+
+  const handleSubmitExerciseRequest = async (requestDraft) => {
+    if (!user || !profile) return false
+
+    const trimmedName = String(requestDraft?.name || "").trim()
+    const trimmedDescription = String(requestDraft?.description || "").trim()
+    const muscleGroups = Array.isArray(requestDraft?.muscle_groups)
+      ? requestDraft.muscle_groups.filter(Boolean)
+      : []
+
+    if (!trimmedName) {
+      setStatus("Ange namn på övningen")
+      return false
+    }
+
+    if (!requestDraft?.exercise_type) {
+      setStatus("Välj typ av övning")
+      return false
+    }
+
+    if (!requestDraft?.reps_mode) {
+      setStatus("Välj om övningen körs med fasta reps eller till failure")
+      return false
+    }
+
+    if (!muscleGroups.length) {
+      setStatus("Välj minst en primär muskelgrupp")
+      return false
+    }
+
+    if (!trimmedDescription) {
+      setStatus("Skriv en kort beskrivning av övningen")
+      return false
+    }
+
+    setIsSubmittingExerciseRequest(true)
+
+    const payload = {
+      requester_id: user.id,
+      team_id: profile.team_id || null,
+      name: trimmedName,
+      exercise_type: requestDraft.exercise_type,
+      reps_mode: requestDraft.reps_mode,
+      muscle_groups: muscleGroups,
+      description: trimmedDescription,
+      equipment: String(requestDraft?.equipment || "").trim() || null,
+      reference_url: String(requestDraft?.reference_url || "").trim() || null,
+    }
+
+    const { data, error } = await supabase
+      .from("exercise_requests")
+      .insert(payload)
+      .select(
+        "id, requester_id, team_id, name, exercise_type, reps_mode, muscle_groups, description, equipment, reference_url, status, status_updated_at, created_at"
+      )
+      .single()
+
+    if (error || !data) {
+      console.error(error)
+      setStatus("Kunde inte skicka övningsrequest")
+      setIsSubmittingExerciseRequest(false)
+      return false
+    }
+
+    const { data: headAdmins, error: headAdminError } = await supabase
+      .from("profiles")
+      .select("id, full_name, username")
+      .eq("role", "head_admin")
+
+    if (!headAdminError && headAdmins?.length) {
+      const notificationSubject = `Ny övningsrequest: ${trimmedName}`
+      const notificationBody = [
+        `${profile.full_name || profile.username} har skickat in en ny request till övningsbanken.`,
+        "",
+        `Övning: ${trimmedName}`,
+        `Typ: ${requestDraft.exercise_type}`,
+        `Repsläge: ${requestDraft.reps_mode === "max" ? "Till failure / max" : "Fast reps"}`,
+        `Muskelgrupper: ${muscleGroups.join(", ")}`,
+        `Lag: ${teams.find((team) => team.id === profile.team_id)?.name || "Inget lag"}`,
+        "",
+        `Beskrivning: ${trimmedDescription}`,
+        requestDraft?.equipment ? `Utrustning: ${String(requestDraft.equipment).trim()}` : "",
+        requestDraft?.reference_url ? `Referens: ${String(requestDraft.reference_url).trim()}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+
+      const { data: messageRow, error: messageError } = await supabase
+        .from("messages")
+        .insert({
+          sender_id: user.id,
+          subject: notificationSubject,
+          team_id: profile.team_id || null,
+          body: notificationBody,
+        })
+        .select("id")
+        .single()
+
+      if (!messageError && messageRow?.id) {
+        const recipientRows = headAdmins
+          .filter((entry) => entry.id !== user.id)
+          .map((entry) => ({
+            message_id: messageRow.id,
+            recipient_id: entry.id,
+          }))
+
+        if (recipientRows.length) {
+          const { error: recipientError } = await supabase
+            .from("message_recipients")
+            .insert(recipientRows)
+
+          if (recipientError) {
+            console.error(recipientError)
+          }
+        }
+      } else if (messageError) {
+        console.error(messageError)
+      }
+    } else if (headAdminError) {
+      console.error(headAdminError)
+    }
+
+    if (profile?.role === "head_admin") {
+      setExerciseRequests((prev) => [data, ...prev])
+    }
+
+    setStatus("Övningsrequest skickad ✅")
+    setIsSubmittingExerciseRequest(false)
+    return true
   }
 
   const handleUpdateFeedbackStatus = async (feedbackId, nextStatus) => {
@@ -1071,6 +1233,45 @@ function TrainingApp() {
     )
     setStatus("Feedbackstatus uppdaterad ✅")
     setUpdatingFeedbackId(null)
+  }
+
+  const handleUpdateExerciseRequestStatus = async (requestId, nextStatus) => {
+    if (!requestId || !nextStatus) return
+
+    setUpdatingExerciseRequestId(requestId)
+
+    const payload = {
+      status: nextStatus,
+      status_updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .from("exercise_requests")
+      .update(payload)
+      .eq("id", requestId)
+      .select("id, status, status_updated_at")
+      .single()
+
+    if (error || !data) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera requeststatus")
+      setUpdatingExerciseRequestId(null)
+      return
+    }
+
+    setExerciseRequests((prev) =>
+      prev.map((item) =>
+        item.id === requestId
+          ? {
+              ...item,
+              status: data.status,
+              status_updated_at: data.status_updated_at,
+            }
+          : item
+      )
+    )
+    setStatus("Requeststatus uppdaterad ✅")
+    setUpdatingExerciseRequestId(null)
   }
 
   const handleChangeUserTeam = async (userId, nextTeamId) => {
@@ -3426,6 +3627,7 @@ function TrainingApp() {
             {coachView === "exerciseBank" && (
               <ExerciseBankPage
                 canManageExercises={profile?.role === "head_admin"}
+                canRequestExercises={profile?.role === "coach"}
                 newExerciseName={newExerciseName}
                 setNewExerciseName={setNewExerciseName}
                 newExerciseType={newExerciseType}
@@ -3447,6 +3649,15 @@ function TrainingApp() {
                 handleDeleteExercise={handleDeleteExercise}
                 resetExerciseForm={resetExerciseForm}
                 exercisesFromDB={exercisesFromDB}
+                exerciseRequests={exerciseRequests}
+                users={allUsers}
+                teams={teams}
+                isLoadingExerciseRequests={isLoadingExerciseRequests}
+                updatingExerciseRequestId={updatingExerciseRequestId}
+                isSubmittingExerciseRequest={isSubmittingExerciseRequest}
+                handleRefreshExerciseRequests={loadExerciseRequests}
+                handleSubmitExerciseRequest={handleSubmitExerciseRequest}
+                handleUpdateExerciseRequestStatus={handleUpdateExerciseRequestStatus}
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
                 secondaryButtonStyle={secondaryButtonStyle}
