@@ -3394,9 +3394,12 @@ function TrainingApp() {
             <button
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              style={{ ...menuButtonStyle, width: isMobile ? "100%" : "auto" }}
+              aria-label="Öppna meny"
+              style={menuButtonStyle}
             >
-              Meny
+              <span style={menuIconLineStyle} />
+              <span style={menuIconLineStyle} />
+              <span style={menuIconLineStyle} />
             </button>
 
             {isMenuOpen && (
@@ -4720,10 +4723,11 @@ const logoutButtonStyle = {
 
 const headerActionsWrapStyle = (isMobile) => ({
   display: "flex",
-  alignItems: "stretch",
+  alignItems: "flex-start",
   justifyContent: "flex-end",
-  flexDirection: isMobile ? "column" : "row",
+  flexDirection: "row",
   gap: "10px",
+  flexWrap: "wrap",
 })
 
 const menuWrapStyle = {
@@ -4731,16 +4735,27 @@ const menuWrapStyle = {
 }
 
 const menuButtonStyle = {
-  padding: "12px 16px",
-  borderRadius: "16px",
+  width: "46px",
+  height: "46px",
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "4px",
+  padding: 0,
+  borderRadius: "14px",
   border: "1px solid #d8e3ef",
   backgroundColor: "#ffffff",
   color: "#18202b",
   cursor: "pointer",
-  fontSize: "14px",
-  fontWeight: "800",
-  whiteSpace: "nowrap",
   boxShadow: "0 10px 26px rgba(24, 32, 43, 0.08)",
+}
+
+const menuIconLineStyle = {
+  width: "18px",
+  height: "2px",
+  borderRadius: "999px",
+  backgroundColor: "#18202b",
 }
 
 const menuDropdownStyle = (isMobile) => ({
