@@ -76,7 +76,7 @@ serve(async (req: Request) => {
     console.log("creator verified", { userId: user.id, role: profile.role })
 
     const { full_name, password, role: requestedRole, team_id: requestedTeamId } = await req.json()
-    const targetRole = profile.role === "head_admin" && requestedRole === "coach" ? "coach" : "player"
+    const targetRole = requestedRole === "coach" ? "coach" : "player"
     const targetTeamId = profile.role === "head_admin" ? requestedTeamId || profile.team_id : profile.team_id
     console.log("payload received", {
       full_name,

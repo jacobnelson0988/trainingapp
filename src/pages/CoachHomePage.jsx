@@ -25,10 +25,10 @@ function CoachHomePage({
           }}
         >
           <div style={coachNavTopRowStyle}>
-            <div style={coachNavTitleStyle}>Lägg till ny spelare</div>
+            <div style={coachNavTitleStyle}>Lägg till användare</div>
             <div style={coachNavArrowStyle}>→</div>
           </div>
-          <div style={coachNavTextStyle}>Skapa konto för en ny spelare</div>
+          <div style={coachNavTextStyle}>Skapa spelare och tränare i ditt lag</div>
         </button>
 
         <button
@@ -65,7 +65,7 @@ function CoachHomePage({
             <div style={coachNavTitleStyle}>Övningsbank</div>
             <div style={coachNavArrowStyle}>→</div>
           </div>
-          <div style={coachNavTextStyle}>Skapa, redigera och arkivera övningar</div>
+          <div style={coachNavTextStyle}>Visa övningar som kan användas i lagets pass</div>
         </button>
         <button
           type="button"
@@ -83,7 +83,7 @@ function CoachHomePage({
             <div style={coachNavTitleStyle}>Passhantering</div>
             <div style={coachNavArrowStyle}>→</div>
           </div>
-          <div style={coachNavTextStyle}>Visa och bygg innehållet i Pass A, B och C</div>
+          <div style={coachNavTextStyle}>Skapa och redigera pass för ditt eget lag</div>
         </button>
       </div>
     </>

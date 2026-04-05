@@ -27,10 +27,11 @@ function CreateUserPage({
 }) {
   const availableTeams = teams || []
   const effectiveTeamId = isHeadAdmin ? selectedTeamId : currentTeamId
+  const canChooseRole = isHeadAdmin || !!currentTeamId
 
   return (
     <>
-      <h3 style={cardTitleStyle}>{isHeadAdmin ? "Skapa användare" : "Skapa spelare"}</h3>
+      <h3 style={cardTitleStyle}>{isHeadAdmin ? "Skapa användare" : "Skapa användare i laget"}</h3>
 
       <form onSubmit={handleCreateUser}>
         <div style={{ marginBottom: "10px" }}>
@@ -53,7 +54,7 @@ function CreateUserPage({
           />
         </div>
 
-        {isHeadAdmin && (
+        {canChooseRole && (
           <>
             <div style={{ marginBottom: "10px" }}>
               <select
@@ -66,20 +67,22 @@ function CreateUserPage({
               </select>
             </div>
 
-            <div style={{ marginBottom: "10px" }}>
-              <select
-                value={selectedTeamId}
-                onChange={(e) => setSelectedTeamId(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              >
-                <option value="">Välj lag</option>
-                {availableTeams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isHeadAdmin && (
+              <div style={{ marginBottom: "10px" }}>
+                <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                >
+                  <option value="">Välj lag</option>
+                  {availableTeams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </>
         )}
 
@@ -93,7 +96,7 @@ function CreateUserPage({
           }}
           disabled={isCreatingUser || !effectiveTeamId}
         >
-          {isCreatingUser ? "Skapar..." : isHeadAdmin ? "Skapa användare" : "Skapa spelare"}
+          {isCreatingUser ? "Skapar..." : "Skapa användare"}
         </button>
       </form>
 

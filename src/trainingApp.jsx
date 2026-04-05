@@ -47,7 +47,7 @@ function TrainingApp() {
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
   const [isUpdatingPassAssignments, setIsUpdatingPassAssignments] = useState(false)
   const [assignedWorkoutCodes, setAssignedWorkoutCodes] = useState([])
-  const [selectedTemplateCode, setSelectedTemplateCode] = useState("A")
+  const [selectedTemplateCode, setSelectedTemplateCode] = useState("")
   const [newPassName, setNewPassName] = useState("")
   const [newPassInfo, setNewPassInfo] = useState("")
   const [isCreatingPass, setIsCreatingPass] = useState(false)
@@ -216,10 +216,26 @@ function TrainingApp() {
 
   useEffect(() => {
     const fetchTemplates = async () => {
+      if (!profile) {
+        setTemplatesFromDB([])
+        return
+      }
+
+      if (profile.role === "head_admin") {
+        setTemplatesFromDB([])
+        return
+      }
+
+      if (!profile.team_id) {
+        setTemplatesFromDB([])
+        return
+      }
+
       const { data, error } = await supabase
         .from("workout_templates")
         .select("*")
-        .order("code")
+        .eq("team_id", profile.team_id)
+        .order("label")
 
       if (error) {
         console.error("Error fetching templates:", error)
@@ -230,10 +246,15 @@ function TrainingApp() {
     }
 
     fetchTemplates()
-  }, [])
+  }, [profile])
 
   useEffect(() => {
     const fetchTemplateExercises = async () => {
+      if (!templatesFromDB.length) {
+        setTemplateExercisesFromDB([])
+        return
+      }
+
       const { data, error } = await supabase
         .from("workout_template_exercises")
         .select(`
@@ -245,9 +266,10 @@ function TrainingApp() {
           target_reps_mode,
           workout_template_id,
           exercise_id,
-          workout_templates ( code, label ),
+          workout_templates!inner ( code, label, team_id ),
           exercises ( name, exercise_type, guide, description, media_url, default_reps_mode )
         `)
+        .in("workout_template_id", templatesFromDB.map((template) => template.id))
         .order("sort_order")
 
       if (error) {
@@ -259,10 +281,13 @@ function TrainingApp() {
     }
 
     fetchTemplateExercises()
-  }, [])
+  }, [templatesFromDB])
 
   useEffect(() => {
-    if (!templatesFromDB.length) return
+    if (!templatesFromDB.length) {
+      setWorkoutsFromDB({})
+      return
+    }
 
     const mapped = templatesFromDB.reduce((acc, template) => {
       const relatedExercises = templateExercisesFromDB
@@ -1170,7 +1195,10 @@ function TrainingApp() {
       return
     }
 
-    const targetRole = profile?.role === "head_admin" ? newUserRole : "player"
+    const targetRole =
+      newUserRole === "coach" && (profile?.role === "head_admin" || profile?.role === "coach")
+        ? "coach"
+        : "player"
     const targetTeamId = profile?.role === "head_admin" ? selectedTeamId : profile?.team_id
 
     if (!targetTeamId) {
@@ -2035,7 +2063,9 @@ function TrainingApp() {
       return false
     }
 
-    const alreadyExists = templatesFromDB.some((template) => template.code === normalizedCode)
+    const alreadyExists = templatesFromDB.some(
+      (template) => template.label.trim().toLowerCase() === newPassName.trim().toLowerCase()
+    )
 
     if (alreadyExists) {
       setStatus("Det finns redan ett pass med det namnet")
@@ -2043,9 +2073,16 @@ function TrainingApp() {
       return false
     }
 
+    const internalCode = `${normalizedCode}_${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+
     let { data, error } = await supabase
       .from("workout_templates")
-      .insert({ code: normalizedCode, label: newPassName.trim(), info: newPassInfo.trim() || null })
+      .insert({
+        code: internalCode,
+        label: newPassName.trim(),
+        info: newPassInfo.trim() || null,
+        team_id: profile?.team_id,
+      })
       .select()
       .single()
 
@@ -2055,7 +2092,7 @@ function TrainingApp() {
       missingInfoColumn = true
       ;({ data, error } = await supabase
         .from("workout_templates")
-        .insert({ code: normalizedCode, label: newPassName.trim() })
+        .insert({ code: internalCode, label: newPassName.trim(), team_id: profile?.team_id })
         .select()
         .single())
     }
@@ -2067,7 +2104,7 @@ function TrainingApp() {
       return false
     }
 
-    setTemplatesFromDB((prev) => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)))
+    setTemplatesFromDB((prev) => [...prev, data].sort((a, b) => a.label.localeCompare(b.label, "sv")))
     setNewPassName("")
     setNewPassInfo("")
     setSelectedTemplateCode(data.code)
@@ -2243,7 +2280,7 @@ function TrainingApp() {
     { key: "players", label: "Spelare" },
     { key: "exerciseBank", label: "Övningar" },
     { key: "passBuilder", label: "Pass" },
-    { key: "createPlayer", label: "Ny spelare" },
+    { key: "createPlayer", label: "Ny användare" },
   ]
 
   const headAdminTabs = [
@@ -2473,6 +2510,7 @@ function TrainingApp() {
 
             {coachView === "exerciseBank" && (
               <ExerciseBankPage
+                canManageExercises={profile?.role === "head_admin"}
                 newExerciseName={newExerciseName}
                 setNewExerciseName={setNewExerciseName}
                 newExerciseType={newExerciseType}

@@ -18,6 +18,7 @@ const muscleGroupOptions = [
 ]
 
 function ExerciseBankPage({
+  canManageExercises,
   newExerciseName,
   setNewExerciseName,
   newExerciseType,
@@ -99,10 +100,13 @@ function ExerciseBankPage({
     <>
       <h3 style={cardTitleStyle}>Övningsbank</h3>
       <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-        Välj en övning i listan för att öppna åtgärder. Formuläret visas bara när du skapar eller redigerar.
+        {canManageExercises
+          ? "Välj en övning i listan för att öppna åtgärder. Formuläret visas bara när du skapar eller redigerar."
+          : "Här ser du övningarna som kan användas när du bygger pass för ditt lag."}
       </p>
 
-      <div style={formCardStyle(isMobile)}>
+      {canManageExercises && (
+        <div style={formCardStyle(isMobile)}>
         <div
           style={{
             ...sectionHeaderStyle,
@@ -225,7 +229,8 @@ function ExerciseBankPage({
             </div>
           </>
         )}
-      </div>
+        </div>
+      )}
 
       <input
         type="text"
@@ -319,7 +324,7 @@ function ExerciseBankPage({
                   )}
                 </div>
 
-                {isExpanded && (
+                {isExpanded && canManageExercises && (
                   <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row", width: isMobile ? "100%" : "auto" }}>
                     <button
                       type="button"
@@ -346,7 +351,7 @@ function ExerciseBankPage({
                 )}
               </div>
 
-              {isEditing && (
+              {isEditing && canManageExercises && (
                 <div
                   style={{
                     marginTop: "14px",
