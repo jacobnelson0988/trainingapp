@@ -2435,7 +2435,7 @@ function TrainingApp() {
               marginBottom: isMobile ? "16px" : cardStyle.marginBottom,
             }}
           >
-            {coachView !== "home" && (
+            {coachView !== "home" && coachView !== "passBuilder" && (
               <div style={{ marginBottom: "16px" }}>
               <button
                 type="button"
