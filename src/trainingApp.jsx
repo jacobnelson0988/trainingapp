@@ -11,6 +11,39 @@ import AdminHomePage from "./pages/AdminHomePage"
 import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
 
+const getExerciseExecutionOptions = (exercise) => {
+  const baseOption = {
+    optionKey: `base:${exercise.id || exercise.exerciseId || exercise.name}`,
+    exerciseId: exercise.exerciseId,
+    name: exercise.name,
+    type: exercise.type || "reps_only",
+    description: exercise.description || "",
+    mediaUrl: exercise.mediaUrl || "",
+    defaultRepsMode: exercise.defaultRepsMode || "fixed",
+    isBase: true,
+  }
+
+  const alternativeOptions = Array.isArray(exercise.alternativeExercises)
+    ? exercise.alternativeExercises.map((alternative) => ({
+        optionKey: `alt:${alternative.id || alternative.exerciseId || alternative.name}`,
+        exerciseId: alternative.exerciseId,
+        name: alternative.name,
+        type: alternative.type || "reps_only",
+        description: alternative.description || "",
+        mediaUrl: alternative.mediaUrl || "",
+        defaultRepsMode: alternative.defaultRepsMode || "fixed",
+        isBase: false,
+      }))
+    : []
+
+  return [baseOption, ...alternativeOptions]
+}
+
+const getSelectedExerciseExecution = (exercise, selectedOptionKey) => {
+  const options = getExerciseExecutionOptions(exercise)
+  return options.find((option) => option.optionKey === selectedOptionKey) || options[0] || null
+}
+
 function TrainingApp() {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth <= 768 : false
@@ -99,6 +132,7 @@ function TrainingApp() {
   const [exercisesFromDB, setExercisesFromDB] = useState([])
   const [templatesFromDB, setTemplatesFromDB] = useState([])
   const [templateExercisesFromDB, setTemplateExercisesFromDB] = useState([])
+  const [templateExerciseAlternativesFromDB, setTemplateExerciseAlternativesFromDB] = useState([])
   const [newExerciseName, setNewExerciseName] = useState("")
   const [newExerciseType, setNewExerciseType] = useState("weight_reps")
   const [newExerciseGuide, setNewExerciseGuide] = useState("")
@@ -114,6 +148,7 @@ function TrainingApp() {
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
+  const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
   const [passComment, setPassComment] = useState("")
   const exerciseCarouselRef = useRef(null)
@@ -346,6 +381,40 @@ function TrainingApp() {
   }, [templatesFromDB])
 
   useEffect(() => {
+    const fetchTemplateExerciseAlternatives = async () => {
+      if (!templateExercisesFromDB.length) {
+        setTemplateExerciseAlternativesFromDB([])
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("workout_template_exercise_alternatives")
+        .select(`
+          id,
+          workout_template_exercise_id,
+          alternative_exercise_id,
+          alternative_exercise:exercises!workout_template_exercise_alternatives_alternative_exercise_id_fkey (
+            id,
+            name,
+            exercise_type,
+            description,
+            media_url,
+            default_reps_mode
+          )
+        `)
+        .in("workout_template_exercise_id", templateExercisesFromDB.map((row) => row.id))
+
+      if (error) {
+        console.error("Error fetching template exercise alternatives:", error)
+      } else {
+        setTemplateExerciseAlternativesFromDB(data || [])
+      }
+    }
+
+    fetchTemplateExerciseAlternatives()
+  }, [templateExercisesFromDB])
+
+  useEffect(() => {
     const fetchWarmupTemplates = async () => {
       if (!profile?.team_id || profile.role === "head_admin") {
         setWarmupTemplates([])
@@ -379,6 +448,18 @@ function TrainingApp() {
         .filter((row) => row.workout_templates?.code === template.code)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((row) => {
+          const alternativeExercises = templateExerciseAlternativesFromDB
+            .filter((alternative) => String(alternative.workout_template_exercise_id) === String(row.id))
+            .map((alternative) => ({
+              id: alternative.id,
+              exerciseId: alternative.alternative_exercise_id,
+              name: alternative.alternative_exercise?.name || "",
+              type: alternative.alternative_exercise?.exercise_type || "reps_only",
+              description: alternative.alternative_exercise?.description || "",
+              mediaUrl: alternative.alternative_exercise?.media_url || "",
+              defaultRepsMode: alternative.alternative_exercise?.default_reps_mode || "fixed",
+            }))
+
           const suggestedGuide =
             templateExercisesFromDB
               .slice()
@@ -404,6 +485,7 @@ function TrainingApp() {
             targetSets: row.target_sets ?? null,
             targetReps: row.target_reps ?? null,
             targetRepsMode: row.target_reps_mode || "fixed",
+            alternativeExercises,
             info: [],
           }
         })
@@ -425,7 +507,7 @@ function TrainingApp() {
     }, {})
 
     setWorkoutsFromDB(mapped)
-  }, [templatesFromDB, templateExercisesFromDB])
+  }, [templatesFromDB, templateExerciseAlternativesFromDB, templateExercisesFromDB])
 
   const fetchTargetsByPassForUser = async (userId) => {
     const { data, error } = await supabase
@@ -1859,11 +1941,13 @@ function TrainingApp() {
 
     const defaultInputs = {}
     const defaultExerciseComments = {}
+    const defaultExerciseOptionKeys = {}
     workout.exercises.forEach((exercise, index) => {
       const targetSetCount = Math.max(
         1,
         Number(workoutTargets[exercise.name]?.target_sets ?? exercise.targetSets) || 1
       )
+      defaultExerciseOptionKeys[index] = getExerciseExecutionOptions(exercise)[0]?.optionKey || ""
       defaultInputs[index] = Array.from({ length: targetSetCount }, (_, setIndex) => ({
         weight: "",
         reps: "",
@@ -1875,6 +1959,7 @@ function TrainingApp() {
     })
 
     setInputs(defaultInputs)
+    setSelectedExerciseOptionKeys(defaultExerciseOptionKeys)
     setExerciseComments(defaultExerciseComments)
     setPassComment("")
     setPlayerView("pass")
@@ -1889,10 +1974,15 @@ function TrainingApp() {
     const activeExercises = activeWorkouts[selectedWorkout]?.exercises || []
     const commentWrites = activeExercises
       .map((exercise, exerciseIndex) => {
+        const selectedExercise = getSelectedExerciseExecution(
+          exercise,
+          selectedExerciseOptionKeys[exerciseIndex]
+        )
         const firstSet = inputs[exerciseIndex]?.[0]
 
         if (!firstSet) return null
         if (!String(exerciseComments[exerciseIndex] || "").trim()) return null
+        if (!selectedExercise) return null
 
         return supabase.from("workout_logs").upsert(
           {
@@ -1901,7 +1991,7 @@ function TrainingApp() {
             workout_session_id: currentSessionId,
             pass_name: selectedWorkout,
             is_completed: false,
-            exercise: exercise.name,
+            exercise: selectedExercise.name,
             set_number: 1,
             weight: firstSet.weight || null,
             reps: firstSet.reps || null,
@@ -1939,6 +2029,7 @@ function TrainingApp() {
     setIsWorkoutActive(false)
     setCurrentSessionId(null)
     setInputs({})
+    setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
     setPlayerView("overview")
@@ -1978,12 +2069,8 @@ function TrainingApp() {
     })
   }
 
-  const saveSet = async (exercise, setIndex, set) => {
+  const saveSet = async (exerciseIndex, selectedExercise, setIndex, set) => {
     if (!user) return
-
-    const exerciseIndex = activeWorkouts[selectedWorkout]?.exercises.findIndex(
-      (entry) => entry.name === exercise.name
-    )
     const exerciseComment =
       exerciseIndex != null && exerciseIndex >= 0 ? exerciseComments[exerciseIndex] || null : null
 
@@ -1994,7 +2081,7 @@ function TrainingApp() {
         workout_session_id: set.workout_session_id,
         pass_name: selectedWorkout,
         is_completed: false,
-        exercise: exercise.name,
+        exercise: selectedExercise.name,
         set_number: setIndex + 1,
         weight: set.weight || null,
         reps: set.reps || null,
@@ -2018,6 +2105,10 @@ function TrainingApp() {
     const current = inputs[exerciseIndex] || []
     const updated = [...current]
     const exercise = activeWorkouts[selectedWorkout].exercises[exerciseIndex]
+    const selectedExercise = getSelectedExerciseExecution(
+      exercise,
+      selectedExerciseOptionKeys[exerciseIndex]
+    )
 
     updated[setIndex] = {
       ...updated[setIndex],
@@ -2036,12 +2127,12 @@ function TrainingApp() {
     const set = updated[setIndex]
 
     const isComplete =
-      (exercise.type === "weight_reps" && set.weight && set.reps) ||
-      (exercise.type === "reps_only" && set.reps) ||
-      (exercise.type === "seconds_only" && set.seconds)
+      (selectedExercise?.type === "weight_reps" && set.weight && set.reps) ||
+      (selectedExercise?.type === "reps_only" && set.reps) ||
+      (selectedExercise?.type === "seconds_only" && set.seconds)
 
-    if (isComplete) {
-      await saveSet(exercise, setIndex, set)
+    if (isComplete && selectedExercise) {
+      await saveSet(exerciseIndex, selectedExercise, setIndex, set)
     }
   }
 
@@ -2056,9 +2147,12 @@ function TrainingApp() {
     if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !user) return
 
     const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    const selectedExercise = exercise
+      ? getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
+      : null
     const firstSet = inputs[exerciseIndex]?.[0]
 
-    if (!exercise || !firstSet) return
+    if (!exercise || !selectedExercise || !firstSet) return
 
     const { error } = await supabase.from("workout_logs").upsert(
       {
@@ -2067,7 +2161,7 @@ function TrainingApp() {
         workout_session_id: currentSessionId,
         pass_name: selectedWorkout,
         is_completed: false,
-        exercise: exercise.name,
+        exercise: selectedExercise.name,
         set_number: 1,
         weight: firstSet.weight || null,
         reps: firstSet.reps || null,
@@ -2288,6 +2382,13 @@ function TrainingApp() {
     } finally {
       setIsParsingImportFile(false)
     }
+  }
+
+  const handleSelectedExerciseOptionChange = (exerciseIndex, optionKey) => {
+    setSelectedExerciseOptionKeys((prev) => ({
+      ...prev,
+      [exerciseIndex]: optionKey,
+    }))
   }
 
   const handleImportPlayers = async () => {
@@ -2789,6 +2890,100 @@ function TrainingApp() {
         [field]: value,
       },
     }))
+  }
+
+  const handleAddAlternativeExerciseToPassExercise = async (passExerciseId, alternativeExerciseId) => {
+    setStatus("")
+
+    if (!passExerciseId || !alternativeExerciseId) {
+      setStatus("Välj en alternativ övning")
+      return false
+    }
+
+    const passExerciseRow = templateExercisesFromDB.find((row) => String(row.id) === String(passExerciseId))
+
+    if (!passExerciseRow) {
+      setStatus("Kunde inte hitta passövningen")
+      return false
+    }
+
+    if (String(passExerciseRow.exercise_id) === String(alternativeExerciseId)) {
+      setStatus("Alternativ övning kan inte vara samma som huvudövningen")
+      return false
+    }
+
+    const alreadyExists = templateExerciseAlternativesFromDB.some(
+      (row) =>
+        String(row.workout_template_exercise_id) === String(passExerciseId) &&
+        String(row.alternative_exercise_id) === String(alternativeExerciseId)
+    )
+
+    if (alreadyExists) {
+      setStatus("Den alternativa övningen finns redan")
+      return false
+    }
+
+    setIsSavingPassExercise(true)
+
+    const { data, error } = await supabase
+      .from("workout_template_exercise_alternatives")
+      .insert({
+        workout_template_exercise_id: passExerciseId,
+        alternative_exercise_id: alternativeExerciseId,
+      })
+      .select(`
+        id,
+        workout_template_exercise_id,
+        alternative_exercise_id,
+        alternative_exercise:exercises!workout_template_exercise_alternatives_alternative_exercise_id_fkey (
+          id,
+          name,
+          exercise_type,
+          description,
+          media_url,
+          default_reps_mode
+        )
+      `)
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus(`Kunde inte lägga till alternativ övning${error.message ? `: ${error.message}` : ""}`)
+      setIsSavingPassExercise(false)
+      return false
+    }
+
+    setTemplateExerciseAlternativesFromDB((prev) => [...prev, data])
+    setStatus("Alternativ övning tillagd ✅")
+    setIsSavingPassExercise(false)
+    return true
+  }
+
+  const handleRemoveAlternativeExerciseFromPassExercise = async (alternativeRowId) => {
+    setStatus("")
+
+    if (!alternativeRowId) return false
+
+    setIsSavingPassExercise(true)
+
+    const { error } = await supabase
+      .from("workout_template_exercise_alternatives")
+      .delete()
+      .eq("id", alternativeRowId)
+
+    if (error) {
+      console.error(error)
+      setStatus(`Kunde inte ta bort alternativ övning${error.message ? `: ${error.message}` : ""}`)
+      setIsSavingPassExercise(false)
+      return false
+    }
+
+    setTemplateExerciseAlternativesFromDB((prev) =>
+      prev.filter((row) => String(row.id) !== String(alternativeRowId))
+    )
+    setStatus("Alternativ övning borttagen ✅")
+    setIsSavingPassExercise(false)
+    return true
   }
 
   const handleSavePassExercises = async () => {
@@ -3840,6 +4035,8 @@ function TrainingApp() {
                 selectedExerciseId={selectedExerciseId}
                 setSelectedExerciseId={setSelectedExerciseId}
                 handleAddExerciseToPass={handleAddExerciseToPass}
+                handleAddAlternativeExerciseToPassExercise={handleAddAlternativeExerciseToPassExercise}
+                handleRemoveAlternativeExerciseFromPassExercise={handleRemoveAlternativeExerciseFromPassExercise}
                 isSavingPassExercise={isSavingPassExercise}
                 passExerciseDrafts={passExerciseDrafts}
                 handlePassExerciseDraftChange={handlePassExerciseDraftChange}
@@ -4260,13 +4457,23 @@ function TrainingApp() {
           >
             <div style={isMobile ? exerciseCarouselTrackStyle : undefined}>
           {activeWorkoutExercises.map((exercise, i) => {
+            const exerciseOptions = getExerciseExecutionOptions(exercise)
+            const selectedExercise = getSelectedExerciseExecution(
+              exercise,
+              selectedExerciseOptionKeys[i]
+            )
             const totalExercises = activeWorkoutExercises.length
-            const isInfoExpanded = !!expandedInfo[exercise.name]
-            const latestExerciseSets = latestWorkout[exercise.name] || []
+            const infoKey = `${exercise.name}-${selectedExercise?.name || exercise.name}`
+            const isInfoExpanded = !!expandedInfo[infoKey]
+            const latestExerciseSets = selectedExercise ? latestWorkout[selectedExercise.name] || [] : []
             const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
             const latestExerciseDate = latestExerciseSets[0]?.created_at
             const currentTarget = currentWorkoutTargets[exercise.name]
-            const hasExerciseDetails = !!(exercise.description || exercise.guide || exercise.mediaUrl)
+            const hasExerciseDetails = !!(
+              selectedExercise?.description ||
+              exercise.guide ||
+              selectedExercise?.mediaUrl
+            )
 
             return (
               <div
@@ -4290,7 +4497,7 @@ function TrainingApp() {
                   onClick={() =>
                     setExpandedInfo((prev) => ({
                       ...prev,
-                      [exercise.name]: !prev[exercise.name],
+                      [infoKey]: !prev[infoKey],
                     }))
                   }
                   style={{
@@ -4300,7 +4507,9 @@ function TrainingApp() {
                   }}
                 >
                   <div>
-                    <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>{exercise.name}</h3>
+                    <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>
+                      {selectedExercise?.name || exercise.name}
+                    </h3>
                     <div style={exerciseHeaderHintStyle}>
                       {hasExerciseDetails
                         ? isInfoExpanded
@@ -4316,36 +4525,76 @@ function TrainingApp() {
 
                 {hasExerciseDetails && isInfoExpanded && (
                   <div style={exerciseDetailsPanelStyle}>
-                    {exercise.description && (
-                      <p style={exerciseDescriptionStyle}>{exercise.description}</p>
+                    {!selectedExercise?.isBase && (
+                      <div style={alternativeSelectionMetaStyle}>Alternativ till {exercise.name}</div>
+                    )}
+
+                    {selectedExercise?.description && (
+                      <p style={exerciseDescriptionStyle}>{selectedExercise.description}</p>
                     )}
 
                     {exercise.guide && (
-                      <div style={{ marginTop: exercise.description ? "10px" : 0 }}>
+                      <div style={{ marginTop: selectedExercise?.description ? "10px" : 0 }}>
                         <div style={exerciseDetailsLabelStyle}>Så gör du</div>
                         <p style={guideStyle}>{exercise.guide}</p>
                       </div>
                     )}
 
-                    {exercise.mediaUrl && (
-                      <div style={{ ...exerciseMediaWrapStyle, marginTop: exercise.description || exercise.guide ? "12px" : 0 }}>
+                    {selectedExercise?.mediaUrl && (
+                      <div
+                        style={{
+                          ...exerciseMediaWrapStyle,
+                          marginTop: selectedExercise.description || exercise.guide ? "12px" : 0,
+                        }}
+                      >
                         <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
-                        {isVideoUrl(exercise.mediaUrl) ? (
+                        {isVideoUrl(selectedExercise.mediaUrl) ? (
                           <video
-                            src={exercise.mediaUrl}
+                            src={selectedExercise.mediaUrl}
                             controls
                             playsInline
                             style={exerciseMediaStyle}
                           />
                         ) : (
                           <img
-                            src={exercise.mediaUrl}
-                            alt={`${exercise.name} demo`}
+                            src={selectedExercise.mediaUrl}
+                            alt={`${selectedExercise?.name || exercise.name} demo`}
                             style={exerciseMediaStyle}
                           />
                         )}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {exerciseOptions.length > 1 && (
+                  <div style={alternativeSelectionCardStyle}>
+                    <div style={alternativeSelectionTitleStyle}>Alternativa övningar</div>
+                    <div style={alternativeSelectionHintStyle}>Välj vilken variant du kör idag.</div>
+                    <div style={alternativeSelectionOptionListStyle}>
+                      {exerciseOptions.map((option) => {
+                        const isSelectedOption = selectedExercise?.optionKey === option.optionKey
+
+                        return (
+                          <button
+                            key={option.optionKey}
+                            type="button"
+                            onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
+                            style={{
+                              ...alternativeSelectionOptionStyle,
+                              borderColor: isSelectedOption ? "#1d4ed8" : "#dbe5ef",
+                              backgroundColor: isSelectedOption ? "#eff6ff" : "#ffffff",
+                              color: isSelectedOption ? "#1d4ed8" : "#18202b",
+                            }}
+                          >
+                            <div style={alternativeSelectionOptionNameStyle}>{option.name}</div>
+                            <div style={alternativeSelectionOptionMetaStyle}>
+                              {option.isBase ? "Originalövning" : `Alternativ till ${exercise.name}`}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -4367,7 +4616,7 @@ function TrainingApp() {
                       <div style={latestSummaryWrapStyle}>
                         <div style={latestSummaryLabelStyle}>Senast gjorde du</div>
                         <div style={latestSummaryValueStyle}>
-                          {formatLatestSetValue(exercise.type, latestExerciseTopSet)}
+                          {formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)}
                         </div>
                         <div style={latestSummaryMetaStyle}>
                           Set {latestExerciseTopSet.set_number}
@@ -4382,7 +4631,7 @@ function TrainingApp() {
                     <div style={targetSectionLabelStyle}>Dagens mål</div>
 
                     <>
-                      {exercise.type === "seconds_only" ? (
+                      {selectedExercise?.type === "seconds_only" ? (
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Tid</span>
                           <span style={targetValueStyle}>
@@ -4402,7 +4651,7 @@ function TrainingApp() {
                         </div>
                       )}
 
-                      {exercise.type === "weight_reps" && currentTarget.target_weight != null && (
+                      {selectedExercise?.type === "weight_reps" && currentTarget.target_weight != null && (
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Vikt</span>
                           <span style={targetValueStyle}>
@@ -4432,7 +4681,7 @@ function TrainingApp() {
                           alignItems: isMobile ? "stretch" : "center",
                         }}
                       >
-                        {exercise.type === "weight_reps" && (
+                        {selectedExercise?.type === "weight_reps" && (
                           <>
                             <input
                               placeholder="kg"
@@ -4453,7 +4702,7 @@ function TrainingApp() {
                           </>
                         )}
 
-                        {exercise.type === "reps_only" && (
+                        {selectedExercise?.type === "reps_only" && (
                           <input
                             placeholder="Reps"
                             value={set.reps || ""}
@@ -4464,7 +4713,7 @@ function TrainingApp() {
                           />
                         )}
 
-                        {exercise.type === "seconds_only" && (
+                        {selectedExercise?.type === "seconds_only" && (
                           <input
                             placeholder="Sekunder"
                             value={set.seconds || ""}
@@ -4483,10 +4732,11 @@ function TrainingApp() {
                         </button>
                       </div>
 
-                      {exercise.type === "weight_reps" &&
-                        latestWorkout[exercise.name]?.slice(-1)[0]?.weight != null && (
+                      {selectedExercise?.type === "weight_reps" &&
+                        selectedExercise &&
+                        latestWorkout[selectedExercise.name]?.slice(-1)[0]?.weight != null && (
                           <div style={setInputHintStyle}>
-                            Senaste vikt: {latestWorkout[exercise.name].slice(-1)[0].weight} kg
+                            Senaste vikt: {latestWorkout[selectedExercise.name].slice(-1)[0].weight} kg
                           </div>
                         )}
                     </div>
@@ -4522,7 +4772,7 @@ function TrainingApp() {
                       onClick={() =>
                         setExpandedInfo((prev) => ({
                           ...prev,
-                          [exercise.name]: !prev[exercise.name],
+                          [infoKey]: !prev[infoKey],
                         }))
                       }
                       style={infoToggleButtonStyle}
@@ -5150,6 +5400,63 @@ const exerciseCommentCardStyle = {
   borderRadius: "16px",
   backgroundColor: "#f9fafb",
   border: "1px solid #e5e7eb",
+}
+
+const alternativeSelectionCardStyle = {
+  marginBottom: "12px",
+  padding: "12px",
+  borderRadius: "16px",
+  backgroundColor: "#f8fafc",
+  border: "1px solid #dbe5ef",
+}
+
+const alternativeSelectionTitleStyle = {
+  marginBottom: "4px",
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const alternativeSelectionHintStyle = {
+  marginBottom: "10px",
+  fontSize: "12px",
+  color: "#64748b",
+}
+
+const alternativeSelectionOptionListStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const alternativeSelectionOptionStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #dbe5ef",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const alternativeSelectionOptionNameStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+}
+
+const alternativeSelectionOptionMetaStyle = {
+  marginTop: "4px",
+  fontSize: "12px",
+  color: "#64748b",
+}
+
+const alternativeSelectionMetaStyle = {
+  display: "inline-flex",
+  marginBottom: "10px",
+  padding: "5px 9px",
+  borderRadius: "999px",
+  backgroundColor: "#eff6ff",
+  color: "#1d4ed8",
+  fontSize: "12px",
+  fontWeight: "800",
 }
 
 const exerciseCommentTitleStyle = {

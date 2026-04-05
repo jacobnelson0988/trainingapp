@@ -36,6 +36,8 @@ function PassBuilderPage({
   selectedExerciseId,
   setSelectedExerciseId,
   handleAddExerciseToPass,
+  handleAddAlternativeExerciseToPassExercise,
+  handleRemoveAlternativeExerciseFromPassExercise,
   isSavingPassExercise,
   passExerciseDrafts,
   handlePassExerciseDraftChange,
@@ -52,6 +54,7 @@ function PassBuilderPage({
   isMobile,
 }) {
   const [view, setView] = useState("overview")
+  const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
   const exerciseCount = currentWorkout?.exercises?.length || 0
@@ -74,12 +77,14 @@ function PassBuilderPage({
   const openEditView = () => {
     if (!selectedTemplateCode) return
     resetPassEditorState(selectedTemplateCode)
+    setSelectedAlternativeExerciseByRow({})
     setView("edit")
   }
 
   const goToOverview = () => {
     resetPassEditorState(selectedTemplateCode)
     setSelectedExerciseId("")
+    setSelectedAlternativeExerciseByRow({})
     setView("overview")
   }
 
@@ -104,6 +109,25 @@ function PassBuilderPage({
 
     if (didDelete) {
       setView("overview")
+    }
+  }
+
+  const handleSelectedAlternativeChange = (rowId, value) => {
+    setSelectedAlternativeExerciseByRow((prev) => ({
+      ...prev,
+      [rowId]: value,
+    }))
+  }
+
+  const handleAddAlternative = async (rowId) => {
+    const selectedAlternativeId = selectedAlternativeExerciseByRow[rowId]
+    const didAdd = await handleAddAlternativeExerciseToPassExercise(rowId, selectedAlternativeId)
+
+    if (didAdd) {
+      setSelectedAlternativeExerciseByRow((prev) => ({
+        ...prev,
+        [rowId]: "",
+      }))
     }
   }
 
@@ -388,6 +412,14 @@ function PassBuilderPage({
                     targetRepsMode: exercise.targetRepsMode || "fixed",
                     ...(passExerciseDrafts?.[exercise.id] || {}),
                   }
+                  const selectedAlternativeId = selectedAlternativeExerciseByRow[exercise.id] || ""
+                  const availableAlternativeExercises = (exercisesFromDB || []).filter(
+                    (candidate) =>
+                      String(candidate.id) !== String(exercise.exerciseId) &&
+                      !(exercise.alternativeExercises || []).some(
+                        (alternative) => String(alternative.exerciseId) === String(candidate.id)
+                      )
+                  )
 
                   return (
                     <div key={`${exercise.name}-${index}`} style={exerciseEditorCardStyle}>
@@ -497,6 +529,74 @@ function PassBuilderPage({
                           >
                             {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
                           </button>
+                        </div>
+
+                        <div style={alternativeBlockStyle}>
+                          <div style={alternativeBlockHeaderStyle}>
+                            <div style={alternativeBlockTitleStyle}>Alternativa övningar</div>
+                            <div style={alternativeBlockHintStyle}>
+                              Lägg till alternativ som spelaren kan välja mellan i passet.
+                            </div>
+                          </div>
+
+                          {(exercise.alternativeExercises || []).length > 0 ? (
+                            <div style={alternativeListStyle}>
+                              {exercise.alternativeExercises.map((alternative) => (
+                                <div key={alternative.id} style={alternativeRowStyle}>
+                                  <div>
+                                    <div style={alternativeNameStyle}>{alternative.name}</div>
+                                    <div style={alternativeMetaStyle}>Alternativ till {exercise.name}</div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleRemoveAlternativeExerciseFromPassExercise(alternative.id)
+                                    }
+                                    style={{
+                                      ...secondaryButtonStyle,
+                                      width: isMobile ? "100%" : "auto",
+                                      color: "#b91c1c",
+                                      borderColor: "#fecaca",
+                                    }}
+                                  >
+                                    Ta bort
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={alternativeEmptyStyle}>Inga alternativa övningar tillagda ännu.</div>
+                          )}
+
+                          <div style={alternativeAddRowStyle(isMobile)}>
+                            <select
+                              value={selectedAlternativeId}
+                              onChange={(e) => handleSelectedAlternativeChange(exercise.id, e.target.value)}
+                              style={{ ...inputStyle, width: "100%" }}
+                            >
+                              <option value="">Välj alternativ övning</option>
+                              {availableAlternativeExercises.map((candidate) => (
+                                <option key={`${exercise.id}-${candidate.id}`} value={candidate.id}>
+                                  {candidate.name}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAddAlternative(exercise.id)}
+                              disabled={isSavingPassExercise || !selectedAlternativeId}
+                              style={{
+                                ...secondaryButtonStyle,
+                                width: isMobile ? "100%" : "auto",
+                                opacity: isSavingPassExercise || !selectedAlternativeId ? 0.7 : 1,
+                                cursor:
+                                  isSavingPassExercise || !selectedAlternativeId ? "default" : "pointer",
+                              }}
+                            >
+                              {isSavingPassExercise ? "Sparar..." : "Lägg till alternativ"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -918,6 +1018,73 @@ const targetGridStyle = {
   gap: "8px",
   alignItems: "center",
 }
+
+const alternativeBlockStyle = {
+  display: "grid",
+  gap: "12px",
+  marginTop: "4px",
+  padding: "14px",
+  borderRadius: "14px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#f8fafc",
+}
+
+const alternativeBlockHeaderStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const alternativeBlockTitleStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const alternativeBlockHintStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+  lineHeight: 1.5,
+}
+
+const alternativeListStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const alternativeRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #e2e8f0",
+  flexWrap: "wrap",
+}
+
+const alternativeNameStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const alternativeMetaStyle = {
+  fontSize: "12px",
+  color: "#64748b",
+  marginTop: "4px",
+}
+
+const alternativeEmptyStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+}
+
+const alternativeAddRowStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
+})
 
 const textareaStyle = {
   resize: "vertical",
