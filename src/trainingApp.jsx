@@ -11,11 +11,38 @@ import AdminHomePage from "./pages/AdminHomePage"
 import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
 
+const normalizeExerciseSearchValue = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[åä]/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/[\s\-_]+/g, "")
+    .replace(/[^a-z0-9]/g, "")
+
+const parseExerciseAliases = (value) => {
+  const seen = new Set()
+
+  return String(value || "")
+    .split(/[\n,]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = entry.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
+const getExerciseDisplayName = (exercise) =>
+  exercise?.display_name || exercise?.displayName || exercise?.name || ""
+
 const getExerciseExecutionOptions = (exercise) => {
   const baseOption = {
     optionKey: `base:${exercise.id || exercise.exerciseId || exercise.name}`,
     exerciseId: exercise.exerciseId,
     name: exercise.name,
+    displayName: exercise.displayName || exercise.display_name || exercise.name,
     type: exercise.type || "reps_only",
     description: exercise.description || "",
     mediaUrl: exercise.mediaUrl || "",
@@ -28,6 +55,7 @@ const getExerciseExecutionOptions = (exercise) => {
         optionKey: `alt:${alternative.id || alternative.exerciseId || alternative.name}`,
         exerciseId: alternative.exerciseId,
         name: alternative.name,
+        displayName: alternative.displayName || alternative.display_name || alternative.name,
         type: alternative.type || "reps_only",
         description: alternative.description || "",
         mediaUrl: alternative.mediaUrl || "",
@@ -140,6 +168,8 @@ function TrainingApp() {
   const [newExerciseMediaUrl, setNewExerciseMediaUrl] = useState("")
   const [newExerciseDefaultRepsMode, setNewExerciseDefaultRepsMode] = useState("fixed")
   const [newExerciseMuscleGroups, setNewExerciseMuscleGroups] = useState([])
+  const [newExerciseAliasesText, setNewExerciseAliasesText] = useState("")
+  const [newExerciseDisplayName, setNewExerciseDisplayName] = useState("")
   const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [isSavingExercise, setIsSavingExercise] = useState(false)
   const [latestWorkout, setLatestWorkout] = useState({})
@@ -302,7 +332,9 @@ function TrainingApp() {
       if (error) {
         console.error("Error fetching exercises:", error)
       } else {
-        const activeExercises = (data || []).filter((exercise) => exercise.is_active !== false)
+        const activeExercises = (data || [])
+          .filter((exercise) => exercise.is_active !== false)
+          .sort((a, b) => getExerciseDisplayName(a).localeCompare(getExerciseDisplayName(b), "sv"))
         setExercisesFromDB(activeExercises)
         console.log("Exercises from DB:", activeExercises)
       }
@@ -447,6 +479,7 @@ function TrainingApp() {
                 id: alternative.id,
                 exerciseId: alternative.alternative_exercise_id,
                 name: alternativeExercise?.name || "",
+                displayName: getExerciseDisplayName(alternativeExercise),
                 type: alternativeExercise?.exercise_type || "reps_only",
                 description: alternativeExercise?.description || "",
                 mediaUrl: alternativeExercise?.media_url || "",
@@ -470,6 +503,7 @@ function TrainingApp() {
             exerciseId: row.exercise_id,
             sortOrder: row.sort_order,
             name: row.exercises?.name || "",
+            displayName: getExerciseDisplayName(row.exercises),
             type: row.exercises?.exercise_type || "reps_only",
             guide: row.custom_guide || "",
             suggestedGuide,
@@ -2704,6 +2738,8 @@ function TrainingApp() {
     setNewExerciseMediaUrl("")
     setNewExerciseDefaultRepsMode("fixed")
     setNewExerciseMuscleGroups([])
+    setNewExerciseAliasesText("")
+    setNewExerciseDisplayName("")
     setEditingExerciseId(null)
   }
 
@@ -2715,6 +2751,8 @@ function TrainingApp() {
     setNewExerciseMediaUrl(exercise.media_url || "")
     setNewExerciseDefaultRepsMode(exercise.default_reps_mode || "fixed")
     setNewExerciseMuscleGroups(Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : [])
+    setNewExerciseAliasesText(Array.isArray(exercise.aliases) ? exercise.aliases.join(", ") : "")
+    setNewExerciseDisplayName(exercise.display_name || "")
     setEditingExerciseId(exercise.id)
     setCoachView("exerciseBank")
     setStatus("Redigerar övning")
@@ -2730,6 +2768,14 @@ function TrainingApp() {
 
     setIsSavingExercise(true)
 
+    const parsedAliases = parseExerciseAliases(newExerciseAliasesText).filter(
+      (alias) => alias.toLowerCase() !== newExerciseName.trim().toLowerCase()
+    )
+    const allowedDisplayNames = [newExerciseName.trim(), ...parsedAliases]
+    const nextDisplayName = allowedDisplayNames.includes(newExerciseDisplayName.trim())
+      ? newExerciseDisplayName.trim()
+      : ""
+
     const payload = {
       name: newExerciseName.trim(),
       exercise_type: newExerciseType,
@@ -2738,6 +2784,8 @@ function TrainingApp() {
       media_url: newExerciseMediaUrl.trim() || null,
       default_reps_mode: newExerciseType === "seconds_only" ? "fixed" : newExerciseDefaultRepsMode,
       muscle_groups: newExerciseMuscleGroups,
+      aliases: parsedAliases,
+      display_name: nextDisplayName || null,
     }
 
     const query = editingExerciseId
@@ -2765,7 +2813,9 @@ function TrainingApp() {
 
     setExercisesFromDB((prev) => {
       const withoutCurrent = prev.filter((exercise) => exercise.id !== data.id)
-      return [...withoutCurrent, data].sort((a, b) => a.name.localeCompare(b.name, "sv"))
+      return [...withoutCurrent, data].sort((a, b) =>
+        getExerciseDisplayName(a).localeCompare(getExerciseDisplayName(b), "sv")
+      )
     })
 
     resetExerciseForm()
@@ -3910,6 +3960,10 @@ function TrainingApp() {
                 setNewExerciseMediaUrl={setNewExerciseMediaUrl}
                 newExerciseMuscleGroups={newExerciseMuscleGroups}
                 setNewExerciseMuscleGroups={setNewExerciseMuscleGroups}
+                newExerciseAliasesText={newExerciseAliasesText}
+                setNewExerciseAliasesText={setNewExerciseAliasesText}
+                newExerciseDisplayName={newExerciseDisplayName}
+                setNewExerciseDisplayName={setNewExerciseDisplayName}
                 editingExerciseId={editingExerciseId}
                 isSavingExercise={isSavingExercise}
                 handleCreateExercise={handleCreateExercise}
@@ -4311,7 +4365,7 @@ function TrainingApp() {
                         <div style={passPreviewListStyle}>
                           {selectedWorkoutPreviewExercises.map((exercise) => (
                             <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                              {exercise.name}
+                              {exercise.displayName || exercise.name}
                             </div>
                           ))}
                           {selectedWorkoutRemainingExerciseCount > 0 && (
@@ -4490,7 +4544,7 @@ function TrainingApp() {
                 >
                   <div>
                     <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>
-                      {selectedExercise?.name || exercise.name}
+                      {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
                     </h3>
                     <div style={exerciseHeaderHintStyle}>
                       {hasExerciseDetails
@@ -4508,7 +4562,9 @@ function TrainingApp() {
                 {hasExerciseDetails && isInfoExpanded && (
                   <div style={exerciseDetailsPanelStyle}>
                     {!selectedExercise?.isBase && (
-                      <div style={alternativeSelectionMetaStyle}>Alternativ till {exercise.name}</div>
+                      <div style={alternativeSelectionMetaStyle}>
+                        Alternativ till {exercise.displayName || exercise.name}
+                      </div>
                     )}
 
                     {selectedExercise?.description && (
@@ -4540,7 +4596,7 @@ function TrainingApp() {
                         ) : (
                           <img
                             src={selectedExercise.mediaUrl}
-                            alt={`${selectedExercise?.name || exercise.name} demo`}
+                            alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
                             style={exerciseMediaStyle}
                           />
                         )}
@@ -4569,9 +4625,13 @@ function TrainingApp() {
                               color: isSelectedOption ? "#1d4ed8" : "#18202b",
                             }}
                           >
-                            <div style={alternativeSelectionOptionNameStyle}>{option.name}</div>
+                            <div style={alternativeSelectionOptionNameStyle}>
+                              {option.displayName || option.name}
+                            </div>
                             <div style={alternativeSelectionOptionMetaStyle}>
-                              {option.isBase ? "Originalövning" : `Alternativ till ${exercise.name}`}
+                              {option.isBase
+                                ? "Originalövning"
+                                : `Alternativ till ${exercise.displayName || exercise.name}`}
                             </div>
                           </button>
                         )

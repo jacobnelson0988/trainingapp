@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from "react"
 
+const normalizeExerciseSearchValue = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[åä]/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/[\s\-_]+/g, "")
+    .replace(/[^a-z0-9]/g, "")
+
+const getExerciseDisplayName = (exercise) =>
+  exercise?.display_name || exercise?.displayName || exercise?.name || ""
+
 const muscleGroupOptions = [
   "Helkropp",
   "Ben",
@@ -37,6 +48,10 @@ function ExerciseBankPage({
   setNewExerciseMediaUrl,
   newExerciseMuscleGroups,
   setNewExerciseMuscleGroups,
+  newExerciseAliasesText,
+  setNewExerciseAliasesText,
+  newExerciseDisplayName,
+  setNewExerciseDisplayName,
   editingExerciseId,
   isSavingExercise,
   handleCreateExercise,
@@ -96,8 +111,18 @@ function ExerciseBankPage({
 
   const filteredExercises = exercisesFromDB.filter((exercise) => {
     const exerciseMuscleGroups = Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : []
-    const haystack = `${exercise.name} ${exercise.exercise_type} ${exerciseMuscleGroups.join(" ")}`.toLowerCase()
-    const matchesSearch = haystack.includes(searchValue.trim().toLowerCase())
+    const aliases = Array.isArray(exercise.aliases) ? exercise.aliases : []
+    const normalizedSearch = normalizeExerciseSearchValue(searchValue.trim())
+    const searchFields = [
+      exercise.name,
+      exercise.display_name,
+      ...aliases,
+      exercise.exercise_type,
+      ...exerciseMuscleGroups,
+    ]
+    const normalizedHaystack = searchFields.map((entry) => normalizeExerciseSearchValue(entry)).join(" ")
+    const matchesSearch =
+      !normalizedSearch || normalizedHaystack.includes(normalizedSearch)
     const matchesFilter =
       selectedMuscleFilter === "Alla" || exerciseMuscleGroups.includes(selectedMuscleFilter)
 
@@ -590,6 +615,17 @@ function ExerciseBankPage({
 
               {isCreateFormOpen && (
                 <>
+                  {(() => {
+                    const parsedAliases = String(newExerciseAliasesText || "")
+                      .split(/[\n,]+/)
+                      .map((entry) => entry.trim())
+                      .filter(Boolean)
+                      .filter((entry, index, arr) => arr.findIndex((item) => item.toLowerCase() === entry.toLowerCase()) === index)
+                      .filter((entry) => entry.toLowerCase() !== String(newExerciseName || "").trim().toLowerCase())
+                    const displayNameOptions = [String(newExerciseName || "").trim(), ...parsedAliases].filter(Boolean)
+
+                    return (
+                      <>
                   <input
                     type="text"
                     placeholder="Namn på övning"
@@ -642,6 +678,27 @@ function ExerciseBankPage({
                     style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
                   />
 
+                  <textarea
+                    rows={3}
+                    placeholder="Alias, separerade med kommatecken eller en per rad"
+                    value={newExerciseAliasesText}
+                    onChange={(e) => setNewExerciseAliasesText(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
+                  />
+
+                  <select
+                    value={newExerciseDisplayName}
+                    onChange={(e) => setNewExerciseDisplayName(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+                  >
+                    <option value="">Visa huvudnamn i appen</option>
+                    {displayNameOptions.map((option) => (
+                      <option key={`create-display-${option}`} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+
                   <div style={{ marginBottom: "12px" }}>
                     <div style={fieldLabelStyle}>Muskelgrupper</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -684,6 +741,9 @@ function ExerciseBankPage({
                       Avbryt
                     </button>
                   </div>
+                      </>
+                    )
+                  })()}
                 </>
               )}
             </div>
@@ -762,9 +822,21 @@ function ExerciseBankPage({
                     <div style={{ flex: 1 }}>
                       <div style={{ ...exerciseTitleRowStyle, paddingRight: "40px" }}>
                         <div style={{ fontSize: "16px", fontWeight: "800", color: "#18202b" }}>
-                          {exercise.name}
+                          {getExerciseDisplayName(exercise)}
                         </div>
                       </div>
+
+                      {canManageExercises && exercise.display_name && exercise.display_name !== exercise.name && (
+                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>
+                          Grundnamn: {exercise.name}
+                        </div>
+                      )}
+
+                      {canManageExercises && Array.isArray(exercise.aliases) && exercise.aliases.length > 0 && (
+                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>
+                          Alias: {exercise.aliases.join(", ")}
+                        </div>
+                      )}
 
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
                         <span style={pillStyle}>{exerciseTypeLabel(exercise.exercise_type)}</span>
@@ -823,6 +895,17 @@ function ExerciseBankPage({
                         Redigera övning
                       </div>
 
+                      {(() => {
+                        const parsedAliases = String(newExerciseAliasesText || "")
+                          .split(/[\n,]+/)
+                          .map((entry) => entry.trim())
+                          .filter(Boolean)
+                          .filter((entry, index, arr) => arr.findIndex((item) => item.toLowerCase() === entry.toLowerCase()) === index)
+                          .filter((entry) => entry.toLowerCase() !== String(newExerciseName || "").trim().toLowerCase())
+                        const displayNameOptions = [String(newExerciseName || "").trim(), ...parsedAliases].filter(Boolean)
+
+                        return (
+                          <>
                       <input
                         type="text"
                         placeholder="Namn på övning"
@@ -874,6 +957,27 @@ function ExerciseBankPage({
                         style={{ ...inputStyle, width: "100%" }}
                       />
 
+                      <textarea
+                        rows={3}
+                        placeholder="Alias, separerade med kommatecken eller en per rad"
+                        value={newExerciseAliasesText}
+                        onChange={(e) => setNewExerciseAliasesText(e.target.value)}
+                        style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                      />
+
+                      <select
+                        value={newExerciseDisplayName}
+                        onChange={(e) => setNewExerciseDisplayName(e.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        <option value="">Visa huvudnamn i appen</option>
+                        {displayNameOptions.map((option) => (
+                          <option key={`edit-display-${exercise.id}-${option}`} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+
                       <div>
                         <div style={fieldLabelStyle}>Muskelgrupper</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -916,6 +1020,9 @@ function ExerciseBankPage({
                           Avbryt
                         </button>
                       </div>
+                          </>
+                        )
+                      })()}
                     </div>
                   )}
                 </button>

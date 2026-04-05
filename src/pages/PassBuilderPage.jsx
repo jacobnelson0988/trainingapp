@@ -53,7 +53,7 @@ function PassBuilderPage({
   buttonStyle,
   isMobile,
 }) {
-  const [view, setView] = useState("overview")
+const [view, setView] = useState("overview")
   const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
@@ -130,6 +130,8 @@ function PassBuilderPage({
       }))
     }
   }
+
+  const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
 
   if (view === "create") {
     return (
@@ -368,7 +370,7 @@ function PassBuilderPage({
                 <option value="">Välj övning</option>
                 {(exercisesFromDB || []).map((exercise) => (
                   <option key={exercise.id} value={String(exercise.id)}>
-                    {exercise.name}
+                    {getExerciseDisplayName(exercise)}
                   </option>
                 ))}
               </select>
@@ -426,7 +428,7 @@ function PassBuilderPage({
                       <div style={exerciseEditorHeaderStyle}>
                         <div>
                           <div style={exerciseOrderStyle}>Övning {index + 1}</div>
-                          <div style={exerciseNameStyle}>{exercise.name}</div>
+                          <div style={exerciseNameStyle}>{getExerciseDisplayName(exercise)}</div>
                         </div>
 
                         <div style={exerciseButtonRowStyle}>
@@ -544,8 +546,8 @@ function PassBuilderPage({
                               {exercise.alternativeExercises.map((alternative) => (
                                 <div key={alternative.id} style={alternativeRowStyle}>
                                   <div>
-                                    <div style={alternativeNameStyle}>{alternative.name}</div>
-                                    <div style={alternativeMetaStyle}>Alternativ till {exercise.name}</div>
+                                    <div style={alternativeNameStyle}>{getExerciseDisplayName(alternative)}</div>
+                                    <div style={alternativeMetaStyle}>Alternativ till {getExerciseDisplayName(exercise)}</div>
                                   </div>
                                   <button
                                     type="button"
@@ -577,7 +579,7 @@ function PassBuilderPage({
                               <option value="">Välj alternativ övning</option>
                               {availableAlternativeExercises.map((candidate) => (
                                 <option key={`${exercise.id}-${candidate.id}`} value={candidate.id}>
-                                  {candidate.name}
+                                  {getExerciseDisplayName(candidate)}
                                 </option>
                               ))}
                             </select>
@@ -704,7 +706,7 @@ function PassBuilderPage({
                     {(currentWorkout.exercises || []).map((exercise, index) => (
                       <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>
                         <span style={selectedPassExerciseIndexStyle}>{index + 1}</span>
-                        <span>{exercise.name}</span>
+                        <span>{getExerciseDisplayName(exercise)}</span>
                       </div>
                     ))}
                   </div>

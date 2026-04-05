@@ -31,6 +31,7 @@ function PlayersPage({
 }) {
   const [searchValue, setSearchValue] = useState("")
   const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
+  const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
 
@@ -284,7 +285,7 @@ function PlayersPage({
                         >
                           {passExercises.map((exercise) => (
                             <option key={`${passKey}-${exercise.name}`} value={exercise.name}>
-                              {exercise.name}
+                              {getExerciseDisplayName(exercise)}
                             </option>
                           ))}
                         </select>
@@ -302,7 +303,7 @@ function PlayersPage({
                       }}
                     >
                       <div style={{ marginBottom: "10px" }}>
-                        <strong>{selectedExercise.name}</strong>
+                        <strong>{getExerciseDisplayName(selectedExercise)}</strong>
                         <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
                           Den här rutan används bara för avvikelser från standardpasset. Lämna fälten tomma om spelaren ska följa passets vanliga upplägg.
                         </div>
