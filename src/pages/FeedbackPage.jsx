@@ -14,7 +14,7 @@ function FeedbackPage({
   buttonStyle,
   isMobile,
 }) {
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("open")
   const [sortMode, setSortMode] = useState("newest")
   const [copiedFeedbackId, setCopiedFeedbackId] = useState(null)
 
