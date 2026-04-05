@@ -33,6 +33,8 @@ function UsersAdminPage({
 }) {
   const [searchValue, setSearchValue] = useState("")
   const [sortKey, setSortKey] = useState("name")
+  const [teamFilter, setTeamFilter] = useState("all")
+  const [roleFilter, setRoleFilter] = useState("all")
   const [passwordDrafts, setPasswordDrafts] = useState({})
   const [expandedUserId, setExpandedUserId] = useState(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -40,10 +42,13 @@ function UsersAdminPage({
   const teamMap = Object.fromEntries((teams || []).map((team) => [team.id, team.name]))
 
   const filteredUsers = useMemo(() => {
-    const base = (users || []).filter((entry) => {
-      const haystack = `${entry.full_name} ${entry.username} ${entry.role} ${teamMap[entry.team_id] || ""}`.toLowerCase()
-      return haystack.includes(searchValue.trim().toLowerCase())
-    })
+    const base = (users || [])
+      .filter((entry) => {
+        const haystack = `${entry.full_name} ${entry.username} ${entry.role} ${teamMap[entry.team_id] || ""}`.toLowerCase()
+        return haystack.includes(searchValue.trim().toLowerCase())
+      })
+      .filter((entry) => (teamFilter === "all" ? true : (entry.team_id || "") === teamFilter))
+      .filter((entry) => (roleFilter === "all" ? true : entry.role === roleFilter))
 
     const sorted = base.slice()
 
@@ -67,7 +72,7 @@ function UsersAdminPage({
     })
 
     return sorted
-  }, [searchValue, sortKey, teamMap, users])
+  }, [roleFilter, searchValue, sortKey, teamFilter, teamMap, users])
 
   return (
     <>
@@ -137,6 +142,30 @@ function UsersAdminPage({
           onChange={(e) => setSearchValue(e.target.value)}
           style={{ ...inputStyle, width: "100%" }}
         />
+
+        <select
+          value={teamFilter}
+          onChange={(e) => setTeamFilter(e.target.value)}
+          style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
+        >
+          <option value="all">Filter: Alla lag</option>
+          {(teams || []).map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
+        >
+          <option value="all">Filter: Alla roller</option>
+          <option value="head_admin">Huvudadmin</option>
+          <option value="coach">Tränare</option>
+          <option value="player">Spelare</option>
+        </select>
 
         <select
           value={sortKey}
@@ -280,7 +309,7 @@ const createWrapStyle = {
 const toolbarStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 220px",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 220px 220px 220px",
   marginBottom: "14px",
 })
 
