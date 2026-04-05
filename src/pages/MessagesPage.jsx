@@ -23,7 +23,8 @@ function MessagesPage({
   secondaryButtonStyle,
   isMobile,
 }) {
-  const [selectedThreadKey, setSelectedThreadKey] = useState("new")
+  const [selectedThreadKey, setSelectedThreadKey] = useState(null)
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
   const teamMap = (teams || []).reduce((acc, team) => {
     acc[team.id] = team.name
     return acc
@@ -33,10 +34,7 @@ function MessagesPage({
     const groups = new Map()
 
     ;(messages || []).forEach((message) => {
-      const participants = dedupeProfiles([
-        message.sender,
-        ...(message.recipients || []),
-      ])
+      const participants = dedupeProfiles([message.sender, ...(message.recipients || [])])
       const participantIds = participants.map((participant) => participant.id).filter(Boolean).sort()
       const threadKey = participantIds.join(":") || message.id
       const otherParticipants = participants.filter((participant) => participant.id !== currentUserId)
@@ -44,7 +42,6 @@ function MessagesPage({
       if (!groups.has(threadKey)) {
         groups.set(threadKey, {
           key: threadKey,
-          participants,
           otherParticipants,
           replyRecipientIds: otherParticipants.map((participant) => participant.id),
           messages: [],
@@ -72,25 +69,19 @@ function MessagesPage({
       .sort((a, b) => new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime())
   }, [messages, currentUserId])
 
-  const activeThread =
-    selectedThreadKey === "new"
-      ? null
-      : threads.find((thread) => thread.key === selectedThreadKey) || null
+  const activeThread = threads.find((thread) => thread.key === selectedThreadKey) || null
 
   useEffect(() => {
     if (!threads.length) {
-      setSelectedThreadKey("new")
+      setSelectedThreadKey(null)
       return
     }
 
-    if (selectedThreadKey === "new") {
+    if (selectedThreadKey && threads.some((thread) => thread.key === selectedThreadKey)) {
       return
     }
 
-    const exists = threads.some((thread) => thread.key === selectedThreadKey)
-    if (!exists) {
-      setSelectedThreadKey(threads[0].key)
-    }
+    setSelectedThreadKey(threads[0].key)
   }, [selectedThreadKey, threads])
 
   useEffect(() => {
@@ -100,35 +91,30 @@ function MessagesPage({
     handleMarkMessagesRead(activeThread.messages.map((message) => message.id))
   }, [activeThread, handleMarkMessagesRead, setSelectedRecipientIds])
 
-  const startNewThread = () => {
-    setSelectedThreadKey("new")
+  const openComposer = () => {
+    setIsComposerOpen((prev) => !prev)
+    setSelectedThreadKey(null)
     setSelectedRecipientIds([])
     setMessageBody("")
   }
 
   const openThread = (thread) => {
+    setIsComposerOpen(false)
     setSelectedThreadKey(thread.key)
+    setMessageBody("")
   }
-
-  const threadRecipientLabel = activeThread
-    ? formatThreadParticipantNames(activeThread.otherParticipants)
-    : selectedRecipientIds.length
-    ? formatThreadParticipantNames(
-        recipients.filter((recipient) => selectedRecipientIds.includes(recipient.id))
-      )
-    : ""
 
   return (
     <div style={wrapStyle}>
-      <div style={topBarStyle}>
+      <div style={headerStyle(isMobile)}>
         <div>
           <div style={cardTitleStyle}>Meddelanden</div>
           <p style={mutedTextStyle}>{getIntroText(role)}</p>
         </div>
 
-        <div style={topBarActionsStyle}>
-          <button type="button" onClick={startNewThread} style={secondaryButtonStyle}>
-            Ny chatt
+        <div style={headerActionsStyle}>
+          <button type="button" onClick={openComposer} style={buttonStyle}>
+            {isComposerOpen ? "Stäng" : "Nytt meddelande"}
           </button>
           <button type="button" onClick={handleRefreshMessages} style={secondaryButtonStyle}>
             Ladda om
@@ -136,206 +122,182 @@ function MessagesPage({
         </div>
       </div>
 
-      <div style={messagesLayoutStyle(isMobile)}>
-        <div style={threadsPanelStyle}>
-          <div style={sectionEyebrowStyle}>Chattar</div>
-          {isLoadingMessages ? (
-            <p style={mutedTextStyle}>Laddar meddelanden...</p>
-          ) : threads.length === 0 ? (
-            <p style={mutedTextStyle}>Inga chattar ännu.</p>
+      {isComposerOpen && (
+        <div style={cardStyle}>
+          <div style={sectionTitleStyle}>Nytt meddelande</div>
+
+          {recipients.length === 0 ? (
+            <p style={mutedTextStyle}>Det finns inga mottagare att skriva till ännu.</p>
           ) : (
-            <div style={threadListStyle}>
-              {threads.map((thread) => {
-                const lastMessage = thread.messages[thread.messages.length - 1]
-                const isActive = activeThread?.key === thread.key
+            <div style={recipientListStyle}>
+              {recipients.map((recipient) => {
+                const isSelected = selectedRecipientIds.includes(recipient.id)
 
                 return (
                   <button
-                    key={thread.key}
+                    key={recipient.id}
                     type="button"
-                    onClick={() => openThread(thread)}
+                    onClick={() => onToggleRecipient(recipient.id)}
                     style={{
-                      ...threadButtonStyle,
-                      ...(isActive ? activeThreadButtonStyle : {}),
+                      ...recipientButtonStyle,
+                      ...(isSelected ? selectedRecipientButtonActiveStyle : {}),
                     }}
                   >
-                    <div style={threadTopRowStyle}>
-                      <div style={threadTitleStyle}>
-                        {formatThreadParticipantNames(thread.otherParticipants)}
-                      </div>
-                      {thread.unreadCount > 0 && (
-                        <div style={threadUnreadBadgeStyle}>{thread.unreadCount}</div>
-                      )}
+                    <div style={recipientNameStyle}>{recipient.full_name}</div>
+                    <div style={recipientMetaStyle}>
+                      {role === "player"
+                        ? getRoleLabel(recipient.role)
+                        : `${getRoleLabel(recipient.role)}${
+                            teamMap[recipient.team_id] ? ` • ${teamMap[recipient.team_id]}` : ""
+                          }`}
                     </div>
-
-                    <div style={threadMetaStyle}>
-                      {formatThreadRoles(thread.otherParticipants)}
-                    </div>
-                    <div style={threadSnippetStyle}>{lastMessage?.body || ""}</div>
-                    <div style={threadDateStyle}>{formatMessageDate(thread.latestAt)}</div>
                   </button>
                 )
               })}
             </div>
           )}
-        </div>
 
-        <div style={chatPanelStyle}>
-          <div style={composerCardStyle}>
-            <div style={sectionEyebrowStyle}>
-              {activeThread ? "Svar i chatt" : "Nytt meddelande"}
+          <textarea
+            rows={4}
+            value={messageBody}
+            onChange={(event) => setMessageBody(event.target.value)}
+            placeholder="Skriv ditt meddelande här"
+            style={{ ...inputStyle, ...textareaStyle }}
+          />
+
+          <div style={composerActionsStyle}>
+            <div style={mutedTextStyle}>
+              {selectedRecipientIds.length ? `${selectedRecipientIds.length} mottagare valda` : "Ingen mottagare vald"}
             </div>
 
-            {activeThread ? (
-              <div style={activeThreadSummaryStyle}>
-                <div style={activeThreadTitleStyle}>{threadRecipientLabel}</div>
-                <div style={recipientMetaStyle}>
-                  {formatThreadRoles(activeThread.otherParticipants)}
-                </div>
-              </div>
-            ) : (
-              <>
-                <div style={sectionEyebrowStyle}>Välj mottagare</div>
-                {recipients.length === 0 ? (
-                  <p style={mutedTextStyle}>Det finns inga mottagare att skriva till ännu.</p>
-                ) : (
-                  <div style={recipientGridStyle(isMobile)}>
-                    {recipients.map((recipient) => {
-                      const isSelected = selectedRecipientIds.includes(recipient.id)
-                      return (
-                        <button
-                          key={recipient.id}
-                          type="button"
-                          onClick={() => onToggleRecipient(recipient.id)}
-                          style={{
-                            ...recipientButtonStyle,
-                            ...(isSelected ? selectedRecipientButtonStyle : {}),
-                          }}
-                        >
-                          <div style={recipientNameStyle}>{recipient.full_name}</div>
-                          <div style={recipientMetaStyle}>
-                            {role === "player"
-                              ? getRoleLabel(recipient.role)
-                              : `@${recipient.username} • ${getRoleLabel(recipient.role)}${
-                                  teamMap[recipient.team_id] ? ` • ${teamMap[recipient.team_id]}` : ""
-                                }`}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-
-            <div style={{ ...sectionEyebrowStyle, marginTop: "16px" }}>
-              {activeThread ? "Skriv svar" : "Meddelande"}
-            </div>
-            <textarea
-              rows={5}
-              value={messageBody}
-              onChange={(event) => setMessageBody(event.target.value)}
-              placeholder={activeThread ? "Skriv ditt svar här" : "Skriv ditt meddelande här"}
-              style={{ ...inputStyle, ...messageTextareaStyle }}
-            />
-
-            <div style={composerActionsStyle}>
-              <div style={mutedTextStyle}>
-                {selectedRecipientIds.length
-                  ? `${selectedRecipientIds.length} mottagare valda`
-                  : "Ingen mottagare vald"}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSendMessage}
-                disabled={isSendingMessage}
-                style={{
-                  ...buttonStyle,
-                  opacity: isSendingMessage ? 0.7 : 1,
-                  cursor: isSendingMessage ? "default" : "pointer",
-                }}
-              >
-                {isSendingMessage ? "Skickar..." : activeThread ? "Skicka svar" : "Starta chatt"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleSendMessage}
+              disabled={isSendingMessage}
+              style={{
+                ...buttonStyle,
+                opacity: isSendingMessage ? 0.7 : 1,
+                cursor: isSendingMessage ? "default" : "pointer",
+              }}
+            >
+              {isSendingMessage ? "Skickar..." : "Skicka"}
+            </button>
           </div>
+        </div>
+      )}
 
-          <div style={listCardStyle}>
-            <div style={sectionEyebrowStyle}>
-              {activeThread ? "Aktiv chatt" : "Välj en chatt"}
-            </div>
-            {!activeThread ? (
-              <p style={mutedTextStyle}>
-                Välj en chatt för att läsa historiken eller tryck på `Ny chatt` för att starta en ny.
-              </p>
-            ) : (
-              <div style={chatMessagesStyle}>
-                {activeThread.messages.map((message) => {
-                  const isOwn = message.sender_id === currentUserId
+      <div style={cardStyle}>
+        <div style={sectionTitleStyle}>Tidigare chattar</div>
 
-                  return (
-                    <div
-                      key={message.id}
-                      style={{
-                        ...chatBubbleWrapStyle,
-                        justifyContent: isOwn ? "flex-end" : "flex-start",
-                      }}
-                    >
-                      <div
-                        style={{
-                          ...chatBubbleStyle,
-                          ...(isOwn ? ownChatBubbleStyle : incomingChatBubbleStyle),
-                        }}
-                      >
-                        <div style={chatBubbleAuthorStyle}>
-                          {isOwn
-                            ? "Du"
-                            : `${message.sender?.full_name || "Okänd"}${
-                                role === "player" ? "" : ` (@${message.sender?.username || "-"})`
-                              }`}
-                        </div>
-                        <div style={chatBubbleBodyStyle}>{message.body}</div>
-                        <div style={chatBubbleDateStyle}>{formatMessageDate(message.created_at)}</div>
-                      </div>
+        {isLoadingMessages ? (
+          <p style={mutedTextStyle}>Laddar meddelanden...</p>
+        ) : threads.length === 0 ? (
+          <p style={mutedTextStyle}>Inga chattar ännu.</p>
+        ) : (
+          <div style={threadListStyle}>
+            {threads.map((thread) => {
+              const isActive = activeThread?.key === thread.key
+              const lastMessage = thread.messages[thread.messages.length - 1]
+
+              return (
+                <button
+                  key={thread.key}
+                  type="button"
+                  onClick={() => openThread(thread)}
+                  style={{
+                    ...threadButtonStyle,
+                    ...(isActive ? threadButtonActiveStyle : {}),
+                  }}
+                >
+                  <div style={threadTopRowStyle}>
+                    <div style={threadTitleStyle}>{formatThreadParticipantNames(thread.otherParticipants)}</div>
+                    <div style={threadTopMetaStyle}>
+                      {thread.unreadCount > 0 && <div style={unreadBadgeStyle}>{thread.unreadCount}</div>}
+                      <div style={threadDateStyle}>{formatMessageDate(thread.latestAt)}</div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                  </div>
+
+                  <div style={threadSnippetStyle}>{lastMessage?.body || ""}</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {activeThread && !isComposerOpen && (
+        <div style={cardStyle}>
+          <div style={sectionTitleStyle}>{formatThreadParticipantNames(activeThread.otherParticipants)}</div>
+          <div style={threadMetaStyle}>{formatThreadRoles(activeThread.otherParticipants)}</div>
+
+          <div style={chatListStyle}>
+            {activeThread.messages.map((message) => {
+              const isOwn = message.sender_id === currentUserId
+
+              return (
+                <div
+                  key={message.id}
+                  style={{
+                    ...chatRowStyle,
+                    justifyContent: isOwn ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <div
+                    style={{
+                      ...chatBubbleStyle,
+                      ...(isOwn ? ownBubbleStyle : incomingBubbleStyle),
+                    }}
+                  >
+                    <div style={chatAuthorStyle}>
+                      {isOwn ? "Du" : message.sender?.full_name || "Okänd"}
+                    </div>
+                    <div style={chatTextStyle}>{message.body}</div>
+                    <div style={chatDateStyle}>{formatMessageDate(message.created_at)}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <textarea
+            rows={3}
+            value={messageBody}
+            onChange={(event) => setMessageBody(event.target.value)}
+            placeholder="Skriv svar här"
+            style={{ ...inputStyle, ...textareaStyle, minHeight: "100px" }}
+          />
+
+          <div style={replyActionsStyle}>
+            <button
+              type="button"
+              onClick={handleSendMessage}
+              disabled={isSendingMessage}
+              style={{
+                ...buttonStyle,
+                width: isMobile ? "100%" : "auto",
+                opacity: isSendingMessage ? 0.7 : 1,
+                cursor: isSendingMessage ? "default" : "pointer",
+              }}
+            >
+              {isSendingMessage ? "Skickar..." : "Skicka svar"}
+            </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
 
 function getIntroText(role) {
-  if (role === "player") {
-    return "Skriv till en eller flera tränare i ditt lag och följ svaren i chattar."
-  }
-
-  if (role === "coach") {
-    return "Skriv till spelare och tränare i ditt lag eller direkt till huvudadmin i chattar."
-  }
-
-  return "Skriv till användare i organisationen och följ hela samtal i chattar."
+  if (role === "player") return "Skriv till tränare och följ dina chattar här."
+  if (role === "coach") return "Skriv till laget och följ dina chattar här."
+  return "Följ och skriv meddelanden här."
 }
 
 function getRoleLabel(role) {
   if (role === "head_admin") return "Huvudadmin"
   if (role === "coach") return "Tränare"
   return "Spelare"
-}
-
-function formatMessageDate(value) {
-  if (!value) return "-"
-  return new Date(value).toLocaleString("sv-SE", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
 }
 
 function dedupeProfiles(entries) {
@@ -355,146 +317,57 @@ function formatThreadRoles(participants) {
   return participants.map((participant) => getRoleLabel(participant.role)).join(" • ")
 }
 
+function formatMessageDate(value) {
+  if (!value) return "-"
+  return new Date(value).toLocaleString("sv-SE", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
 const wrapStyle = {
   display: "grid",
   gap: "16px",
 }
 
-const topBarStyle = {
+const headerStyle = (isMobile) => ({
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
+  alignItems: isMobile ? "stretch" : "flex-start",
+  flexDirection: isMobile ? "column" : "row",
   gap: "12px",
-  flexWrap: "wrap",
-}
-
-const topBarActionsStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-}
-
-const messagesLayoutStyle = (isMobile) => ({
-  display: "grid",
-  gap: "16px",
-  gridTemplateColumns: isMobile ? "1fr" : "320px minmax(0, 1fr)",
-  alignItems: "start",
 })
 
-const threadsPanelStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  background: "#fffdfd",
-}
-
-const chatPanelStyle = {
-  display: "grid",
-  gap: "16px",
-}
-
-const composerCardStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
-}
-
-const listCardStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  background: "#fffdfd",
-}
-
-const sectionEyebrowStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  color: "#991b1b",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-}
-
-const threadListStyle = {
-  display: "grid",
-  gap: "10px",
-}
-
-const threadButtonStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #ecdede",
-  backgroundColor: "#ffffff",
-  textAlign: "left",
-  cursor: "pointer",
-}
-
-const activeThreadButtonStyle = {
-  border: "2px solid #c62828",
-  background: "linear-gradient(180deg, rgba(255,244,244,1), rgba(255,250,250,0.98))",
-}
-
-const threadTopRowStyle = {
+const headerActionsStyle = {
   display: "flex",
-  justifyContent: "space-between",
   gap: "8px",
-  alignItems: "flex-start",
-  marginBottom: "6px",
+  flexWrap: "wrap",
 }
 
-const threadTitleStyle = {
-  fontSize: "15px",
+const cardStyle = {
+  padding: "18px",
+  borderRadius: "20px",
+  border: "1px solid #f0dcdc",
+  background: "#fffdfd",
+}
+
+const sectionTitleStyle = {
+  marginBottom: "10px",
+  fontSize: "18px",
   fontWeight: "900",
   color: "#18202b",
 }
 
-const threadUnreadBadgeStyle = {
-  minWidth: "24px",
-  height: "24px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "0 8px",
-  borderRadius: "999px",
-  backgroundColor: "#c62828",
-  color: "#ffffff",
-  fontSize: "12px",
-  fontWeight: "800",
-}
-
-const threadMetaStyle = {
-  fontSize: "12px",
-  color: "#566173",
-  lineHeight: 1.5,
-  marginBottom: "6px",
-}
-
-const threadSnippetStyle = {
-  fontSize: "13px",
-  color: "#18202b",
-  lineHeight: 1.5,
-  marginBottom: "8px",
-  display: "-webkit-box",
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
-}
-
-const threadDateStyle = {
-  fontSize: "12px",
-  color: "#6b7280",
-  fontWeight: "700",
-}
-
-const recipientGridStyle = (isMobile) => ({
+const recipientListStyle = {
   display: "grid",
   gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-})
+  marginBottom: "14px",
+}
 
 const recipientButtonStyle = {
-  padding: "14px",
+  padding: "12px 14px",
   borderRadius: "16px",
   border: "1px solid #ecdede",
   backgroundColor: "#ffffff",
@@ -502,7 +375,7 @@ const recipientButtonStyle = {
   cursor: "pointer",
 }
 
-const selectedRecipientButtonStyle = {
+const recipientButtonActiveStyle = {
   border: "2px solid #c62828",
   background: "linear-gradient(180deg, rgba(255,244,244,1), rgba(255,250,250,0.98))",
 }
@@ -520,23 +393,9 @@ const recipientMetaStyle = {
   lineHeight: 1.5,
 }
 
-const activeThreadSummaryStyle = {
-  padding: "12px 14px",
-  borderRadius: "16px",
-  border: "1px solid #efe2e2",
-  backgroundColor: "#fffdfd",
-}
-
-const activeThreadTitleStyle = {
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "#18202b",
-  marginBottom: "4px",
-}
-
-const messageTextareaStyle = {
+const textareaStyle = {
   width: "100%",
-  minHeight: "130px",
+  minHeight: "120px",
   resize: "vertical",
   fontFamily: "inherit",
 }
@@ -545,55 +404,138 @@ const composerActionsStyle = {
   marginTop: "12px",
   display: "flex",
   justifyContent: "space-between",
-  gap: "12px",
   alignItems: "center",
+  gap: "12px",
   flexWrap: "wrap",
 }
 
-const chatMessagesStyle = {
+const threadListStyle = {
   display: "grid",
   gap: "10px",
 }
 
-const chatBubbleWrapStyle = {
+const threadButtonStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #ecdede",
+  backgroundColor: "#ffffff",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const threadButtonActiveStyle = {
+  border: "2px solid #c62828",
+  background: "linear-gradient(180deg, rgba(255,244,244,1), rgba(255,250,250,0.98))",
+}
+
+const threadTopRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "10px",
+  alignItems: "flex-start",
+  marginBottom: "6px",
+}
+
+const threadTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const threadTopMetaStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexShrink: 0,
+}
+
+const unreadBadgeStyle = {
+  minWidth: "22px",
+  height: "22px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0 7px",
+  borderRadius: "999px",
+  backgroundColor: "#c62828",
+  color: "#ffffff",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const threadDateStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  fontWeight: "700",
+}
+
+const threadSnippetStyle = {
+  fontSize: "13px",
+  color: "#566173",
+  lineHeight: 1.5,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+}
+
+const threadMetaStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  marginBottom: "12px",
+}
+
+const chatListStyle = {
+  display: "grid",
+  gap: "10px",
+  marginBottom: "14px",
+}
+
+const chatRowStyle = {
   display: "flex",
 }
 
 const chatBubbleStyle = {
-  maxWidth: "80%",
+  maxWidth: "82%",
   padding: "12px 14px",
   borderRadius: "18px",
   border: "1px solid #efe2e2",
 }
 
-const ownChatBubbleStyle = {
+const ownBubbleStyle = {
   backgroundColor: "#fff1f1",
   borderColor: "#f0d1d1",
 }
 
-const incomingChatBubbleStyle = {
+const incomingBubbleStyle = {
   backgroundColor: "#ffffff",
 }
 
-const chatBubbleAuthorStyle = {
+const chatAuthorStyle = {
   fontSize: "12px",
   fontWeight: "800",
   color: "#991b1b",
   marginBottom: "6px",
 }
 
-const chatBubbleBodyStyle = {
+const chatTextStyle = {
   fontSize: "14px",
   color: "#18202b",
   lineHeight: 1.6,
   whiteSpace: "pre-wrap",
 }
 
-const chatBubbleDateStyle = {
+const chatDateStyle = {
   marginTop: "8px",
   fontSize: "11px",
   color: "#6b7280",
   fontWeight: "700",
+}
+
+const replyActionsStyle = {
+  marginTop: "12px",
+  display: "flex",
+  justifyContent: "flex-end",
 }
 
 export default MessagesPage
