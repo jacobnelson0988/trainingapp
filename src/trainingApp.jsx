@@ -3415,6 +3415,17 @@ function TrainingApp() {
                 >
                   Mitt konto
                 </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await supabase.auth.signOut()
+                    window.location.reload()
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Logga ut
+                </button>
               </div>
             )}
           </div>
@@ -3473,18 +3484,6 @@ function TrainingApp() {
             </div>
           </div>
 
-          <div style={accountActionsStyle}>
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut()
-                window.location.reload()
-              }}
-              style={{ ...logoutButtonStyle, width: isMobile ? "100%" : "auto" }}
-            >
-              Logga ut
-            </button>
-          </div>
         </div>
       )}
 
