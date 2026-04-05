@@ -50,12 +50,20 @@ function TrainingApp() {
   const [selectedTemplateCode, setSelectedTemplateCode] = useState("")
   const [newPassName, setNewPassName] = useState("")
   const [newPassInfo, setNewPassInfo] = useState("")
+  const [newPassWarmupCardio, setNewPassWarmupCardio] = useState("")
+  const [newPassWarmupTechnique, setNewPassWarmupTechnique] = useState("")
+  const [newWarmupTemplateName, setNewWarmupTemplateName] = useState("")
   const [isCreatingPass, setIsCreatingPass] = useState(false)
   const [renamePassName, setRenamePassName] = useState("")
   const [renamePassInfo, setRenamePassInfo] = useState("")
+  const [renamePassWarmupCardio, setRenamePassWarmupCardio] = useState("")
+  const [renamePassWarmupTechnique, setRenamePassWarmupTechnique] = useState("")
+  const [renameWarmupTemplateName, setRenameWarmupTemplateName] = useState("")
   const [selectedExerciseId, setSelectedExerciseId] = useState("")
   const [isSavingPassExercise, setIsSavingPassExercise] = useState(false)
   const [passExerciseDrafts, setPassExerciseDrafts] = useState({})
+  const [warmupTemplates, setWarmupTemplates] = useState([])
+  const [isSavingWarmupTemplate, setIsSavingWarmupTemplate] = useState(false)
   const [targetDrafts, setTargetDrafts] = useState({})
   const [isLoadingTargets, setIsLoadingTargets] = useState(false)
   const [isSavingTargets, setIsSavingTargets] = useState(false)
@@ -82,6 +90,7 @@ function TrainingApp() {
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
+  const [exerciseComments, setExerciseComments] = useState({})
   const exerciseCarouselRef = useRef(null)
 
   useEffect(() => {
@@ -180,6 +189,8 @@ function TrainingApp() {
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
     setRenamePassName(selectedTemplate?.label || "")
     setRenamePassInfo(selectedTemplate?.info || "")
+    setRenamePassWarmupCardio(selectedTemplate?.warmup_cardio || "")
+    setRenamePassWarmupTechnique(selectedTemplate?.warmup_technique || "")
   }, [selectedTemplateCode, templatesFromDB])
 
   useEffect(() => {
@@ -284,6 +295,29 @@ function TrainingApp() {
   }, [templatesFromDB])
 
   useEffect(() => {
+    const fetchWarmupTemplates = async () => {
+      if (!profile?.team_id || profile.role === "head_admin") {
+        setWarmupTemplates([])
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("warmup_templates")
+        .select("id, name, cardio, technique")
+        .eq("team_id", profile.team_id)
+        .order("name")
+
+      if (error) {
+        console.error("Error fetching warmup templates:", error)
+      } else {
+        setWarmupTemplates(data || [])
+      }
+    }
+
+    fetchWarmupTemplates()
+  }, [profile])
+
+  useEffect(() => {
     if (!templatesFromDB.length) {
       setWorkoutsFromDB({})
       return
@@ -327,8 +361,11 @@ function TrainingApp() {
         label: template.label,
         info: template.info || "",
         warmup: {
-          cardio: "Lätt jogg, cykel, roddmaskin eller hopprep i minst 5 min",
-          technique: ["MAQ-program – 5 serier", "Kroppsviktsknäböj – 2 x 10 reps"],
+          cardio: template.warmup_cardio || "",
+          technique: String(template.warmup_technique || "")
+            .split("\n")
+            .map((item) => item.trim())
+            .filter(Boolean),
         },
         exercises: relatedExercises,
       }
@@ -792,8 +829,73 @@ function TrainingApp() {
 
     setRenamePassName(selectedTemplate?.label || "")
     setRenamePassInfo(selectedTemplate?.info || "")
+    setRenamePassWarmupCardio(selectedTemplate?.warmup_cardio || "")
+    setRenamePassWarmupTechnique(selectedTemplate?.warmup_technique || "")
+    setRenameWarmupTemplateName("")
     setPassExerciseDrafts({})
     setSelectedExerciseId("")
+  }
+
+  const applyWarmupTemplateToCreate = (templateId) => {
+    const template = warmupTemplates.find((entry) => entry.id === templateId)
+    if (!template) return
+
+    setNewPassWarmupCardio(template.cardio || "")
+    setNewPassWarmupTechnique(template.technique || "")
+    setStatus(`Uppvärmningsmall ${template.name} vald`)
+  }
+
+  const applyWarmupTemplateToEdit = (templateId) => {
+    const template = warmupTemplates.find((entry) => entry.id === templateId)
+    if (!template) return
+
+    setRenamePassWarmupCardio(template.cardio || "")
+    setRenamePassWarmupTechnique(template.technique || "")
+    setStatus(`Uppvärmningsmall ${template.name} vald`)
+  }
+
+  const saveWarmupTemplate = async (name, cardio, technique, onSaved) => {
+    if (!profile?.team_id) {
+      setStatus("Kunde inte hitta lag för uppvärmningsmall")
+      return
+    }
+
+    if (!name.trim()) {
+      setStatus("Ange namn på uppvärmningsmallen")
+      return
+    }
+
+    setIsSavingWarmupTemplate(true)
+
+    const { data, error } = await supabase
+      .from("warmup_templates")
+      .upsert(
+        {
+          team_id: profile.team_id,
+          name: name.trim(),
+          cardio: cardio.trim() || null,
+          technique: technique.trim() || null,
+        },
+        { onConflict: "team_id,name" }
+      )
+      .select("id, name, cardio, technique")
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus(`Kunde inte spara uppvärmningsmall${error.message ? `: ${error.message}` : ""}`)
+      setIsSavingWarmupTemplate(false)
+      return
+    }
+
+    setWarmupTemplates((prev) =>
+      [...prev.filter((entry) => entry.id !== data.id && entry.name !== data.name), data].sort((a, b) =>
+        a.name.localeCompare(b.name, "sv")
+      )
+    )
+    onSaved?.()
+    setStatus("Uppvärmningsmall sparad ✅")
+    setIsSavingWarmupTemplate(false)
   }
 
   const isVideoUrl = (url) => {
@@ -982,6 +1084,7 @@ function TrainingApp() {
 
     const newSessionId = generateSessionId()
     const workout = activeWorkouts[workoutKey]
+    const workoutTargets = playerTargets || {}
 
     setSelectedWorkout(workoutKey)
     setCurrentSessionId(newSessionId)
@@ -989,19 +1092,21 @@ function TrainingApp() {
     setExpandedInfo({})
 
     const defaultInputs = {}
+    const defaultExerciseComments = {}
     workout.exercises.forEach((exercise, index) => {
-      defaultInputs[index] = [
-        {
-          weight: "",
-          reps: "",
-          seconds: "",
-          client_set_id: generateSetId(index, 0),
-          workout_session_id: newSessionId,
-        },
-      ]
+      const targetSetCount = Math.max(1, Number(workoutTargets[exercise.name]?.target_sets) || 1)
+      defaultInputs[index] = Array.from({ length: targetSetCount }, (_, setIndex) => ({
+        weight: "",
+        reps: "",
+        seconds: "",
+        client_set_id: generateSetId(index, setIndex),
+        workout_session_id: newSessionId,
+      }))
+      defaultExerciseComments[index] = ""
     })
 
     setInputs(defaultInputs)
+    setExerciseComments(defaultExerciseComments)
     setStatus(`${workout.label} startat`)
 
     await loadLatestWorkoutForPass(workoutKey, user.id)
@@ -1009,6 +1114,44 @@ function TrainingApp() {
 
   const finishWorkout = async () => {
     if (!currentSessionId || !selectedWorkout || !user) return
+
+    const activeExercises = activeWorkouts[selectedWorkout]?.exercises || []
+    const commentWrites = activeExercises
+      .map((exercise, exerciseIndex) => {
+        const firstSet = inputs[exerciseIndex]?.[0]
+
+        if (!firstSet) return null
+        if (!String(exerciseComments[exerciseIndex] || "").trim()) return null
+
+        return supabase.from("workout_logs").upsert(
+          {
+            client_set_id: firstSet.client_set_id,
+            user_id: user.id,
+            workout_session_id: currentSessionId,
+            pass_name: selectedWorkout,
+            is_completed: false,
+            exercise: exercise.name,
+            set_number: 1,
+            weight: firstSet.weight || null,
+            reps: firstSet.reps || null,
+            seconds: firstSet.seconds || null,
+            exercise_comment: exerciseComments[exerciseIndex].trim(),
+          },
+          { onConflict: "client_set_id" }
+        )
+      })
+      .filter(Boolean)
+
+    if (commentWrites.length > 0) {
+      const commentResults = await Promise.all(commentWrites)
+      const commentError = commentResults.find((result) => result.error)?.error
+
+      if (commentError) {
+        console.error(commentError)
+        setStatus(`Kunde inte spara övningskommentarer${commentError.message ? `: ${commentError.message}` : ""}`)
+        return
+      }
+    }
 
     const { error } = await supabase
       .from("workout_logs")
@@ -1025,6 +1168,7 @@ function TrainingApp() {
     setIsWorkoutActive(false)
     setCurrentSessionId(null)
     setInputs({})
+    setExerciseComments({})
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
     await loadLatestWorkoutForPass(selectedWorkout, user.id)
@@ -1064,6 +1208,12 @@ function TrainingApp() {
   const saveSet = async (exercise, setIndex, set) => {
     if (!user) return
 
+    const exerciseIndex = activeWorkouts[selectedWorkout]?.exercises.findIndex(
+      (entry) => entry.name === exercise.name
+    )
+    const exerciseComment =
+      exerciseIndex != null && exerciseIndex >= 0 ? exerciseComments[exerciseIndex] || null : null
+
     const { error } = await supabase.from("workout_logs").upsert(
       {
         client_set_id: set.client_set_id,
@@ -1076,6 +1226,7 @@ function TrainingApp() {
         weight: set.weight || null,
         reps: set.reps || null,
         seconds: set.seconds || null,
+        exercise_comment: exerciseComment,
       },
       { onConflict: "client_set_id" }
     )
@@ -1119,6 +1270,47 @@ function TrainingApp() {
     if (isComplete) {
       await saveSet(exercise, setIndex, set)
     }
+  }
+
+  const handleExerciseCommentChange = (exerciseIndex, value) => {
+    setExerciseComments((prev) => ({
+      ...prev,
+      [exerciseIndex]: value,
+    }))
+  }
+
+  const handleExerciseCommentSave = async (exerciseIndex) => {
+    if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !user) return
+
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    const firstSet = inputs[exerciseIndex]?.[0]
+
+    if (!exercise || !firstSet) return
+
+    const { error } = await supabase.from("workout_logs").upsert(
+      {
+        client_set_id: firstSet.client_set_id,
+        user_id: user.id,
+        workout_session_id: currentSessionId,
+        pass_name: selectedWorkout,
+        is_completed: false,
+        exercise: exercise.name,
+        set_number: 1,
+        weight: firstSet.weight || null,
+        reps: firstSet.reps || null,
+        seconds: firstSet.seconds || null,
+        exercise_comment: exerciseComments[exerciseIndex]?.trim() || null,
+      },
+      { onConflict: "client_set_id" }
+    )
+
+    if (error) {
+      console.error(error)
+      setStatus(`Kunde inte spara övningskommentar${error.message ? `: ${error.message}` : ""}`)
+      return
+    }
+
+    setStatus("Övningskommentar sparad ✅")
   }
 
   const handleCommentChange = (playerId, value) => {
@@ -1836,7 +2028,12 @@ function TrainingApp() {
       !!renamePassName.trim() &&
       renamePassName.trim() !== selectedTemplate.label
     const nextInfoValue = renamePassInfo.trim()
+    const nextWarmupCardioValue = renamePassWarmupCardio.trim()
+    const nextWarmupTechniqueValue = renamePassWarmupTechnique.trim()
     const hasInfoChange = nextInfoValue !== (selectedTemplate.info || "")
+    const hasWarmupCardioChange = nextWarmupCardioValue !== (selectedTemplate.warmup_cardio || "")
+    const hasWarmupTechniqueChange =
+      nextWarmupTechniqueValue !== (selectedTemplate.warmup_technique || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const nextGuide = draft.guide?.trim() || ""
 
@@ -1854,7 +2051,7 @@ function TrainingApp() {
       }
     })
 
-    if (!hasRenameChange && !hasInfoChange && updates.length === 0) {
+    if (!hasRenameChange && !hasInfoChange && !hasWarmupCardioChange && !hasWarmupTechniqueChange && updates.length === 0) {
       setStatus("Inga passändringar att spara")
       return true
     }
@@ -1862,12 +2059,14 @@ function TrainingApp() {
     setStatus("")
     let missingInfoColumn = false
 
-    if (hasRenameChange || hasInfoChange) {
+    if (hasRenameChange || hasInfoChange || hasWarmupCardioChange || hasWarmupTechniqueChange) {
       let { data, error } = await supabase
         .from("workout_templates")
         .update({
           label: hasRenameChange ? renamePassName.trim() : selectedTemplate.label,
           info: nextInfoValue || null,
+          warmup_cardio: nextWarmupCardioValue || null,
+          warmup_technique: nextWarmupTechniqueValue || null,
         })
         .eq("id", selectedTemplate.id)
         .select()
@@ -1879,6 +2078,8 @@ function TrainingApp() {
           .from("workout_templates")
           .update({
             label: hasRenameChange ? renamePassName.trim() : selectedTemplate.label,
+            warmup_cardio: nextWarmupCardioValue || null,
+            warmup_technique: nextWarmupTechniqueValue || null,
           })
           .eq("id", selectedTemplate.id)
           .select()
@@ -1903,6 +2104,13 @@ function TrainingApp() {
             ...next[data.code],
             label: data.label,
             info: data.info || "",
+            warmup: {
+              cardio: data.warmup_cardio || "",
+              technique: String(data.warmup_technique || "")
+                .split("\n")
+                .map((item) => item.trim())
+                .filter(Boolean),
+            },
           }
         }
 
@@ -2095,6 +2303,8 @@ function TrainingApp() {
         code: internalCode,
         label: newPassName.trim(),
         info: newPassInfo.trim() || null,
+        warmup_cardio: newPassWarmupCardio.trim() || null,
+        warmup_technique: newPassWarmupTechnique.trim() || null,
         team_id: profile?.team_id,
       })
       .select()
@@ -2106,7 +2316,13 @@ function TrainingApp() {
       missingInfoColumn = true
       ;({ data, error } = await supabase
         .from("workout_templates")
-        .insert({ code: internalCode, label: newPassName.trim(), team_id: profile?.team_id })
+        .insert({
+          code: internalCode,
+          label: newPassName.trim(),
+          warmup_cardio: newPassWarmupCardio.trim() || null,
+          warmup_technique: newPassWarmupTechnique.trim() || null,
+          team_id: profile?.team_id,
+        })
         .select()
         .single())
     }
@@ -2121,6 +2337,9 @@ function TrainingApp() {
     setTemplatesFromDB((prev) => [...prev, data].sort((a, b) => a.label.localeCompare(b.label, "sv")))
     setNewPassName("")
     setNewPassInfo("")
+    setNewPassWarmupCardio("")
+    setNewPassWarmupTechnique("")
+    setNewWarmupTemplateName("")
     setSelectedTemplateCode(data.code)
     resetPassEditorState(data.code)
     setStatus(
@@ -2235,6 +2454,24 @@ function TrainingApp() {
     }
 
     await handleRenamePass(selectedTemplate.id, renamePassName, renamePassInfo)
+  }
+
+  const saveCreateWarmupTemplate = async () => {
+    await saveWarmupTemplate(
+      newWarmupTemplateName,
+      newPassWarmupCardio,
+      newPassWarmupTechnique,
+      () => setNewWarmupTemplateName("")
+    )
+  }
+
+  const saveEditWarmupTemplate = async () => {
+    await saveWarmupTemplate(
+      renameWarmupTemplateName,
+      renamePassWarmupCardio,
+      renamePassWarmupTechnique,
+      () => setRenameWarmupTemplateName("")
+    )
   }
 
   const scrollToExerciseCard = (index) => {
@@ -2564,12 +2801,30 @@ function TrainingApp() {
                 setNewPassName={setNewPassName}
                 newPassInfo={newPassInfo}
                 setNewPassInfo={setNewPassInfo}
+                newPassWarmupCardio={newPassWarmupCardio}
+                setNewPassWarmupCardio={setNewPassWarmupCardio}
+                newPassWarmupTechnique={newPassWarmupTechnique}
+                setNewPassWarmupTechnique={setNewPassWarmupTechnique}
+                newWarmupTemplateName={newWarmupTemplateName}
+                setNewWarmupTemplateName={setNewWarmupTemplateName}
                 handleCreatePass={handleCreatePass}
                 isCreatingPass={isCreatingPass}
                 renamePassName={renamePassName}
                 setRenamePassName={setRenamePassName}
                 renamePassInfo={renamePassInfo}
                 setRenamePassInfo={setRenamePassInfo}
+                renamePassWarmupCardio={renamePassWarmupCardio}
+                setRenamePassWarmupCardio={setRenamePassWarmupCardio}
+                renamePassWarmupTechnique={renamePassWarmupTechnique}
+                setRenamePassWarmupTechnique={setRenamePassWarmupTechnique}
+                renameWarmupTemplateName={renameWarmupTemplateName}
+                setRenameWarmupTemplateName={setRenameWarmupTemplateName}
+                warmupTemplates={warmupTemplates}
+                isSavingWarmupTemplate={isSavingWarmupTemplate}
+                applyWarmupTemplateToCreate={applyWarmupTemplateToCreate}
+                applyWarmupTemplateToEdit={applyWarmupTemplateToEdit}
+                saveCreateWarmupTemplate={saveCreateWarmupTemplate}
+                saveEditWarmupTemplate={saveEditWarmupTemplate}
                 exercisesFromDB={exercisesFromDB}
                 selectedExerciseId={selectedExerciseId}
                 setSelectedExerciseId={setSelectedExerciseId}
@@ -2820,21 +3075,30 @@ function TrainingApp() {
           <div style={cardStyle}>
             <h3 style={cardTitleStyle}>Uppvärmning</h3>
 
-            <div style={{ marginBottom: 14 }}>
-              <p style={subheadingStyle}>Pulshöjande aktivitet</p>
-              <p style={mutedTextStyle}>
-                {visibleWorkouts[selectedWorkout]?.warmup.cardio}
-              </p>
-            </div>
-
-            <div>
-              <p style={subheadingStyle}>Teknikuppvärmning</p>
-              <div style={mutedTextStyle}>
-                {visibleWorkouts[selectedWorkout]?.warmup.technique.map((item, index) => (
-                  <div key={index}>{index + 1}. {item}</div>
-                ))}
+            {!!visibleWorkouts[selectedWorkout]?.warmup.cardio && (
+              <div style={{ marginBottom: visibleWorkouts[selectedWorkout]?.warmup.technique.length ? 14 : 0 }}>
+                <p style={subheadingStyle}>Pulshöjande aktivitet</p>
+                <p style={mutedTextStyle}>
+                  {visibleWorkouts[selectedWorkout]?.warmup.cardio}
+                </p>
               </div>
-            </div>
+            )}
+
+            {!!visibleWorkouts[selectedWorkout]?.warmup.technique.length && (
+              <div>
+                <p style={subheadingStyle}>Teknikuppvärmning</p>
+                <div style={mutedTextStyle}>
+                  {visibleWorkouts[selectedWorkout]?.warmup.technique.map((item, index) => (
+                    <div key={index}>{index + 1}. {item}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!visibleWorkouts[selectedWorkout]?.warmup.cardio &&
+              !visibleWorkouts[selectedWorkout]?.warmup.technique.length && (
+                <div style={mutedTextStyle}>Ingen uppvärmning inlagd för passet ännu.</div>
+              )}
           </div>
 
           {isMobile && visibleWorkouts[selectedWorkout]?.exercises.length > 1 && (
@@ -3122,7 +3386,7 @@ function TrainingApp() {
                         {exercise.type === "weight_reps" && (
                           <>
                             <input
-                              placeholder={`Vikt (${latestWorkout[exercise.name]?.slice(-1)[0]?.weight ?? ""})`}
+                              placeholder="kg"
                               value={set.weight || ""}
                               onChange={(e) =>
                                 handleChange(i, j, "weight", e.target.value)
@@ -3169,8 +3433,29 @@ function TrainingApp() {
                           Ta bort
                         </button>
                       </div>
+
+                      {exercise.type === "weight_reps" &&
+                        latestWorkout[exercise.name]?.slice(-1)[0]?.weight != null && (
+                          <div style={setInputHintStyle}>
+                            Senaste vikt: {latestWorkout[exercise.name].slice(-1)[0].weight} kg
+                          </div>
+                        )}
                     </div>
                   ))}
+
+                {isWorkoutActive && (
+                  <div style={exerciseCommentCardStyle}>
+                    <div style={exerciseCommentTitleStyle}>Kommentar på övningen</div>
+                    <textarea
+                      rows={3}
+                      placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
+                      value={exerciseComments[i] || ""}
+                      onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
+                      onBlur={() => handleExerciseCommentSave(i)}
+                      style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "88px" }}
+                    />
+                  </div>
+                )}
 
                 {isWorkoutActive && (
                   <button
@@ -3650,7 +3935,26 @@ const activeSetCardStyle = {
   border: "1px solid #efe2e2",
 }
 
+const setInputHintStyle = {
+  marginTop: "8px",
+  fontSize: "12px",
+  color: "#6b7280",
+}
 
+const exerciseCommentCardStyle = {
+  marginBottom: "12px",
+  padding: "12px",
+  borderRadius: "16px",
+  backgroundColor: "#f9fafb",
+  border: "1px solid #e5e7eb",
+}
+
+const exerciseCommentTitleStyle = {
+  marginBottom: "8px",
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#374151",
+}
 const setLabelStyle = {
   fontSize: "13px",
   fontWeight: "800",

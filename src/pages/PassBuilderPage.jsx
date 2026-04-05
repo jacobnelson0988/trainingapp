@@ -8,12 +8,30 @@ function PassBuilderPage({
   setNewPassName,
   newPassInfo,
   setNewPassInfo,
+  newPassWarmupCardio,
+  setNewPassWarmupCardio,
+  newPassWarmupTechnique,
+  setNewPassWarmupTechnique,
+  newWarmupTemplateName,
+  setNewWarmupTemplateName,
   handleCreatePass,
   isCreatingPass,
   renamePassName,
   setRenamePassName,
   renamePassInfo,
   setRenamePassInfo,
+  renamePassWarmupCardio,
+  setRenamePassWarmupCardio,
+  renamePassWarmupTechnique,
+  setRenamePassWarmupTechnique,
+  renameWarmupTemplateName,
+  setRenameWarmupTemplateName,
+  warmupTemplates,
+  isSavingWarmupTemplate,
+  applyWarmupTemplateToCreate,
+  applyWarmupTemplateToEdit,
+  saveCreateWarmupTemplate,
+  saveEditWarmupTemplate,
   exercisesFromDB,
   selectedExerciseId,
   setSelectedExerciseId,
@@ -47,6 +65,9 @@ function PassBuilderPage({
   const openCreateView = () => {
     setNewPassName("")
     setNewPassInfo("")
+    setNewPassWarmupCardio("")
+    setNewPassWarmupTechnique("")
+    setNewWarmupTemplateName("")
     setView("create")
   }
 
@@ -118,6 +139,57 @@ function PassBuilderPage({
               onChange={(e) => setNewPassInfo(e.target.value)}
               style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
             />
+
+            <div style={subSectionStyle}>
+              <div style={sectionTitleStyle}>Uppvärmning</div>
+              <textarea
+                rows={3}
+                placeholder="Pulshöjande aktivitet"
+                value={newPassWarmupCardio}
+                onChange={(e) => setNewPassWarmupCardio(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+              />
+              <textarea
+                rows={4}
+                placeholder="Teknikuppvärmning, en rad per moment"
+                value={newPassWarmupTechnique}
+                onChange={(e) => setNewPassWarmupTechnique(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+              />
+            </div>
+
+            <div style={subSectionStyle}>
+              <div style={sectionTitleStyle}>Uppvärmningsmallar</div>
+              <div style={warmupTemplateListStyle}>
+                {(warmupTemplates || []).map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyWarmupTemplateToCreate(template.id)}
+                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                  >
+                    Använd {template.name}
+                  </button>
+                ))}
+              </div>
+              <div style={warmupTemplateSaveRowStyle(isMobile)}>
+                <input
+                  type="text"
+                  placeholder="Namn på uppvärmningsmall"
+                  value={newWarmupTemplateName}
+                  onChange={(e) => setNewWarmupTemplateName(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+                <button
+                  type="button"
+                  onClick={saveCreateWarmupTemplate}
+                  disabled={isSavingWarmupTemplate}
+                  style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                >
+                  {isSavingWarmupTemplate ? "Sparar..." : "Spara som mall"}
+                </button>
+              </div>
+            </div>
 
             <button
               type="button"
@@ -199,6 +271,58 @@ function PassBuilderPage({
                 onChange={(e) => setRenamePassInfo(e.target.value)}
                 style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
               />
+            </div>
+          </section>
+
+          <section style={panelStyle}>
+            <div style={sectionEyebrowStyle}>Uppvärmning</div>
+            <div style={formStackStyle}>
+              <textarea
+                rows={3}
+                placeholder="Pulshöjande aktivitet"
+                value={renamePassWarmupCardio}
+                onChange={(e) => setRenamePassWarmupCardio(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+              />
+
+              <textarea
+                rows={4}
+                placeholder="Teknikuppvärmning, en rad per moment"
+                value={renamePassWarmupTechnique}
+                onChange={(e) => setRenamePassWarmupTechnique(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+              />
+
+              <div style={warmupTemplateListStyle}>
+                {(warmupTemplates || []).map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyWarmupTemplateToEdit(template.id)}
+                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                  >
+                    Använd {template.name}
+                  </button>
+                ))}
+              </div>
+
+              <div style={warmupTemplateSaveRowStyle(isMobile)}>
+                <input
+                  type="text"
+                  placeholder="Namn på uppvärmningsmall"
+                  value={renameWarmupTemplateName}
+                  onChange={(e) => setRenameWarmupTemplateName(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+                <button
+                  type="button"
+                  onClick={saveEditWarmupTemplate}
+                  disabled={isSavingWarmupTemplate}
+                  style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                >
+                  {isSavingWarmupTemplate ? "Sparar..." : "Spara som mall"}
+                </button>
+              </div>
             </div>
           </section>
 
@@ -574,6 +698,27 @@ const formStackStyle = {
   display: "grid",
   gap: "10px",
 }
+
+const subSectionStyle = {
+  display: "grid",
+  gap: "10px",
+  padding: "12px",
+  borderRadius: "16px",
+  border: "1px solid #efe5e5",
+  backgroundColor: "#fffdfd",
+}
+
+const warmupTemplateListStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+}
+
+const warmupTemplateSaveRowStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
+})
 
 const passGridStyle = {
   display: "grid",
