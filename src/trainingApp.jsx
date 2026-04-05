@@ -35,6 +35,7 @@ function TrainingApp() {
   const [selectedMessageRecipientIds, setSelectedMessageRecipientIds] = useState([])
   const [messages, setMessages] = useState([])
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [messageSubject, setMessageSubject] = useState("")
   const [messageBody, setMessageBody] = useState("")
   const [isSendingMessage, setIsSendingMessage] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
@@ -768,6 +769,7 @@ function TrainingApp() {
           .select(`
             id,
             sender_id,
+            subject,
             body,
             team_id,
             created_at,
@@ -889,12 +891,18 @@ function TrainingApp() {
   }
 
   const handleSendMessage = async () => {
+    const trimmedSubject = messageSubject.trim()
     const trimmedBody = messageBody.trim()
 
     if (!user || !profile) return
 
     if (!selectedMessageRecipientIds.length) {
       setStatus("Välj minst en mottagare")
+      return
+    }
+
+    if (!trimmedSubject) {
+      setStatus("Skriv ett ämne först")
       return
     }
 
@@ -909,6 +917,7 @@ function TrainingApp() {
       .from("messages")
       .insert({
         sender_id: user.id,
+        subject: trimmedSubject,
         team_id: profile.team_id || null,
         body: trimmedBody,
       })
@@ -939,6 +948,7 @@ function TrainingApp() {
       return
     }
 
+    setMessageSubject("")
     setMessageBody("")
     setSelectedMessageRecipientIds([])
     await loadMessages()
@@ -3365,6 +3375,8 @@ function TrainingApp() {
                 selectedRecipientIds={selectedMessageRecipientIds}
                 setSelectedRecipientIds={setSelectedMessageRecipientIds}
                 onToggleRecipient={handleToggleMessageRecipient}
+                messageSubject={messageSubject}
+                setMessageSubject={setMessageSubject}
                 messageBody={messageBody}
                 setMessageBody={setMessageBody}
                 handleSendMessage={handleSendMessage}
@@ -3560,6 +3572,8 @@ function TrainingApp() {
               selectedRecipientIds={selectedMessageRecipientIds}
               setSelectedRecipientIds={setSelectedMessageRecipientIds}
               onToggleRecipient={handleToggleMessageRecipient}
+              messageSubject={messageSubject}
+              setMessageSubject={setMessageSubject}
               messageBody={messageBody}
               setMessageBody={setMessageBody}
               handleSendMessage={handleSendMessage}
