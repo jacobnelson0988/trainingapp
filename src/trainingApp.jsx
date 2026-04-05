@@ -2530,8 +2530,15 @@ function TrainingApp() {
     0
   )
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
-  const activeWorkoutWarmup = activeWorkoutData?.warmup || { cardio: "", technique: [] }
-  const activeWorkoutExercises = activeWorkoutData?.exercises || []
+  const activeWorkoutWarmup = {
+    cardio: activeWorkoutData?.warmup?.cardio || "",
+    technique: Array.isArray(activeWorkoutData?.warmup?.technique)
+      ? activeWorkoutData.warmup.technique
+      : [],
+  }
+  const activeWorkoutExercises = Array.isArray(activeWorkoutData?.exercises)
+    ? activeWorkoutData.exercises
+    : []
 
   const coachTabs = [
     { key: "home", label: "Översikt" },
