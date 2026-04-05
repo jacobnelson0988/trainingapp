@@ -8,6 +8,8 @@ import PassBuilderPage from "./pages/PassBuilderPage"
 import UsersAdminPage from "./pages/UsersAdminPage"
 import TeamsPage from "./pages/TeamsPage"
 import AdminHomePage from "./pages/AdminHomePage"
+import MessagesPage from "./pages/MessagesPage"
+import FeedbackPage from "./pages/FeedbackPage"
 
 function TrainingApp() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -28,6 +30,17 @@ function TrainingApp() {
   const [repairingLoginUserId, setRepairingLoginUserId] = useState(null)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
+  const [messageRecipients, setMessageRecipients] = useState([])
+  const [selectedMessageRecipientIds, setSelectedMessageRecipientIds] = useState([])
+  const [messages, setMessages] = useState([])
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [messageBody, setMessageBody] = useState("")
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+  const [feedbackText, setFeedbackText] = useState("")
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  const [feedbackItems, setFeedbackItems] = useState([])
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
   const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
@@ -42,6 +55,7 @@ function TrainingApp() {
   const [isImportingPlayers, setIsImportingPlayers] = useState(false)
   const [importResults, setImportResults] = useState([])
   const [coachView, setCoachView] = useState("home")
+  const [playerView, setPlayerView] = useState("home")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
@@ -137,6 +151,30 @@ function TrainingApp() {
       setSelectedTeamId(profile.team_id || "")
     }
   }, [profile])
+
+  useEffect(() => {
+    if (!user || !profile) {
+      setMessageRecipients([])
+      setMessages([])
+      setFeedbackItems([])
+      return
+    }
+
+    loadMessageRecipients()
+    loadMessages()
+
+    if (profile.role === "head_admin") {
+      loadFeedback()
+    } else {
+      setFeedbackItems([])
+    }
+  }, [user, profile])
+
+  useEffect(() => {
+    setSelectedMessageRecipientIds((prev) =>
+      prev.filter((recipientId) => messageRecipients.some((entry) => entry.id === recipientId))
+    )
+  }, [messageRecipients])
 
   useEffect(() => {
     if (selectedPlayer) {
@@ -570,6 +608,339 @@ function TrainingApp() {
     setIsLoadingTeams(false)
   }
 
+  const sortProfilesForMessaging = (entries) =>
+    (entries || [])
+      .slice()
+      .sort((a, b) => {
+        const roleOrder = {
+          head_admin: 0,
+          coach: 1,
+          player: 2,
+        }
+
+        const roleDiff = (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99)
+        if (roleDiff !== 0) return roleDiff
+
+        return String(a.full_name || a.username || "").localeCompare(
+          String(b.full_name || b.username || ""),
+          "sv"
+        )
+      })
+
+  const loadMessageRecipients = async () => {
+    if (!user || !profile) {
+      setMessageRecipients([])
+      return
+    }
+
+    if (profile.role === "player") {
+      if (!profile.team_id) {
+        setMessageRecipients([])
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, username, role, team_id")
+        .eq("team_id", profile.team_id)
+        .eq("role", "coach")
+        .neq("id", user.id)
+
+      if (error) {
+        console.error(error)
+        setMessageRecipients([])
+        return
+      }
+
+      setMessageRecipients(sortProfilesForMessaging(data || []))
+      return
+    }
+
+    if (profile.role === "coach") {
+      const teamQuery = supabase
+        .from("profiles")
+        .select("id, full_name, username, role, team_id")
+        .neq("id", user.id)
+
+      const scopedTeamQuery = profile.team_id
+        ? teamQuery.eq("team_id", profile.team_id).in("role", ["coach", "player"])
+        : teamQuery.in("role", ["coach", "player"]).limit(0)
+
+      const [{ data: teamUsers, error: teamError }, { data: admins, error: adminError }] =
+        await Promise.all([
+          scopedTeamQuery,
+          supabase
+            .from("profiles")
+            .select("id, full_name, username, role, team_id")
+            .eq("role", "head_admin"),
+        ])
+
+      if (teamError || adminError) {
+        console.error(teamError || adminError)
+        setMessageRecipients([])
+        return
+      }
+
+      const deduped = [...(teamUsers || []), ...(admins || [])].filter(
+        (entry, index, arr) => arr.findIndex((candidate) => candidate.id === entry.id) === index
+      )
+
+      setMessageRecipients(sortProfilesForMessaging(deduped))
+      return
+    }
+
+    if (profile.role === "head_admin") {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, username, role, team_id")
+        .neq("id", user.id)
+        .order("full_name", { ascending: true })
+
+      if (error) {
+        console.error(error)
+        setMessageRecipients([])
+        return
+      }
+
+      setMessageRecipients(sortProfilesForMessaging(data || []))
+      return
+    }
+
+    setMessageRecipients([])
+  }
+
+  const loadMessages = async () => {
+    if (!user) {
+      setMessages([])
+      return
+    }
+
+    setIsLoadingMessages(true)
+
+    const [{ data: outgoingMessages, error: outgoingError }, { data: incomingRecipientRows, error: incomingError }] =
+      await Promise.all([
+        supabase
+          .from("messages")
+          .select("id")
+          .eq("sender_id", user.id),
+        supabase
+          .from("message_recipients")
+          .select("message_id")
+          .eq("recipient_id", user.id),
+      ])
+
+    if (outgoingError || incomingError) {
+      console.error(outgoingError || incomingError)
+      setMessages([])
+      setIsLoadingMessages(false)
+      return
+    }
+
+    const messageIds = Array.from(
+      new Set([
+        ...(outgoingMessages || []).map((row) => row.id),
+        ...(incomingRecipientRows || []).map((row) => row.message_id),
+      ].filter(Boolean))
+    )
+
+    if (!messageIds.length) {
+      setMessages([])
+      setIsLoadingMessages(false)
+      return
+    }
+
+    const [{ data: messageRows, error: messageError }, { data: recipientRows, error: recipientError }] =
+      await Promise.all([
+        supabase
+          .from("messages")
+          .select(`
+            id,
+            sender_id,
+            body,
+            team_id,
+            created_at,
+            sender:profiles!messages_sender_id_fkey (
+              id,
+              full_name,
+              username,
+              role,
+              team_id
+            )
+          `)
+          .in("id", messageIds)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("message_recipients")
+          .select(`
+            message_id,
+            recipient_id,
+            recipient:profiles!message_recipients_recipient_id_fkey (
+              id,
+              full_name,
+              username,
+              role,
+              team_id
+            )
+          `)
+          .in("message_id", messageIds),
+      ])
+
+    if (messageError || recipientError) {
+      console.error(messageError || recipientError)
+      setMessages([])
+      setIsLoadingMessages(false)
+      return
+    }
+
+    const recipientsByMessageId = (recipientRows || []).reduce((acc, row) => {
+      if (!acc[row.message_id]) {
+        acc[row.message_id] = []
+      }
+
+      if (row.recipient) {
+        acc[row.message_id].push(row.recipient)
+      }
+
+      return acc
+    }, {})
+
+    setMessages(
+      (messageRows || []).map((row) => ({
+        ...row,
+        recipients: sortProfilesForMessaging(recipientsByMessageId[row.id] || []),
+        direction: row.sender_id === user.id ? "sent" : "received",
+      }))
+    )
+    setIsLoadingMessages(false)
+  }
+
+  const handleToggleMessageRecipient = (recipientId) => {
+    setSelectedMessageRecipientIds((prev) =>
+      prev.includes(recipientId)
+        ? prev.filter((entry) => entry !== recipientId)
+        : [...prev, recipientId]
+    )
+  }
+
+  const handleSendMessage = async () => {
+    const trimmedBody = messageBody.trim()
+
+    if (!user || !profile) return
+
+    if (!selectedMessageRecipientIds.length) {
+      setStatus("Välj minst en mottagare")
+      return
+    }
+
+    if (!trimmedBody) {
+      setStatus("Skriv ett meddelande först")
+      return
+    }
+
+    setIsSendingMessage(true)
+
+    const { data: messageRow, error: messageError } = await supabase
+      .from("messages")
+      .insert({
+        sender_id: user.id,
+        team_id: profile.team_id || null,
+        body: trimmedBody,
+      })
+      .select("id")
+      .single()
+
+    if (messageError || !messageRow?.id) {
+      console.error(messageError)
+      setStatus("Kunde inte skicka meddelandet")
+      setIsSendingMessage(false)
+      return
+    }
+
+    const { error: recipientError } = await supabase
+      .from("message_recipients")
+      .insert(
+        selectedMessageRecipientIds.map((recipientId) => ({
+          message_id: messageRow.id,
+          recipient_id: recipientId,
+        }))
+      )
+
+    if (recipientError) {
+      console.error(recipientError)
+      await supabase.from("messages").delete().eq("id", messageRow.id)
+      setStatus("Kunde inte skicka meddelandet")
+      setIsSendingMessage(false)
+      return
+    }
+
+    setMessageBody("")
+    setSelectedMessageRecipientIds([])
+    await loadMessages()
+    setStatus("Meddelandet skickades ✅")
+    setIsSendingMessage(false)
+  }
+
+  const loadFeedback = async () => {
+    if (profile?.role !== "head_admin") {
+      setFeedbackItems([])
+      return
+    }
+
+    setIsLoadingFeedback(true)
+
+    const { data, error } = await supabase
+      .from("beta_feedback")
+      .select("id, user_id, team_id, body, created_at")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setFeedbackItems([])
+      setIsLoadingFeedback(false)
+      return
+    }
+
+    setFeedbackItems(data || [])
+    setIsLoadingFeedback(false)
+  }
+
+  const handleSubmitFeedback = async () => {
+    const trimmedBody = feedbackText.trim()
+
+    if (!user || !trimmedBody) {
+      setStatus("Skriv din feedback först")
+      return
+    }
+
+    setIsSubmittingFeedback(true)
+
+    const { data, error } = await supabase
+      .from("beta_feedback")
+      .insert({
+        user_id: user.id,
+        team_id: profile?.team_id || null,
+        body: trimmedBody,
+      })
+      .select("id, user_id, team_id, body, created_at")
+      .single()
+
+    if (error || !data) {
+      console.error(error)
+      setStatus("Kunde inte spara feedback")
+      setIsSubmittingFeedback(false)
+      return
+    }
+
+    if (profile?.role === "head_admin") {
+      setFeedbackItems((prev) => [data, ...prev])
+    }
+
+    setFeedbackText("")
+    setIsFeedbackOpen(false)
+    setStatus("Feedback sparad ✅")
+    setIsSubmittingFeedback(false)
+  }
+
   const handleChangeUserTeam = async (userId, nextTeamId) => {
     if (!userId || !nextTeamId) {
       setStatus("Välj ett lag först")
@@ -597,6 +968,7 @@ function TrainingApp() {
       prev.map((entry) => (entry.id === userId ? { ...entry, team_id: nextTeamId } : entry))
     )
     setSelectedPlayer((prev) => (prev?.id === userId ? { ...prev, team_id: nextTeamId } : prev))
+    loadMessageRecipients()
     setStatus("Lag uppdaterat ✅")
     setUpdatingUserTeamId(null)
   }
@@ -1456,6 +1828,7 @@ function TrainingApp() {
     setIsCreatingPlayer(false)
     loadPlayers()
     loadAllUsers()
+    loadMessageRecipients()
     setCoachView(profile?.role === "head_admin" ? "users" : "players")
   }
 
@@ -2545,6 +2918,7 @@ function TrainingApp() {
     { key: "players", label: "Spelare" },
     { key: "exerciseBank", label: "Övningar" },
     { key: "passBuilder", label: "Pass" },
+    { key: "messages", label: "Meddelanden" },
     { key: "createPlayer", label: "Ny användare" },
   ]
 
@@ -2553,6 +2927,8 @@ function TrainingApp() {
     { key: "users", label: "Användare" },
     { key: "teams", label: "Lag" },
     { key: "exerciseBank", label: "Övningar" },
+    { key: "messages", label: "Meddelanden" },
+    { key: "feedback", label: "Feedback" },
     { key: "createPlayer", label: "Ny användare" },
   ]
 
@@ -2646,6 +3022,69 @@ function TrainingApp() {
             : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
         </div>
       </div>
+
+      <div
+        style={{
+          ...feedbackActionBarStyle,
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={feedbackActionTitleStyle}>Beta-feedback</div>
+          <div style={mutedTextStyle}>
+            Skicka snabbt in buggar, önskemål eller annat som du vill att vi ska justera i appen.
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsFeedbackOpen((prev) => !prev)}
+          style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+        >
+          {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
+        </button>
+      </div>
+
+      {isFeedbackOpen && (
+        <div style={feedbackComposerCardStyle}>
+          <div style={cardTitleStyle}>Skriv feedback</div>
+          <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
+            Beskriv gärna vad du gjorde, vad som gick fel eller vad du vill få in i appen.
+          </p>
+          <textarea
+            rows={4}
+            value={feedbackText}
+            onChange={(event) => setFeedbackText(event.target.value)}
+            placeholder="Skriv din feedback här"
+            style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "12px" }}
+          />
+          <div style={feedbackComposerActionsStyle}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsFeedbackOpen(false)
+                setFeedbackText("")
+              }}
+              style={secondaryButtonStyle}
+            >
+              Avbryt
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmitFeedback}
+              disabled={isSubmittingFeedback}
+              style={{
+                ...buttonStyle,
+                opacity: isSubmittingFeedback ? 0.7 : 1,
+                cursor: isSubmittingFeedback ? "default" : "pointer",
+              }}
+            >
+              {isSubmittingFeedback ? "Sparar..." : "Skicka feedback"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {(profile?.role === "coach" || profile?.role === "head_admin") && (
         <>
@@ -2806,6 +3245,44 @@ function TrainingApp() {
               />
             )}
 
+            {coachView === "messages" && (
+              <MessagesPage
+                role={profile?.role}
+                currentUserId={user?.id}
+                recipients={messageRecipients}
+                selectedRecipientIds={selectedMessageRecipientIds}
+                onToggleRecipient={handleToggleMessageRecipient}
+                messageBody={messageBody}
+                setMessageBody={setMessageBody}
+                handleSendMessage={handleSendMessage}
+                isSendingMessage={isSendingMessage}
+                messages={messages}
+                isLoadingMessages={isLoadingMessages}
+                handleRefreshMessages={loadMessages}
+                teams={teams}
+                cardTitleStyle={cardTitleStyle}
+                mutedTextStyle={mutedTextStyle}
+                inputStyle={inputStyle}
+                buttonStyle={buttonStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
+                isMobile={isMobile}
+              />
+            )}
+
+            {coachView === "feedback" && profile?.role === "head_admin" && (
+              <FeedbackPage
+                feedbackItems={feedbackItems}
+                users={allUsers}
+                teams={teams}
+                isLoadingFeedback={isLoadingFeedback}
+                handleRefreshFeedback={loadFeedback}
+                cardTitleStyle={cardTitleStyle}
+                mutedTextStyle={mutedTextStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
+                isMobile={isMobile}
+              />
+            )}
+
             {coachView === "passBuilder" && (
               <PassBuilderPage
                 activeWorkouts={activeWorkouts}
@@ -2929,6 +3406,52 @@ function TrainingApp() {
           }}
         >
           {!isWorkoutActive && (
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                width: "100%",
+                flexDirection: isMobile ? "column" : "row",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setPlayerView((prev) => (prev === "messages" ? "home" : "messages"))}
+                style={{
+                  ...(playerView === "messages" ? buttonStyle : secondaryButtonStyle),
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
+                {playerView === "messages" ? "Tillbaka till pass" : "Meddelanden"}
+              </button>
+            </div>
+          )}
+
+          {!isWorkoutActive && playerView === "messages" && (
+            <MessagesPage
+              role={profile?.role}
+              currentUserId={user?.id}
+              recipients={messageRecipients}
+              selectedRecipientIds={selectedMessageRecipientIds}
+              onToggleRecipient={handleToggleMessageRecipient}
+              messageBody={messageBody}
+              setMessageBody={setMessageBody}
+              handleSendMessage={handleSendMessage}
+              isSendingMessage={isSendingMessage}
+              messages={messages}
+              isLoadingMessages={isLoadingMessages}
+              handleRefreshMessages={loadMessages}
+              teams={teams}
+              cardTitleStyle={cardTitleStyle}
+              mutedTextStyle={mutedTextStyle}
+              inputStyle={inputStyle}
+              buttonStyle={buttonStyle}
+              secondaryButtonStyle={secondaryButtonStyle}
+              isMobile={isMobile}
+            />
+          )}
+
+          {!isWorkoutActive && playerView === "home" && (
             <>
               <div style={{ marginBottom: "4px" }}>
                 <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
@@ -3592,6 +4115,41 @@ const heroTextStyle = {
   fontSize: "15px",
   lineHeight: 1.6,
   color: "rgba(255,255,255,0.9)",
+}
+
+const feedbackActionBarStyle = {
+  marginBottom: "16px",
+  padding: "16px 18px",
+  borderRadius: "20px",
+  border: "1px solid #f0dcdc",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+}
+
+const feedbackActionTitleStyle = {
+  marginBottom: "4px",
+  fontSize: "16px",
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const feedbackComposerCardStyle = {
+  marginBottom: "16px",
+  padding: "18px",
+  borderRadius: "20px",
+  border: "1px solid #f0dcdc",
+  backgroundColor: "#fffdfd",
+  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.06)",
+}
+
+const feedbackComposerActionsStyle = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "10px",
+  flexWrap: "wrap",
 }
 
 const logoutButtonStyle = {

@@ -85,6 +85,24 @@ function CoachHomePage({
           </div>
           <div style={coachNavTextStyle}>Skapa och redigera pass för ditt eget lag</div>
         </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setCoachView("messages")
+            setSelectedPlayer(null)
+          }}
+          style={{
+            ...coachNavCardStyle,
+            minHeight: isMobile ? "132px" : coachNavCardStyle.minHeight,
+          }}
+        >
+          <div style={coachNavTopRowStyle}>
+            <div style={coachNavTitleStyle}>Meddelanden</div>
+            <div style={coachNavArrowStyle}>→</div>
+          </div>
+          <div style={coachNavTextStyle}>Skriv till laget, andra tränare eller huvudadmin</div>
+        </button>
       </div>
     </>
   )
