@@ -59,7 +59,7 @@ function TrainingApp() {
   const [isImportingPlayers, setIsImportingPlayers] = useState(false)
   const [importResults, setImportResults] = useState([])
   const [coachView, setCoachView] = useState("home")
-  const [playerView, setPlayerView] = useState("home")
+  const [playerView, setPlayerView] = useState("overview")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
@@ -109,6 +109,7 @@ function TrainingApp() {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [exerciseComments, setExerciseComments] = useState({})
+  const [passComment, setPassComment] = useState("")
   const exerciseCarouselRef = useRef(null)
 
   useEffect(() => {
@@ -1644,6 +1645,8 @@ function TrainingApp() {
 
     setInputs(defaultInputs)
     setExerciseComments(defaultExerciseComments)
+    setPassComment("")
+    setPlayerView("pass")
     setStatus(`${workout.label} startat`)
 
     await loadLatestWorkoutForPass(workoutKey, user.id)
@@ -1692,7 +1695,7 @@ function TrainingApp() {
 
     const { error } = await supabase
       .from("workout_logs")
-      .update({ is_completed: true })
+      .update({ is_completed: true, pass_comment: passComment.trim() || null })
       .eq("workout_session_id", currentSessionId)
       .eq("user_id", user.id)
 
@@ -1706,6 +1709,8 @@ function TrainingApp() {
     setCurrentSessionId(null)
     setInputs({})
     setExerciseComments({})
+    setPassComment("")
+    setPlayerView("overview")
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
     await loadLatestWorkoutForPass(selectedWorkout, user.id)
@@ -3087,6 +3092,17 @@ function TrainingApp() {
     },
   ]
 
+  const playerTabs = [
+    { key: "overview", label: "Översikt" },
+    { key: "pass", label: "Pass" },
+    {
+      key: "messages",
+      label: unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden",
+    },
+  ]
+
+  const activeWorkoutSlideCount = activeWorkoutExercises.length + 1
+
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
     { key: "users", label: "Användare" },
@@ -3583,31 +3599,26 @@ function TrainingApp() {
             alignItems: isMobile ? "stretch" : "flex-start",
           }}
         >
-          {!isWorkoutActive && (
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                width: "100%",
-                flexDirection: isMobile ? "column" : "row",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setPlayerView((prev) => (prev === "messages" ? "home" : "messages"))}
-                style={{
-                  ...(playerView === "messages" ? buttonStyle : secondaryButtonStyle),
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
-                {playerView === "messages"
-                  ? "Tillbaka till pass"
-                  : unreadMessageCount
-                  ? `Meddelanden (${unreadMessageCount})`
-                  : "Meddelanden"}
-              </button>
-            </div>
-          )}
+          <div style={coachTabsWrapStyle}>
+            {playerTabs.map((tab) => {
+              const isActive = playerView === tab.key
+
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setPlayerView(tab.key)}
+                  style={{
+                    ...coachTabButtonStyle,
+                    ...(isActive ? activeCoachTabButtonStyle : {}),
+                    width: isMobile ? "100%" : "auto",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
 
           {!isWorkoutActive && playerView === "messages" && (
             <MessagesPage
@@ -3637,7 +3648,45 @@ function TrainingApp() {
             />
           )}
 
-          {!isWorkoutActive && playerView === "home" && (
+          {!isWorkoutActive && playerView === "overview" && (
+            <div
+              style={{
+                ...heroCardStyle,
+                width: "100%",
+                padding: isMobile ? "18px 16px" : heroCardStyle.padding,
+                borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius,
+                marginBottom: 0,
+              }}
+            >
+              <div style={heroBadgeStyle}>Spelaröversikt</div>
+              <div style={heroHeadingStyle}>Här börjar din träning</div>
+              <div style={heroTextStyle}>
+                Gå till <strong>Pass</strong> för att välja ett träningspass eller till{" "}
+                <strong>Meddelanden</strong> om du vill läsa och svara på meddelanden från dina tränare.
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: "12px",
+                  marginTop: "16px",
+                  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                }}
+              >
+                <div style={playerOverviewStatCardStyle}>
+                  <div style={playerOverviewStatLabelStyle}>Tilldelade pass</div>
+                  <div style={playerOverviewStatValueStyle}>{Object.keys(visibleWorkouts).length}</div>
+                </div>
+
+                <div style={playerOverviewStatCardStyle}>
+                  <div style={playerOverviewStatLabelStyle}>Olästa meddelanden</div>
+                  <div style={playerOverviewStatValueStyle}>{unreadMessageCount}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isWorkoutActive && playerView === "pass" && (
             <>
               <div style={{ marginBottom: "4px" }}>
                 <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
@@ -3780,12 +3829,6 @@ function TrainingApp() {
               )}
             </>
           )}
-
-          {isWorkoutActive && (
-            <button onClick={finishWorkout} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
-              Avsluta pass
-            </button>
-          )}
         </div>
       )}
 
@@ -3841,7 +3884,7 @@ function TrainingApp() {
               </button>
 
               <div style={exerciseCarouselStatusStyle}>
-                Kort {activeExerciseIndex + 1} av {activeWorkoutExercises.length}
+                Kort {activeExerciseIndex + 1} av {activeWorkoutSlideCount}
               </div>
 
               <button
@@ -3850,24 +3893,16 @@ function TrainingApp() {
                   scrollToExerciseCard(
                     Math.min(
                       activeExerciseIndex + 1,
-                      (activeWorkoutExercises.length || 1) - 1
+                      activeWorkoutSlideCount - 1
                     )
                   )
                 }
-                disabled={
-                  activeExerciseIndex === (activeWorkoutExercises.length || 1) - 1
-                }
+                disabled={activeExerciseIndex === activeWorkoutSlideCount - 1}
                 style={{
                   ...secondaryButtonStyle,
                   padding: "10px 14px",
-                  opacity:
-                    activeExerciseIndex === (activeWorkoutExercises.length || 1) - 1
-                      ? 0.45
-                      : 1,
-                  cursor:
-                    activeExerciseIndex === (activeWorkoutExercises.length || 1) - 1
-                      ? "default"
-                      : "pointer",
+                  opacity: activeExerciseIndex === activeWorkoutSlideCount - 1 ? 0.45 : 1,
+                  cursor: activeExerciseIndex === activeWorkoutSlideCount - 1 ? "default" : "pointer",
                 }}
               >
                 Nästa
@@ -4217,6 +4252,46 @@ function TrainingApp() {
               </div>
             )
           })}
+
+              <div
+                data-exercise-card="true"
+                style={
+                  isMobile
+                    ? {
+                        ...cardStyle,
+                        ...exerciseSwipeCardStyle,
+                      }
+                    : cardStyle
+                }
+              >
+                <div style={exerciseProgressStyle}>
+                  Avslut {activeWorkoutSlideCount} / {activeWorkoutSlideCount}
+                </div>
+
+                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Avsluta pass</h3>
+                <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
+                  Skriv en kort kommentar om hela passet innan du avslutar.
+                </p>
+
+                <div style={exerciseCommentCardStyle}>
+                  <div style={exerciseCommentTitleStyle}>Kommentar på passet</div>
+                  <textarea
+                    rows={4}
+                    placeholder="T.ex. tungt pass idag, ont i knä eller något tränaren bör veta"
+                    value={passComment}
+                    onChange={(e) => setPassComment(e.target.value)}
+                    style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "104px" }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={finishWorkout}
+                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                >
+                  Avsluta pass
+                </button>
+              </div>
             </div>
           </div>
         </>
@@ -4938,6 +5013,28 @@ const coachNavTextStyle = {
   fontSize: "14px",
   color: "#566173",
   lineHeight: 1.5,
+}
+
+const playerOverviewStatCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "18px",
+  backgroundColor: "rgba(255,255,255,0.12)",
+  border: "1px solid rgba(255,255,255,0.18)",
+}
+
+const playerOverviewStatLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "rgba(255,255,255,0.76)",
+  marginBottom: "6px",
+}
+
+const playerOverviewStatValueStyle = {
+  fontSize: "28px",
+  fontWeight: "900",
+  color: "#ffffff",
 }
 
 export default TrainingApp
