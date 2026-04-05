@@ -1027,7 +1027,7 @@ function TrainingApp() {
 
     if (!session) {
       setStatus("Du behöver logga in igen")
-      return false
+      return null
     }
 
     const { error } = await supabase.auth.refreshSession()
@@ -1038,10 +1038,14 @@ function TrainingApp() {
       setUser(null)
       setProfile(null)
       setStatus("Din inloggning har gått ut. Logga in igen.")
-      return false
+      return null
     }
 
-    return true
+    const {
+      data: { session: refreshedSession },
+    } = await supabase.auth.getSession()
+
+    return refreshedSession?.access_token || null
   }
 
   const handleCreatePlayer = async (e) => {
@@ -1062,13 +1066,18 @@ function TrainingApp() {
       return
     }
 
-    if (!(await ensureFreshSession())) {
+    const accessToken = await ensureFreshSession()
+
+    if (!accessToken) {
       return
     }
 
     setIsCreatingPlayer(true)
 
     const { data, error } = await supabase.functions.invoke("create-player", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: {
         full_name: newPlayerName.trim(),
         password: newPlayerPassword.trim(),
@@ -1168,7 +1177,9 @@ function TrainingApp() {
       return
     }
 
-    if (!(await ensureFreshSession())) {
+    const accessToken = await ensureFreshSession()
+
+    if (!accessToken) {
       return
     }
 
@@ -1188,6 +1199,9 @@ function TrainingApp() {
       }
 
       const { data, error } = await supabase.functions.invoke("create-player", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: {
           full_name: player.full_name,
           password: player.password,
