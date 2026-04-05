@@ -64,6 +64,8 @@ function TrainingApp() {
   const [importResults, setImportResults] = useState([])
   const [coachView, setCoachView] = useState("home")
   const [playerView, setPlayerView] = useState("overview")
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [globalView, setGlobalView] = useState("app")
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
@@ -3345,6 +3347,7 @@ function TrainingApp() {
   ]
 
   const managementTabs = profile?.role === "head_admin" ? headAdminTabs : coachTabs
+  const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
 
   return (
     <div
@@ -3386,18 +3389,101 @@ function TrainingApp() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={async () => {
-            await supabase.auth.signOut()
-            window.location.reload()
-          }}
-          style={{ ...logoutButtonStyle, width: isMobile ? "100%" : "auto" }}
-        >
-          Logga ut
-        </button>
+        <div style={headerActionsWrapStyle(isMobile)}>
+          <div style={menuWrapStyle}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              style={{ ...menuButtonStyle, width: isMobile ? "100%" : "auto" }}
+            >
+              Meny
+            </button>
+
+            {isMenuOpen && (
+              <div style={menuDropdownStyle(isMobile)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGlobalView("account")
+                    setIsMenuOpen(false)
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Mitt konto
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut()
+              window.location.reload()
+            }}
+            style={{ ...logoutButtonStyle, width: isMobile ? "100%" : "auto" }}
+          >
+            Logga ut
+          </button>
+        </div>
       </div>
 
+      {globalView === "account" && (
+        <div
+          style={{
+            ...cardStyle,
+            padding: isMobile ? "16px 14px" : cardStyle.padding,
+            borderRadius: isMobile ? "20px" : cardStyle.borderRadius,
+            marginBottom: isMobile ? "16px" : cardStyle.marginBottom,
+          }}
+        >
+          <div style={accountHeaderStyle(isMobile)}>
+            <div>
+              <div style={sectionTitleStyle}>Mitt konto</div>
+              <p style={mutedTextStyle}>Det här är startsidan för kontofunktioner som gäller alla användartyper.</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setGlobalView("app")}
+              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+            >
+              Tillbaka
+            </button>
+          </div>
+
+          <div style={accountGridStyle(isMobile)}>
+            <div style={accountInfoCardStyle}>
+              <div style={accountInfoLabelStyle}>Namn</div>
+              <div style={accountInfoValueStyle}>{profile.full_name || "-"}</div>
+            </div>
+
+            <div style={accountInfoCardStyle}>
+              <div style={accountInfoLabelStyle}>Användarnamn</div>
+              <div style={accountInfoValueStyle}>@{profile.username || "-"}</div>
+            </div>
+
+            <div style={accountInfoCardStyle}>
+              <div style={accountInfoLabelStyle}>Roll</div>
+              <div style={accountInfoValueStyle}>
+                {profile.role === "head_admin"
+                  ? "Huvudadmin"
+                  : profile.role === "coach"
+                  ? "Tränare"
+                  : "Spelare"}
+              </div>
+            </div>
+
+            <div style={accountInfoCardStyle}>
+              <div style={accountInfoLabelStyle}>Lag</div>
+              <div style={accountInfoValueStyle}>{teamName}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {globalView === "app" && (
+        <>
       <div
         style={{
           ...heroCardStyle,
@@ -4500,6 +4586,8 @@ function TrainingApp() {
           </div>
         </>
       )}
+      </>
+      )}
     </div>
   )
 }
@@ -4628,6 +4716,58 @@ const logoutButtonStyle = {
   fontWeight: "800",
   whiteSpace: "nowrap",
   boxShadow: "0 10px 26px rgba(24, 32, 43, 0.08)",
+}
+
+const headerActionsWrapStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: "stretch",
+  justifyContent: "flex-end",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "10px",
+})
+
+const menuWrapStyle = {
+  position: "relative",
+}
+
+const menuButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid #d8e3ef",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "800",
+  whiteSpace: "nowrap",
+  boxShadow: "0 10px 26px rgba(24, 32, 43, 0.08)",
+}
+
+const menuDropdownStyle = (isMobile) => ({
+  position: isMobile ? "static" : "absolute",
+  top: isMobile ? "auto" : "calc(100% + 8px)",
+  right: 0,
+  minWidth: isMobile ? "100%" : "200px",
+  padding: "8px",
+  borderRadius: "16px",
+  border: "1px solid #d8e3ef",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 18px 40px rgba(24, 32, 43, 0.12)",
+  zIndex: 10,
+  marginTop: isMobile ? "8px" : 0,
+})
+
+const menuItemButtonStyle = {
+  width: "100%",
+  padding: "12px 14px",
+  border: "none",
+  borderRadius: "12px",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "800",
+  textAlign: "left",
 }
 
 const coachTabsWrapStyle = {
@@ -5218,6 +5358,43 @@ const coachNavTextStyle = {
   fontSize: "14px",
   color: "#566173",
   lineHeight: 1.5,
+}
+
+const accountHeaderStyle = (isMobile) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: isMobile ? "stretch" : "flex-start",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "12px",
+  marginBottom: "16px",
+})
+
+const accountGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const accountInfoCardStyle = {
+  padding: "16px",
+  borderRadius: "18px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+}
+
+const accountInfoLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  color: "#64748b",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  marginBottom: "6px",
+}
+
+const accountInfoValueStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
 }
 
 const playerOverviewStatCardStyle = {
