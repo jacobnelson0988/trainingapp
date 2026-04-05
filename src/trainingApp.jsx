@@ -389,19 +389,7 @@ function TrainingApp() {
 
       const { data, error } = await supabase
         .from("workout_template_exercise_alternatives")
-        .select(`
-          id,
-          workout_template_exercise_id,
-          alternative_exercise_id,
-          alternative_exercise:exercises!workout_template_exercise_alternatives_alternative_exercise_id_fkey (
-            id,
-            name,
-            exercise_type,
-            description,
-            media_url,
-            default_reps_mode
-          )
-        `)
+        .select("id, workout_template_exercise_id, alternative_exercise_id")
         .in("workout_template_exercise_id", templateExercisesFromDB.map((row) => row.id))
 
       if (error) {
@@ -450,15 +438,21 @@ function TrainingApp() {
         .map((row) => {
           const alternativeExercises = templateExerciseAlternativesFromDB
             .filter((alternative) => String(alternative.workout_template_exercise_id) === String(row.id))
-            .map((alternative) => ({
-              id: alternative.id,
-              exerciseId: alternative.alternative_exercise_id,
-              name: alternative.alternative_exercise?.name || "",
-              type: alternative.alternative_exercise?.exercise_type || "reps_only",
-              description: alternative.alternative_exercise?.description || "",
-              mediaUrl: alternative.alternative_exercise?.media_url || "",
-              defaultRepsMode: alternative.alternative_exercise?.default_reps_mode || "fixed",
-            }))
+            .map((alternative) => {
+              const alternativeExercise = exercisesFromDB.find(
+                (exercise) => String(exercise.id) === String(alternative.alternative_exercise_id)
+              )
+
+              return {
+                id: alternative.id,
+                exerciseId: alternative.alternative_exercise_id,
+                name: alternativeExercise?.name || "",
+                type: alternativeExercise?.exercise_type || "reps_only",
+                description: alternativeExercise?.description || "",
+                mediaUrl: alternativeExercise?.media_url || "",
+                defaultRepsMode: alternativeExercise?.default_reps_mode || "fixed",
+              }
+            })
 
           const suggestedGuide =
             templateExercisesFromDB
@@ -507,7 +501,7 @@ function TrainingApp() {
     }, {})
 
     setWorkoutsFromDB(mapped)
-  }, [templatesFromDB, templateExerciseAlternativesFromDB, templateExercisesFromDB])
+  }, [exercisesFromDB, templatesFromDB, templateExerciseAlternativesFromDB, templateExercisesFromDB])
 
   const fetchTargetsByPassForUser = async (userId) => {
     const { data, error } = await supabase
@@ -2931,19 +2925,7 @@ function TrainingApp() {
         workout_template_exercise_id: passExerciseId,
         alternative_exercise_id: alternativeExerciseId,
       })
-      .select(`
-        id,
-        workout_template_exercise_id,
-        alternative_exercise_id,
-        alternative_exercise:exercises!workout_template_exercise_alternatives_alternative_exercise_id_fkey (
-          id,
-          name,
-          exercise_type,
-          description,
-          media_url,
-          default_reps_mode
-        )
-      `)
+      .select("id, workout_template_exercise_id, alternative_exercise_id")
       .single()
 
     if (error) {
