@@ -3353,6 +3353,7 @@ function TrainingApp() {
     <div
       style={{
         ...pageStyle,
+        position: "relative",
         padding: isMobile
           ? "max(14px, env(safe-area-inset-top)) 12px calc(36px + env(safe-area-inset-bottom))"
           : pageStyle.padding,
@@ -3417,17 +3418,6 @@ function TrainingApp() {
               </div>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={async () => {
-              await supabase.auth.signOut()
-              window.location.reload()
-            }}
-            style={{ ...logoutButtonStyle, width: isMobile ? "100%" : "auto" }}
-          >
-            Logga ut
-          </button>
         </div>
       </div>
 
@@ -3481,6 +3471,19 @@ function TrainingApp() {
               <div style={accountInfoLabelStyle}>Lag</div>
               <div style={accountInfoValueStyle}>{teamName}</div>
             </div>
+          </div>
+
+          <div style={accountActionsStyle}>
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut()
+                window.location.reload()
+              }}
+              style={{ ...logoutButtonStyle, width: isMobile ? "100%" : "auto" }}
+            >
+              Logga ut
+            </button>
           </div>
         </div>
       )}
@@ -4722,12 +4725,12 @@ const logoutButtonStyle = {
 }
 
 const headerActionsWrapStyle = (isMobile) => ({
+  position: "absolute",
+  top: isMobile ? "max(14px, env(safe-area-inset-top))" : "20px",
+  right: isMobile ? "12px" : "16px",
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "flex-end",
-  flexDirection: "row",
-  gap: "10px",
-  flexWrap: "wrap",
 })
 
 const menuWrapStyle = {
@@ -4759,17 +4762,19 @@ const menuIconLineStyle = {
 }
 
 const menuDropdownStyle = (isMobile) => ({
-  position: isMobile ? "static" : "absolute",
-  top: isMobile ? "auto" : "calc(100% + 8px)",
+  position: "fixed",
+  top: isMobile ? "calc(max(14px, env(safe-area-inset-top)) + 54px)" : "76px",
   right: 0,
-  minWidth: isMobile ? "100%" : "200px",
-  padding: "8px",
-  borderRadius: "16px",
+  width: isMobile ? "calc(100vw - 12px)" : "min(360px, 50vw)",
+  maxWidth: "calc(100vw - 12px)",
+  minHeight: isMobile ? "50vh" : "46vh",
+  padding: "14px",
+  borderRadius: "20px 0 0 20px",
   border: "1px solid #d8e3ef",
   backgroundColor: "#ffffff",
   boxShadow: "0 18px 40px rgba(24, 32, 43, 0.12)",
   zIndex: 10,
-  marginTop: isMobile ? "8px" : 0,
+  overflowY: "auto",
 })
 
 const menuItemButtonStyle = {
@@ -4783,6 +4788,12 @@ const menuItemButtonStyle = {
   fontSize: "14px",
   fontWeight: "800",
   textAlign: "left",
+}
+
+const accountActionsStyle = {
+  marginTop: "16px",
+  display: "flex",
+  justifyContent: "flex-end",
 }
 
 const coachTabsWrapStyle = {
