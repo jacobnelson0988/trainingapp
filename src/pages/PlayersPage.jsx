@@ -30,23 +30,15 @@ function PlayersPage({
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
-  const [expandedTargetPasses, setExpandedTargetPasses] = useState({})
+  const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
 
-  const toggleExpandedTargetPass = (passKey) => {
-    setExpandedTargetPasses((prev) => ({
+  const handleSelectedTargetExerciseChange = (passKey, exerciseName) => {
+    setSelectedTargetExerciseByPass((prev) => ({
       ...prev,
-      [passKey]: !prev[passKey],
+      [passKey]: exerciseName,
     }))
-  }
-
-  const handlePassSetTargetChange = (passKey, value) => {
-    const exercises = activeWorkouts[passKey]?.exercises || []
-
-    exercises.forEach((exercise) => {
-      handleTargetDraftChange(passKey, exercise.name, "target_sets", value)
-    })
   }
 
   const filteredPlayers = players.filter((player) => {
@@ -237,13 +229,19 @@ function PlayersPage({
               >
                 {(() => {
                   const passExercises = activeWorkouts[passKey]?.exercises || []
-                  const setValues = passExercises
-                    .map((exercise) => (targetDrafts[passKey] || {})[exercise.name]?.target_sets)
-                    .filter((value) => value !== undefined)
-                  const uniqueSetValues = Array.from(new Set(setValues.map((value) => String(value ?? ""))))
-                  const sharedSetValue = uniqueSetValues.length <= 1 ? uniqueSetValues[0] ?? "" : ""
-                  const hasMixedSetValues = uniqueSetValues.length > 1
-                  const isExpanded = !!expandedTargetPasses[passKey]
+                  const selectedExerciseName =
+                    selectedTargetExerciseByPass[passKey] ||
+                    passExercises[0]?.name ||
+                    ""
+                  const selectedExercise = passExercises.find(
+                    (exercise) => exercise.name === selectedExerciseName
+                  )
+                  const draft = selectedExercise
+                    ? {
+                        target_reps_mode: selectedExercise.defaultRepsMode || "fixed",
+                        ...((targetDrafts[passKey] || {})[selectedExercise.name] || {}),
+                      }
+                    : null
 
                   return (
                     <>
@@ -262,28 +260,14 @@ function PlayersPage({
                             {activeWorkouts[passKey]?.label || passKey}
                           </div>
                           <div style={{ fontSize: "13px", color: "#64748b" }}>
-                            {passExercises.length} övningar. Sätt antal set en gång för hela passet och justera sedan reps eller vikt vid behov.
+                            {passExercises.length} övningar. Välj en övning och sätt bara individuella reps, vikt eller kommentar här. Antal set kommer från passet.
                           </div>
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleExpandedTargetPass(passKey)}
-                          style={{
-                            ...quickActionButtonStyle,
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #d8e3ef",
-                            color: "#18202b",
-                            width: isMobile ? "100%" : "auto",
-                          }}
-                        >
-                          {isExpanded ? "Dölj övningar" : "Justera övningar"}
-                        </button>
                       </div>
 
                       <div
                         style={{
-                          marginBottom: isExpanded ? "14px" : 0,
+                          marginBottom: "14px",
                           padding: "14px",
                           borderRadius: "14px",
                           border: "1px solid #dbe5ef",
@@ -291,40 +275,24 @@ function PlayersPage({
                         }}
                       >
                         <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                          Standardmål för passet
+                          Välj övning
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "10px",
-                            alignItems: isMobile ? "stretch" : "center",
-                            flexDirection: isMobile ? "column" : "row",
-                          }}
+                        <select
+                          value={selectedExerciseName}
+                          onChange={(e) => handleSelectedTargetExerciseChange(passKey, e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
                         >
-                          <input
-                            type="number"
-                            placeholder="Set för hela passet"
-                            value={sharedSetValue}
-                            onChange={(e) => handlePassSetTargetChange(passKey, e.target.value)}
-                            style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
-                          />
-                          <div style={{ fontSize: "13px", color: "#64748b" }}>
-                            {hasMixedSetValues
-                              ? "Olika setvärden finns redan på övningarna. Ett nytt värde här skriver över alla."
-                              : "Det här värdet används för alla övningar i passet."}
-                          </div>
-                        </div>
+                          {passExercises.map((exercise) => (
+                            <option key={`${passKey}-${exercise.name}`} value={exercise.name}>
+                              {exercise.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      {isExpanded && passExercises.map((exercise) => {
-                  const draft = {
-                    target_reps_mode: exercise.defaultRepsMode || "fixed",
-                    ...((targetDrafts[passKey] || {})[exercise.name] || {}),
-                  }
-
-                  return (
+                      {selectedExercise && draft && (
                     <div
-                      key={`${passKey}-${exercise.name}`}
+                      key={`${passKey}-${selectedExercise.name}`}
                       style={{
                         border: "1px solid #e2e8f0",
                         borderRadius: "14px",
@@ -334,9 +302,9 @@ function PlayersPage({
                       }}
                     >
                       <div style={{ marginBottom: "10px" }}>
-                        <strong>{exercise.name}</strong>
+                        <strong>{selectedExercise.name}</strong>
                         <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
-                          Justera bara det som behöver vara individuellt. Antal set styrs ovan för hela passet.
+                          Den här rutan används bara för avvikelser från standardpasset. Lämna fälten tomma om spelaren ska följa passets vanliga upplägg.
                         </div>
                       </div>
 
@@ -354,7 +322,7 @@ function PlayersPage({
                           placeholder="Reps"
                           disabled={draft.target_reps_mode === "max"}
                           value={draft.target_reps ?? ""}
-                          onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_reps", e.target.value)}
+                          onChange={(e) => handleTargetDraftChange(passKey, selectedExercise.name, "target_reps", e.target.value)}
                           style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
                         />
                         <button
@@ -362,7 +330,7 @@ function PlayersPage({
                           onClick={() =>
                             handleTargetDraftChange(
                               passKey,
-                              exercise.name,
+                              selectedExercise.name,
                               "target_reps_mode",
                               draft.target_reps_mode === "max" ? "fixed" : "max"
                             )
@@ -381,12 +349,12 @@ function PlayersPage({
                         >
                           {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
                         </button>
-                        {exercise.type === "weight_reps" && (
+                        {selectedExercise.type === "weight_reps" && (
                           <input
                             type="number"
                             placeholder="Vikt"
                             value={draft.target_weight ?? ""}
-                            onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_weight", e.target.value)}
+                            onChange={(e) => handleTargetDraftChange(passKey, selectedExercise.name, "target_weight", e.target.value)}
                             style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
                           />
                         )}
@@ -396,12 +364,11 @@ function PlayersPage({
                         type="text"
                         placeholder="Kommentar / teknikfokus"
                         value={draft.target_comment ?? ""}
-                        onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_comment", e.target.value)}
+                        onChange={(e) => handleTargetDraftChange(passKey, selectedExercise.name, "target_comment", e.target.value)}
                         style={{ ...inputStyle, width: "100%" }}
                       />
                     </div>
-                  )
-                      })}
+                      )}
                     </>
                   )
                 })()}

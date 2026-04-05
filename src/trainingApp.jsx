@@ -1657,7 +1657,10 @@ function TrainingApp() {
     const defaultInputs = {}
     const defaultExerciseComments = {}
     workout.exercises.forEach((exercise, index) => {
-      const targetSetCount = Math.max(1, Number(workoutTargets[exercise.name]?.target_sets) || 1)
+      const targetSetCount = Math.max(
+        1,
+        Number(workoutTargets[exercise.name]?.target_sets ?? exercise.targetSets) || 1
+      )
       defaultInputs[index] = Array.from({ length: targetSetCount }, (_, setIndex) => ({
         weight: "",
         reps: "",
@@ -4044,10 +4047,15 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {!isLoadingPlayerTargets && (
+                {!isLoadingPlayerTargets &&
+                  currentTarget &&
+                  (currentTarget.target_reps != null ||
+                    currentTarget.target_weight != null ||
+                    String(currentTarget.target_comment || "").trim() ||
+                    currentTarget.target_reps_mode === "max") && (
                   <div style={targetBoxStyle}>
                     <div style={targetBoxHeaderStyle}>
-                      <div style={targetBoxTitleStyle}>Resultat & mål</div>
+                      <div style={targetBoxTitleStyle}>Individuella mål</div>
                       {latestExerciseTopSet && (
                         <div style={targetHistoryBadgeStyle}>Senaste passet</div>
                       )}
@@ -4071,86 +4079,42 @@ function TrainingApp() {
                     <div style={targetSectionDividerStyle} />
                     <div style={targetSectionLabelStyle}>Dagens mål</div>
 
-                    {currentTarget ? (
-                      <>
+                    <>
+                      {exercise.type === "seconds_only" ? (
                         <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>Set</span>
-                          <span style={targetValueStyle}>{currentTarget.target_sets ?? "-"}</span>
+                          <span style={targetLabelStyle}>Tid</span>
+                          <span style={targetValueStyle}>
+                            {currentTarget.target_reps_mode === "max"
+                              ? "max"
+                              : `${currentTarget.target_reps ?? "-"} sek`}
+                          </span>
                         </div>
+                      ) : (
+                        <div style={targetRowStyle}>
+                          <span style={targetLabelStyle}>Reps</span>
+                          <span style={targetValueStyle}>
+                            {currentTarget.target_reps_mode === "max"
+                              ? "max"
+                              : currentTarget.target_reps ?? "-"}
+                          </span>
+                        </div>
+                      )}
 
-                        {exercise.type === "seconds_only" ? (
-                          <div style={targetRowStyle}>
-                            <span style={targetLabelStyle}>Tid</span>
-                            <span style={targetValueStyle}>{currentTarget.target_reps ?? "-"} sek</span>
-                          </div>
-                        ) : (
-                          <div style={targetRowStyle}>
-                            <span style={targetLabelStyle}>Reps</span>
-                            <span style={targetValueStyle}>
-                              {currentTarget.target_reps_mode === "max"
-                                ? "max"
-                                : (currentTarget.target_reps ?? "-")}
-                            </span>
-                          </div>
-                        )}
+                      {exercise.type === "weight_reps" && currentTarget.target_weight != null && (
+                        <div style={targetRowStyle}>
+                          <span style={targetLabelStyle}>Vikt</span>
+                          <span style={targetValueStyle}>
+                            {currentTarget.target_weight} kg
+                          </span>
+                        </div>
+                      )}
 
-                        {exercise.type === "weight_reps" && (
-                          <div style={targetRowStyle}>
-                            <span style={targetLabelStyle}>Vikt</span>
-                            <span style={targetValueStyle}>
-                              {currentTarget.target_weight != null
-                                ? `${currentTarget.target_weight} kg`
-                                : "-"}
-                            </span>
-                          </div>
-                        )}
-
-                        {currentTarget.target_comment && (
-                          <div style={{ ...targetCommentStyle, marginTop: "8px" }}>
-                            <strong>Kommentar:</strong> {currentTarget.target_comment}
-                          </div>
-                        )}
-
-                        {latestWorkout[exercise.name]?.length > 0 && (
-                          <>
-                            <div style={targetSectionDividerStyle} />
-                            <div style={targetSectionLabelStyle}>Senaste träningspass</div>
-
-                            {latestWorkout[exercise.name].map((set) => (
-                              <div key={set.id} style={latestRowStyle}>
-                                Set {set.set_number} –{" "}
-                                {exercise.type === "weight_reps"
-                                  ? `${set.weight} x ${set.reps}`
-                                  : exercise.type === "reps_only"
-                                  ? `${set.reps} reps`
-                                  : `${set.seconds} sek`}
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div style={emptyTargetStyle}>Inget mål satt</div>
-                        {latestWorkout[exercise.name]?.length > 0 && (
-                          <>
-                            <div style={targetSectionDividerStyle} />
-                            <div style={targetSectionLabelStyle}>Senaste träningspass</div>
-
-                            {latestWorkout[exercise.name].map((set) => (
-                              <div key={set.id} style={latestRowStyle}>
-                                Set {set.set_number} –{" "}
-                                {exercise.type === "weight_reps"
-                                  ? `${set.weight} x ${set.reps}`
-                                  : exercise.type === "reps_only"
-                                  ? `${set.reps} reps`
-                                  : `${set.seconds} sek`}
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </>
-                    )}
+                      {currentTarget.target_comment && (
+                        <div style={{ ...targetCommentStyle, marginTop: "8px" }}>
+                          <strong>Kommentar:</strong> {currentTarget.target_comment}
+                        </div>
+                      )}
+                    </>
                   </div>
                 )}
 
