@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "./supabase"
 import ExerciseBankPage from "./pages/ExerciseBankPage"
 import PlayersPage from "./pages/PlayersPage"
-import CreatePlayerPage from "./pages/CreatePlayerPage"
+import CreateUserPage from "./pages/CreateUserPage"
 import CoachHomePage from "./pages/CoachHomePage"
 import PassBuilderPage from "./pages/PassBuilderPage"
+import UsersAdminPage from "./pages/UsersAdminPage"
+import TeamsPage from "./pages/TeamsPage"
+import AdminHomePage from "./pages/AdminHomePage"
 
 function TrainingApp() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -18,10 +21,18 @@ function TrainingApp() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [players, setPlayers] = useState([])
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
+  const [allUsers, setAllUsers] = useState([])
+  const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false)
+  const [teams, setTeams] = useState([])
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false)
+  const [newTeamName, setNewTeamName] = useState("")
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
   const [newPlayerPassword, setNewPlayerPassword] = useState("")
   const [createdPlayer, setCreatedPlayer] = useState(null)
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
+  const [newUserRole, setNewUserRole] = useState("player")
+  const [selectedTeamId, setSelectedTeamId] = useState("")
   const [importedPlayers, setImportedPlayers] = useState([])
   const [importFileName, setImportFileName] = useState("")
   const [isParsingImportFile, setIsParsingImportFile] = useState(false)
@@ -94,6 +105,24 @@ function TrainingApp() {
   useEffect(() => {
     if (profile?.role === "coach") {
       loadPlayers()
+    }
+  }, [profile])
+
+  useEffect(() => {
+    if (profile?.role === "head_admin") {
+      loadAllUsers()
+      loadTeams()
+    }
+  }, [profile])
+
+  useEffect(() => {
+    if (profile?.role === "coach") {
+      loadTeams()
+      setSelectedTeamId(profile.team_id || "")
+    }
+
+    if (profile?.role === "head_admin") {
+      setSelectedTeamId(profile.team_id || "")
     }
   }, [profile])
 
@@ -348,11 +377,17 @@ function TrainingApp() {
   const loadPlayers = async () => {
     setIsLoadingPlayers(true)
 
-    const { data: profileData, error: profileError } = await supabase
+    let query = supabase
       .from("profiles")
-      .select("id, full_name, username, role, comment")
+      .select("id, full_name, username, role, comment, team_id")
       .eq("role", "player")
       .order("full_name", { ascending: true })
+
+    if (profile?.team_id) {
+      query = query.eq("team_id", profile.team_id)
+    }
+
+    const { data: profileData, error: profileError } = await query
 
     if (profileError) {
       console.error(profileError)
@@ -413,6 +448,42 @@ function TrainingApp() {
       }, {})
     )
     setIsLoadingPlayers(false)
+  }
+
+  const loadAllUsers = async () => {
+    setIsLoadingAllUsers(true)
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, username, role, team_id")
+      .order("full_name", { ascending: true })
+
+    if (error) {
+      console.error(error)
+      setIsLoadingAllUsers(false)
+      return
+    }
+
+    setAllUsers(data || [])
+    setIsLoadingAllUsers(false)
+  }
+
+  const loadTeams = async () => {
+    setIsLoadingTeams(true)
+
+    const { data, error } = await supabase
+      .from("teams")
+      .select("id, name")
+      .order("name", { ascending: true })
+
+    if (error) {
+      console.error(error)
+      setIsLoadingTeams(false)
+      return
+    }
+
+    setTeams(data || [])
+    setIsLoadingTeams(false)
   }
 
   const loadPlayerTargets = async (playerId) => {
@@ -937,12 +1008,22 @@ function TrainingApp() {
       return
     }
 
+    const targetRole = profile?.role === "head_admin" ? newUserRole : "player"
+    const targetTeamId = profile?.role === "head_admin" ? selectedTeamId : profile?.team_id
+
+    if (!targetTeamId) {
+      setStatus("Välj lag först")
+      return
+    }
+
     setIsCreatingPlayer(true)
 
     const { data, error } = await supabase.functions.invoke("create-player", {
       body: {
         full_name: newPlayerName.trim(),
         password: newPlayerPassword.trim(),
+        role: targetRole,
+        team_id: targetTeamId,
       },
     })
 
@@ -960,12 +1041,14 @@ function TrainingApp() {
     }
 
     setCreatedPlayer(data)
-    setStatus("Spelare skapad ✅")
+    setStatus(targetRole === "coach" ? "Tränare skapad ✅" : "Spelare skapad ✅")
     setNewPlayerName("")
     setNewPlayerPassword("")
+    setNewUserRole("player")
     setIsCreatingPlayer(false)
     loadPlayers()
-    setCoachView("players")
+    loadAllUsers()
+    setCoachView(profile?.role === "head_admin" ? "users" : "players")
   }
 
   const normalizeImportHeader = (value) => {
@@ -1054,6 +1137,8 @@ function TrainingApp() {
         body: {
           full_name: player.full_name,
           password: player.password,
+          role: "player",
+          team_id: profile?.team_id,
         },
       })
 
@@ -1090,6 +1175,35 @@ function TrainingApp() {
         ? `${successCount} spelare skapade, ${failedCount} misslyckades`
         : `${successCount} spelare skapade ✅`
     )
+  }
+
+  const handleCreateTeam = async () => {
+    setStatus("")
+
+    if (!newTeamName.trim()) {
+      setStatus("Ange namn på lag")
+      return
+    }
+
+    setIsCreatingTeam(true)
+
+    const { data, error } = await supabase
+      .from("teams")
+      .insert({ name: newTeamName.trim() })
+      .select()
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte skapa lag")
+      setIsCreatingTeam(false)
+      return
+    }
+
+    setTeams((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, "sv")))
+    setNewTeamName("")
+    setStatus("Lag skapat ✅")
+    setIsCreatingTeam(false)
   }
 
   const handleTargetDraftChange = (passName, exerciseName, field, value) => {
@@ -1917,7 +2031,7 @@ function TrainingApp() {
   }
 
   const visibleWorkouts =
-    profile?.role === "coach"
+    profile?.role === "coach" || profile?.role === "head_admin"
       ? activeWorkouts
       : assignedWorkoutCodes.reduce((acc, passCode) => {
           if (activeWorkouts[passCode]) {
@@ -1952,6 +2066,16 @@ function TrainingApp() {
     { key: "createPlayer", label: "Ny spelare" },
   ]
 
+  const headAdminTabs = [
+    { key: "home", label: "Översikt" },
+    { key: "users", label: "Användare" },
+    { key: "teams", label: "Lag" },
+    { key: "exerciseBank", label: "Övningar" },
+    { key: "createPlayer", label: "Ny användare" },
+  ]
+
+  const managementTabs = profile?.role === "head_admin" ? headAdminTabs : coachTabs
+
   return (
     <div
       style={{
@@ -1971,7 +2095,13 @@ function TrainingApp() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <p style={eyebrowStyle}>{profile?.role === "coach" ? "Coachläge" : "Spelarläge"}</p>
+          <p style={eyebrowStyle}>
+            {profile?.role === "head_admin"
+              ? "Huvudadmin"
+              : profile?.role === "coach"
+              ? "Coachläge"
+              : "Spelarläge"}
+          </p>
           <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
             Gurra Styrka
           </h1>
@@ -2014,7 +2144,11 @@ function TrainingApp() {
             lineHeight: isMobile ? 1.05 : heroHeadingStyle.lineHeight,
           }}
         >
-          {profile?.role === "coach" ? "Led laget enkelt" : "Hitta ditt pass snabbt"}
+          {profile?.role === "head_admin"
+            ? "Administrera hela föreningen"
+            : profile?.role === "coach"
+            ? "Led laget enkelt"
+            : "Hitta ditt pass snabbt"}
         </div>
         <div
           style={{
@@ -2023,13 +2157,15 @@ function TrainingApp() {
             fontSize: isMobile ? "14px" : heroTextStyle.fontSize,
           }}
         >
-          {profile?.role === "coach"
+          {profile?.role === "head_admin"
+            ? "Skapa lag, lägg till tränare och få överblick över alla användare."
+            : profile?.role === "coach"
             ? "Skapa spelare, bygg pass och sätt mål utan att leta runt i appen."
             : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
         </div>
       </div>
 
-      {profile?.role === "coach" && (
+      {(profile?.role === "coach" || profile?.role === "head_admin") && (
         <>
           <div
             style={{
@@ -2047,7 +2183,7 @@ function TrainingApp() {
               backdropFilter: isMobile ? "blur(14px)" : "none",
             }}
           >
-            {coachTabs.map((tab) => (
+            {managementTabs.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -2099,14 +2235,52 @@ function TrainingApp() {
             )}
 
             {coachView === "home" && (
-              <CoachHomePage
-                setCoachView={setCoachView}
-                setSelectedPlayer={setSelectedPlayer}
-                resetExerciseForm={resetExerciseForm}
+              profile?.role === "head_admin" ? (
+                <AdminHomePage
+                  setCoachView={setCoachView}
+                  mutedTextStyle={mutedTextStyle}
+                  coachNavCardStyle={coachNavCardStyle}
+                  coachNavTitleStyle={coachNavTitleStyle}
+                  coachNavTextStyle={coachNavTextStyle}
+                  isMobile={isMobile}
+                />
+              ) : (
+                <CoachHomePage
+                  setCoachView={setCoachView}
+                  setSelectedPlayer={setSelectedPlayer}
+                  resetExerciseForm={resetExerciseForm}
+                  mutedTextStyle={mutedTextStyle}
+                  coachNavCardStyle={coachNavCardStyle}
+                  coachNavTitleStyle={coachNavTitleStyle}
+                  coachNavTextStyle={coachNavTextStyle}
+                  isMobile={isMobile}
+                />
+              )
+            )}
+
+            {coachView === "users" && profile?.role === "head_admin" && (
+              <UsersAdminPage
+                users={allUsers}
+                teams={teams}
+                isLoadingUsers={isLoadingAllUsers}
+                cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
-                coachNavCardStyle={coachNavCardStyle}
-                coachNavTitleStyle={coachNavTitleStyle}
-                coachNavTextStyle={coachNavTextStyle}
+                isMobile={isMobile}
+              />
+            )}
+
+            {coachView === "teams" && profile?.role === "head_admin" && (
+              <TeamsPage
+                teams={teams}
+                users={allUsers}
+                newTeamName={newTeamName}
+                setNewTeamName={setNewTeamName}
+                handleCreateTeam={handleCreateTeam}
+                isCreatingTeam={isCreatingTeam}
+                cardTitleStyle={cardTitleStyle}
+                inputStyle={inputStyle}
+                buttonStyle={buttonStyle}
+                mutedTextStyle={mutedTextStyle}
                 isMobile={isMobile}
               />
             )}
@@ -2180,14 +2354,21 @@ function TrainingApp() {
             )}
 
             {coachView === "createPlayer" && (
-              <CreatePlayerPage
-                newPlayerName={newPlayerName}
-                setNewPlayerName={setNewPlayerName}
-                newPlayerPassword={newPlayerPassword}
-                setNewPlayerPassword={setNewPlayerPassword}
-                handleCreatePlayer={handleCreatePlayer}
-                isCreatingPlayer={isCreatingPlayer}
-                createdPlayer={createdPlayer}
+              <CreateUserPage
+                isHeadAdmin={profile?.role === "head_admin"}
+                teams={teams}
+                currentTeamId={profile?.team_id}
+                newUserName={newPlayerName}
+                setNewUserName={setNewPlayerName}
+                newUserPassword={newPlayerPassword}
+                setNewUserPassword={setNewPlayerPassword}
+                newUserRole={newUserRole}
+                setNewUserRole={setNewUserRole}
+                selectedTeamId={selectedTeamId}
+                setSelectedTeamId={setSelectedTeamId}
+                handleCreateUser={handleCreatePlayer}
+                isCreatingUser={isCreatingPlayer}
+                createdUser={createdPlayer}
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
                 cardTitleStyle={cardTitleStyle}

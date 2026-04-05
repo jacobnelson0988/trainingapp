@@ -48,7 +48,7 @@ serve(async (req: Request) => {
 
     const { data: profile, error: profileError } = await userClient
       .from("profiles")
-      .select("role")
+      .select("role, team_id")
       .eq("id", user.id)
       .single()
 
@@ -59,22 +59,27 @@ serve(async (req: Request) => {
       })
     }
 
-    if (profile.role !== "coach") {
-      return new Response(JSON.stringify({ error: "Only coach can create players" }), {
+    if (!["coach", "head_admin"].includes(profile.role)) {
+      return new Response(JSON.stringify({ error: "Only coach or head admin can create users" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
-    console.log("coach verified", { userId: user.id })
+    console.log("creator verified", { userId: user.id, role: profile.role })
 
-    const { full_name, password } = await req.json()
+    const { full_name, password, role: requestedRole, team_id: requestedTeamId } = await req.json()
+    const targetRole = profile.role === "head_admin" && requestedRole === "coach" ? "coach" : "player"
+    const targetTeamId = profile.role === "head_admin" ? requestedTeamId || profile.team_id : profile.team_id
     console.log("payload received", {
       full_name,
+      requestedRole,
+      targetRole,
+      targetTeamId,
       passwordLength: typeof password === "string" ? password.length : 0,
     })
 
-    if (!full_name || !password) {
-      return new Response(JSON.stringify({ error: "full_name or password missing" }), {
+    if (!full_name || !password || !targetTeamId) {
+      return new Response(JSON.stringify({ error: "full_name, password or team_id missing" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
@@ -165,7 +170,8 @@ serve(async (req: Request) => {
       id: userData.user.id,
       username,
       full_name,
-      role: "player",
+      role: targetRole,
+      team_id: targetTeamId,
     })
 
     if (insertError) {
@@ -188,8 +194,14 @@ serve(async (req: Request) => {
       )
     }
 
-    console.log("player created successfully", { username, email, createdUserId: userData.user.id })
-    return new Response(JSON.stringify({ username, email }), {
+    console.log("user created successfully", {
+      username,
+      email,
+      role: targetRole,
+      teamId: targetTeamId,
+      createdUserId: userData.user.id,
+    })
+    return new Response(JSON.stringify({ username, email, role: targetRole, team_id: targetTeamId }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
