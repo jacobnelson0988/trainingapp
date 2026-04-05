@@ -4260,17 +4260,21 @@ function TrainingApp() {
                     ? {
                         ...cardStyle,
                         ...exerciseSwipeCardStyle,
+                        order: activeWorkoutSlideCount,
                       }
-                    : cardStyle
+                    : {
+                        ...cardStyle,
+                        order: activeWorkoutSlideCount,
+                      }
                 }
               >
                 <div style={exerciseProgressStyle}>
                   Avslut {activeWorkoutSlideCount} / {activeWorkoutSlideCount}
                 </div>
 
-                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Avsluta pass</h3>
+                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Sista kortet</h3>
                 <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-                  Skriv en kort kommentar om hela passet innan du avslutar.
+                  Skriv en kort kommentar om hela passet och avsluta sedan härifrån.
                 </p>
 
                 <div style={exerciseCommentCardStyle}>
@@ -4289,7 +4293,7 @@ function TrainingApp() {
                   onClick={finishWorkout}
                   style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                 >
-                  Avsluta pass
+                  Spara kommentar och avsluta pass
                 </button>
               </div>
             </div>
