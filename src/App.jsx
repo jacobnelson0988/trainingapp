@@ -1,6 +1,91 @@
-import { useEffect, useState } from "react"
+import { Component, useEffect, useState } from "react"
 import { supabase } from "./supabase"
 import TrainingApp from "./trainingApp"
+
+class AppErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  componentDidCatch(error) {
+    console.error("App crashed:", error)
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            fontFamily: "Roboto, sans-serif",
+            backgroundColor: "#fff8f8",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              backgroundColor: "#ffffff",
+              borderRadius: 24,
+              padding: 24,
+              border: "1px solid #f1caca",
+              boxShadow: "0 20px 48px rgba(24, 32, 43, 0.12)",
+            }}
+          >
+            <h1 style={{ margin: "0 0 12px 0", fontSize: 24, color: "#991b1b" }}>
+              Något gick fel i appen
+            </h1>
+            <p style={{ margin: "0 0 12px 0", color: "#566173", lineHeight: 1.6 }}>
+              Skicka den här texten till mig så kan jag fixa nästa steg utan DevTools.
+            </p>
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                backgroundColor: "#fff4f4",
+                border: "1px solid #f4d0d0",
+                color: "#18202b",
+                fontSize: 14,
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+              }}
+            >
+              {String(this.state.error?.message || this.state.error || "Okänt fel")}
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: 14,
+                padding: "12px 16px",
+                borderRadius: 14,
+                border: "none",
+                background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Ladda om
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -73,7 +158,11 @@ function App() {
   }
 
   if (session) {
-    return <TrainingApp />
+    return (
+      <AppErrorBoundary>
+        <TrainingApp />
+      </AppErrorBoundary>
+    )
   }
 
   return (
