@@ -3987,6 +3987,12 @@ const compactSetInputStyle = {
   minWidth: 0,
 }
 
+const textareaStyle = {
+  resize: "vertical",
+  minHeight: "104px",
+  fontFamily: "inherit",
+}
+
 const compactSetRemoveButtonStyle = {
   flex: "0 0 auto",
   whiteSpace: "nowrap",
