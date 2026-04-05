@@ -1084,6 +1084,10 @@ function TrainingApp() {
 
     const newSessionId = generateSessionId()
     const workout = activeWorkouts[workoutKey]
+    if (!workout || !Array.isArray(workout.exercises)) {
+      setStatus("Kunde inte starta passet")
+      return
+    }
     const workoutTargets = playerTargets || {}
 
     setSelectedWorkout(workoutKey)
@@ -2525,6 +2529,9 @@ function TrainingApp() {
     (selectedWorkoutData?.exercises || []).length - selectedWorkoutPreviewExercises.length,
     0
   )
+  const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
+  const activeWorkoutWarmup = activeWorkoutData?.warmup || { cardio: "", technique: [] }
+  const activeWorkoutExercises = activeWorkoutData?.exercises || []
 
   const coachTabs = [
     { key: "home", label: "Översikt" },
@@ -3070,38 +3077,38 @@ function TrainingApp() {
 
       {selectedWorkout && isWorkoutActive && (
         <>
-          <h2 style={sectionTitleStyle}>{visibleWorkouts[selectedWorkout]?.label}</h2>
+          <h2 style={sectionTitleStyle}>{activeWorkoutData?.label}</h2>
 
           <div style={cardStyle}>
             <h3 style={cardTitleStyle}>Uppvärmning</h3>
 
-            {!!visibleWorkouts[selectedWorkout]?.warmup.cardio && (
-              <div style={{ marginBottom: visibleWorkouts[selectedWorkout]?.warmup.technique.length ? 14 : 0 }}>
+            {!!activeWorkoutWarmup.cardio && (
+              <div style={{ marginBottom: activeWorkoutWarmup.technique.length ? 14 : 0 }}>
                 <p style={subheadingStyle}>Pulshöjande aktivitet</p>
                 <p style={mutedTextStyle}>
-                  {visibleWorkouts[selectedWorkout]?.warmup.cardio}
+                  {activeWorkoutWarmup.cardio}
                 </p>
               </div>
             )}
 
-            {!!visibleWorkouts[selectedWorkout]?.warmup.technique.length && (
+            {!!activeWorkoutWarmup.technique.length && (
               <div>
                 <p style={subheadingStyle}>Teknikuppvärmning</p>
                 <div style={mutedTextStyle}>
-                  {visibleWorkouts[selectedWorkout]?.warmup.technique.map((item, index) => (
+                  {activeWorkoutWarmup.technique.map((item, index) => (
                     <div key={index}>{index + 1}. {item}</div>
                   ))}
                 </div>
               </div>
             )}
 
-            {!visibleWorkouts[selectedWorkout]?.warmup.cardio &&
-              !visibleWorkouts[selectedWorkout]?.warmup.technique.length && (
+            {!activeWorkoutWarmup.cardio &&
+              !activeWorkoutWarmup.technique.length && (
                 <div style={mutedTextStyle}>Ingen uppvärmning inlagd för passet ännu.</div>
               )}
           </div>
 
-          {isMobile && visibleWorkouts[selectedWorkout]?.exercises.length > 1 && (
+          {isMobile && activeWorkoutExercises.length > 1 && (
             <div style={exerciseCarouselToolbarStyle}>
               <button
                 type="button"
@@ -3118,7 +3125,7 @@ function TrainingApp() {
               </button>
 
               <div style={exerciseCarouselStatusStyle}>
-                Kort {activeExerciseIndex + 1} av {visibleWorkouts[selectedWorkout]?.exercises.length || 0}
+                Kort {activeExerciseIndex + 1} av {activeWorkoutExercises.length}
               </div>
 
               <button
@@ -3127,22 +3134,22 @@ function TrainingApp() {
                   scrollToExerciseCard(
                     Math.min(
                       activeExerciseIndex + 1,
-                      (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                      (activeWorkoutExercises.length || 1) - 1
                     )
                   )
                 }
                 disabled={
-                  activeExerciseIndex === (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                  activeExerciseIndex === (activeWorkoutExercises.length || 1) - 1
                 }
                 style={{
                   ...secondaryButtonStyle,
                   padding: "10px 14px",
                   opacity:
-                    activeExerciseIndex === (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                    activeExerciseIndex === (activeWorkoutExercises.length || 1) - 1
                       ? 0.45
                       : 1,
                   cursor:
-                    activeExerciseIndex === (visibleWorkouts[selectedWorkout]?.exercises.length || 1) - 1
+                    activeExerciseIndex === (activeWorkoutExercises.length || 1) - 1
                       ? "default"
                       : "pointer",
                 }}
@@ -3171,8 +3178,8 @@ function TrainingApp() {
             }}
           >
             <div style={isMobile ? exerciseCarouselTrackStyle : undefined}>
-          {visibleWorkouts[selectedWorkout]?.exercises.map((exercise, i) => {
-            const totalExercises = visibleWorkouts[selectedWorkout].exercises.length
+          {activeWorkoutExercises.map((exercise, i) => {
+            const totalExercises = activeWorkoutExercises.length
             const isInfoExpanded = !!expandedInfo[exercise.name]
             const latestExerciseSets = latestWorkout[exercise.name] || []
             const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
