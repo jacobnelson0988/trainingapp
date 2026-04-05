@@ -786,6 +786,7 @@ function TrainingApp() {
           .select(`
             message_id,
             recipient_id,
+            read_at,
             recipient:profiles!message_recipients_recipient_id_fkey (
               id,
               full_name,
@@ -821,9 +822,62 @@ function TrainingApp() {
         ...row,
         recipients: sortProfilesForMessaging(recipientsByMessageId[row.id] || []),
         direction: row.sender_id === user.id ? "sent" : "received",
+        currentUserReadAt:
+          (recipientRows || []).find(
+            (recipientRow) =>
+              recipientRow.message_id === row.id && recipientRow.recipient_id === user.id
+          )?.read_at || null,
+        hasUnread:
+          row.sender_id !== user.id &&
+          !(recipientRows || []).find(
+            (recipientRow) =>
+              recipientRow.message_id === row.id && recipientRow.recipient_id === user.id
+          )?.read_at,
       }))
     )
     setIsLoadingMessages(false)
+  }
+
+  const handleMarkMessagesRead = async (messageIds) => {
+    const targetIds = Array.from(new Set((messageIds || []).filter(Boolean)))
+
+    if (!user || !targetIds.length) return
+
+    const unreadIds = targetIds.filter((messageId) =>
+      messages.some(
+        (message) =>
+          message.id === messageId &&
+          message.sender_id !== user.id &&
+          !message.currentUserReadAt
+      )
+    )
+
+    if (!unreadIds.length) return
+
+    const readAt = new Date().toISOString()
+
+    const { error } = await supabase
+      .from("message_recipients")
+      .update({ read_at: readAt })
+      .eq("recipient_id", user.id)
+      .in("message_id", unreadIds)
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    setMessages((prev) =>
+      prev.map((message) =>
+        unreadIds.includes(message.id)
+          ? {
+              ...message,
+              currentUserReadAt: readAt,
+              hasUnread: false,
+            }
+          : message
+      )
+    )
   }
 
   const handleToggleMessageRecipient = (recipientId) => {
@@ -2964,12 +3018,17 @@ function TrainingApp() {
     ? activeWorkoutData.exercises
     : []
 
+  const unreadMessageCount = messages.filter((message) => message.hasUnread).length
+
   const coachTabs = [
     { key: "home", label: "Översikt" },
     { key: "players", label: "Användare" },
     { key: "exerciseBank", label: "Övningar" },
     { key: "passBuilder", label: "Pass" },
-    { key: "messages", label: "Meddelanden" },
+    {
+      key: "messages",
+      label: unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden",
+    },
   ]
 
   const headAdminTabs = [
@@ -2977,7 +3036,10 @@ function TrainingApp() {
     { key: "users", label: "Användare" },
     { key: "teams", label: "Lag" },
     { key: "exerciseBank", label: "Övningar" },
-    { key: "messages", label: "Meddelanden" },
+    {
+      key: "messages",
+      label: unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden",
+    },
     { key: "feedback", label: "Feedback" },
     { key: "createPlayer", label: "Ny användare" },
   ]
@@ -3301,10 +3363,12 @@ function TrainingApp() {
                 currentUserId={user?.id}
                 recipients={messageRecipients}
                 selectedRecipientIds={selectedMessageRecipientIds}
+                setSelectedRecipientIds={setSelectedMessageRecipientIds}
                 onToggleRecipient={handleToggleMessageRecipient}
                 messageBody={messageBody}
                 setMessageBody={setMessageBody}
                 handleSendMessage={handleSendMessage}
+                handleMarkMessagesRead={handleMarkMessagesRead}
                 isSendingMessage={isSendingMessage}
                 messages={messages}
                 isLoadingMessages={isLoadingMessages}
@@ -3479,7 +3543,11 @@ function TrainingApp() {
                   width: isMobile ? "100%" : "auto",
                 }}
               >
-                {playerView === "messages" ? "Tillbaka till pass" : "Meddelanden"}
+                {playerView === "messages"
+                  ? "Tillbaka till pass"
+                  : unreadMessageCount
+                  ? `Meddelanden (${unreadMessageCount})`
+                  : "Meddelanden"}
               </button>
             </div>
           )}
@@ -3490,10 +3558,12 @@ function TrainingApp() {
               currentUserId={user?.id}
               recipients={messageRecipients}
               selectedRecipientIds={selectedMessageRecipientIds}
+              setSelectedRecipientIds={setSelectedMessageRecipientIds}
               onToggleRecipient={handleToggleMessageRecipient}
               messageBody={messageBody}
               setMessageBody={setMessageBody}
               handleSendMessage={handleSendMessage}
+              handleMarkMessagesRead={handleMarkMessagesRead}
               isSendingMessage={isSendingMessage}
               messages={messages}
               isLoadingMessages={isLoadingMessages}
