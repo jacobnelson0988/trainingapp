@@ -1838,7 +1838,6 @@ function TrainingApp() {
     const nextInfoValue = renamePassInfo.trim()
     const hasInfoChange = nextInfoValue !== (selectedTemplate.info || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
-      const existingRow = templateExercisesFromDB.find((row) => row.id === rowId)
       const nextGuide = draft.guide?.trim() || ""
 
       return {
@@ -1921,13 +1920,17 @@ function TrainingApp() {
       return true
     }
 
-    const { error } = await supabase
-      .from("workout_template_exercises")
-      .upsert(updates, { onConflict: "id" })
+    const updateResults = await Promise.all(
+      updates.map(({ id, ...payload }) =>
+        supabase.from("workout_template_exercises").update(payload).eq("id", id)
+      )
+    )
+
+    const error = updateResults.find((result) => result.error)?.error
 
     if (error) {
       console.error(error)
-      setStatus("Kunde inte spara passändringar")
+      setStatus(`Kunde inte spara passändringar${error.message ? `: ${error.message}` : ""}`)
       return false
     }
 
