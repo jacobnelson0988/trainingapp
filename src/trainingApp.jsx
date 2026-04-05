@@ -1857,7 +1857,7 @@ function TrainingApp() {
 
     if (!hasRenameChange && !hasInfoChange && updates.length === 0) {
       setStatus("Inga passändringar att spara")
-      return false
+      return true
     }
 
     setStatus("")
