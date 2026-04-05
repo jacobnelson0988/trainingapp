@@ -1,6 +1,8 @@
 import { useState } from "react"
 
 function PlayersPage({
+  role,
+  setCoachView,
   isLoadingPlayers,
   players,
   selectedPlayer,
@@ -23,6 +25,7 @@ function PlayersPage({
   handleAssignAllPassesToPlayer,
   handleClearAssignedPassesFromPlayer,
   isUpdatingPassAssignments,
+  buttonStyle,
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
@@ -342,10 +345,33 @@ function PlayersPage({
 
   return (
     <>
-      <h3 style={cardTitleStyle}>Mina spelare</h3>
-      <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-        Sök fram spelare snabbt och redigera direkt under vald rad eller kort.
-      </p>
+      <div
+        style={{
+          marginBottom: "14px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: isMobile ? "stretch" : "center",
+          gap: "12px",
+          flexDirection: isMobile ? "column" : "row",
+        }}
+      >
+        <div>
+          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Mina spelare</h3>
+          <p style={mutedTextStyle}>
+            Sök fram spelare snabbt och redigera direkt under vald rad eller kort.
+          </p>
+        </div>
+
+        {role === "coach" && (
+          <button
+            type="button"
+            onClick={() => setCoachView("createPlayer")}
+            style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+          >
+            Ny spelare
+          </button>
+        )}
+      </div>
 
       <input
         type="text"

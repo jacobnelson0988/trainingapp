@@ -2959,7 +2959,6 @@ function TrainingApp() {
     { key: "exerciseBank", label: "Övningar" },
     { key: "passBuilder", label: "Pass" },
     { key: "messages", label: "Meddelanden" },
-    { key: "createPlayer", label: "Ny användare" },
   ]
 
   const headAdminTabs = [
@@ -3412,6 +3411,8 @@ function TrainingApp() {
 
             {coachView === "players" && (
               <PlayersPage
+                role={profile?.role}
+                setCoachView={setCoachView}
                 isLoadingPlayers={isLoadingPlayers}
                 players={players}
                 selectedPlayer={selectedPlayer}
@@ -3434,6 +3435,7 @@ function TrainingApp() {
                 handleAssignAllPassesToPlayer={handleAssignAllPassesToPlayer}
                 handleClearAssignedPassesFromPlayer={handleClearAssignedPassesFromPlayer}
                 isUpdatingPassAssignments={isUpdatingPassAssignments}
+                buttonStyle={buttonStyle}
                 isMobile={isMobile}
               />
             )}

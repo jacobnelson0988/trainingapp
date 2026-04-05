@@ -18,21 +18,6 @@ function CoachHomePage({
       <div style={{ display: "grid", gap: "12px", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
         <button
           type="button"
-          onClick={() => setCoachView("createPlayer")}
-          style={{
-            ...coachNavCardStyle,
-            minHeight: isMobile ? "132px" : coachNavCardStyle.minHeight,
-          }}
-        >
-          <div style={coachNavTopRowStyle}>
-            <div style={coachNavTitleStyle}>Lägg till användare</div>
-            <div style={coachNavArrowStyle}>→</div>
-          </div>
-          <div style={coachNavTextStyle}>Skapa spelare och tränare i ditt lag</div>
-        </button>
-
-        <button
-          type="button"
           onClick={() => {
             setCoachView("players")
             setSelectedPlayer(null)
