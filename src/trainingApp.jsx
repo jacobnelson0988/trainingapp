@@ -23,6 +23,7 @@ function TrainingApp() {
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
   const [allUsers, setAllUsers] = useState([])
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false)
+  const [updatingUserTeamId, setUpdatingUserTeamId] = useState(null)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
@@ -490,6 +491,37 @@ function TrainingApp() {
 
     setTeams(data || [])
     setIsLoadingTeams(false)
+  }
+
+  const handleChangeUserTeam = async (userId, nextTeamId) => {
+    if (!userId || !nextTeamId) {
+      setStatus("Välj ett lag först")
+      return
+    }
+
+    setUpdatingUserTeamId(userId)
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ team_id: nextTeamId })
+      .eq("id", userId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte byta lag")
+      setUpdatingUserTeamId(null)
+      return
+    }
+
+    setAllUsers((prev) =>
+      prev.map((entry) => (entry.id === userId ? { ...entry, team_id: nextTeamId } : entry))
+    )
+    setPlayers((prev) =>
+      prev.map((entry) => (entry.id === userId ? { ...entry, team_id: nextTeamId } : entry))
+    )
+    setSelectedPlayer((prev) => (prev?.id === userId ? { ...prev, team_id: nextTeamId } : prev))
+    setStatus("Lag uppdaterat ✅")
+    setUpdatingUserTeamId(null)
   }
 
   const loadPlayerTargets = async (playerId) => {
@@ -2331,6 +2363,8 @@ function TrainingApp() {
                 users={allUsers}
                 teams={teams}
                 isLoadingUsers={isLoadingAllUsers}
+                updatingUserTeamId={updatingUserTeamId}
+                handleChangeUserTeam={handleChangeUserTeam}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 isMobile={isMobile}

@@ -1,6 +1,15 @@
 import { useState } from "react"
 
-function UsersAdminPage({ users, teams, isLoadingUsers, cardTitleStyle, mutedTextStyle, isMobile }) {
+function UsersAdminPage({
+  users,
+  teams,
+  isLoadingUsers,
+  updatingUserTeamId,
+  handleChangeUserTeam,
+  cardTitleStyle,
+  mutedTextStyle,
+  isMobile,
+}) {
   const [searchValue, setSearchValue] = useState("")
   const teamMap = Object.fromEntries((teams || []).map((team) => [team.id, team.name]))
 
@@ -30,9 +39,29 @@ function UsersAdminPage({ users, teams, isLoadingUsers, cardTitleStyle, mutedTex
         <div style={{ display: "grid", gap: "10px" }}>
           {filteredUsers.map((entry) => (
             <div key={entry.id} style={userCardStyle(isMobile)}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={userNameStyle}>{entry.full_name}</div>
                 <div style={userMetaStyle}>@{entry.username}</div>
+                {entry.role !== "head_admin" && (
+                  <div style={userTeamControlWrapStyle(isMobile)}>
+                    <select
+                      value={entry.team_id || ""}
+                      onChange={(e) => handleChangeUserTeam(entry.id, e.target.value)}
+                      style={teamSelectStyle}
+                      disabled={updatingUserTeamId === entry.id}
+                    >
+                      <option value="">Välj lag</option>
+                      {(teams || []).map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                    <span style={teamHelpTextStyle}>
+                      {updatingUserTeamId === entry.id ? "Uppdaterar..." : "Byt lag"}
+                    </span>
+                  </div>
+                )}
               </div>
               <div style={userBadgeWrapStyle}>
                 <span style={roleBadgeStyle}>{roleLabel(entry.role)}</span>
@@ -90,6 +119,30 @@ const userBadgeWrapStyle = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap",
+}
+
+const userTeamControlWrapStyle = (isMobile) => ({
+  marginTop: "10px",
+  display: "flex",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "8px",
+  alignItems: isMobile ? "stretch" : "center",
+})
+
+const teamSelectStyle = {
+  minWidth: "180px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #dcd7f8",
+  backgroundColor: "#f8f7ff",
+  fontSize: "13px",
+  color: "#18202b",
+}
+
+const teamHelpTextStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  fontWeight: "700",
 }
 
 const roleBadgeStyle = {
