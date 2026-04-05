@@ -30,8 +30,24 @@ function PlayersPage({
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [expandedTargetPasses, setExpandedTargetPasses] = useState({})
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
+
+  const toggleExpandedTargetPass = (passKey) => {
+    setExpandedTargetPasses((prev) => ({
+      ...prev,
+      [passKey]: !prev[passKey],
+    }))
+  }
+
+  const handlePassSetTargetChange = (passKey, value) => {
+    const exercises = activeWorkouts[passKey]?.exercises || []
+
+    exercises.forEach((exercise) => {
+      handleTargetDraftChange(passKey, exercise.name, "target_sets", value)
+    })
+  }
 
   const filteredPlayers = players.filter((player) => {
     const haystack = `${player.full_name} ${player.username} ${player.latestPass}`.toLowerCase()
@@ -209,21 +225,98 @@ function PlayersPage({
         ) : (
           <div>
             {assignedPassCodes.map((passKey) => (
-            <div
-              key={passKey}
-              style={{
-                marginBottom: "16px",
-                padding: "16px",
-                border: "1px solid #ece5e5",
-                borderRadius: "16px",
-                backgroundColor: "#ffffff",
-              }}
-            >
-                <div style={{ marginBottom: "12px", fontWeight: "800", color: "#18202b" }}>
-                  {activeWorkouts[passKey]?.label || passKey}
-                </div>
+              <div
+                key={passKey}
+                style={{
+                  marginBottom: "16px",
+                  padding: "16px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "16px",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                {(() => {
+                  const passExercises = activeWorkouts[passKey]?.exercises || []
+                  const setValues = passExercises
+                    .map((exercise) => (targetDrafts[passKey] || {})[exercise.name]?.target_sets)
+                    .filter((value) => value !== undefined)
+                  const uniqueSetValues = Array.from(new Set(setValues.map((value) => String(value ?? ""))))
+                  const sharedSetValue = uniqueSetValues.length <= 1 ? uniqueSetValues[0] ?? "" : ""
+                  const hasMixedSetValues = uniqueSetValues.length > 1
+                  const isExpanded = !!expandedTargetPasses[passKey]
 
-                {(activeWorkouts[passKey]?.exercises || []).map((exercise) => {
+                  return (
+                    <>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: isMobile ? "flex-start" : "center",
+                          gap: "12px",
+                          flexDirection: isMobile ? "column" : "row",
+                          marginBottom: "14px",
+                        }}
+                      >
+                        <div>
+                          <div style={{ marginBottom: "4px", fontWeight: "800", color: "#18202b" }}>
+                            {activeWorkouts[passKey]?.label || passKey}
+                          </div>
+                          <div style={{ fontSize: "13px", color: "#64748b" }}>
+                            {passExercises.length} övningar. Sätt antal set en gång för hela passet och justera sedan reps eller vikt vid behov.
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandedTargetPass(passKey)}
+                          style={{
+                            ...quickActionButtonStyle,
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #d8e3ef",
+                            color: "#18202b",
+                            width: isMobile ? "100%" : "auto",
+                          }}
+                        >
+                          {isExpanded ? "Dölj övningar" : "Justera övningar"}
+                        </button>
+                      </div>
+
+                      <div
+                        style={{
+                          marginBottom: isExpanded ? "14px" : 0,
+                          padding: "14px",
+                          borderRadius: "14px",
+                          border: "1px solid #dbe5ef",
+                          backgroundColor: "#f8fafc",
+                        }}
+                      >
+                        <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          Standardmål för passet
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            alignItems: isMobile ? "stretch" : "center",
+                            flexDirection: isMobile ? "column" : "row",
+                          }}
+                        >
+                          <input
+                            type="number"
+                            placeholder="Set för hela passet"
+                            value={sharedSetValue}
+                            onChange={(e) => handlePassSetTargetChange(passKey, e.target.value)}
+                            style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
+                          />
+                          <div style={{ fontSize: "13px", color: "#64748b" }}>
+                            {hasMixedSetValues
+                              ? "Olika setvärden finns redan på övningarna. Ett nytt värde här skriver över alla."
+                              : "Det här värdet används för alla övningar i passet."}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isExpanded && passExercises.map((exercise) => {
                   const draft = {
                     target_reps_mode: exercise.defaultRepsMode || "fixed",
                     ...((targetDrafts[passKey] || {})[exercise.name] || {}),
@@ -233,17 +326,17 @@ function PlayersPage({
                     <div
                       key={`${passKey}-${exercise.name}`}
                       style={{
-                        border: "1px solid #ece5e5",
-                        borderRadius: "10px",
-                        padding: "12px",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "14px",
+                        padding: "14px",
                         marginBottom: "10px",
-                        backgroundColor: "#fffdfd",
+                        backgroundColor: "#ffffff",
                       }}
                     >
-                      <div style={{ marginBottom: "8px" }}>
+                      <div style={{ marginBottom: "10px" }}>
                         <strong>{exercise.name}</strong>
-                        <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                          {exercise.guide}
+                        <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
+                          Justera bara det som behöver vara individuellt. Antal set styrs ovan för hela passet.
                         </div>
                       </div>
 
@@ -256,13 +349,6 @@ function PlayersPage({
                           flexDirection: isMobile ? "column" : "row",
                         }}
                       >
-                        <input
-                          type="number"
-                          placeholder="Set"
-                          value={draft.target_sets ?? ""}
-                          onChange={(e) => handleTargetDraftChange(passKey, exercise.name, "target_sets", e.target.value)}
-                          style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
-                        />
                         <input
                           type="number"
                           placeholder="Reps"
@@ -315,7 +401,10 @@ function PlayersPage({
                       />
                     </div>
                   )
-                })}
+                      })}
+                    </>
+                  )
+                })()}
               </div>
             ))}
 
@@ -336,7 +425,7 @@ function PlayersPage({
                 opacity: isSavingTargets ? 0.7 : 1,
               }}
             >
-              {isSavingTargets ? "Sparar..." : "Spara individuella mål"}
+              {isSavingTargets ? "Sparar..." : "Spara mål"}
             </button>
           </div>
         )}
