@@ -139,10 +139,7 @@ serve(async (req: Request) => {
       username = `${baseUsername}${counter}`
     }
 
-    const safeFirst = first || "user"
-    const safeLast = last || "player"
-    const emailLocalPart = `${safeFirst}${safeLast}${counter}`
-    const email = `${emailLocalPart}@example.com`
+    const email = `${username}-${crypto.randomUUID().slice(0, 8)}@example.com`
     console.log("generated credentials", { username, email })
 
     const { data: userData, error: userCreateError } =
@@ -174,13 +171,16 @@ serve(async (req: Request) => {
       )
     }
 
-    const { error: insertError } = await adminClient.from("profiles").insert({
-      id: userData.user.id,
-      username,
-      full_name,
-      role: targetRole,
-      team_id: targetTeamId,
-    })
+    const { error: insertError } = await adminClient.from("profiles").upsert(
+      {
+        id: userData.user.id,
+        username,
+        full_name,
+        role: targetRole,
+        team_id: targetTeamId,
+      },
+      { onConflict: "id" }
+    )
 
     if (insertError) {
       console.error("profile insert failed", {
@@ -188,6 +188,8 @@ serve(async (req: Request) => {
         userId: userData.user.id,
         username,
       })
+
+      await adminClient.auth.admin.deleteUser(userData.user.id)
 
       return new Response(
         JSON.stringify({
