@@ -346,6 +346,12 @@ function TrainingApp() {
 
     if (error) {
       console.error(error)
+      if (String(error.message || "").toLowerCase().includes("jwt")) {
+        await supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+        setStatus("Din inloggning har gått ut. Logga in igen.")
+      }
       setIsLoadingProfile(false)
       return
     }
@@ -1014,6 +1020,30 @@ function TrainingApp() {
     return error?.message || fallbackMessage
   }
 
+  const ensureFreshSession = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      setStatus("Du behöver logga in igen")
+      return false
+    }
+
+    const { error } = await supabase.auth.refreshSession()
+
+    if (error) {
+      console.error(error)
+      await supabase.auth.signOut()
+      setUser(null)
+      setProfile(null)
+      setStatus("Din inloggning har gått ut. Logga in igen.")
+      return false
+    }
+
+    return true
+  }
+
   const handleCreatePlayer = async (e) => {
     e.preventDefault()
     setStatus("")
@@ -1029,6 +1059,10 @@ function TrainingApp() {
 
     if (!targetTeamId) {
       setStatus("Välj lag först")
+      return
+    }
+
+    if (!(await ensureFreshSession())) {
       return
     }
 
@@ -1131,6 +1165,10 @@ function TrainingApp() {
   const handleImportPlayers = async () => {
     if (!importedPlayers.length) {
       setStatus("Ladda upp en fil först")
+      return
+    }
+
+    if (!(await ensureFreshSession())) {
       return
     }
 
