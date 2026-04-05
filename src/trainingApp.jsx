@@ -41,6 +41,7 @@ function TrainingApp() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [feedbackItems, setFeedbackItems] = useState([])
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false)
+  const [updatingFeedbackId, setUpdatingFeedbackId] = useState(null)
   const [newTeamName, setNewTeamName] = useState("")
   const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
@@ -890,7 +891,7 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("beta_feedback")
-      .select("id, user_id, team_id, body, created_at")
+      .select("id, user_id, team_id, body, status, status_updated_at, created_at")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -921,7 +922,7 @@ function TrainingApp() {
         team_id: profile?.team_id || null,
         body: trimmedBody,
       })
-      .select("id, user_id, team_id, body, created_at")
+      .select("id, user_id, team_id, body, status, status_updated_at, created_at")
       .single()
 
     if (error || !data) {
@@ -939,6 +940,45 @@ function TrainingApp() {
     setIsFeedbackOpen(false)
     setStatus("Feedback sparad ✅")
     setIsSubmittingFeedback(false)
+  }
+
+  const handleUpdateFeedbackStatus = async (feedbackId, nextStatus) => {
+    if (!feedbackId || !nextStatus) return
+
+    setUpdatingFeedbackId(feedbackId)
+
+    const payload = {
+      status: nextStatus,
+      status_updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .from("beta_feedback")
+      .update(payload)
+      .eq("id", feedbackId)
+      .select("id, status, status_updated_at")
+      .single()
+
+    if (error || !data) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera feedbackstatus")
+      setUpdatingFeedbackId(null)
+      return
+    }
+
+    setFeedbackItems((prev) =>
+      prev.map((item) =>
+        item.id === feedbackId
+          ? {
+              ...item,
+              status: data.status,
+              status_updated_at: data.status_updated_at,
+            }
+          : item
+      )
+    )
+    setStatus("Feedbackstatus uppdaterad ✅")
+    setUpdatingFeedbackId(null)
   }
 
   const handleChangeUserTeam = async (userId, nextTeamId) => {
@@ -3275,10 +3315,13 @@ function TrainingApp() {
                 users={allUsers}
                 teams={teams}
                 isLoadingFeedback={isLoadingFeedback}
+                updatingFeedbackId={updatingFeedbackId}
                 handleRefreshFeedback={loadFeedback}
+                handleUpdateFeedbackStatus={handleUpdateFeedbackStatus}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 secondaryButtonStyle={secondaryButtonStyle}
+                buttonStyle={buttonStyle}
                 isMobile={isMobile}
               />
             )}
