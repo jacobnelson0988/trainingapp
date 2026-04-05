@@ -998,6 +998,22 @@ function TrainingApp() {
 
     setStatus("Kommentar sparad ✅")
   }
+
+  const getFunctionErrorMessage = async (error, fallbackMessage) => {
+    if (error?.context && typeof error.context.clone === "function") {
+      try {
+        const payload = await error.context.clone().json()
+        if (payload?.step && payload?.error) return `${payload.step}: ${payload.error}`
+        if (payload?.error) return payload.error
+        if (payload?.message) return payload.message
+      } catch {
+        // Ignore parse failures and use the fallback path below.
+      }
+    }
+
+    return error?.message || fallbackMessage
+  }
+
   const handleCreatePlayer = async (e) => {
     e.preventDefault()
     setStatus("")
@@ -1029,7 +1045,7 @@ function TrainingApp() {
 
     if (error) {
       console.error(error)
-      setStatus(error.message || "Kunde inte skapa spelare")
+      setStatus(await getFunctionErrorMessage(error, "Kunde inte skapa spelare"))
       setIsCreatingPlayer(false)
       return
     }
@@ -1146,7 +1162,7 @@ function TrainingApp() {
         results.push({
           ...player,
           success: false,
-          message: data?.error || error?.message || "Kunde inte skapa spelare",
+          message: data?.error || (await getFunctionErrorMessage(error, "Kunde inte skapa spelare")),
         })
         continue
       }
