@@ -28,10 +28,10 @@ function CoachHomePage({
           }}
         >
           <div style={coachNavTopRowStyle}>
-            <div style={coachNavTitleStyle}>Mina spelare</div>
+            <div style={coachNavTitleStyle}>Användare</div>
             <div style={coachNavArrowStyle}>→</div>
           </div>
-          <div style={coachNavTextStyle}>Visa spelare, statistik och individuella mål</div>
+          <div style={coachNavTextStyle}>Visa spelare och ledare i laget samt hantera spelarnas mål</div>
         </button>
 
         <button

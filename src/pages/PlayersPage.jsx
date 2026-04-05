@@ -5,6 +5,7 @@ function PlayersPage({
   setCoachView,
   isLoadingPlayers,
   players,
+  teamCoaches,
   selectedPlayer,
   setSelectedPlayer,
   commentDrafts,
@@ -356,9 +357,13 @@ function PlayersPage({
         }}
       >
         <div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Mina spelare</h3>
+          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>
+            {role === "coach" ? "Användare i laget" : "Mina spelare"}
+          </h3>
           <p style={mutedTextStyle}>
-            Sök fram spelare snabbt och redigera direkt under vald rad eller kort.
+            {role === "coach"
+              ? "Se lagets spelare och ledare. Spelare kan öppnas för pass och individuella mål."
+              : "Sök fram spelare snabbt och redigera direkt under vald rad eller kort."}
           </p>
         </div>
 
@@ -368,18 +373,46 @@ function PlayersPage({
             onClick={() => setCoachView("createPlayer")}
             style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
           >
-            Ny spelare
+            Ny användare
           </button>
         )}
       </div>
 
+      {role === "coach" && (
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "14px",
+            borderRadius: "16px",
+            border: "1px solid #ece5e5",
+            backgroundColor: "#fffdfd",
+          }}
+        >
+          <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "8px" }}>Lagets ledare</div>
+          {teamCoaches?.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {teamCoaches.map((coach) => (
+                <div key={coach.id} style={coachChipStyle}>
+                  <div style={coachChipNameStyle}>{coach.full_name}</div>
+                  <div style={coachChipMetaStyle}>@{coach.username}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={mutedTextStyle}>Inga andra tränare finns i laget ännu.</p>
+          )}
+        </div>
+      )}
+
       <input
         type="text"
-        placeholder="Sök spelare"
+        placeholder={role === "coach" ? "Sök spelare" : "Sök spelare"}
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
         style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
       />
+
+      <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "10px" }}>Spelare</div>
 
       {isLoadingPlayers ? (
         <p style={mutedTextStyle}>Laddar spelare...</p>
@@ -544,6 +577,26 @@ const mobilePlayerMetaPillStyle = {
   color: "#4b5563",
   fontSize: "12px",
   fontWeight: "700",
+}
+
+const coachChipStyle = {
+  display: "grid",
+  gap: "2px",
+  padding: "10px 12px",
+  borderRadius: "14px",
+  backgroundColor: "#fff1f1",
+  border: "1px solid #f0dada",
+}
+
+const coachChipNameStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const coachChipMetaStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
 }
 
 export default PlayersPage

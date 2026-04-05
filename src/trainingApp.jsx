@@ -23,6 +23,7 @@ function TrainingApp() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [players, setPlayers] = useState([])
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
+  const [teamCoaches, setTeamCoaches] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false)
   const [updatingUserTeamId, setUpdatingUserTeamId] = useState(null)
@@ -500,20 +501,28 @@ function TrainingApp() {
   const loadPlayers = async () => {
     setIsLoadingPlayers(true)
 
-    let query = supabase
+    let playerQuery = supabase
       .from("profiles")
       .select("id, full_name, username, role, comment, team_id")
       .eq("role", "player")
       .order("full_name", { ascending: true })
 
+    let coachQuery = supabase
+      .from("profiles")
+      .select("id, full_name, username, role, comment, team_id")
+      .eq("role", "coach")
+      .order("full_name", { ascending: true })
+
     if (profile?.team_id) {
-      query = query.eq("team_id", profile.team_id)
+      playerQuery = playerQuery.eq("team_id", profile.team_id)
+      coachQuery = coachQuery.eq("team_id", profile.team_id)
     }
 
-    const { data: profileData, error: profileError } = await query
+    const [{ data: profileData, error: profileError }, { data: coachData, error: coachError }] =
+      await Promise.all([playerQuery, coachQuery])
 
-    if (profileError) {
-      console.error(profileError)
+    if (profileError || coachError) {
+      console.error(profileError || coachError)
       setIsLoadingPlayers(false)
       return
     }
@@ -533,6 +542,7 @@ function TrainingApp() {
         totalPasses: 0,
         comment: "-",
       })))
+      setTeamCoaches(coachData || [])
       setIsLoadingPlayers(false)
       return
     }
@@ -564,6 +574,7 @@ function TrainingApp() {
     })
 
     setPlayers(enrichedPlayers)
+    setTeamCoaches((coachData || []).filter((coach) => coach.id !== user?.id))
     setCommentDrafts(
       enrichedPlayers.reduce((acc, player) => {
         acc[player.id] = player.comment || ""
@@ -2955,7 +2966,7 @@ function TrainingApp() {
 
   const coachTabs = [
     { key: "home", label: "Översikt" },
-    { key: "players", label: "Spelare" },
+    { key: "players", label: "Användare" },
     { key: "exerciseBank", label: "Övningar" },
     { key: "passBuilder", label: "Pass" },
     { key: "messages", label: "Meddelanden" },
@@ -3415,6 +3426,7 @@ function TrainingApp() {
                 setCoachView={setCoachView}
                 isLoadingPlayers={isLoadingPlayers}
                 players={players}
+                teamCoaches={teamCoaches}
                 selectedPlayer={selectedPlayer}
                 setSelectedPlayer={setSelectedPlayer}
                 commentDrafts={commentDrafts}
