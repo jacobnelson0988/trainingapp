@@ -13,8 +13,9 @@ serve(async (req: Request) => {
 
   try {
     const authHeader = req.headers.get("Authorization")
+    const token = authHeader?.replace(/^Bearer\s+/i, "").trim()
 
-    if (!authHeader) {
+    if (!token) {
       return jsonResponse({ error: "Missing authorization header" }, 401)
     }
 
@@ -30,7 +31,7 @@ serve(async (req: Request) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: {
         headers: {
-          Authorization: authHeader,
+          Authorization: `Bearer ${token}`,
         },
       },
     })
@@ -38,7 +39,7 @@ serve(async (req: Request) => {
     const {
       data: { user },
       error: userError,
-    } = await userClient.auth.getUser()
+    } = await userClient.auth.getUser(token)
 
     if (userError || !user) {
       return jsonResponse({ error: "Not authenticated" }, 401)

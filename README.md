@@ -216,6 +216,7 @@ Omfattning:
 - ~~Arkivering av spelare med filter för att visa arkiverade~~
 - ~~GDPR-säker radering av spelare via edge functions~~
 - ~~Spelare kan ta bort sitt eget konto från Mitt konto~~
+- ~~Stabiliserat auth-flöde för arkivering och radering av spelare~~
 - Snabbändring av `navigation_category` direkt i övningsbanken för `head_admin`
 - Dublettskydd i importen
 

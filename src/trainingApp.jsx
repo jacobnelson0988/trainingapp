@@ -1731,15 +1731,12 @@ function TrainingApp() {
     const confirmed = window.confirm(`Vill du arkivera ${fullName || "den här spelaren"}?`)
     if (!confirmed) return
 
-    const accessToken = await ensureFreshSession()
-    if (!accessToken) return
+    const sessionToken = await ensureFreshSession()
+    if (!sessionToken) return
 
     setArchivingPlayerId(playerId)
 
     const { data, error } = await supabase.functions.invoke("archive-player", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: {
         player_id: playerId,
       },
@@ -1782,8 +1779,8 @@ function TrainingApp() {
       return
     }
 
-    const accessToken = await ensureFreshSession()
-    if (!accessToken) return
+    const sessionToken = await ensureFreshSession()
+    if (!sessionToken) return
 
     if (isSelfDelete) {
       setIsDeletingOwnAccount(true)
@@ -1792,9 +1789,6 @@ function TrainingApp() {
     }
 
     const { data, error } = await supabase.functions.invoke("delete-player", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: {
         player_id: playerId,
       },
