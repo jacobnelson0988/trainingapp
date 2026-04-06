@@ -1242,6 +1242,15 @@ function ExerciseBankPage({
                 filteredExercises.map((exercise) => {
               const isEditing = editingExerciseId === exercise.id
               const isExpanded = expandedExerciseId === exercise.id
+              const aliases = Array.isArray(exercise.aliases) ? exercise.aliases : []
+              const hasMedia = Boolean(String(exercise.media_url || "").trim())
+              const isVideoMedia = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(exercise.media_url || ""))
+              const hasExpandedInfo = Boolean(
+                aliases.length ||
+                String(exercise.guide || "").trim() ||
+                String(exercise.description || "").trim() ||
+                hasMedia
+              )
 
               return (
                 <button
@@ -1277,12 +1286,6 @@ function ExerciseBankPage({
                       {canManageExercises && exercise.display_name && exercise.display_name !== exercise.name && (
                         <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>
                           Grundnamn: {exercise.name}
-                        </div>
-                      )}
-
-                      {canManageExercises && Array.isArray(exercise.aliases) && exercise.aliases.length > 0 && (
-                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>
-                          Alias: {exercise.aliases.join(", ")}
                         </div>
                       )}
 
@@ -1500,6 +1503,95 @@ function ExerciseBankPage({
                           </>
                         )
                       })()}
+                    </div>
+                  )}
+
+                  {isExpanded && !isEditing && (
+                    <div
+                      style={{
+                        marginTop: "14px",
+                        paddingTop: "14px",
+                        borderTop: "1px solid #eee2e2",
+                        display: "grid",
+                        gap: "12px",
+                      }}
+                    >
+                      {hasExpandedInfo ? (
+                        <>
+                          {aliases.length > 0 && (
+                            <div style={{ display: "grid", gap: "4px" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Alias
+                              </div>
+                              <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
+                                {aliases.join(", ")}
+                              </div>
+                            </div>
+                          )}
+
+                          {String(exercise.guide || "").trim() && (
+                            <div style={{ display: "grid", gap: "4px" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Utförande
+                              </div>
+                              <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
+                                {exercise.guide}
+                              </div>
+                            </div>
+                          )}
+
+                          {String(exercise.description || "").trim() && (
+                            <div style={{ display: "grid", gap: "4px" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Beskrivning
+                              </div>
+                              <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
+                                {exercise.description}
+                              </div>
+                            </div>
+                          )}
+
+                          {hasMedia && (
+                            <div style={{ display: "grid", gap: "8px" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Video / GIF
+                              </div>
+                              {isVideoMedia ? (
+                                <video
+                                  src={exercise.media_url}
+                                  controls
+                                  playsInline
+                                  style={{
+                                    width: "100%",
+                                    maxHeight: "280px",
+                                    borderRadius: "14px",
+                                    backgroundColor: "#0f172a",
+                                  }}
+                                  onClick={(event) => event.stopPropagation()}
+                                />
+                              ) : (
+                                <img
+                                  src={exercise.media_url}
+                                  alt={getExerciseDisplayName(exercise)}
+                                  style={{
+                                    width: "100%",
+                                    maxHeight: "280px",
+                                    objectFit: "contain",
+                                    borderRadius: "14px",
+                                    border: "1px solid #ece5e5",
+                                    backgroundColor: "#f8fafc",
+                                  }}
+                                  onClick={(event) => event.stopPropagation()}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.6 }}>
+                          Ingen extra info finns tillagd för den här övningen ännu.
+                        </div>
+                      )}
                     </div>
                   )}
                 </button>

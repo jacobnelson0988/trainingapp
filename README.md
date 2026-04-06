@@ -26,6 +26,7 @@ Klart:
 - Import/export av övningsbank som JSON.
 - Städad live-övningsbank.
 - Kategoriförsta navigation i övningsbanken.
+- Expandering i övningsbanken visar nu alias, utförande och video/gif när info finns.
 - Kategoriförsta övningsval i passbyggaren.
 - Permanent sparad navigationskategori i Supabase.
 
