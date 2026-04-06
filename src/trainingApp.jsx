@@ -10,6 +10,7 @@ import TeamsPage from "./pages/TeamsPage"
 import AdminHomePage from "./pages/AdminHomePage"
 import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
+import GdprPage from "./pages/GdprPage"
 
 const normalizeExerciseSearchValue = (value) =>
   String(value || "")
@@ -185,6 +186,11 @@ const getSelectedExerciseExecution = (exercise, selectedOptionKey) => {
   return options.find((option) => option.optionKey === selectedOptionKey) || options[0] || null
 }
 
+const getInitialGlobalView = () => {
+  if (typeof window === "undefined") return "app"
+  return window.location.pathname === "/gdpr" ? "gdpr" : "app"
+}
+
 function TrainingApp() {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth <= 768 : false
@@ -204,6 +210,10 @@ function TrainingApp() {
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null)
   const [repairingLoginUserId, setRepairingLoginUserId] = useState(null)
   const [deletingUserId, setDeletingUserId] = useState(null)
+  const [archivingPlayerId, setArchivingPlayerId] = useState(null)
+  const [deletingPlayerId, setDeletingPlayerId] = useState(null)
+  const [showArchivedPlayers, setShowArchivedPlayers] = useState(false)
+  const [isDeletingOwnAccount, setIsDeletingOwnAccount] = useState(false)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [messageRecipients, setMessageRecipients] = useState([])
@@ -240,7 +250,7 @@ function TrainingApp() {
   const [coachView, setCoachView] = useState("home")
   const [playerView, setPlayerView] = useState("overview")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [globalView, setGlobalView] = useState("app")
+  const [globalView, setGlobalView] = useState(getInitialGlobalView)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
@@ -324,6 +334,16 @@ function TrainingApp() {
       loadLatestData(user.id)
     }
   }, [user])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setGlobalView(window.location.pathname === "/gdpr" ? "gdpr" : "app")
+      setIsMenuOpen(false)
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
 
   useEffect(() => {
     if (profile?.role === "coach") {
@@ -761,7 +781,7 @@ function TrainingApp() {
 
     let playerQuery = supabase
       .from("profiles")
-      .select("id, full_name, username, role, comment, team_id")
+      .select("id, full_name, username, role, comment, team_id, is_archived, archived_at, archived_by")
       .eq("role", "player")
       .order("full_name", { ascending: true })
 
@@ -847,7 +867,7 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, username, role, team_id")
+      .select("id, full_name, username, role, team_id, is_archived, archived_at, archived_by")
       .order("full_name", { ascending: true })
 
     if (error) {
@@ -911,7 +931,7 @@ function TrainingApp() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, username, role, team_id")
+        .select("id, full_name, username, role, team_id, is_archived")
         .eq("team_id", profile.team_id)
         .eq("role", "coach")
         .neq("id", user.id)
@@ -929,7 +949,7 @@ function TrainingApp() {
     if (profile.role === "coach") {
       const teamQuery = supabase
         .from("profiles")
-        .select("id, full_name, username, role, team_id")
+        .select("id, full_name, username, role, team_id, is_archived")
         .neq("id", user.id)
 
       const scopedTeamQuery = profile.team_id
@@ -941,7 +961,7 @@ function TrainingApp() {
           scopedTeamQuery,
           supabase
             .from("profiles")
-            .select("id, full_name, username, role, team_id")
+            .select("id, full_name, username, role, team_id, is_archived")
             .eq("role", "head_admin"),
         ])
 
@@ -955,14 +975,16 @@ function TrainingApp() {
         (entry, index, arr) => arr.findIndex((candidate) => candidate.id === entry.id) === index
       )
 
-      setMessageRecipients(sortProfilesForMessaging(deduped))
+      setMessageRecipients(
+        sortProfilesForMessaging(deduped.filter((entry) => entry.role !== "player" || !entry.is_archived))
+      )
       return
     }
 
     if (profile.role === "head_admin") {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, username, role, team_id")
+        .select("id, full_name, username, role, team_id, is_archived")
         .neq("id", user.id)
         .order("full_name", { ascending: true })
 
@@ -972,7 +994,9 @@ function TrainingApp() {
         return
       }
 
-      setMessageRecipients(sortProfilesForMessaging(data || []))
+      setMessageRecipients(
+        sortProfilesForMessaging((data || []).filter((entry) => entry.role !== "player" || !entry.is_archived))
+      )
       return
     }
 
@@ -1661,6 +1685,140 @@ function TrainingApp() {
     setSelectedPlayer((prev) => (prev?.id === userId ? null : prev))
     setStatus("Användare borttagen ✅")
     setDeletingUserId(null)
+  }
+
+  const navigateGlobalView = (nextView) => {
+    setGlobalView(nextView)
+    setIsMenuOpen(false)
+
+    if (typeof window !== "undefined") {
+      const nextPath = nextView === "gdpr" ? "/gdpr" : "/"
+      if (window.location.pathname !== nextPath) {
+        window.history.pushState({}, "", nextPath)
+      }
+    }
+  }
+
+  const refreshLifecycleData = async () => {
+    const tasks = []
+
+    if (profile?.role === "coach") {
+      tasks.push(loadPlayers())
+    }
+
+    if (profile?.role === "head_admin") {
+      tasks.push(loadAllUsers())
+    }
+
+    if (profile?.role === "coach" || profile?.role === "head_admin") {
+      tasks.push(loadMessageRecipients())
+    }
+
+    await Promise.all(tasks)
+  }
+
+  const handleArchivePlayer = async (playerId, fullName) => {
+    if (!playerId) return
+
+    const confirmed = window.confirm(`Vill du arkivera ${fullName || "den här spelaren"}?`)
+    if (!confirmed) return
+
+    const accessToken = await ensureFreshSession()
+    if (!accessToken) return
+
+    setArchivingPlayerId(playerId)
+
+    const { data, error } = await supabase.functions.invoke("archive-player", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        player_id: playerId,
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus(await getFunctionErrorMessage(error, "Kunde inte arkivera spelaren"))
+      setArchivingPlayerId(null)
+      return
+    }
+
+    if (data?.error) {
+      setStatus(data.error)
+      setArchivingPlayerId(null)
+      return
+    }
+
+    if (!showArchivedPlayers) {
+      setSelectedPlayer((prev) => (prev?.id === playerId ? null : prev))
+    }
+
+    await refreshLifecycleData()
+    setStatus("Spelare arkiverad ✅")
+    setArchivingPlayerId(null)
+  }
+
+  const handleDeletePlayer = async (playerId, fullName, options = {}) => {
+    if (!playerId) return
+
+    const isSelfDelete = options?.isSelfDelete === true
+    const firstPrompt = isSelfDelete
+      ? "Vill du ta bort ditt konto permanent? All träningsdata kopplad till kontot tas bort."
+      : `Vill du ta bort ${fullName || "den här spelaren"} permanent?`
+    const secondPrompt = isSelfDelete
+      ? "Det går inte att ångra. Bekräfta igen att du vill ta bort ditt konto."
+      : `Bekräfta igen att ${fullName || "spelaren"} ska tas bort permanent.`
+
+    if (!window.confirm(firstPrompt) || !window.confirm(secondPrompt)) {
+      return
+    }
+
+    const accessToken = await ensureFreshSession()
+    if (!accessToken) return
+
+    if (isSelfDelete) {
+      setIsDeletingOwnAccount(true)
+    } else {
+      setDeletingPlayerId(playerId)
+    }
+
+    const { data, error } = await supabase.functions.invoke("delete-player", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        player_id: playerId,
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus(await getFunctionErrorMessage(error, "Kunde inte ta bort spelaren"))
+      setDeletingPlayerId(null)
+      setIsDeletingOwnAccount(false)
+      return
+    }
+
+    if (data?.error) {
+      setStatus(data.error)
+      setDeletingPlayerId(null)
+      setIsDeletingOwnAccount(false)
+      return
+    }
+
+    if (isSelfDelete) {
+      await supabase.auth.signOut()
+      window.location.href = "/"
+      return
+    }
+
+    setPlayers((prev) => prev.filter((entry) => entry.id !== playerId))
+    setAllUsers((prev) => prev.filter((entry) => entry.id !== playerId))
+    setMessageRecipients((prev) => prev.filter((entry) => entry.id !== playerId))
+    setSelectedPlayer((prev) => (prev?.id === playerId ? null : prev))
+    setStatus("Spelare borttagen ✅")
+    setDeletingPlayerId(null)
   }
 
   const loadPlayerTargets = async (playerId) => {
@@ -4152,12 +4310,21 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => {
-                    setGlobalView("account")
-                    setIsMenuOpen(false)
+                    navigateGlobalView("account")
                   }}
                   style={menuItemButtonStyle}
                 >
                   Mitt konto
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateGlobalView("gdpr")
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Integritet
                 </button>
 
                 <button
@@ -4193,7 +4360,7 @@ function TrainingApp() {
 
             <button
               type="button"
-              onClick={() => setGlobalView("app")}
+              onClick={() => navigateGlobalView("app")}
               style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
             >
               Tillbaka
@@ -4228,7 +4395,54 @@ function TrainingApp() {
             </div>
           </div>
 
+          <div style={accountActionGridStyle(isMobile)}>
+            <button
+              type="button"
+              onClick={() => navigateGlobalView("gdpr")}
+              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+            >
+              Integritet
+            </button>
+
+            {profile?.role === "player" && (
+              <button
+                type="button"
+                onClick={() => handleDeletePlayer(profile.id, profile.full_name, { isSelfDelete: true })}
+                disabled={isDeletingOwnAccount}
+                style={{
+                  ...dangerActionButtonStyle,
+                  width: isMobile ? "100%" : "auto",
+                  opacity: isDeletingOwnAccount ? 0.7 : 1,
+                  cursor: isDeletingOwnAccount ? "default" : "pointer",
+                }}
+              >
+                {isDeletingOwnAccount ? "Tar bort konto..." : "Ta bort mitt konto"}
+              </button>
+            )}
+          </div>
+
+          <div style={accountWarningCardStyle}>
+            <div style={accountWarningTitleStyle}>Radering av konto</div>
+            <div style={accountWarningTextStyle}>
+              Om du tar bort ditt konto raderas din profil och din träningshistorik permanent. Om du
+              bara ska döljas från aktiva spelarlistor använder tränare eller huvudadmin arkivering.
+            </div>
+          </div>
+
         </div>
+      )}
+
+      {globalView === "gdpr" && (
+        <GdprPage
+          isMobile={isMobile}
+          profile={profile}
+          teamName={teamName}
+          mutedTextStyle={mutedTextStyle}
+          secondaryButtonStyle={secondaryButtonStyle}
+          buttonStyle={buttonStyle}
+          onBack={() => navigateGlobalView("app")}
+          onOpenAccount={() => navigateGlobalView("account")}
+        />
       )}
 
       {globalView === "app" && (
@@ -4430,15 +4644,18 @@ function TrainingApp() {
                 resettingPasswordUserId={resettingPasswordUserId}
                 repairingLoginUserId={repairingLoginUserId}
                 deletingUserId={deletingUserId}
+                archivingPlayerId={archivingPlayerId}
+                deletingPlayerId={deletingPlayerId}
                 handleChangeUserTeam={handleChangeUserTeam}
                 handleResetUserPassword={handleResetUserPassword}
                 handleRepairUserLogin={handleRepairUserLogin}
                 handleDeleteUser={handleDeleteUser}
+                handleArchivePlayer={handleArchivePlayer}
+                handleDeletePlayer={handleDeletePlayer}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
                 isMobile={isMobile}
               />
             )}
@@ -4659,6 +4876,12 @@ function TrainingApp() {
                 setCoachView={setCoachView}
                 isLoadingPlayers={isLoadingPlayers}
                 players={players}
+                showArchivedPlayers={showArchivedPlayers}
+                setShowArchivedPlayers={setShowArchivedPlayers}
+                archivingPlayerId={archivingPlayerId}
+                deletingPlayerId={deletingPlayerId}
+                handleArchivePlayer={handleArchivePlayer}
+                handleDeletePlayer={handleDeletePlayer}
                 teamCoaches={teamCoaches}
                 selectedPlayer={selectedPlayer}
                 setSelectedPlayer={setSelectedPlayer}
@@ -6380,6 +6603,14 @@ const accountGridStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
 })
 
+const accountActionGridStyle = (isMobile) => ({
+  display: "flex",
+  gap: "10px",
+  flexDirection: isMobile ? "column" : "row",
+  flexWrap: "wrap",
+  marginTop: "16px",
+})
+
 const accountInfoCardStyle = {
   padding: "16px",
   borderRadius: "18px",
@@ -6400,6 +6631,37 @@ const accountInfoValueStyle = {
   fontSize: "18px",
   fontWeight: "900",
   color: "#18202b",
+}
+
+const accountWarningCardStyle = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "18px",
+  border: "1px solid #f3d1d1",
+  backgroundColor: "#fff7f7",
+}
+
+const accountWarningTitleStyle = {
+  fontSize: "14px",
+  fontWeight: "900",
+  color: "#991b1b",
+  marginBottom: "6px",
+}
+
+const accountWarningTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#5f2a2a",
+}
+
+const dangerActionButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid #efc7c7",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "14px",
+  fontWeight: "800",
 }
 
 const playerOverviewStatCardStyle = {

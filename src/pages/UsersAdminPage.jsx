@@ -20,15 +20,18 @@ function UsersAdminPage({
   resettingPasswordUserId,
   repairingLoginUserId,
   deletingUserId,
+  archivingPlayerId,
+  deletingPlayerId,
   handleChangeUserTeam,
   handleResetUserPassword,
   handleRepairUserLogin,
   handleDeleteUser,
+  handleArchivePlayer,
+  handleDeletePlayer,
   cardTitleStyle,
   mutedTextStyle,
   inputStyle,
   buttonStyle,
-  secondaryButtonStyle,
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
@@ -38,6 +41,7 @@ function UsersAdminPage({
   const [passwordDrafts, setPasswordDrafts] = useState({})
   const [expandedUserId, setExpandedUserId] = useState(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [showArchivedPlayers, setShowArchivedPlayers] = useState(false)
 
   const teamMap = Object.fromEntries((teams || []).map((team) => [team.id, team.name]))
 
@@ -49,6 +53,7 @@ function UsersAdminPage({
       })
       .filter((entry) => (teamFilter === "all" ? true : (entry.team_id || "") === teamFilter))
       .filter((entry) => (roleFilter === "all" ? true : entry.role === roleFilter))
+      .filter((entry) => (entry.role !== "player" ? true : showArchivedPlayers || !entry.is_archived))
 
     const sorted = base.slice()
 
@@ -72,7 +77,7 @@ function UsersAdminPage({
     })
 
     return sorted
-  }, [roleFilter, searchValue, sortKey, teamFilter, teamMap, users])
+  }, [roleFilter, searchValue, showArchivedPlayers, sortKey, teamFilter, teamMap, users])
 
   return (
     <>
@@ -179,6 +184,15 @@ function UsersAdminPage({
         </select>
       </div>
 
+      <label style={archiveToggleStyle}>
+        <input
+          type="checkbox"
+          checked={showArchivedPlayers}
+          onChange={(e) => setShowArchivedPlayers(e.target.checked)}
+        />
+        <span>Visa arkiverade spelare</span>
+      </label>
+
       {isLoadingUsers ? (
         <p style={mutedTextStyle}>Laddar användare...</p>
       ) : (
@@ -196,7 +210,10 @@ function UsersAdminPage({
                   <div style={userRowNameStyle}>{entry.full_name}</div>
                   <div style={userRowMetaStyle}>@{entry.username}</div>
                   <div style={userRowMetaStyle}>{roleLabel(entry.role)}</div>
-                  <div style={userRowMetaStyle}>{teamMap[entry.team_id] || "Inget lag"}</div>
+                  <div style={userRowMetaStyle}>
+                    {teamMap[entry.team_id] || "Inget lag"}
+                    {entry.role === "player" && entry.is_archived ? " • Arkiverad" : ""}
+                  </div>
                 </button>
 
                 {isExpanded && (
@@ -269,14 +286,35 @@ function UsersAdminPage({
                             >
                               {repairingLoginUserId === entry.id ? "Reparerar..." : "Reparera login"}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(entry.id, entry.full_name)}
-                              style={dangerButtonStyle}
-                              disabled={deletingUserId === entry.id}
-                            >
-                              {deletingUserId === entry.id ? "Tar bort..." : "Ta bort användare"}
-                            </button>
+                            {entry.role === "player" && !entry.is_archived && (
+                              <button
+                                type="button"
+                                onClick={() => handleArchivePlayer(entry.id, entry.full_name)}
+                                style={smallSecondaryButtonStyle}
+                                disabled={archivingPlayerId === entry.id}
+                              >
+                                {archivingPlayerId === entry.id ? "Arkiverar..." : "Arkivera"}
+                              </button>
+                            )}
+                            {entry.role === "player" ? (
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePlayer(entry.id, entry.full_name)}
+                                style={dangerButtonStyle}
+                                disabled={deletingPlayerId === entry.id}
+                              >
+                                {deletingPlayerId === entry.id ? "Tar bort..." : "Ta bort spelare"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(entry.id, entry.full_name)}
+                                style={dangerButtonStyle}
+                                disabled={deletingUserId === entry.id}
+                              >
+                                {deletingUserId === entry.id ? "Tar bort..." : "Ta bort användare"}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </>
@@ -312,6 +350,16 @@ const toolbarStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 220px 220px 220px",
   marginBottom: "14px",
 })
+
+const archiveToggleStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "14px",
+  fontSize: "14px",
+  fontWeight: "700",
+  color: "#374151",
+}
 
 const listWrapStyle = {
   display: "grid",

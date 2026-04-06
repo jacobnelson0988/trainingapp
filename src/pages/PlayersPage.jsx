@@ -5,6 +5,12 @@ function PlayersPage({
   setCoachView,
   isLoadingPlayers,
   players,
+  showArchivedPlayers,
+  setShowArchivedPlayers,
+  archivingPlayerId,
+  deletingPlayerId,
+  handleArchivePlayer,
+  handleDeletePlayer,
   teamCoaches,
   selectedPlayer,
   setSelectedPlayer,
@@ -43,6 +49,10 @@ function PlayersPage({
   }
 
   const filteredPlayers = players.filter((player) => {
+    if (!showArchivedPlayers && player.is_archived) {
+      return false
+    }
+
     const haystack = `${player.full_name} ${player.username} ${player.latestPass}`.toLowerCase()
     return haystack.includes(searchValue.trim().toLowerCase())
   })
@@ -82,6 +92,52 @@ function PlayersPage({
           <div style={summaryValueStyle}>{player.totalPasses ?? 0}</div>
         </div>
       </div>
+
+      <div style={playerActionBarStyle(isMobile)}>
+        {player.is_archived ? (
+          <div style={archivedStatusBadgeStyle}>
+            Arkiverad{player.archived_at ? ` • ${new Date(player.archived_at).toLocaleDateString("sv-SE")}` : ""}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleArchivePlayer(player.id, player.full_name)}
+            disabled={archivingPlayerId === player.id}
+            style={{
+              ...archiveButtonStyle,
+              width: isMobile ? "100%" : "auto",
+              opacity: archivingPlayerId === player.id ? 0.7 : 1,
+              cursor: archivingPlayerId === player.id ? "default" : "pointer",
+            }}
+          >
+            {archivingPlayerId === player.id ? "Arkiverar..." : "Arkivera"}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => handleDeletePlayer(player.id, player.full_name)}
+          disabled={deletingPlayerId === player.id}
+          style={{
+            ...deleteButtonStyle,
+            width: isMobile ? "100%" : "auto",
+            opacity: deletingPlayerId === player.id ? 0.7 : 1,
+            cursor: deletingPlayerId === player.id ? "default" : "pointer",
+          }}
+        >
+          {deletingPlayerId === player.id ? "Tar bort..." : "Ta bort"}
+        </button>
+      </div>
+
+      {player.is_archived && (
+        <div style={archivedInfoCardStyle}>
+          Den här spelaren är arkiverad och döljs normalt från aktiva listor. Historiken finns kvar,
+          men pass och mål ska inte längre ändras för spelaren.
+        </div>
+      )}
+
+      {!player.is_archived && (
+        <>
 
       <div style={{ marginBottom: "14px" }}>
         <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
@@ -398,6 +454,8 @@ function PlayersPage({
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   )
 
@@ -469,6 +527,15 @@ function PlayersPage({
         style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
       />
 
+      <label style={archivedToggleWrapStyle}>
+        <input
+          type="checkbox"
+          checked={showArchivedPlayers}
+          onChange={(e) => setShowArchivedPlayers(e.target.checked)}
+        />
+        <span>Visa arkiverade</span>
+      </label>
+
       <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "10px" }}>Spelare</div>
 
       {isLoadingPlayers ? (
@@ -510,6 +577,7 @@ function PlayersPage({
                   <span style={mobilePlayerMetaPillStyle}>@{player.username}</span>
                   <span style={mobilePlayerMetaPillStyle}>Senaste: {player.latestPass || "-"}</span>
                   <span style={mobilePlayerMetaPillStyle}>{player.totalPasses ?? 0} pass</span>
+                  {player.is_archived && <span style={mobileArchivedPillStyle}>Arkiverad</span>}
                 </div>
                 <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "700" }}>
                   {selectedPlayer?.id === player.id ? "Tryck igen för att stänga" : "Tryck för att visa detaljer"}
@@ -550,7 +618,8 @@ function PlayersPage({
                       onClick={() => setSelectedPlayer(isSelected ? null : player)}
                     >
                       <td style={{ ...tableCellStyle, borderTopLeftRadius: "12px", borderBottomLeftRadius: "12px", borderLeft: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
-                        {player.username}
+                        <div>{player.username}</div>
+                        {player.is_archived && <div style={desktopArchivedMetaStyle}>Arkiverad</div>}
                       </td>
                       <td style={tableCellStyle}>{firstName}</td>
                       <td style={tableCellStyle}>{lastName}</td>
@@ -633,6 +702,85 @@ const mobilePlayerMetaPillStyle = {
   backgroundColor: "#f8f0f0",
   color: "#4b5563",
   fontSize: "12px",
+  fontWeight: "700",
+}
+
+const mobileArchivedPillStyle = {
+  display: "inline-flex",
+  padding: "5px 9px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const desktopArchivedMetaStyle = {
+  marginTop: "4px",
+  fontSize: "11px",
+  fontWeight: "800",
+  color: "#991b1b",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+}
+
+const archivedToggleWrapStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "14px",
+  fontSize: "14px",
+  fontWeight: "700",
+  color: "#374151",
+}
+
+const playerActionBarStyle = (isMobile) => ({
+  display: "flex",
+  gap: "10px",
+  flexDirection: isMobile ? "column" : "row",
+  flexWrap: "wrap",
+  marginBottom: "14px",
+})
+
+const archiveButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  fontSize: "14px",
+  fontWeight: "800",
+}
+
+const deleteButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "1px solid #efc7c7",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "14px",
+  fontWeight: "800",
+}
+
+const archivedStatusBadgeStyle = {
+  display: "inline-flex",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "13px",
+  fontWeight: "800",
+}
+
+const archivedInfoCardStyle = {
+  marginBottom: "14px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid #f0dada",
+  backgroundColor: "#fff7f7",
+  color: "#7f1d1d",
+  fontSize: "13px",
+  lineHeight: 1.6,
   fontWeight: "700",
 }
 

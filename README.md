@@ -211,6 +211,10 @@ Omfattning:
 - ~~Expandering i övningsbanken visar alias, utförande och video/gif~~
 - ~~Tydligare grafisk aktivering när spelaren startar ett pass, med egen träningsvy där uppvärmningen är första kortet~~
 - ~~Head-admin kan ta bort lag när laget inte längre används~~
+- ~~GDPR-sida i meny och konto~~
+- ~~Arkivering av spelare med filter för att visa arkiverade~~
+- ~~GDPR-säker radering av spelare via edge functions~~
+- ~~Spelare kan ta bort sitt eget konto från Mitt konto~~
 - Snabbändring av `navigation_category` direkt i övningsbanken för `head_admin`
 - Dublettskydd i importen
 
@@ -250,7 +254,7 @@ Det betyder:
 - Fas 3.5 är i praktiken genomförd
 - Fas 4 är till stor del klar
 - Fas 5 är påbörjad och används redan i viss form
-- Fas 7 pågår löpande genom förbättringar i övningsbank, passbyggare och datakvalitet
+- Fas 7 pågår löpande genom förbättringar i övningsbank, passbyggare, integritet och datakvalitet
 
 Detta är den punkt där appen redan är ett fungerande coachverktyg, men där nästa värde ligger i att göra programstyrningen smidigare och admin-flödena snabbare.
 
@@ -263,6 +267,7 @@ Fortsätt i Fas 5 och Fas 7 med denna leverans:
 - snabbändring av `navigation_category` direkt i övningsbanken
 - dublettskydd i importen via `external_id` eller `slug`
 - fortsatt minskning av manuell städning i övningsbanken
+- färgkodning eller tydlig status för aktiva kontra arkiverade spelare
 
 Detta ger hög nytta direkt, utan att byta produktspår.
 
