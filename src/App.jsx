@@ -207,7 +207,7 @@ function App() {
               boxShadow: "0 16px 32px rgba(198, 40, 40, 0.28)",
             }}
           >
-            GIF
+            SG
           </div>
           <div
             style={{
@@ -226,18 +226,24 @@ function App() {
             Gustavsbergs Handboll
           </div>
           <h1 style={{ margin: 0, fontSize: 34, color: "#18202b", lineHeight: 1 }}>
-            Gurra Styrka
+            Starkare Gurra
           </h1>
           <p style={{ margin: "10px 0 0", color: "#566173", fontSize: 15, lineHeight: 1.6 }}>
-            Enkel träning för spelare och tränare. Logga in och hitta rätt pass direkt.
+            Träningsappen för Gustavsbergs Handboll. Logga in och hitta rätt pass direkt.
           </p>
         </div>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 12 }}>
+            <label
+              htmlFor="username"
+              style={{ display: "block", marginBottom: 8, fontSize: 14, fontWeight: 800, color: "#18202b" }}
+            >
+              Användarnamn
+            </label>
             <input
+              id="username"
               type="text"
-              placeholder="Användarnamn"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               style={{
@@ -254,9 +260,15 @@ function App() {
           </div>
 
           <div style={{ marginBottom: 16 }}>
+            <label
+              htmlFor="password"
+              style={{ display: "block", marginBottom: 8, fontSize: 14, fontWeight: 800, color: "#18202b" }}
+            >
+              Lösenord
+            </label>
             <input
+              id="password"
               type="password"
-              placeholder="Lösenord"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={{

@@ -483,13 +483,15 @@ function ExerciseBankPage({
 
           {isRequestFormOpen && (
             <>
-              <input
-                type="text"
-                placeholder="Namn på övningen"
-                value={requestName}
-                onChange={(event) => setRequestName(event.target.value)}
-                style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-              />
+              <div style={{ marginBottom: "10px" }}>
+                <div style={fieldLabelStyle}>Namn på övningen</div>
+                <input
+                  type="text"
+                  value={requestName}
+                  onChange={(event) => setRequestName(event.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+              </div>
 
               <div
                 style={{
@@ -544,29 +546,35 @@ function ExerciseBankPage({
                 </div>
               </div>
 
-              <textarea
-                rows={3}
-                placeholder="Kort beskrivning av övningen"
-                value={requestDescription}
-                onChange={(event) => setRequestDescription(event.target.value)}
-                style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
-              />
+              <div style={{ marginBottom: "10px" }}>
+                <div style={fieldLabelStyle}>Kort beskrivning</div>
+                <textarea
+                  rows={3}
+                  value={requestDescription}
+                  onChange={(event) => setRequestDescription(event.target.value)}
+                  style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                />
+              </div>
 
-              <input
-                type="text"
-                placeholder="Utrustning som behövs (valfritt)"
-                value={requestEquipment}
-                onChange={(event) => setRequestEquipment(event.target.value)}
-                style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-              />
+              <div style={{ marginBottom: "10px" }}>
+                <div style={fieldLabelStyle}>Utrustning</div>
+                <input
+                  type="text"
+                  value={requestEquipment}
+                  onChange={(event) => setRequestEquipment(event.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+              </div>
 
-              <input
-                type="url"
-                placeholder="Referenslänk eller video (valfritt)"
-                value={requestReferenceUrl}
-                onChange={(event) => setRequestReferenceUrl(event.target.value)}
-                style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-              />
+              <div style={{ marginBottom: "10px" }}>
+                <div style={fieldLabelStyle}>Referenslänk eller video</div>
+                <input
+                  type="url"
+                  value={requestReferenceUrl}
+                  onChange={(event) => setRequestReferenceUrl(event.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+              </div>
 
               <div style={requestHelpTextStyle}>
                 Extra fält som utrustning och referenslänk gör det enklare för huvudadmin att bygga in övningen rätt från början.
@@ -953,13 +961,15 @@ function ExerciseBankPage({
 
                     return (
                       <>
-                  <input
-                    type="text"
-                    placeholder="Namn på övning"
-                    value={newExerciseName}
-                    onChange={(e) => setNewExerciseName(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-                  />
+                  <div style={{ marginBottom: "10px" }}>
+                    <div style={fieldLabelStyle}>Namn på övning</div>
+                    <input
+                      type="text"
+                      value={newExerciseName}
+                      onChange={(e) => setNewExerciseName(e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    />
+                  </div>
 
                   <div
                     style={{
@@ -1015,42 +1025,52 @@ function ExerciseBankPage({
                     ))}
                   </select>
 
-                  <textarea
-                    rows={3}
-                    placeholder="Kort beskrivning av övningen"
-                    value={newExerciseDescription}
-                    onChange={(e) => setNewExerciseDescription(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
-                  />
+                  <div style={{ marginBottom: "10px" }}>
+                    <div style={fieldLabelStyle}>Kort beskrivning</div>
+                    <textarea
+                      rows={3}
+                      value={newExerciseDescription}
+                      onChange={(e) => setNewExerciseDescription(e.target.value)}
+                      style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                    />
+                  </div>
 
-                  <input
-                    type="url"
-                    placeholder="Länk till video eller gif"
-                    value={newExerciseMediaUrl}
-                    onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-                  />
+                  <div style={{ marginBottom: "10px" }}>
+                    <div style={fieldLabelStyle}>Video eller GIF</div>
+                    <input
+                      type="url"
+                      value={newExerciseMediaUrl}
+                      onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    />
+                  </div>
 
-                  <textarea
-                    rows={3}
-                    placeholder="Alias, separerade med kommatecken eller en per rad"
-                    value={newExerciseAliasesText}
-                    onChange={(e) => setNewExerciseAliasesText(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", marginBottom: "10px", resize: "vertical", minHeight: "84px" }}
-                  />
+                  <div style={{ marginBottom: "10px" }}>
+                    <div style={fieldLabelStyle}>Alias</div>
+                    <div style={helperTextStyle}>Skriv flera namn med kommatecken eller en rad per namn.</div>
+                    <textarea
+                      rows={3}
+                      value={newExerciseAliasesText}
+                      onChange={(e) => setNewExerciseAliasesText(e.target.value)}
+                      style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                    />
+                  </div>
 
-                  <select
-                    value={newExerciseDisplayName}
-                    onChange={(e) => setNewExerciseDisplayName(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-                  >
-                    <option value="">Visa huvudnamn i appen</option>
-                    {displayNameOptions.map((option) => (
-                      <option key={`create-display-${option}`} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  <div style={{ marginBottom: "10px" }}>
+                    <div style={fieldLabelStyle}>Namn som visas i appen</div>
+                    <select
+                      value={newExerciseDisplayName}
+                      onChange={(e) => setNewExerciseDisplayName(e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    >
+                      <option value="">Visa huvudnamn i appen</option>
+                      {displayNameOptions.map((option) => (
+                        <option key={`create-display-${option}`} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div style={{ marginBottom: "12px" }}>
                     <div style={fieldLabelStyle}>Muskelgrupper</div>
@@ -1360,13 +1380,15 @@ function ExerciseBankPage({
 
                         return (
                           <>
-                      <input
-                        type="text"
-                        placeholder="Namn på övning"
-                        value={newExerciseName}
-                        onChange={(e) => setNewExerciseName(e.target.value)}
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
+                      <div>
+                        <div style={fieldLabelStyle}>Namn på övning</div>
+                        <input
+                          type="text"
+                          value={newExerciseName}
+                          onChange={(e) => setNewExerciseName(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
 
                       <div
                         style={{
@@ -1421,42 +1443,52 @@ function ExerciseBankPage({
                         ))}
                       </select>
 
-                      <textarea
-                        rows={3}
-                        placeholder="Kort beskrivning av övningen"
-                        value={newExerciseDescription}
-                        onChange={(e) => setNewExerciseDescription(e.target.value)}
-                        style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
-                      />
+                      <div>
+                        <div style={fieldLabelStyle}>Kort beskrivning</div>
+                        <textarea
+                          rows={3}
+                          value={newExerciseDescription}
+                          onChange={(e) => setNewExerciseDescription(e.target.value)}
+                          style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                        />
+                      </div>
 
-                      <input
-                        type="url"
-                        placeholder="Länk till video eller gif"
-                        value={newExerciseMediaUrl}
-                        onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
+                      <div>
+                        <div style={fieldLabelStyle}>Video eller GIF</div>
+                        <input
+                          type="url"
+                          value={newExerciseMediaUrl}
+                          onChange={(e) => setNewExerciseMediaUrl(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
 
-                      <textarea
-                        rows={3}
-                        placeholder="Alias, separerade med kommatecken eller en per rad"
-                        value={newExerciseAliasesText}
-                        onChange={(e) => setNewExerciseAliasesText(e.target.value)}
-                        style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
-                      />
+                      <div>
+                        <div style={fieldLabelStyle}>Alias</div>
+                        <div style={helperTextStyle}>Skriv flera namn med kommatecken eller en rad per namn.</div>
+                        <textarea
+                          rows={3}
+                          value={newExerciseAliasesText}
+                          onChange={(e) => setNewExerciseAliasesText(e.target.value)}
+                          style={{ ...inputStyle, width: "100%", resize: "vertical", minHeight: "84px" }}
+                        />
+                      </div>
 
-                      <select
-                        value={newExerciseDisplayName}
-                        onChange={(e) => setNewExerciseDisplayName(e.target.value)}
-                        style={{ ...inputStyle, width: "100%" }}
-                      >
-                        <option value="">Visa huvudnamn i appen</option>
-                        {displayNameOptions.map((option) => (
-                          <option key={`edit-display-${exercise.id}-${option}`} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
+                      <div>
+                        <div style={fieldLabelStyle}>Namn som visas i appen</div>
+                        <select
+                          value={newExerciseDisplayName}
+                          onChange={(e) => setNewExerciseDisplayName(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        >
+                          <option value="">Visa huvudnamn i appen</option>
+                          {displayNameOptions.map((option) => (
+                            <option key={`edit-display-${exercise.id}-${option}`} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       <div>
                         <div style={fieldLabelStyle}>Muskelgrupper</div>
@@ -1856,6 +1888,13 @@ const fieldLabelStyle = {
   fontWeight: "800",
   color: "#18202b",
   marginBottom: "8px",
+}
+
+const helperTextStyle = {
+  marginBottom: "8px",
+  fontSize: "12px",
+  lineHeight: 1.5,
+  color: "#64748b",
 }
 
 const exerciseTitleRowStyle = {

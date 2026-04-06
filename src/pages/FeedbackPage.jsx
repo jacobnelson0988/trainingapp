@@ -101,7 +101,7 @@ function FeedbackPage({
     <div style={wrapStyle}>
       <div style={topBarStyle(isMobile)}>
         <div>
-          <div style={cardTitleStyle}>Beta-feedback</div>
+          <div style={cardTitleStyle}>Feedback från appen</div>
           <p style={mutedTextStyle}>
             Här samlas all feedback som skickas in från spelare, tränare och huvudadmin.
           </p>

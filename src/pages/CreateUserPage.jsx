@@ -36,9 +36,11 @@ function CreateUserPage({
 
       <form onSubmit={handleCreateUser}>
         <div style={{ marginBottom: "10px" }}>
+          <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+            Fullständigt namn
+          </div>
           <input
             type="text"
-            placeholder="Fullständigt namn"
             value={newUserName}
             onChange={(e) => setNewUserName(e.target.value)}
             style={{ ...inputStyle, width: "100%" }}
@@ -46,9 +48,11 @@ function CreateUserPage({
         </div>
 
         <div style={{ marginBottom: "10px" }}>
+          <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+            Startlösenord
+          </div>
           <input
             type="text"
-            placeholder="Startlösenord"
             value={newUserPassword}
             onChange={(e) => setNewUserPassword(e.target.value)}
             style={{ ...inputStyle, width: "100%" }}
@@ -58,6 +62,9 @@ function CreateUserPage({
         {canChooseRole && (
           <>
             <div style={{ marginBottom: "10px" }}>
+              <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+                Roll
+              </div>
               <select
                 value={newUserRole}
                 onChange={(e) => setNewUserRole(e.target.value)}
@@ -71,6 +78,9 @@ function CreateUserPage({
 
             {isHeadAdmin && requiresTeamSelection && (
               <div style={{ marginBottom: "10px" }}>
+                <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+                  Lag
+                </div>
                 <select
                   value={selectedTeamId}
                   onChange={(e) => setSelectedTeamId(e.target.value)}

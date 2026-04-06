@@ -4332,7 +4332,7 @@ function TrainingApp() {
               : "Spelarläge"}
           </p>
           <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
-            Gurra Styrka
+            Starkare Gurra
           </h1>
           <p
             style={{
@@ -4341,7 +4341,7 @@ function TrainingApp() {
               fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
             }}
           >
-            Träning för Gustavsbergs Handboll med tydliga pass, enkel navigation och snabba val.
+            Träningsappen för Gustavsbergs Handboll med tydliga pass, enkel navigation och snabb överblick.
           </p>
         </div>
 
@@ -4408,7 +4408,7 @@ function TrainingApp() {
           <div style={accountHeaderStyle(isMobile)}>
             <div>
               <div style={sectionTitleStyle}>Mitt konto</div>
-              <p style={mutedTextStyle}>Det här är startsidan för kontofunktioner som gäller alla användartyper.</p>
+              <p style={mutedTextStyle}>Här hanterar du uppgifter som gäller ditt eget konto.</p>
             </div>
 
             <button
@@ -4477,24 +4477,28 @@ function TrainingApp() {
           <div style={accountPasswordCardStyle}>
             <div style={accountPasswordTitleStyle}>Byt lösenord</div>
             <div style={accountPasswordTextStyle}>
-              Här kan du byta lösenord för ditt eget konto. Gäller både spelare, tränare och huvudadmin.
+              Byt lösenord direkt här. Gäller spelare, tränare och huvudadmin.
             </div>
 
             <div style={accountPasswordFormStyle(isMobile)}>
-              <input
-                type="password"
-                placeholder="Nytt lösenord"
-                value={accountPassword}
-                onChange={(e) => setAccountPassword(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              />
-              <input
-                type="password"
-                placeholder="Bekräfta nytt lösenord"
-                value={accountPasswordConfirm}
-                onChange={(e) => setAccountPasswordConfirm(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              />
+              <div style={{ width: "100%" }}>
+                <div style={compactFieldLabelStyle}>Nytt lösenord</div>
+                <input
+                  type="password"
+                  value={accountPassword}
+                  onChange={(e) => setAccountPassword(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+              </div>
+              <div style={{ width: "100%" }}>
+                <div style={compactFieldLabelStyle}>Bekräfta nytt lösenord</div>
+                <input
+                  type="password"
+                  value={accountPasswordConfirm}
+                  onChange={(e) => setAccountPasswordConfirm(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleUpdateOwnPassword}
@@ -4582,9 +4586,9 @@ function TrainingApp() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={feedbackActionTitleStyle}>Beta-feedback</div>
+          <div style={feedbackActionTitleStyle}>Hjälp oss förbättra appen</div>
           <div style={mutedTextStyle}>
-            Skicka snabbt in buggar, önskemål eller annat som du vill att vi ska justera i appen.
+            Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
           </div>
         </div>
 
@@ -4601,13 +4605,14 @@ function TrainingApp() {
         <div style={feedbackComposerCardStyle}>
           <div style={cardTitleStyle}>Skriv feedback</div>
           <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
-            Beskriv gärna vad du gjorde, vad som gick fel eller vad du vill få in i appen.
+            Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
           </p>
+          <div style={compactFieldLabelStyle}>Meddelande</div>
           <textarea
             rows={4}
             value={feedbackText}
             onChange={(event) => setFeedbackText(event.target.value)}
-            placeholder="Skriv din feedback här"
+            placeholder="Skriv kort vad du vill skicka in"
             style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "12px" }}
           />
           <div style={feedbackComposerActionsStyle}>
@@ -5927,6 +5932,13 @@ const feedbackActionTitleStyle = {
   marginBottom: "4px",
   fontSize: "16px",
   fontWeight: "900",
+  color: "#18202b",
+}
+
+const compactFieldLabelStyle = {
+  marginBottom: "8px",
+  fontSize: "13px",
+  fontWeight: "800",
   color: "#18202b",
 }
 

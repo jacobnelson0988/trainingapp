@@ -24,9 +24,11 @@ function CreatePlayerPage({
 
       <form onSubmit={handleCreatePlayer}>
         <div style={{ marginBottom: "10px" }}>
+          <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+            Fullständigt namn
+          </div>
           <input
             type="text"
-            placeholder="Fullständigt namn"
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
             style={{ ...inputStyle, width: "100%" }}
@@ -34,9 +36,11 @@ function CreatePlayerPage({
         </div>
 
         <div style={{ marginBottom: "10px" }}>
+          <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+            Startlösenord
+          </div>
           <input
             type="text"
-            placeholder="Startlösenord"
             value={newPlayerPassword}
             onChange={(e) => setNewPlayerPassword(e.target.value)}
             style={{ ...inputStyle, width: "100%" }}

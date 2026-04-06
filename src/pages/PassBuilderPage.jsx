@@ -278,38 +278,48 @@ function PassBuilderPage({
           </p>
 
           <div style={formStackStyle}>
-            <input
-              type="text"
-              placeholder="T.ex. Pass D eller Benpass"
-              value={newPassName}
-              onChange={(e) => setNewPassName(e.target.value)}
-              style={{ ...inputStyle, width: "100%" }}
-            />
+            <div>
+              <div style={fieldLabelStyle}>Namn på passet</div>
+              <input
+                type="text"
+                value={newPassName}
+                onChange={(e) => setNewPassName(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+            </div>
 
-            <textarea
-              rows={4}
-              placeholder="Kort info om passet som spelaren ser före start"
-              value={newPassInfo}
-              onChange={(e) => setNewPassInfo(e.target.value)}
-              style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
-            />
+            <div>
+              <div style={fieldLabelStyle}>Kort intro till spelaren</div>
+              <div style={fieldHintStyle}>Visas innan passet startar.</div>
+              <textarea
+                rows={4}
+                value={newPassInfo}
+                onChange={(e) => setNewPassInfo(e.target.value)}
+                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+              />
+            </div>
 
             <div style={subSectionStyle}>
               <div style={sectionTitleStyle}>Uppvärmning</div>
-              <textarea
-                rows={3}
-                placeholder="Pulshöjande aktivitet"
-                value={newPassWarmupCardio}
-                onChange={(e) => setNewPassWarmupCardio(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
-              />
-              <textarea
-                rows={4}
-                placeholder="Teknikuppvärmning, en rad per moment"
-                value={newPassWarmupTechnique}
-                onChange={(e) => setNewPassWarmupTechnique(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
-              />
+              <div>
+                <div style={fieldLabelStyle}>Pulsdel</div>
+                <textarea
+                  rows={3}
+                  value={newPassWarmupCardio}
+                  onChange={(e) => setNewPassWarmupCardio(e.target.value)}
+                  style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                />
+              </div>
+              <div>
+                <div style={fieldLabelStyle}>Teknikdel</div>
+                <div style={fieldHintStyle}>Skriv gärna en övning eller ett moment per rad.</div>
+                <textarea
+                  rows={4}
+                  value={newPassWarmupTechnique}
+                  onChange={(e) => setNewPassWarmupTechnique(e.target.value)}
+                  style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                />
+              </div>
             </div>
 
             <div style={subSectionStyle}>
@@ -327,13 +337,15 @@ function PassBuilderPage({
                 ))}
               </div>
               <div style={warmupTemplateSaveRowStyle(isMobile)}>
-                <input
-                  type="text"
-                  placeholder="Namn på uppvärmningsmall"
-                  value={newWarmupTemplateName}
-                  onChange={(e) => setNewWarmupTemplateName(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                />
+                <div style={{ flex: 1 }}>
+                  <div style={fieldLabelStyle}>Namn på mallen</div>
+                  <input
+                    type="text"
+                    value={newWarmupTemplateName}
+                    onChange={(e) => setNewWarmupTemplateName(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={saveCreateWarmupTemplate}
@@ -410,42 +422,51 @@ function PassBuilderPage({
           <section style={panelStyle}>
             <div style={sectionEyebrowStyle}>Passinfo</div>
             <div style={formStackStyle}>
-              <input
-                type="text"
-                placeholder="Namn på pass"
-                value={renamePassName}
-                onChange={(e) => setRenamePassName(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              />
+              <div>
+                <div style={fieldLabelStyle}>Namn på passet</div>
+                <input
+                  type="text"
+                  value={renamePassName}
+                  onChange={(e) => setRenamePassName(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                />
+              </div>
 
-              <textarea
-                rows={4}
-                placeholder="Kort info om passet som spelaren ser före start"
-                value={renamePassInfo}
-                onChange={(e) => setRenamePassInfo(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
-              />
+              <div>
+                <div style={fieldLabelStyle}>Kort intro till spelaren</div>
+                <textarea
+                  rows={4}
+                  value={renamePassInfo}
+                  onChange={(e) => setRenamePassInfo(e.target.value)}
+                  style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                />
+              </div>
             </div>
           </section>
 
           <section style={panelStyle}>
             <div style={sectionEyebrowStyle}>Uppvärmning</div>
             <div style={formStackStyle}>
-              <textarea
-                rows={3}
-                placeholder="Pulshöjande aktivitet"
-                value={renamePassWarmupCardio}
-                onChange={(e) => setRenamePassWarmupCardio(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
-              />
+              <div>
+                <div style={fieldLabelStyle}>Pulsdel</div>
+                <textarea
+                  rows={3}
+                  value={renamePassWarmupCardio}
+                  onChange={(e) => setRenamePassWarmupCardio(e.target.value)}
+                  style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                />
+              </div>
 
-              <textarea
-                rows={4}
-                placeholder="Teknikuppvärmning, en rad per moment"
-                value={renamePassWarmupTechnique}
-                onChange={(e) => setRenamePassWarmupTechnique(e.target.value)}
-                style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
-              />
+              <div>
+                <div style={fieldLabelStyle}>Teknikdel</div>
+                <div style={fieldHintStyle}>Skriv gärna en övning eller ett moment per rad.</div>
+                <textarea
+                  rows={4}
+                  value={renamePassWarmupTechnique}
+                  onChange={(e) => setRenamePassWarmupTechnique(e.target.value)}
+                  style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                />
+              </div>
 
               <div style={warmupTemplateListStyle}>
                 {(warmupTemplates || []).map((template) => (
@@ -461,13 +482,15 @@ function PassBuilderPage({
               </div>
 
               <div style={warmupTemplateSaveRowStyle(isMobile)}>
-                <input
-                  type="text"
-                  placeholder="Namn på uppvärmningsmall"
-                  value={renameWarmupTemplateName}
-                  onChange={(e) => setRenameWarmupTemplateName(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                />
+                <div style={{ flex: 1 }}>
+                  <div style={fieldLabelStyle}>Namn på mallen</div>
+                  <input
+                    type="text"
+                    value={renameWarmupTemplateName}
+                    onChange={(e) => setRenameWarmupTemplateName(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={saveEditWarmupTemplate}
@@ -684,7 +707,7 @@ function PassBuilderPage({
                       </div>
 
                       <div style={hintBoxStyle}>
-                        Lämna fältet tomt om passet inte behöver en egen instruktion för övningen.
+                        Lämna instruktionen tom om övningen ska använda standardtexten från övningsbanken.
                       </div>
 
                       {!draft.guide.trim() && exercise.suggestedGuide && (
@@ -705,35 +728,41 @@ function PassBuilderPage({
                       )}
 
                       <div style={formStackStyle}>
-                        <textarea
-                          rows={3}
-                          placeholder="Guide eller instruktion för övningen"
-                          value={draft.guide}
-                          onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
-                          style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "84px" }}
-                        />
+                        <div>
+                          <div style={fieldLabelStyle}>Instruktion i just det här passet</div>
+                          <textarea
+                            rows={3}
+                            value={draft.guide}
+                            onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
+                            style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "84px" }}
+                          />
+                        </div>
 
                         <div style={{ ...targetGridStyle, gridTemplateColumns: isMobile ? "1fr" : "92px 92px auto" }}>
-                          <input
-                            type="number"
-                            placeholder="Set"
-                            value={draft.targetSets}
-                            onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
-                          />
+                          <div>
+                            <div style={fieldLabelStyle}>Set</div>
+                            <input
+                              type="number"
+                              value={draft.targetSets}
+                              onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
+                              style={{ ...inputStyle, width: "100%" }}
+                            />
+                          </div>
 
-                          <input
-                            type="number"
-                            placeholder="Reps"
-                            value={draft.targetReps}
-                            disabled={draft.targetRepsMode === "max"}
-                            onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
-                            style={{
-                              ...inputStyle,
-                              width: "100%",
-                              opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
-                            }}
-                          />
+                          <div>
+                            <div style={fieldLabelStyle}>Reps</div>
+                            <input
+                              type="number"
+                              value={draft.targetReps}
+                              disabled={draft.targetRepsMode === "max"}
+                              onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
+                              style={{
+                                ...inputStyle,
+                                width: "100%",
+                                opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
+                              }}
+                            />
+                          </div>
 
                           <button
                             type="button"
@@ -1068,6 +1097,20 @@ const sectionEyebrowStyle = {
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: "#991b1b",
+}
+
+const fieldLabelStyle = {
+  marginBottom: "8px",
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const fieldHintStyle = {
+  marginBottom: "8px",
+  fontSize: "12px",
+  lineHeight: 1.5,
+  color: "#64748b",
 }
 
 const sectionTitleStyle = {

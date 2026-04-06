@@ -33,13 +33,17 @@ function TeamsPage({
 
       <div style={createCardStyle}>
         <div style={{ display: "flex", gap: "8px", flexDirection: isMobile ? "column" : "row" }}>
-          <input
-            type="text"
-            placeholder="Namn på lag"
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            style={{ ...inputStyle, width: "100%" }}
-          />
+          <div style={{ flex: 1 }}>
+            <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+              Namn på lag
+            </div>
+            <input
+              type="text"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              style={{ ...inputStyle, width: "100%" }}
+            />
+          </div>
           <button
             type="button"
             onClick={handleCreateTeam}
