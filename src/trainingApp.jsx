@@ -3091,6 +3091,26 @@ function TrainingApp() {
     )
   }
 
+  const handleExportExercises = () => {
+    const exportRows = exercisesFromDB
+      .slice()
+      .sort((a, b) => getExerciseDisplayName(a).localeCompare(getExerciseDisplayName(b), "sv"))
+
+    const json = JSON.stringify(exportRows, null, 2)
+    const blob = new Blob([json], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    const dateLabel = new Date().toISOString().slice(0, 10)
+
+    link.href = url
+    link.download = `exercise-bank-${dateLabel}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setStatus("Övningsbanken exporterad ✅")
+  }
+
   const handleDeleteExercise = async (exerciseId) => {
     const confirmDelete = window.confirm("Vill du ta bort denna övning?")
     if (!confirmDelete) return
@@ -4245,6 +4265,7 @@ function TrainingApp() {
                 exerciseImportResults={exerciseImportResults}
                 handleExerciseImportFile={handleExerciseImportFile}
                 handleImportExercises={handleImportExercises}
+                handleExportExercises={handleExportExercises}
                 resetExerciseImport={resetExerciseImport}
                 exercisesFromDB={exercisesFromDB}
                 exerciseRequests={exerciseRequests}

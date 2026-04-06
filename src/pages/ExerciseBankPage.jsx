@@ -65,6 +65,7 @@ function ExerciseBankPage({
   exerciseImportResults,
   handleExerciseImportFile,
   handleImportExercises,
+  handleExportExercises,
   resetExerciseImport,
   exercisesFromDB,
   exerciseRequests,
@@ -628,6 +629,16 @@ function ExerciseBankPage({
           <div style={requestHelpTextStyle}>
             Ladda upp en JSON-fil med en array av övningar eller ett objekt med <code>exercises</code>.
             Befintliga övningar med samma namn uppdateras.
+          </div>
+
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px", marginBottom: "12px" }}>
+            <button
+              type="button"
+              onClick={handleExportExercises}
+              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
+            >
+              Exportera hela övningsbanken
+            </button>
           </div>
 
           <input
