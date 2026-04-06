@@ -178,6 +178,7 @@ Omfattning:
 
 - ~~Grundläggande historik per övning i tränarvyn~~
 - ~~Progression i graf för viktutveckling~~
+- ~~Förstoringsläge för grafer med högre upplösning~~
 - Filter, till exempel:
   - ~~övning~~
   - ~~period~~

@@ -107,6 +107,7 @@ function StatsPage({
   const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [expandedChart, setExpandedChart] = useState(null)
 
   const sortedPlayers = useMemo(
     () =>
@@ -312,48 +313,34 @@ function StatsPage({
               exerciseName={entry.exerciseName}
               playerSeries={entry.playerSeries}
               isMobile={isMobile}
+              onExpand={() =>
+                setExpandedChart({
+                  exerciseName: entry.exerciseName,
+                  playerSeries: entry.playerSeries,
+                })
+              }
             />
           ))}
         </div>
       )}
+
+      {expandedChart ? (
+        <ChartModal
+          exerciseName={expandedChart.exerciseName}
+          playerSeries={expandedChart.playerSeries}
+          onClose={() => setExpandedChart(null)}
+        />
+      ) : null}
     </>
   )
 }
 
-function ExerciseChartCard({ exerciseName, playerSeries, isMobile }) {
-  const allPoints = playerSeries.flatMap((series) => series.points)
-  const minX = Math.min(...allPoints.map((point) => point.x))
-  const maxX = Math.max(...allPoints.map((point) => point.x))
-  const minY = Math.min(...allPoints.map((point) => point.y))
-  const maxY = Math.max(...allPoints.map((point) => point.y))
-  const yPadding = Math.max(2.5, (maxY - minY) * 0.15 || 2.5)
-  const chartWidth = 620
-  const chartHeight = 260
-  const leftPad = 44
-  const rightPad = 18
-  const topPad = 18
-  const bottomPad = 34
-  const plotWidth = chartWidth - leftPad - rightPad
-  const plotHeight = chartHeight - topPad - bottomPad
+function ExerciseChartCard({ exerciseName, playerSeries, isMobile, onExpand }) {
+  const chartMetrics = useMemo(() => getChartMetrics(playerSeries), [playerSeries])
 
-  const xScale = (value) => {
-    if (maxX === minX) return leftPad + plotWidth / 2
-    return leftPad + ((value - minX) / (maxX - minX)) * plotWidth
-  }
+  if (!chartMetrics) return null
 
-  const yScale = (value) => {
-    if (maxY === minY) return topPad + plotHeight / 2
-    return topPad + plotHeight - ((value - (minY - yPadding)) / (maxY - minY + yPadding * 2)) * plotHeight
-  }
-
-  const yTicks = Array.from({ length: 4 }, (_, index) => {
-    const value = minY - yPadding + ((maxY - minY + yPadding * 2) / 3) * index
-    return Number(value.toFixed(1))
-  })
-  const xTicks = allPoints
-    .slice()
-    .sort((a, b) => a.x - b.x)
-    .filter((point, index, arr) => index === 0 || point.x !== arr[index - 1].x)
+  const { allPoints } = chartMetrics
 
   return (
     <div style={chartCardStyle}>
@@ -372,75 +359,29 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile }) {
           <div style={chartSubtitleStyle}>Viktutveckling per spelare</div>
         </div>
 
-        <div style={legendWrapStyle}>
-          {playerSeries.map((series) => (
-            <div key={series.playerId} style={legendItemStyle}>
-              <span style={{ ...legendColorStyle, backgroundColor: series.color }} />
-              <span>{series.playerName}</span>
-            </div>
-          ))}
+        <div style={chartHeaderActionsStyle}>
+          <div style={legendWrapStyle}>
+            {playerSeries.map((series) => (
+              <div key={series.playerId} style={legendItemStyle}>
+                <span style={{ ...legendColorStyle, backgroundColor: series.color }} />
+                <span>{series.playerName}</span>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={onExpand} style={expandButtonStyle}>
+            Förstora graf
+          </button>
         </div>
       </div>
 
-      <svg
-        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-        style={{ width: "100%", height: "auto", overflow: "visible" }}
-        role="img"
-        aria-label={`Graf för ${exerciseName}`}
-      >
-        {yTicks.map((tick) => (
-          <g key={tick}>
-            <line
-              x1={leftPad}
-              x2={chartWidth - rightPad}
-              y1={yScale(tick)}
-              y2={yScale(tick)}
-              stroke="#e5edf5"
-              strokeWidth="1"
-            />
-            <text
-              x={leftPad - 8}
-              y={yScale(tick) + 4}
-              textAnchor="end"
-              fontSize="11"
-              fill="#64748b"
-            >
-              {tick}
-            </text>
-          </g>
-        ))}
-
-        {playerSeries.map((series) => {
-          const path = series.points
-            .map((point, index) => `${index === 0 ? "M" : "L"} ${xScale(point.x)} ${yScale(point.y)}`)
-            .join(" ")
-
-          return (
-            <g key={series.playerId}>
-              <path d={path} fill="none" stroke={series.color} strokeWidth="3" strokeLinecap="round" />
-              {series.points.map((point) => (
-                <g key={`${series.playerId}-${point.x}-${point.y}`}>
-                  <circle cx={xScale(point.x)} cy={yScale(point.y)} r="4" fill={series.color} />
-                  <title>{`${series.playerName}: ${point.y} kg • ${point.label}`}</title>
-                </g>
-              ))}
-            </g>
-          )
-        })}
-
-        {xTicks.map((point) => (
-          <text
-            key={`x-${point.x}-${point.y}`}
-            x={xScale(point.x)}
-            y={chartHeight - 10}
-            textAnchor="middle"
-            fontSize="10"
-            fill="#64748b"
-          >
-            {point.label.slice(2)}
-          </text>
-        ))}
-      </svg>
+      <ChartGraphic
+        exerciseName={exerciseName}
+        playerSeries={playerSeries}
+        chartMetrics={chartMetrics}
+        viewWidth={620}
+        viewHeight={260}
+      />
 
       <div style={statGridStyle(isMobile)}>
         {playerSeries.map((series) => {
@@ -455,12 +396,175 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile }) {
               </div>
               <div style={statLineStyle}>Senast: {latestPoint?.y ?? "-"} kg</div>
               <div style={statLineStyle}>Bäst: {bestPoint?.y ?? "-"} kg</div>
+              <div style={statFootnoteStyle}>{allPoints.length} datapunkter i grafen</div>
             </div>
           )
         })}
       </div>
     </div>
   )
+}
+
+function ChartModal({ exerciseName, playerSeries, onClose }) {
+  const chartMetrics = useMemo(() => getChartMetrics(playerSeries), [playerSeries])
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose()
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [onClose])
+
+  if (!chartMetrics) return null
+
+  return (
+    <div style={chartModalBackdropStyle} onClick={onClose}>
+      <div style={chartModalCardStyle} onClick={(event) => event.stopPropagation()}>
+        <div style={chartModalHeaderStyle}>
+          <div>
+            <div style={chartTitleStyle}>{exerciseName}</div>
+            <div style={chartSubtitleStyle}>Förstorad graf med högre upplösning</div>
+          </div>
+
+          <button type="button" onClick={onClose} style={closeButtonStyle}>
+            Stäng
+          </button>
+        </div>
+
+        <div style={chartModalLegendStyle}>
+          {playerSeries.map((series) => (
+            <div key={series.playerId} style={legendItemStyle}>
+              <span style={{ ...legendColorStyle, backgroundColor: series.color }} />
+              <span>{series.playerName}</span>
+            </div>
+          ))}
+        </div>
+
+        <ChartGraphic
+          exerciseName={exerciseName}
+          playerSeries={playerSeries}
+          chartMetrics={chartMetrics}
+          viewWidth={1200}
+          viewHeight={540}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ChartGraphic({ exerciseName, playerSeries, chartMetrics, viewWidth, viewHeight }) {
+  const { minX, maxX, minY, maxY, yPadding, yTicks, xTicks } = chartMetrics
+  const leftPad = viewWidth >= 1000 ? 76 : 44
+  const rightPad = viewWidth >= 1000 ? 28 : 18
+  const topPad = viewWidth >= 1000 ? 26 : 18
+  const bottomPad = viewWidth >= 1000 ? 52 : 34
+  const plotWidth = viewWidth - leftPad - rightPad
+  const plotHeight = viewHeight - topPad - bottomPad
+  const axisFontSize = viewWidth >= 1000 ? 20 : 11
+  const xFontSize = viewWidth >= 1000 ? 17 : 10
+  const lineWidth = viewWidth >= 1000 ? 5 : 3
+  const pointRadius = viewWidth >= 1000 ? 6 : 4
+
+  const xScale = (value) => {
+    if (maxX === minX) return leftPad + plotWidth / 2
+    return leftPad + ((value - minX) / (maxX - minX)) * plotWidth
+  }
+
+  const yScale = (value) => {
+    if (maxY === minY) return topPad + plotHeight / 2
+    return topPad + plotHeight - ((value - (minY - yPadding)) / (maxY - minY + yPadding * 2)) * plotHeight
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+      style={{
+        width: "100%",
+        height: "auto",
+        overflow: "visible",
+        display: "block",
+        shapeRendering: "geometricPrecision",
+        textRendering: "geometricPrecision",
+      }}
+      role="img"
+      aria-label={`Graf för ${exerciseName}`}
+    >
+      {yTicks.map((tick) => (
+        <g key={tick}>
+          <line
+            x1={leftPad}
+            x2={viewWidth - rightPad}
+            y1={yScale(tick)}
+            y2={yScale(tick)}
+            stroke="#e5edf5"
+            strokeWidth="1"
+          />
+          <text
+            x={leftPad - 8}
+            y={yScale(tick) + axisFontSize / 3}
+            textAnchor="end"
+            fontSize={axisFontSize}
+            fill="#64748b"
+          >
+            {tick}
+          </text>
+        </g>
+      ))}
+
+      {playerSeries.map((series) => {
+        const path = series.points
+          .map((point, index) => `${index === 0 ? "M" : "L"} ${xScale(point.x)} ${yScale(point.y)}`)
+          .join(" ")
+
+        return (
+          <g key={series.playerId}>
+            <path d={path} fill="none" stroke={series.color} strokeWidth={lineWidth} strokeLinecap="round" />
+            {series.points.map((point) => (
+              <g key={`${series.playerId}-${point.x}-${point.y}`}>
+                <circle cx={xScale(point.x)} cy={yScale(point.y)} r={pointRadius} fill={series.color} />
+                <title>{`${series.playerName}: ${point.y} kg • ${point.label}`}</title>
+              </g>
+            ))}
+          </g>
+        )
+      })}
+
+      {xTicks.map((point) => (
+        <text
+          key={`x-${point.x}-${point.y}`}
+          x={xScale(point.x)}
+          y={viewHeight - 10}
+          textAnchor="middle"
+          fontSize={xFontSize}
+          fill="#64748b"
+        >
+          {point.label.slice(2)}
+        </text>
+      ))}
+    </svg>
+  )
+}
+
+function getChartMetrics(playerSeries) {
+  const allPoints = playerSeries.flatMap((series) => series.points)
+  if (!allPoints.length) return null
+  const minX = Math.min(...allPoints.map((point) => point.x))
+  const maxX = Math.max(...allPoints.map((point) => point.x))
+  const minY = Math.min(...allPoints.map((point) => point.y))
+  const maxY = Math.max(...allPoints.map((point) => point.y))
+  const yPadding = Math.max(2.5, (maxY - minY) * 0.15 || 2.5)
+  const yTicks = Array.from({ length: 4 }, (_, index) => {
+    const value = minY - yPadding + ((maxY - minY + yPadding * 2) / 3) * index
+    return Number(value.toFixed(1))
+  })
+  const xTicks = allPoints
+    .slice()
+    .sort((a, b) => a.x - b.x)
+    .filter((point, index, arr) => index === 0 || point.x !== arr[index - 1].x)
+
+  return { allPoints, minX, maxX, minY, maxY, yPadding, yTicks, xTicks }
 }
 
 const filterGridStyle = (isMobile) => ({
@@ -514,6 +618,13 @@ const chartCardStyle = {
   boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
 }
 
+const chartHeaderActionsStyle = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-end",
+  gap: "10px",
+}
+
 const chartTitleStyle = {
   fontSize: "20px",
   fontWeight: "900",
@@ -548,6 +659,17 @@ const legendColorStyle = {
   display: "inline-block",
 }
 
+const expandButtonStyle = {
+  border: "1px solid #cbd5e1",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  borderRadius: "999px",
+  padding: "9px 12px",
+  fontSize: "12px",
+  fontWeight: "800",
+  cursor: "pointer",
+}
+
 const statGridStyle = (isMobile) => ({
   marginTop: "12px",
   display: "grid",
@@ -571,6 +693,61 @@ const statLineStyle = {
   fontSize: "13px",
   color: "#475569",
   lineHeight: 1.6,
+}
+
+const statFootnoteStyle = {
+  marginTop: "8px",
+  fontSize: "11px",
+  color: "#94a3b8",
+}
+
+const chartModalBackdropStyle = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1200,
+  backgroundColor: "rgba(15, 23, 42, 0.72)",
+  backdropFilter: "blur(4px)",
+  padding: "24px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const chartModalCardStyle = {
+  width: "min(1200px, 100%)",
+  maxHeight: "90vh",
+  overflow: "auto",
+  borderRadius: "28px",
+  backgroundColor: "#ffffff",
+  border: "1px solid rgba(226, 232, 240, 0.9)",
+  boxShadow: "0 24px 80px rgba(15, 23, 42, 0.35)",
+  padding: "24px",
+}
+
+const chartModalHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "14px",
+}
+
+const chartModalLegendStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px 16px",
+  marginBottom: "18px",
+}
+
+const closeButtonStyle = {
+  border: "1px solid #cbd5e1",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  borderRadius: "999px",
+  padding: "10px 14px",
+  fontSize: "13px",
+  fontWeight: "900",
+  cursor: "pointer",
 }
 
 export default StatsPage
