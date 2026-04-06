@@ -58,6 +58,14 @@ function ExerciseBankPage({
   handleStartEditExercise,
   handleDeleteExercise,
   resetExerciseForm,
+  importedExercises,
+  exerciseImportFileName,
+  isParsingExerciseImportFile,
+  isImportingExercises,
+  exerciseImportResults,
+  handleExerciseImportFile,
+  handleImportExercises,
+  resetExerciseImport,
   exercisesFromDB,
   exerciseRequests,
   users,
@@ -90,6 +98,7 @@ function ExerciseBankPage({
   const [requestMuscleGroups, setRequestMuscleGroups] = useState([])
   const [requestStatusFilter, setRequestStatusFilter] = useState("all")
   const [requestSortMode, setRequestSortMode] = useState("newest")
+  const [exerciseImportInputKey, setExerciseImportInputKey] = useState(0)
 
   const userMap = useMemo(
     () =>
@@ -197,6 +206,11 @@ function ExerciseBankPage({
     setExpandedExerciseId(null)
   }
 
+  const clearExerciseImport = () => {
+    resetExerciseImport()
+    setExerciseImportInputKey((prev) => prev + 1)
+  }
+
   const resetRequestForm = () => {
     setRequestName("")
     setRequestExerciseType("weight_reps")
@@ -264,6 +278,16 @@ function ExerciseBankPage({
             }}
           >
             Övningar
+          </button>
+          <button
+            type="button"
+            onClick={() => setAdminSection("import")}
+            style={{
+              ...adminTabStyle,
+              ...(adminSection === "import" ? activeAdminTabStyle : {}),
+            }}
+          >
+            Import
           </button>
           <button
             type="button"
@@ -584,6 +608,119 @@ function ExerciseBankPage({
               })
             )}
           </div>
+        </div>
+      ) : adminSection === "import" && canManageExercises ? (
+        <div style={formCardStyle(isMobile)}>
+          <div
+            style={{
+              ...sectionHeaderStyle,
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : sectionHeaderStyle.alignItems,
+            }}
+          >
+            <div>
+              <div style={sectionEyebrowStyle}>Batchimport</div>
+              <div style={sectionTitleStyle}>Importera övningar från JSON</div>
+            </div>
+            <div style={countBadgeStyle}>{importedExercises.length} redo</div>
+          </div>
+
+          <div style={requestHelpTextStyle}>
+            Ladda upp en JSON-fil med en array av övningar eller ett objekt med <code>exercises</code>.
+            Befintliga övningar med samma namn uppdateras.
+          </div>
+
+          <input
+            key={exerciseImportInputKey}
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => handleExerciseImportFile(event.target.files?.[0])}
+            style={{ ...inputStyle, width: "100%", marginTop: "10px", marginBottom: "10px" }}
+          />
+
+          {exerciseImportFileName && (
+            <div style={{ ...mutedTextStyle, marginBottom: "10px" }}>
+              <strong>Fil:</strong> {exerciseImportFileName}
+            </div>
+          )}
+
+          {importedExercises.length > 0 && (
+            <div style={importPreviewCardStyle}>
+              <div style={importPreviewTitleStyle}>Förhandsgranskning</div>
+              <div style={{ display: "grid", gap: "8px" }}>
+                {importedExercises.slice(0, 8).map((exercise) => (
+                  <div key={`${exercise.rowNumber}-${exercise.name}`} style={importPreviewRowStyle}>
+                    <div style={{ fontWeight: "800", color: "#18202b" }}>{exercise.name || "Saknar namn"}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                      {exerciseTypeLabel(exercise.exercise_type)}
+                      {exercise.muscle_groups?.length ? ` • ${exercise.muscle_groups.join(", ")}` : ""}
+                    </div>
+                  </div>
+                ))}
+                {importedExercises.length > 8 && (
+                  <div style={mutedTextStyle}>+ {importedExercises.length - 8} till i filen</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+            <button
+              type="button"
+              onClick={handleImportExercises}
+              disabled={
+                isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
+              }
+              style={{
+                ...buttonStyle,
+                width: isMobile ? "100%" : "auto",
+                minHeight: "48px",
+                opacity:
+                  isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
+                    ? 0.7
+                    : 1,
+                cursor:
+                  isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
+                    ? "default"
+                    : "pointer",
+              }}
+            >
+              {isParsingExerciseImportFile
+                ? "Läser fil..."
+                : isImportingExercises
+                ? "Importerar..."
+                : "Importera övningar"}
+            </button>
+
+            <button
+              type="button"
+              onClick={clearExerciseImport}
+              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
+            >
+              Rensa
+            </button>
+          </div>
+
+          {exerciseImportResults.length > 0 && (
+            <div style={importResultsWrapStyle}>
+              <div style={importPreviewTitleStyle}>Importresultat</div>
+              <div style={{ display: "grid", gap: "8px" }}>
+                {exerciseImportResults.map((result) => (
+                  <div key={`import-result-${result.rowNumber}-${result.name}`} style={importResultRowStyle}>
+                    <div style={{ fontWeight: "800", color: "#18202b" }}>{result.name || "Saknar namn"}</div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: result.success ? "#166534" : "#991b1b",
+                      }}
+                    >
+                      {result.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -1157,6 +1294,41 @@ const countBadgeStyle = {
   color: "#991b1b",
   fontSize: "12px",
   fontWeight: "800",
+}
+
+const importPreviewCardStyle = {
+  marginTop: "12px",
+  padding: "12px",
+  borderRadius: "14px",
+  backgroundColor: "#fff8f8",
+  border: "1px solid #f2d7d7",
+}
+
+const importPreviewTitleStyle = {
+  marginBottom: "10px",
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const importPreviewRowStyle = {
+  padding: "10px 12px",
+  borderRadius: "12px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #f0e4e4",
+}
+
+const importResultsWrapStyle = {
+  display: "grid",
+  gap: "8px",
+  marginTop: "14px",
+}
+
+const importResultRowStyle = {
+  padding: "10px 12px",
+  borderRadius: "12px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #ece5e5",
 }
 
 const headerActionsStyle = {

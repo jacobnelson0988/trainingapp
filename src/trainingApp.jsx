@@ -172,6 +172,11 @@ function TrainingApp() {
   const [newExerciseDisplayName, setNewExerciseDisplayName] = useState("")
   const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [isSavingExercise, setIsSavingExercise] = useState(false)
+  const [importedExercises, setImportedExercises] = useState([])
+  const [exerciseImportFileName, setExerciseImportFileName] = useState("")
+  const [isParsingExerciseImportFile, setIsParsingExerciseImportFile] = useState(false)
+  const [isImportingExercises, setIsImportingExercises] = useState(false)
+  const [exerciseImportResults, setExerciseImportResults] = useState([])
   const [latestWorkout, setLatestWorkout] = useState({})
   const [latestPassDates, setLatestPassDates] = useState({})
   const [status, setStatus] = useState("")
@@ -322,25 +327,26 @@ function TrainingApp() {
     }
   }, [selectedTemplateCode, templatesFromDB])
 
-  useEffect(() => {
-    const fetchExercises = async () => {
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("*")
-        .order("name")
+  const loadExercises = async () => {
+    const { data, error } = await supabase
+      .from("exercises")
+      .select("*")
+      .order("name")
 
-      if (error) {
-        console.error("Error fetching exercises:", error)
-      } else {
-        const activeExercises = (data || [])
-          .filter((exercise) => exercise.is_active !== false)
-          .sort((a, b) => getExerciseDisplayName(a).localeCompare(getExerciseDisplayName(b), "sv"))
-        setExercisesFromDB(activeExercises)
-        console.log("Exercises from DB:", activeExercises)
-      }
+    if (error) {
+      console.error("Error fetching exercises:", error)
+      return
     }
 
-    fetchExercises()
+    const activeExercises = (data || [])
+      .filter((exercise) => exercise.is_active !== false)
+      .sort((a, b) => getExerciseDisplayName(a).localeCompare(getExerciseDisplayName(b), "sv"))
+
+    setExercisesFromDB(activeExercises)
+  }
+
+  useEffect(() => {
+    loadExercises()
   }, [])
 
   useEffect(() => {
@@ -2360,6 +2366,153 @@ function TrainingApp() {
       .replace(/[^a-z0-9]/g, "")
   }
 
+  const normalizeExerciseImportType = (value) => {
+    const normalized = normalizeImportHeader(value)
+
+    if (["weightreps", "viktreps", "weight", "weight_rep", "weightrepsonly"].includes(normalized)) {
+      return "weight_reps"
+    }
+
+    if (["secondsonly", "seconds", "sekunder", "tid", "time"].includes(normalized)) {
+      return "seconds_only"
+    }
+
+    return "reps_only"
+  }
+
+  const normalizeExerciseImportRepsMode = (value) => {
+    const normalized = normalizeImportHeader(value)
+    return ["max", "failure", "tillfailure", "tillmax"].includes(normalized) ? "max" : "fixed"
+  }
+
+  const parseExerciseImportMuscleGroups = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((entry) => String(entry || "").trim()).filter(Boolean)
+    }
+
+    return String(value || "")
+      .split(/[\n,;|]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+  }
+
+  const parseImportedExercisesFromJson = (rawValue) => {
+    const rows = Array.isArray(rawValue)
+      ? rawValue
+      : Array.isArray(rawValue?.exercises)
+      ? rawValue.exercises
+      : Array.isArray(rawValue?.items)
+      ? rawValue.items
+      : Array.isArray(rawValue?.data)
+      ? rawValue.data
+      : []
+
+    return rows
+      .map((row, index) => {
+        const normalizedEntries = Object.entries(row || {}).reduce((acc, [key, value]) => {
+          acc[normalizeImportHeader(key)] = value
+          return acc
+        }, {})
+
+        const name = String(
+          normalizedEntries.name ||
+            normalizedEntries.namn ||
+            normalizedEntries.ovning ||
+            normalizedEntries.exercise ||
+            normalizedEntries.exercisename ||
+            ""
+        ).trim()
+
+        const aliasesSource =
+          normalizedEntries.aliases ||
+          normalizedEntries.alias ||
+          normalizedEntries.synonyms ||
+          normalizedEntries.alternativenames ||
+          ""
+
+        const aliases = parseExerciseAliases(
+          Array.isArray(aliasesSource) ? aliasesSource.join(",") : aliasesSource
+        ).filter((alias) => alias.toLowerCase() !== name.toLowerCase())
+
+        const allowedDisplayNames = [name, ...aliases].filter(Boolean)
+        const requestedDisplayName = String(
+          normalizedEntries.displayname ||
+            normalizedEntries.display_name ||
+            normalizedEntries.visningsnamn ||
+            normalizedEntries.visanamn ||
+            ""
+        ).trim()
+
+        return {
+          rowNumber: index + 1,
+          name,
+          exercise_type: normalizeExerciseImportType(
+            normalizedEntries.exercisetype || normalizedEntries.exercise_type || normalizedEntries.type
+          ),
+          default_reps_mode: normalizeExerciseImportRepsMode(
+            normalizedEntries.defaultrepsmode ||
+              normalizedEntries.default_reps_mode ||
+              normalizedEntries.repsmode ||
+              normalizedEntries.repmodus
+          ),
+          description: String(normalizedEntries.description || normalizedEntries.beskrivning || "").trim(),
+          guide: String(normalizedEntries.guide || normalizedEntries.instruktion || normalizedEntries.instructions || "").trim(),
+          media_url: String(
+            normalizedEntries.mediaurl ||
+              normalizedEntries.media_url ||
+              normalizedEntries.videourl ||
+              normalizedEntries.video ||
+              normalizedEntries.referenceurl ||
+              normalizedEntries.reference_url ||
+              ""
+          ).trim(),
+          muscle_groups: parseExerciseImportMuscleGroups(
+            normalizedEntries.musclegroups ||
+              normalizedEntries.muscle_groups ||
+              normalizedEntries.muskelgrupper
+          ),
+          aliases,
+          display_name: allowedDisplayNames.includes(requestedDisplayName) ? requestedDisplayName : "",
+        }
+      })
+      .filter((exercise) => {
+        return (
+          exercise.name ||
+          exercise.description ||
+          exercise.guide ||
+          exercise.media_url ||
+          exercise.aliases.length > 0
+        )
+      })
+  }
+
+  const buildExercisePayload = (exercise) => {
+    const exerciseName = String(exercise.name || "").trim()
+    const parsedAliases = parseExerciseAliases(exercise.aliases).filter(
+      (alias) => alias.toLowerCase() !== exerciseName.toLowerCase()
+    )
+    const allowedDisplayNames = [exerciseName, ...parsedAliases]
+    const nextDisplayName = allowedDisplayNames.includes(String(exercise.display_name || "").trim())
+      ? String(exercise.display_name || "").trim()
+      : ""
+    const nextExerciseType = normalizeExerciseImportType(exercise.exercise_type)
+
+    return {
+      name: exerciseName,
+      exercise_type: nextExerciseType,
+      guide: String(exercise.guide || "").trim() || null,
+      description: String(exercise.description || "").trim() || null,
+      media_url: String(exercise.media_url || "").trim() || null,
+      default_reps_mode:
+        nextExerciseType === "seconds_only"
+          ? "fixed"
+          : normalizeExerciseImportRepsMode(exercise.default_reps_mode),
+      muscle_groups: parseExerciseImportMuscleGroups(exercise.muscle_groups),
+      aliases: parsedAliases,
+      display_name: nextDisplayName || null,
+    }
+  }
+
   const handlePlayerImportFile = async (file) => {
     if (!file) return
 
@@ -2410,6 +2563,44 @@ function TrainingApp() {
     } finally {
       setIsParsingImportFile(false)
     }
+  }
+
+  const handleExerciseImportFile = async (file) => {
+    if (!file) return
+
+    setStatus("")
+    setExerciseImportResults([])
+    setIsParsingExerciseImportFile(true)
+
+    try {
+      const rawText = await file.text()
+      const parsedJson = JSON.parse(rawText)
+      const parsedRows = parseImportedExercisesFromJson(parsedJson)
+
+      if (parsedRows.length === 0) {
+        setStatus("JSON-filen innehåller inga övningar att importera")
+        setImportedExercises([])
+        setExerciseImportFileName(file.name)
+        return
+      }
+
+      setImportedExercises(parsedRows)
+      setExerciseImportFileName(file.name)
+      setStatus(`${parsedRows.length} övningar redo för import`)
+    } catch (error) {
+      console.error(error)
+      setStatus("Kunde inte läsa JSON-filen")
+      setImportedExercises([])
+      setExerciseImportFileName("")
+    } finally {
+      setIsParsingExerciseImportFile(false)
+    }
+  }
+
+  const resetExerciseImport = () => {
+    setImportedExercises([])
+    setExerciseImportFileName("")
+    setExerciseImportResults([])
   }
 
   const handleSelectedExerciseOptionChange = (exerciseIndex, optionKey) => {
@@ -2767,26 +2958,17 @@ function TrainingApp() {
     }
 
     setIsSavingExercise(true)
-
-    const parsedAliases = parseExerciseAliases(newExerciseAliasesText).filter(
-      (alias) => alias.toLowerCase() !== newExerciseName.trim().toLowerCase()
-    )
-    const allowedDisplayNames = [newExerciseName.trim(), ...parsedAliases]
-    const nextDisplayName = allowedDisplayNames.includes(newExerciseDisplayName.trim())
-      ? newExerciseDisplayName.trim()
-      : ""
-
-    const payload = {
-      name: newExerciseName.trim(),
+    const payload = buildExercisePayload({
+      name: newExerciseName,
       exercise_type: newExerciseType,
-      guide: newExerciseGuide.trim() || null,
-      description: newExerciseDescription.trim() || null,
-      media_url: newExerciseMediaUrl.trim() || null,
-      default_reps_mode: newExerciseType === "seconds_only" ? "fixed" : newExerciseDefaultRepsMode,
+      guide: newExerciseGuide,
+      description: newExerciseDescription,
+      media_url: newExerciseMediaUrl,
+      default_reps_mode: newExerciseDefaultRepsMode,
       muscle_groups: newExerciseMuscleGroups,
-      aliases: parsedAliases,
-      display_name: nextDisplayName || null,
-    }
+      aliases: newExerciseAliasesText,
+      display_name: newExerciseDisplayName,
+    })
 
     const query = editingExerciseId
       ? supabase.from("exercises").update(payload).eq("id", editingExerciseId).select().single()
@@ -2821,6 +3003,92 @@ function TrainingApp() {
     resetExerciseForm()
     setStatus(editingExerciseId ? "Övning uppdaterad ✅" : "Övning sparad ✅")
     setIsSavingExercise(false)
+  }
+
+  const handleImportExercises = async () => {
+    if (!importedExercises.length) {
+      setStatus("Ladda upp en JSON-fil först")
+      return
+    }
+
+    setIsImportingExercises(true)
+    setStatus("")
+
+    const existingExercisesByName = new Map(
+      exercisesFromDB.map((exercise) => [String(exercise.name || "").trim().toLowerCase(), exercise])
+    )
+    const results = []
+    let hasMissingColumnError = false
+
+    for (const exercise of importedExercises) {
+      if (!exercise.name) {
+        results.push({
+          ...exercise,
+          success: false,
+          message: "Saknar namn på övning",
+        })
+        continue
+      }
+
+      const payload = buildExercisePayload(exercise)
+      const existingExercise = existingExercisesByName.get(payload.name.toLowerCase())
+      const query = existingExercise
+        ? supabase.from("exercises").update(payload).eq("id", existingExercise.id).select().single()
+        : supabase.from("exercises").insert(payload).select().single()
+      const { data, error } = await query
+
+      if (error) {
+        console.error(error)
+        const errorMessage = String(error.message || "").toLowerCase()
+        if (
+          errorMessage.includes("muscle_groups") ||
+          errorMessage.includes("description") ||
+          errorMessage.includes("media_url")
+        ) {
+          hasMissingColumnError = true
+        }
+
+        results.push({
+          ...exercise,
+          success: false,
+          message: error.message || "Kunde inte spara övningen",
+        })
+        continue
+      }
+
+      if (data) {
+        existingExercisesByName.set(payload.name.toLowerCase(), data)
+      }
+
+      results.push({
+        ...exercise,
+        success: true,
+        message: existingExercise ? "Uppdaterad" : "Importerad",
+      })
+    }
+
+    setExerciseImportResults(results)
+    setIsImportingExercises(false)
+
+    const successCount = results.filter((entry) => entry.success).length
+    const failedCount = results.length - successCount
+
+    if (successCount > 0) {
+      await loadExercises()
+    }
+
+    if (hasMissingColumnError) {
+      setStatus(
+        "Importen stoppades delvis. Kör SQL-ändringarna i Supabase först för muscle_groups, description och media_url."
+      )
+      return
+    }
+
+    setStatus(
+      failedCount > 0
+        ? `${successCount} övningar importerade, ${failedCount} misslyckades`
+        : `${successCount} övningar importerade ✅`
+    )
   }
 
   const handleDeleteExercise = async (exerciseId) => {
@@ -3970,6 +4238,14 @@ function TrainingApp() {
                 handleStartEditExercise={handleStartEditExercise}
                 handleDeleteExercise={handleDeleteExercise}
                 resetExerciseForm={resetExerciseForm}
+                importedExercises={importedExercises}
+                exerciseImportFileName={exerciseImportFileName}
+                isParsingExerciseImportFile={isParsingExerciseImportFile}
+                isImportingExercises={isImportingExercises}
+                exerciseImportResults={exerciseImportResults}
+                handleExerciseImportFile={handleExerciseImportFile}
+                handleImportExercises={handleImportExercises}
+                resetExerciseImport={resetExerciseImport}
                 exercisesFromDB={exercisesFromDB}
                 exerciseRequests={exerciseRequests}
                 users={allUsers}
