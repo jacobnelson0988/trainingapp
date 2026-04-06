@@ -10,6 +10,7 @@ Färdigt nu:
 - Övningsbank med create, edit, import och export för `head_admin`.
 - Requests-flöde där tränare kan föreslå nya övningar.
 - Kategoribaserad navigering i övningsbanken.
+- Kategoribaserat övningsval i passbyggaren.
 - Separat `navigation_category` för övningar, så `head_admin` kan styra var övningen visas utan att ändra `muscle_groups`.
 
 Viktiga databasfält för övningsbanken:
@@ -25,33 +26,34 @@ Klart:
 - Import/export av övningsbank som JSON.
 - Städad live-övningsbank.
 - Kategoriförsta navigation i övningsbanken.
+- Kategoriförsta övningsval i passbyggaren.
 - Permanent sparad navigationskategori i Supabase.
 
 Pågående fokus:
-- Finslipa UX i övningsbanken efter att kategorinavigationen nu finns på plats.
+- Finslipa kategoriflödets UX i både övningsbanken och passbyggaren.
 
 Nästa steg:
-1. Lägg samma kategoribaserade övningsval i själva passbyggaren under `Välj övning`, så att användaren får samma navigationsmodell där som i övningsbanken.
-2. Lägg till enkel dragning eller snabbändring för `navigation_category` direkt från övningskort/lista, så `head_admin` slipper öppna full redigering för små flyttar.
-3. Lägg till dublettskydd i importen med stabil nyckel som `external_id` eller `slug`, så stora importer kan köras om utan risk för dubletter.
-4. Lägg till bättre testning/byggeverifiering i en miljö där Vite build fungerar utan det nuvarande `rolldown`-problemet.
+1. Lägg till enkel snabbändring för `navigation_category` direkt från övningskort/lista, så `head_admin` slipper öppna full redigering för små flyttar.
+2. Lägg till dublettskydd i importen med stabil nyckel som `external_id` eller `slug`, så stora importer kan köras om utan risk för dubletter.
+3. Lägg till bättre testning/byggeverifiering i en miljö där Vite build fungerar utan det nuvarande `rolldown`-problemet.
+4. Finslipa alternativövningar i passbyggaren så att även de kan få samma navigationsmönster vid behov.
 
 ## Rekommenderat Nästa Steg
 
 Nästa steg jag rekommenderar att bygga nu är:
 
-`Kategoribaserat övningsval i passbyggaren`
+`Snabbändring av navigationskategori i övningsbanken`
 
 Varför:
-- Det är där navigeringsproblemet märks mest i vardagsflödet.
-- Nu finns redan kategori-logiken och datamodellen i övningsbanken.
-- Det ger konsekvent UX mellan adminflöde och coachflöde.
+- `head_admin` kan redan styra kategori, men det kräver att öppna full redigering.
+- Det här är den snabbaste förbättringen efter att kategoriarkitekturen nu är på plats.
+- Det gör att banken blir lättare att finjustera när fler övningar läggs in.
 
 Konkreta delsteg:
-1. Identifiera filen där `Välj övning` i passbyggaren renderas.
-2. Byt första vyn från lång lista till kategorier.
-3. Behåll global sök över alla övningar.
-4. Använd `navigation_category` som primär källa och fallback till `muscle_groups`.
+1. Lägg en liten dropdown eller snabbknapp direkt på övningskortet för `head_admin`.
+2. Spara `navigation_category` utan att öppna hela edit-formuläret.
+3. Uppdatera listan lokalt direkt efter ändring så att flytten känns omedelbar.
+4. Behåll full edit-form som fallback för större ändringar.
 
 ## Driftnotering
 
