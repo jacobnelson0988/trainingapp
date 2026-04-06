@@ -208,6 +208,7 @@ Omfattning:
 - ~~Kategoribaserad övningsbank~~
 - ~~Kategoribaserat övningsval i passbyggaren~~
 - ~~Expandering i övningsbanken visar alias, utförande och video/gif~~
+- ~~Tydligare grafisk aktivering när spelaren startar ett pass, med egen träningsvy för övningskorten~~
 - Snabbändring av `navigation_category` direkt i övningsbanken för `head_admin`
 - Dublettskydd i importen
 

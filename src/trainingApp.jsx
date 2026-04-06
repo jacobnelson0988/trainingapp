@@ -2111,7 +2111,7 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys(defaultExerciseOptionKeys)
     setExerciseComments(defaultExerciseComments)
     setPassComment("")
-    setPlayerView("pass")
+    setPlayerView("workout")
     setStatus(`${workout.label} startat`)
 
     await loadLatestWorkoutForPass(workoutKey, user.id)
@@ -4608,26 +4608,38 @@ function TrainingApp() {
             alignItems: isMobile ? "stretch" : "flex-start",
           }}
         >
-          <div style={coachTabsWrapStyle}>
-            {playerTabs.map((tab) => {
-              const isActive = playerView === tab.key
+          {!isWorkoutActive ? (
+            <div style={coachTabsWrapStyle}>
+              {playerTabs.map((tab) => {
+                const isActive = playerView === tab.key
 
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setPlayerView(tab.key)}
-                  style={{
-                    ...coachTabButtonStyle,
-                    ...(isActive ? activeCoachTabButtonStyle : {}),
-                    width: isMobile ? "100%" : "auto",
-                  }}
-                >
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setPlayerView(tab.key)}
+                    style={{
+                      ...coachTabButtonStyle,
+                      ...(isActive ? activeCoachTabButtonStyle : {}),
+                      width: isMobile ? "100%" : "auto",
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={activeWorkoutPageHeroStyle(isMobile)}>
+              <div style={activeWorkoutPageBadgeStyle}>Pågående träningspass</div>
+              <div style={activeWorkoutPageTitleStyle}>
+                {activeWorkoutData?.label || "Träningspass"}
+              </div>
+              <div style={activeWorkoutPageTextStyle}>
+                Du är nu inne i passet. Svep eller bläddra mellan övningskorten och avsluta på sista kortet.
+              </div>
+            </div>
+          )}
 
           {!isWorkoutActive && playerView === "messages" && (
             <MessagesPage
@@ -4844,8 +4856,19 @@ function TrainingApp() {
       {status && <p style={statusStyle}>{status}</p>}
 
       {selectedWorkout && isWorkoutActive && (
-        <>
-          <h2 style={sectionTitleStyle}>{activeWorkoutData?.label}</h2>
+        <div style={activeWorkoutPageWrapStyle}>
+          <div style={activeWorkoutPageMetaRowStyle(isMobile)}>
+            <div style={activeWorkoutPageMetaCardStyle}>
+              <div style={activeWorkoutPageMetaLabelStyle}>Pass</div>
+              <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutData?.label}</div>
+            </div>
+            <div style={activeWorkoutPageMetaCardStyle}>
+              <div style={activeWorkoutPageMetaLabelStyle}>Kort</div>
+              <div style={activeWorkoutPageMetaValueStyle}>
+                {Math.min(activeExerciseIndex + 1, activeWorkoutSlideCount)} / {activeWorkoutSlideCount}
+              </div>
+            </div>
+          </div>
 
           <div style={cardStyle}>
             <h3 style={cardTitleStyle}>Uppvärmning</h3>
@@ -5327,7 +5350,7 @@ function TrainingApp() {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
       </>
       )}
@@ -5411,6 +5434,78 @@ const heroTextStyle = {
   fontSize: "15px",
   lineHeight: 1.6,
   color: "rgba(255,255,255,0.9)",
+}
+
+const activeWorkoutPageHeroStyle = (isMobile) => ({
+  width: "100%",
+  padding: isMobile ? "18px 16px" : "22px 22px 20px",
+  borderRadius: isMobile ? "20px" : "26px",
+  background:
+    "linear-gradient(135deg, rgba(24, 32, 43, 0.98) 0%, rgba(153, 27, 27, 0.95) 52%, rgba(198, 40, 40, 0.92) 100%)",
+  color: "#ffffff",
+  boxShadow: "0 24px 42px rgba(24, 32, 43, 0.16)",
+})
+
+const activeWorkoutPageBadgeStyle = {
+  display: "inline-flex",
+  marginBottom: "12px",
+  padding: "6px 12px",
+  borderRadius: "999px",
+  backgroundColor: "rgba(255,255,255,0.14)",
+  color: "#fff7f7",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+}
+
+const activeWorkoutPageTitleStyle = {
+  fontSize: "clamp(1.8rem, 3vw, 2.6rem)",
+  fontWeight: "900",
+  lineHeight: 1,
+  marginBottom: "10px",
+}
+
+const activeWorkoutPageTextStyle = {
+  maxWidth: "720px",
+  fontSize: "15px",
+  lineHeight: 1.6,
+  color: "rgba(255,255,255,0.9)",
+}
+
+const activeWorkoutPageWrapStyle = {
+  width: "100%",
+  marginTop: "6px",
+}
+
+const activeWorkoutPageMetaRowStyle = (isMobile) => ({
+  display: "grid",
+  gap: "12px",
+  marginBottom: "16px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const activeWorkoutPageMetaCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+}
+
+const activeWorkoutPageMetaLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+  marginBottom: "6px",
+}
+
+const activeWorkoutPageMetaValueStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
 }
 
 const feedbackActionBarStyle = {
