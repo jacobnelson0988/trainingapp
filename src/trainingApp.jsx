@@ -11,6 +11,7 @@ import AdminHomePage from "./pages/AdminHomePage"
 import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
+import StatsPage from "./pages/StatsPage"
 
 const normalizeExerciseSearchValue = (value) =>
   String(value || "")
@@ -4282,6 +4283,7 @@ function TrainingApp() {
   const coachTabs = [
     { key: "home", label: "Översikt" },
     { key: "players", label: "Användare" },
+    { key: "stats", label: "Statistik" },
     { key: "exerciseBank", label: "Övningar" },
     { key: "passBuilder", label: "Pass" },
     {
@@ -4312,6 +4314,7 @@ function TrainingApp() {
     { key: "home", label: "Översikt" },
     { key: "users", label: "Användare" },
     { key: "teams", label: "Lag" },
+    { key: "stats", label: "Statistik" },
     { key: "exerciseBank", label: "Övningar" },
     {
       key: "messages",
@@ -4322,6 +4325,10 @@ function TrainingApp() {
 
   const managementTabs = profile?.role === "head_admin" ? headAdminTabs : coachTabs
   const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
+  const statisticsPlayers =
+    profile?.role === "head_admin"
+      ? (allUsers || []).filter((entry) => entry.role === "player")
+      : (players || []).filter((entry) => entry.role === "player")
 
   return (
     <div
@@ -4876,6 +4883,17 @@ function TrainingApp() {
                 mutedTextStyle={mutedTextStyle}
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
+                isMobile={isMobile}
+              />
+            )}
+
+            {coachView === "stats" && (
+              <StatsPage
+                candidatePlayers={statisticsPlayers}
+                cardTitleStyle={cardTitleStyle}
+                mutedTextStyle={mutedTextStyle}
+                inputStyle={inputStyle}
                 secondaryButtonStyle={secondaryButtonStyle}
                 isMobile={isMobile}
               />

@@ -9,6 +9,7 @@ function AdminHomePage({
   const cards = [
     { key: "users", title: "Alla användare", text: "Se roller och vilka lag användarna tillhör" },
     { key: "teams", title: "Lag", text: "Skapa nya lag och se lagens sammansättning" },
+    { key: "stats", title: "Statistik", text: "Följ viktutveckling per övning för spelare i organisationen" },
     { key: "exerciseBank", title: "Övningsbank", text: "Hantera övningar för hela föreningen" },
     { key: "messages", title: "Meddelanden", text: "Läs och skriv meddelanden i hela organisationen" },
     { key: "feedback", title: "Feedback", text: "Läs allt som beta-testare skickar in" },

@@ -74,6 +74,24 @@ function CoachHomePage({
         <button
           type="button"
           onClick={() => {
+            setCoachView("stats")
+            setSelectedPlayer(null)
+          }}
+          style={{
+            ...coachNavCardStyle,
+            minHeight: isMobile ? "132px" : coachNavCardStyle.minHeight,
+          }}
+        >
+          <div style={coachNavTopRowStyle}>
+            <div style={coachNavTitleStyle}>Statistik</div>
+            <div style={coachNavArrowStyle}>→</div>
+          </div>
+          <div style={coachNavTextStyle}>Följ viktutveckling per övning för en eller flera spelare</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
             setCoachView("messages")
             setSelectedPlayer(null)
           }}

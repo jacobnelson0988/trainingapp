@@ -176,12 +176,12 @@ Göra träningsdata användbar över tid.
 
 Omfattning:
 
-- Historik per övning
-- Progression i graf
+- ~~Grundläggande historik per övning i tränarvyn~~
+- ~~Progression i graf för viktutveckling~~
 - Filter, till exempel:
-  - övning
+  - ~~övning~~
   - period
-  - spelare
+  - ~~spelare~~
 - Jämförelse över tid
 
 Syfte:
