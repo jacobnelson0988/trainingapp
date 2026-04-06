@@ -225,6 +225,7 @@ function TrainingApp() {
   const [isSubmittingExerciseRequest, setIsSubmittingExerciseRequest] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
   const [isCreatingTeam, setIsCreatingTeam] = useState(false)
+  const [deletingTeamId, setDeletingTeamId] = useState(null)
   const [newPlayerName, setNewPlayerName] = useState("")
   const [newPlayerPassword, setNewPlayerPassword] = useState("")
   const [createdPlayer, setCreatedPlayer] = useState(null)
@@ -2417,12 +2418,19 @@ function TrainingApp() {
     }
 
     const targetRole =
-      newUserRole === "coach" && (profile?.role === "head_admin" || profile?.role === "coach")
+      newUserRole === "head_admin" && profile?.role === "head_admin"
+        ? "head_admin"
+        : newUserRole === "coach" && (profile?.role === "head_admin" || profile?.role === "coach")
         ? "coach"
         : "player"
-    const targetTeamId = profile?.role === "head_admin" ? selectedTeamId : profile?.team_id
+    const targetTeamId =
+      targetRole === "head_admin"
+        ? null
+        : profile?.role === "head_admin"
+        ? selectedTeamId
+        : profile?.team_id
 
-    if (!targetTeamId) {
+    if (targetRole !== "head_admin" && !targetTeamId) {
       setStatus("Välj lag först")
       return
     }
@@ -2443,7 +2451,7 @@ function TrainingApp() {
         full_name: newPlayerName.trim(),
         password: newPlayerPassword.trim(),
         role: targetRole,
-        team_id: targetTeamId,
+        team_id: targetTeamId || null,
       },
     })
 
@@ -2461,7 +2469,13 @@ function TrainingApp() {
     }
 
     setCreatedPlayer(data)
-    setStatus(targetRole === "coach" ? "Tränare skapad ✅" : "Spelare skapad ✅")
+    setStatus(
+      targetRole === "head_admin"
+        ? "Huvudadmin skapad ✅"
+        : targetRole === "coach"
+        ? "Tränare skapad ✅"
+        : "Spelare skapad ✅"
+    )
     setNewPlayerName("")
     setNewPlayerPassword("")
     setNewUserRole("player")
@@ -2847,6 +2861,68 @@ function TrainingApp() {
     setNewTeamName("")
     setStatus("Lag skapat ✅")
     setIsCreatingTeam(false)
+  }
+
+  const handleDeleteTeam = async (team) => {
+    if (!team?.id) return
+
+    const relatedUsers = (allUsers || []).filter(
+      (entry) => entry.team_id === team.id && entry.role !== "head_admin"
+    )
+
+    if (relatedUsers.length > 0) {
+      setStatus("Laget kan inte tas bort så länge spelare eller tränare är kopplade till det")
+      return
+    }
+
+    const [{ count: workoutTemplateCount, error: workoutTemplateError }, { count: warmupTemplateCount, error: warmupTemplateError }] =
+      await Promise.all([
+        supabase
+          .from("workout_templates")
+          .select("*", { count: "exact", head: true })
+          .eq("team_id", team.id),
+        supabase
+          .from("warmup_templates")
+          .select("*", { count: "exact", head: true })
+          .eq("team_id", team.id),
+      ])
+
+    if (workoutTemplateError || warmupTemplateError) {
+      console.error(workoutTemplateError || warmupTemplateError)
+      setStatus("Kunde inte kontrollera om laget kan tas bort")
+      return
+    }
+
+    if ((workoutTemplateCount || 0) > 0 || (warmupTemplateCount || 0) > 0) {
+      setStatus("Laget kan inte tas bort så länge det fortfarande har pass eller uppvärmningsmallar")
+      return
+    }
+
+    const confirmed = window.confirm(`Vill du ta bort laget ${team.name}?`)
+    if (!confirmed) return
+
+    setDeletingTeamId(team.id)
+
+    const { error } = await supabase.from("teams").delete().eq("id", team.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ta bort lag")
+      setDeletingTeamId(null)
+      return
+    }
+
+    setTeams((prev) => prev.filter((entry) => entry.id !== team.id))
+    setAllUsers((prev) =>
+      prev.map((entry) =>
+        entry.team_id === team.id && entry.role === "head_admin"
+          ? { ...entry, team_id: null }
+          : entry
+      )
+    )
+    setSelectedTeamId((prev) => (prev === team.id ? "" : prev))
+    setStatus("Lag borttaget ✅")
+    setDeletingTeamId(null)
   }
 
   const handleTargetDraftChange = (passName, exerciseName, field, value) => {
@@ -4374,10 +4450,13 @@ function TrainingApp() {
                 newTeamName={newTeamName}
                 setNewTeamName={setNewTeamName}
                 handleCreateTeam={handleCreateTeam}
+                handleDeleteTeam={handleDeleteTeam}
                 isCreatingTeam={isCreatingTeam}
+                deletingTeamId={deletingTeamId}
                 cardTitleStyle={cardTitleStyle}
                 inputStyle={inputStyle}
                 buttonStyle={buttonStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
                 mutedTextStyle={mutedTextStyle}
                 isMobile={isMobile}
               />

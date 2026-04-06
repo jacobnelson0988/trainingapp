@@ -57,6 +57,7 @@ Omfattning:
 - ~~Roller, exempelvis:~~
   - ~~player~~
   - ~~coach~~
+- ~~head_admin kan ligga utanför vanlig lagkoppling~~
 - ~~Data kopplad till rätt användare~~
 - ~~Edge function för att skapa spelare~~
 - ~~Live deploy~~
@@ -209,6 +210,7 @@ Omfattning:
 - ~~Kategoribaserat övningsval i passbyggaren~~
 - ~~Expandering i övningsbanken visar alias, utförande och video/gif~~
 - ~~Tydligare grafisk aktivering när spelaren startar ett pass, med egen träningsvy där uppvärmningen är första kortet~~
+- ~~Head-admin kan ta bort lag när laget inte längre används~~
 - Snabbändring av `navigation_category` direkt i övningsbanken för `head_admin`
 - Dublettskydd i importen
 

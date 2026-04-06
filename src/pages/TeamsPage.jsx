@@ -6,10 +6,13 @@ function TeamsPage({
   newTeamName,
   setNewTeamName,
   handleCreateTeam,
+  handleDeleteTeam,
   isCreatingTeam,
+  deletingTeamId,
   cardTitleStyle,
   inputStyle,
   buttonStyle,
+  secondaryButtonStyle,
   mutedTextStyle,
   isMobile,
 }) {
@@ -71,6 +74,23 @@ function TeamsPage({
 
               {isExpanded && (
                 <div style={teamUsersWrapStyle}>
+                  <div style={teamActionsRowStyle(isMobile)}>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTeam(team)}
+                      disabled={deletingTeamId === team.id}
+                      style={{
+                        ...secondaryButtonStyle,
+                        width: isMobile ? "100%" : "auto",
+                        color: "#b91c1c",
+                        borderColor: "#fecaca",
+                        opacity: deletingTeamId === team.id ? 0.7 : 1,
+                      }}
+                    >
+                      {deletingTeamId === team.id ? "Tar bort..." : "Ta bort lag"}
+                    </button>
+                  </div>
+
                   {relatedUsers.length === 0 ? (
                     <div style={emptyUsersStyle}>Inga användare i laget ännu.</div>
                   ) : (
@@ -158,6 +178,13 @@ const teamUsersWrapStyle = {
   display: "grid",
   gap: "8px",
 }
+
+const teamActionsRowStyle = (isMobile) => ({
+  display: "flex",
+  justifyContent: "flex-end",
+  marginBottom: "4px",
+  flexDirection: isMobile ? "column" : "row",
+})
 
 const teamUserRowStyle = (isMobile) => ({
   padding: "12px",

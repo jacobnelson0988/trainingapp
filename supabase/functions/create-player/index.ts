@@ -76,8 +76,18 @@ serve(async (req: Request) => {
     console.log("creator verified", { userId: user.id, role: profile.role })
 
     const { full_name, password, role: requestedRole, team_id: requestedTeamId } = await req.json()
-    const targetRole = requestedRole === "coach" ? "coach" : "player"
-    const targetTeamId = profile.role === "head_admin" ? requestedTeamId || profile.team_id : profile.team_id
+    const targetRole =
+      profile.role === "head_admin" && requestedRole === "head_admin"
+        ? "head_admin"
+        : requestedRole === "coach"
+        ? "coach"
+        : "player"
+    const targetTeamId =
+      targetRole === "head_admin"
+        ? null
+        : profile.role === "head_admin"
+        ? requestedTeamId || null
+        : profile.team_id
     console.log("payload received", {
       full_name,
       requestedRole,
@@ -86,7 +96,7 @@ serve(async (req: Request) => {
       passwordLength: typeof password === "string" ? password.length : 0,
     })
 
-    if (!full_name || !password || !targetTeamId) {
+    if (!full_name || !password || (targetRole !== "head_admin" && !targetTeamId)) {
       return new Response(JSON.stringify({ error: "full_name, password or team_id missing" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

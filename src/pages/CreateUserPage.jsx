@@ -26,7 +26,8 @@ function CreateUserPage({
   importResults,
 }) {
   const availableTeams = teams || []
-  const effectiveTeamId = isHeadAdmin ? selectedTeamId : currentTeamId
+  const requiresTeamSelection = !isHeadAdmin || newUserRole !== "head_admin"
+  const effectiveTeamId = requiresTeamSelection ? (isHeadAdmin ? selectedTeamId : currentTeamId) : ""
   const canChooseRole = isHeadAdmin || !!currentTeamId
 
   return (
@@ -64,10 +65,11 @@ function CreateUserPage({
               >
                 <option value="player">Spelare</option>
                 <option value="coach">Tränare</option>
+                {isHeadAdmin && <option value="head_admin">Huvudadmin</option>}
               </select>
             </div>
 
-            {isHeadAdmin && (
+            {isHeadAdmin && requiresTeamSelection && (
               <div style={{ marginBottom: "10px" }}>
                 <select
                   value={selectedTeamId}
