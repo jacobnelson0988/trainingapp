@@ -89,6 +89,36 @@ const deriveExercisePrimaryCategory = (exercise) => {
 const getExercisePrimaryCategoryLabel = (value) =>
   exerciseCategoryOptions.find((option) => option.key === value)?.label || "Styrka"
 
+const exerciseNavigationCategoryOrder = [
+  "Axlar",
+  "Ben",
+  "Biceps",
+  "Bröst",
+  "Kondition",
+  "Mage",
+  "Rygg",
+  "Triceps",
+  "Armar",
+  "Lats",
+  "Säte",
+  "Baksida lår",
+  "Balans",
+  "Rotation",
+  "Rörlighet",
+  "Helkropp",
+  "Övrigt",
+]
+
+const getExerciseNavigationCategory = (exercise) => {
+  const muscleGroups = Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []
+  const firstGroup = muscleGroups[0]
+
+  if (firstGroup === "Bål") return "Mage"
+  if (firstGroup) return firstGroup
+  if (muscleGroups.includes("Kondition") || exercise?.exercise_type === "seconds_only") return "Kondition"
+  return "Övrigt"
+}
+
 function ExerciseBankPage({
   canManageExercises,
   canRequestExercises,
@@ -182,12 +212,12 @@ function ExerciseBankPage({
   const filteredExercises = exercisesFromDB.filter((exercise) => {
     const exerciseMuscleGroups = Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : []
     const aliases = Array.isArray(exercise.aliases) ? exercise.aliases : []
-    const primaryCategory = deriveExercisePrimaryCategory(exercise)
     const normalizedSearch = normalizeExerciseSearchValue(searchValue.trim())
+    const navigationCategory = getExerciseNavigationCategory(exercise)
     const searchFields = [
       exercise.name,
       exercise.display_name,
-      primaryCategory,
+      navigationCategory,
       ...aliases,
       exercise.exercise_type,
       ...exerciseMuscleGroups,
@@ -196,12 +226,35 @@ function ExerciseBankPage({
     const matchesSearch =
       !normalizedSearch || normalizedHaystack.includes(normalizedSearch)
     const matchesCategory =
-      selectedCategoryFilter === "alla" || primaryCategory === selectedCategoryFilter
+      normalizedSearch || selectedCategoryFilter === "alla" || navigationCategory === selectedCategoryFilter
     const matchesFilter =
       selectedMuscleFilter === "Alla" || exerciseMuscleGroups.includes(selectedMuscleFilter)
 
     return matchesSearch && matchesCategory && matchesFilter
   })
+
+  const visibleNavigationCategories = useMemo(() => {
+    const counts = exercisesFromDB.reduce((acc, exercise) => {
+      const category = getExerciseNavigationCategory(exercise)
+      acc[category] = (acc[category] || 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(counts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => {
+        const orderA = exerciseNavigationCategoryOrder.indexOf(a.label)
+        const orderB = exerciseNavigationCategoryOrder.indexOf(b.label)
+        const safeOrderA = orderA === -1 ? 999 : orderA
+        const safeOrderB = orderB === -1 ? 999 : orderB
+        if (safeOrderA !== safeOrderB) return safeOrderA - safeOrderB
+        return a.label.localeCompare(b.label, "sv")
+      })
+  }, [exercisesFromDB])
+
+  const hasActiveSearch = Boolean(searchValue.trim())
+  const isShowingCategoryOverview = !hasActiveSearch && selectedCategoryFilter === "alla"
+  const selectedCategoryLabel = selectedCategoryFilter === "alla" ? "" : selectedCategoryFilter
 
   const visibleRequests = useMemo(() => {
     const filtered =
@@ -1007,74 +1060,136 @@ function ExerciseBankPage({
             style={{ ...inputStyle, width: "100%", marginBottom: "12px" }}
           />
 
-          <div
-            style={{
-              display: "flex",
-              flexWrap: isMobile ? "nowrap" : "wrap",
-              overflowX: isMobile ? "auto" : "visible",
-              gap: "8px",
-              marginBottom: "12px",
-              paddingBottom: isMobile ? "4px" : 0,
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            {exerciseCategoryOptions.map((category) => {
-              const isSelected = selectedCategoryFilter === category.key
-
-              return (
+          {isShowingCategoryOverview ? (
+            <div
+              style={{
+                display: "grid",
+                gap: "10px",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                marginBottom: "14px",
+              }}
+            >
+              {visibleNavigationCategories.map((category) => (
                 <button
-                  key={category.key}
+                  key={category.label}
                   type="button"
-                  onClick={() => setSelectedCategoryFilter(category.key)}
+                  onClick={() => {
+                    setSelectedCategoryFilter(category.label)
+                    setExpandedExerciseId(null)
+                  }}
                   style={{
-                    ...tagButtonStyle,
-                    flex: isMobile ? "0 0 auto" : undefined,
-                    backgroundColor: isSelected ? "#991b1b" : "#ffffff",
-                    color: isSelected ? "#ffffff" : "#991b1b",
-                    border: isSelected ? "1px solid #991b1b" : "1px solid #efc7c7",
+                    width: "100%",
+                    padding: isMobile ? "16px" : "18px",
+                    borderRadius: isMobile ? "16px" : "18px",
+                    border: "1px solid #ece5e5",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    textAlign: "left",
+                    cursor: "pointer",
                   }}
                 >
-                  {category.label}
+                  <div>
+                    <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                      {category.label}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                      Visa övningar i kategorin
+                    </div>
+                  </div>
+                  <div style={countBadgeStyle}>{category.count}</div>
                 </button>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: isMobile ? "stretch" : "center",
+                flexDirection: isMobile ? "column" : "row",
+                gap: "10px",
+                marginBottom: "12px",
+              }}
+            >
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                {!hasActiveSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategoryFilter("alla")
+                      setExpandedExerciseId(null)
+                    }}
+                    style={secondaryButtonStyle}
+                  >
+                    Tillbaka till kategorier
+                  </button>
+                )}
+                <div style={{ fontSize: "13px", color: "#64748b" }}>
+                  {hasActiveSearch
+                    ? `Sökresultat i hela övningsbanken (${filteredExercises.length})`
+                    : `${selectedCategoryLabel} (${filteredExercises.length})`}
+                </div>
+              </div>
+            </div>
+          )}
 
-          <div
-            style={{
-              display: "flex",
-              flexWrap: isMobile ? "nowrap" : "wrap",
-              overflowX: isMobile ? "auto" : "visible",
-              gap: "8px",
-              marginBottom: "14px",
-              paddingBottom: isMobile ? "4px" : 0,
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            {allVisibleMuscleGroups.map((group) => {
-              const isSelected = selectedMuscleFilter === group
+          {!isShowingCategoryOverview && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: isMobile ? "nowrap" : "wrap",
+                overflowX: isMobile ? "auto" : "visible",
+                gap: "8px",
+                marginBottom: "14px",
+                paddingBottom: isMobile ? "4px" : 0,
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              {allVisibleMuscleGroups.map((group) => {
+                const isSelected = selectedMuscleFilter === group
 
-              return (
-                <button
-                  key={group}
-                  type="button"
-                  onClick={() => setSelectedMuscleFilter(group)}
+                return (
+                  <button
+                    key={group}
+                    type="button"
+                    onClick={() => setSelectedMuscleFilter(group)}
+                    style={{
+                      ...tagButtonStyle,
+                      flex: isMobile ? "0 0 auto" : undefined,
+                      backgroundColor: isSelected ? "#18202b" : "#ffffff",
+                      color: isSelected ? "#ffffff" : "#374151",
+                      border: isSelected ? "1px solid #18202b" : "1px solid #d9dee7",
+                    }}
+                  >
+                    {group}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {!isShowingCategoryOverview && (
+            <div style={{ display: "grid", gap: "10px" }}>
+              {filteredExercises.length === 0 ? (
+                <div
                   style={{
-                    ...tagButtonStyle,
-                    flex: isMobile ? "0 0 auto" : undefined,
-                    backgroundColor: isSelected ? "#18202b" : "#ffffff",
-                    color: isSelected ? "#ffffff" : "#374151",
-                    border: isSelected ? "1px solid #18202b" : "1px solid #d9dee7",
+                    padding: isMobile ? "16px" : "18px",
+                    borderRadius: isMobile ? "16px" : "18px",
+                    border: "1px solid #ece5e5",
+                    backgroundColor: "#ffffff",
+                    color: "#64748b",
                   }}
                 >
-                  {group}
-                </button>
-              )
-            })}
-          </div>
-
-          <div style={{ display: "grid", gap: "10px" }}>
-            {filteredExercises.map((exercise) => {
+                  {hasActiveSearch
+                    ? "Ingen övning matchar din sökning."
+                    : "Inga övningar finns i den här kategorin med nuvarande filter."}
+                </div>
+              ) : (
+                filteredExercises.map((exercise) => {
               const isEditing = editingExerciseId === exercise.id
               const isExpanded = expandedExerciseId === exercise.id
 
@@ -1327,8 +1442,10 @@ function ExerciseBankPage({
                   )}
                 </button>
               )
-            })}
-          </div>
+                })
+              )}
+            </div>
+          )}
         </>
       )}
     </>
