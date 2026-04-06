@@ -158,6 +158,7 @@ Omfattning:
 - ~~Skapa program~~
 - ~~Tilldela program till spelare~~
 - ~~Anpassa program per individ~~
+- ~~Stöd för rep range, reps-text och tidsbaserade prescriptions i passdatamodellen~~
 - Tränare ska kunna göra ändringar utan att ändra kod
 
 Syfte:
