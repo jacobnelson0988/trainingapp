@@ -31,3 +31,8 @@ verify_jwt = false
 enabled = true
 entrypoint = "./functions/delete-user/index.ts"
 import_map = "./functions/delete-user/deno.json"
+
+[functions.list-player-logins]
+verify_jwt = false
+enabled = true
+entrypoint = "./functions/list-player-logins/index.ts"

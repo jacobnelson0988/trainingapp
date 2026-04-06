@@ -41,6 +41,21 @@ function PlayersPage({
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
 
+  const formatLastLogin = (value) => {
+    if (!value) return "Aldrig"
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "Aldrig"
+
+    return date.toLocaleString("sv-SE", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
   const handleSelectedTargetExerciseChange = (passKey, exerciseName) => {
     setSelectedTargetExerciseByPass((prev) => ({
       ...prev,
@@ -90,6 +105,10 @@ function PlayersPage({
         <div style={summaryCardStyle}>
           <div style={summaryLabelStyle}>Totalt antal pass</div>
           <div style={summaryValueStyle}>{player.totalPasses ?? 0}</div>
+        </div>
+        <div style={summaryCardStyle}>
+          <div style={summaryLabelStyle}>Senast inloggad</div>
+          <div style={summaryValueStyle}>{formatLastLogin(player.lastSignInAt)}</div>
         </div>
       </div>
 
@@ -576,6 +595,7 @@ function PlayersPage({
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "8px" }}>
                   <span style={mobilePlayerMetaPillStyle}>@{player.username}</span>
                   <span style={mobilePlayerMetaPillStyle}>Senaste: {player.latestPass || "-"}</span>
+                  <span style={mobilePlayerMetaPillStyle}>Inlogg: {formatLastLogin(player.lastSignInAt)}</span>
                   <span style={mobilePlayerMetaPillStyle}>{player.totalPasses ?? 0} pass</span>
                   {player.is_archived && <span style={mobileArchivedPillStyle}>Arkiverad</span>}
                 </div>
@@ -597,6 +617,7 @@ function PlayersPage({
                 <th style={tableHeadStyle}>Förnamn</th>
                 <th style={tableHeadStyle}>Efternamn</th>
                 <th style={tableHeadStyle}>Senaste pass</th>
+                <th style={tableHeadStyle}>Senast inloggad</th>
                 <th style={tableHeadStyle}>Totalt antal pass</th>
               </tr>
             </thead>
@@ -624,13 +645,14 @@ function PlayersPage({
                       <td style={tableCellStyle}>{firstName}</td>
                       <td style={tableCellStyle}>{lastName}</td>
                       <td style={tableCellStyle}>{player.latestPass || "-"}</td>
+                      <td style={tableCellStyle}>{formatLastLogin(player.lastSignInAt)}</td>
                       <td style={{ ...tableCellStyle, borderTopRightRadius: "12px", borderBottomRightRadius: "12px", borderRight: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
                         {player.totalPasses ?? 0}
                       </td>
                     </tr>
                     {isSelected && (
                       <tr key={`${player.id}-editor`}>
-                        <td colSpan={5} style={{ padding: 0 }}>
+                        <td colSpan={6} style={{ padding: 0 }}>
                           {renderPlayerEditor(player)}
                         </td>
                       </tr>

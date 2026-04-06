@@ -816,6 +816,24 @@ function TrainingApp() {
       return
     }
 
+    const playerIds = (profileData || []).map((player) => player.id)
+    let loginLookup = {}
+
+    if (playerIds.length > 0) {
+      const { data: loginData, error: loginError } = await supabase.functions.invoke("list-player-logins", {
+        body: { player_ids: playerIds },
+      })
+
+      if (loginError) {
+        console.error(loginError)
+      } else {
+        loginLookup = (loginData?.players || []).reduce((acc, entry) => {
+          acc[entry.player_id] = entry.last_sign_in_at || null
+          return acc
+        }, {})
+      }
+    }
+
     const { data: logData, error: logError } = await supabase
       .from("workout_logs")
       .select("user_id, pass_name, created_at, workout_session_id, is_completed")
@@ -859,6 +877,7 @@ function TrainingApp() {
         latestPass: playerStats?.latestPass || "-",
         totalPasses: playerStats ? playerStats.sessionIds.size : 0,
         comment: player.comment || "",
+        lastSignInAt: loginLookup[player.id] || null,
       }
     })
 
