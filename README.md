@@ -1,12 +1,12 @@
 # TrainingApp
 
-Träningsapp för förening/lag med roller för spelare och tränare, med fokus på träningsloggning, coachöversikt och framtida programstyrning.
+Träningsapp för förening/lag med roller för spelare och tränare, med fokus på träningsloggning, coachöversikt och programstyrning.
 
 ---
 
 ## Översikt
 
-Detta dokument beskriver den ursprungliga produkt-roadmapen för appen, uppdelad i faser från MVP till mer avancerade funktioner för tränare, programstyrning, analys och kvalitet.
+Detta dokument beskriver produkt-roadmapen för appen, uppdelad i faser från MVP till mer avancerade funktioner för tränare, programstyrning, analys och kvalitet.
 
 Roadmapen ska ses som en produktplan, inte bara en teknisk lista över enskilda features. Syftet är att tydligt visa:
 
@@ -28,15 +28,15 @@ Bygga en första användbar version där spelaren kan genomföra och logga sina 
 
 Omfattning:
 
-- Starta pass
-- Avsluta pass
-- Logga set, reps och vikt
-- Spara genomförda pass
-- Visa senaste pass
-- Stöd för pass A / B / C
-- Infobox för övningar
-- Uppvärmningsdel
-- Enkel men fungerande UX
+- ~~Starta pass~~
+- ~~Avsluta pass~~
+- ~~Logga set, reps och vikt~~
+- ~~Spara genomförda pass~~
+- ~~Visa senaste pass~~
+- ~~Stöd för pass A / B / C~~
+- ~~Infobox för övningar~~
+- ~~Uppvärmningsdel~~
+- ~~Enkel men fungerande UX~~
 
 Kommentar:
 Denna fas handlade om att få en faktisk träningsdagbok att fungera i praktiken. Fokus låg på att spelaren skulle kunna använda appen utan att tränardelen ännu var fullt utbyggd.
@@ -52,21 +52,21 @@ Införa användarhantering, roller och datakoppling per användare.
 
 Omfattning:
 
-- Inloggning via Supabase Auth
-- Spelarkonton
-- Roller, exempelvis:
-  - player
-  - coach
-- Data kopplad till rätt användare
-- Edge function för att skapa spelare
-- Live deploy
+- ~~Inloggning via Supabase Auth~~
+- ~~Spelarkonton~~
+- ~~Roller, exempelvis:~~
+  - ~~player~~
+  - ~~coach~~
+- ~~Data kopplad till rätt användare~~
+- ~~Edge function för att skapa spelare~~
+- ~~Live deploy~~
 
 Kommentar:
 I denna fas byggdes grunden för att flera användare ska kunna använda appen samtidigt, med rättigheter och separerad data.
 
 ---
 
-### Fas 3 – Coachvy (KLAR / NÄSTAN KLAR)
+### Fas 3 – Coachvy (KLAR)
 
 Första riktiga verktyget för tränare.
 
@@ -75,16 +75,16 @@ Ge tränare en fungerande översikt över spelare och träningsaktivitet.
 
 Omfattning:
 
-- Skapa spelare
-- Visa lista över spelare
-- Tabellvy med exempelvis:
-  - username
-  - namn
-  - statistik
-- Visa senaste pass per spelare
-- Visa totalt antal pass
-- Klicka på spelare för detaljvy
-- Kommentar per spelare som kan redigeras
+- ~~Skapa spelare~~
+- ~~Visa lista över spelare~~
+- ~~Tabellvy med exempelvis:~~
+  - ~~username~~
+  - ~~namn~~
+  - ~~statistik~~
+- ~~Visa senaste pass per spelare~~
+- ~~Visa totalt antal pass~~
+- ~~Klicka på spelare för detaljvy~~
+- ~~Kommentar per spelare som kan redigeras~~
 
 Kommentar:
 Denna fas gör appen användbar även för tränaren, inte bara spelaren. Fokus ligger på överblick och enkel uppföljning.
@@ -94,7 +94,7 @@ Funktionell och användbar.
 
 ---
 
-### Fas 3.5 – Individuell tränarstyrning (NÄSTA STORA STEG)
+### Fas 3.5 – Individuell tränarstyrning (I PRAKTIKEN GENOMFÖRD)
 
 Mål:
 Göra appen verkligt värdefull för tränare genom att låta dem styra innehåll och mål på individnivå.
@@ -103,29 +103,29 @@ Detta ska byggas innan full programmotor byggs ut.
 
 Omfattning:
 
-- Sätta individuella mål per spelare och per övning
-- Mål ska kunna innehålla:
-  - set
-  - reps
-  - vikt
-  - kommentar / teknik-cue / coaching note
-- Spelaren ska kunna se:
-  - vad den ska köra
-  - vad den körde senast
+- ~~Sätta individuella mål per spelare och per övning~~
+- ~~Mål ska kunna innehålla:~~
+  - ~~set~~
+  - ~~reps~~
+  - ~~vikt~~
+  - ~~kommentar / teknik-cue / coaching note~~
+- ~~Spelaren ska kunna se:~~
+  - ~~vad den ska köra~~
+  - ~~vad den körde senast~~
 
 Syfte:
 Denna fas är viktig eftersom den för in verklig tränarstyrning i produkten. Appen går då från att främst vara en loggbok till att bli ett faktiskt coachverktyg.
 
 Varför denna fas är viktig:
 
-- Ger direkt nytta för laget
-- Gör produkten mer unik
-- Sätter rätt struktur inför senare programtilldelning
-- Testar tidigt hur individanpassning ska fungera i datamodell och UI
+- ~~Ger direkt nytta för laget~~
+- ~~Gör produkten mer unik~~
+- ~~Sätter rätt struktur inför senare programtilldelning~~
+- ~~Testar tidigt hur individanpassning ska fungera i datamodell och UI~~
 
 ---
 
-### Fas 4 – Datamodell och träningsstruktur
+### Fas 4 – Datamodell och träningsstruktur (TILL STOR DEL KLAR)
 
 Förberedelse för skalning.
 
@@ -134,10 +134,10 @@ Flytta mer av träningsstrukturen från hårdkodad logik i frontend till datamod
 
 Omfattning:
 
-- Tabell för övningar
-- Tabell för passmallar, exempelvis A / B / C
-- Koppling mellan pass och övningar
-- Koppling mellan spelare och pass
+- ~~Tabell för övningar~~
+- ~~Tabell för passmallar, exempelvis A / B / C~~
+- ~~Koppling mellan pass och övningar~~
+- ~~Koppling mellan spelare och pass~~
 
 Syfte:
 Det är här appen på riktigt börjar lämna hardcoded workouts i koden. Målet är att träningsinnehållet ska bli datadrivet.
@@ -147,16 +147,16 @@ Denna fas lägger grunden för att tränare senare ska kunna skapa, ändra och t
 
 ---
 
-### Fas 5 – Program och tilldelning
+### Fas 5 – Program och tilldelning (PÅBÖRJAD)
 
 Mål:
 Bygga ett riktigt system för att skapa och tilldela träningsprogram.
 
 Omfattning:
 
-- Skapa program
-- Tilldela program till spelare
-- Anpassa program per individ
+- ~~Skapa program~~
+- ~~Tilldela program till spelare~~
+- ~~Anpassa program per individ~~
 - Tränare ska kunna göra ändringar utan att ändra kod
 
 Syfte:
@@ -190,7 +190,7 @@ Här börjar appen ge mer analytiskt värde och inte bara fungera som loggbok oc
 
 ---
 
-### Fas 7 – UX och kvalitet
+### Fas 7 – UX och kvalitet (PÅGÅR PARALLELLT)
 
 Mål:
 Förbättra användarupplevelse, tydlighet och robusthet.
@@ -199,18 +199,23 @@ Omfattning:
 
 - Färgkodning för exempelvis aktiv / inaktiv spelare
 - Sortering i tabeller
-- Snabb navigation
-- Mobiloptimering
-- Feedback states:
-  - loading
-  - errors
-  - empty states
+- ~~Snabb navigation~~
+- ~~Mobiloptimering~~
+- ~~Feedback states:~~
+  - ~~loading~~
+  - ~~errors~~
+  - ~~empty states~~
+- ~~Kategoribaserad övningsbank~~
+- ~~Kategoribaserat övningsval i passbyggaren~~
+- ~~Expandering i övningsbanken visar alias, utförande och video/gif~~
+- Snabbändring av `navigation_category` direkt i övningsbanken för `head_admin`
+- Dublettskydd i importen
 
 Syfte:
 Göra appen mer stabil, snabb att använda och tydligare i verklig vardag.
 
 Kommentar:
-Denna fas kan pågå parallellt med andra faser, men bör inte ta fokus från större produktfunktioner för tidigt.
+Denna fas pågår parallellt med andra faser och är nu en aktiv del av arbetet.
 
 ---
 
@@ -232,46 +237,53 @@ Funktioner som inte behöver byggas tidigt, men som kan ge stort värde längre 
 
 ## Nuvarande position enligt denna roadmap
 
-Appen befinner sig efter Fas 3 och inför Fas 3.5.
+Appen befinner sig nu:
+
+`I tidig Fas 5`, med `Fas 7` aktiv parallellt.
 
 Det betyder:
 
-- grunden är klar
-- användarhantering är på plats
-- coachvyn är i funktion
-- nästa steg är att bygga individstyrning för tränare
+- Fas 1, 2 och 3 är klara
+- Fas 3.5 är i praktiken genomförd
+- Fas 4 är till stor del klar
+- Fas 5 är påbörjad och används redan i viss form
+- Fas 7 pågår löpande genom förbättringar i övningsbank, passbyggare och datakvalitet
 
-Detta är den punkt där appen börjar gå från fungerande verktyg till verkligt värdefull produkt för tränare och lag.
+Detta är den punkt där appen redan är ett fungerande coachverktyg, men där nästa värde ligger i att göra programstyrningen smidigare och admin-flödena snabbare.
 
 ---
 
 ## Rekommenderat nästa steg enligt denna roadmap
 
-Börja med Fas 3.5 – Individuell tränarstyrning.
+Fortsätt i Fas 5 och Fas 7 med denna leverans:
 
-Rekommenderad första leverans:
+- snabbändring av `navigation_category` direkt i övningsbanken
+- dublettskydd i importen via `external_id` eller `slug`
+- fortsatt minskning av manuell städning i övningsbanken
 
-- tränare kan välja en spelare
-- tränare kan ange mål för en övning
-- spelaren kan se sitt mål i appen
-- spelaren kan jämföra målet med senaste utförandet
-
-Detta ger hög produktnytta och hjälper samtidigt till att forma rätt datamodell för kommande faser.
+Detta ger hög nytta direkt, utan att byta produktspår.
 
 ---
 
 ## Sammanfattning
 
-Roadmapen är uppbyggd i denna ordning:
+Roadmapen är nu i praktiken i denna ordning:
 
-1. MVP för spelare
-2. Struktur och användare
-3. Coachvy
-4. Individuell tränarstyrning
-5. Datamodell och träningsstruktur
-6. Program och tilldelning
-7. Uppföljning och analys
-8. UX och kvalitet
-9. Långsiktiga idéer
+1. ~~MVP för spelare~~
+2. ~~Struktur och användare~~
+3. ~~Coachvy~~
+4. ~~Individuell tränarstyrning~~
+5. Program och tilldelning
+6. Uppföljning och analys
+7. UX och kvalitet
+8. Långsiktiga idéer
 
-Grundtanken är att först skapa en fungerande kärna, därefter ge tränaren verklig kontroll, och sedan bygga ut analys, programstyrning och kvalitet ovanpå den grunden.
+Grundtanken är fortfarande densamma: först skapa en fungerande kärna, därefter ge tränaren verklig kontroll, och sedan bygga ut analys, programstyrning och kvalitet ovanpå den grunden.
+
+---
+
+## Driftnotering
+
+Supabase används för auth, data och migrationsdriven utveckling.
+
+I den här terminalmiljön går `npm run build` fortfarande inte att verifiera fullt på grund av ett miljöspecifikt `rolldown`/native binding-problem, så kodändringar har verifierats via kodgranskning och live-dataverifiering där det varit möjligt.
