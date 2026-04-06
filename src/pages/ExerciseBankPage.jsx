@@ -288,7 +288,7 @@ function ExerciseBankPage({
               ...(adminSection === "import" ? activeAdminTabStyle : {}),
             }}
           >
-            Import
+            Import / Export
           </button>
           <button
             type="button"
@@ -620,44 +620,105 @@ function ExerciseBankPage({
             }}
           >
             <div>
-              <div style={sectionEyebrowStyle}>Batchimport</div>
-              <div style={sectionTitleStyle}>Importera övningar från JSON</div>
+              <div style={sectionEyebrowStyle}>Import / Export</div>
+              <div style={sectionTitleStyle}>Hantera övningsbanken som JSON</div>
+              <div style={importSectionSubtleTextStyle}>
+                Exportera hela banken som backup eller importera en uppdaterad JSON-fil på samma ställe.
+              </div>
             </div>
-            <div style={countBadgeStyle}>{importedExercises.length} redo</div>
-          </div>
-
-          <div style={requestHelpTextStyle}>
-            Ladda upp en JSON-fil med en array av övningar eller ett objekt med <code>exercises</code>.
-            Befintliga övningar med samma namn uppdateras.
-          </div>
-
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px", marginBottom: "12px" }}>
-            <button
-              type="button"
-              onClick={handleExportExercises}
-              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
-            >
-              Exportera hela övningsbanken
-            </button>
-          </div>
-
-          <input
-            key={exerciseImportInputKey}
-            type="file"
-            accept=".json,application/json"
-            onChange={(event) => handleExerciseImportFile(event.target.files?.[0])}
-            style={{ ...inputStyle, width: "100%", marginTop: "10px", marginBottom: "10px" }}
-          />
-
-          {exerciseImportFileName && (
-            <div style={{ ...mutedTextStyle, marginBottom: "10px" }}>
-              <strong>Fil:</strong> {exerciseImportFileName}
+            <div style={importStatsWrapStyle}>
+              <div style={countBadgeStyle}>{exercisesFromDB.length} övningar</div>
+              <div style={countBadgeStyle}>{importedExercises.length} redo</div>
             </div>
-          )}
+          </div>
+
+          <div style={importActionGridStyle(isMobile)}>
+            <div style={importActionCardStyle}>
+              <div style={importActionEyebrowStyle}>Export</div>
+              <div style={importActionTitleStyle}>Ladda ner aktuell bank</div>
+              <div style={importActionTextStyle}>
+                Skapa en JSON-fil med hela den nuvarande övningsbanken. Bra som backup eller grund för ändringar.
+              </div>
+              <button
+                type="button"
+                onClick={handleExportExercises}
+                style={{ ...secondaryButtonStyle, width: "100%", minHeight: "48px", marginTop: "14px" }}
+              >
+                Exportera JSON
+              </button>
+            </div>
+
+            <div style={importActionCardStyle}>
+              <div style={importActionEyebrowStyle}>Import</div>
+              <div style={importActionTitleStyle}>Ladda upp uppdaterad bank</div>
+              <div style={importActionTextStyle}>
+                Accepterar en JSON-array eller ett objekt med <code>exercises</code>. Befintliga övningar med samma namn uppdateras.
+              </div>
+
+              <input
+                key={exerciseImportInputKey}
+                type="file"
+                accept=".json,application/json"
+                onChange={(event) => handleExerciseImportFile(event.target.files?.[0])}
+                style={{ ...inputStyle, width: "100%", marginTop: "14px", marginBottom: "10px" }}
+              />
+
+              {exerciseImportFileName && (
+                <div style={importFileMetaStyle}>
+                  <strong>Vald fil:</strong> {exerciseImportFileName}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+                <button
+                  type="button"
+                  onClick={handleImportExercises}
+                  disabled={
+                    isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
+                  }
+                  style={{
+                    ...buttonStyle,
+                    flex: 1,
+                    minHeight: "48px",
+                    opacity:
+                      isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
+                        ? 0.7
+                        : 1,
+                    cursor:
+                      isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
+                        ? "default"
+                        : "pointer",
+                  }}
+                >
+                  {isParsingExerciseImportFile
+                    ? "Läser fil..."
+                    : isImportingExercises
+                    ? "Importerar..."
+                    : "Importera JSON"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={clearExerciseImport}
+                  style={{ ...secondaryButtonStyle, flex: 1, minHeight: "48px" }}
+                >
+                  Rensa
+                </button>
+              </div>
+            </div>
+          </div>
 
           {importedExercises.length > 0 && (
             <div style={importPreviewCardStyle}>
-              <div style={importPreviewTitleStyle}>Förhandsgranskning</div>
+              <div style={importPreviewHeaderStyle(isMobile)}>
+                <div>
+                  <div style={importPreviewTitleStyle}>Förhandsgranskning</div>
+                  <div style={importActionTextStyle}>
+                    Kontrollera innehållet innan du skriver över banken.
+                  </div>
+                </div>
+                <div style={countBadgeStyle}>{importedExercises.length} rader</div>
+              </div>
               <div style={{ display: "grid", gap: "8px" }}>
                 {importedExercises.slice(0, 8).map((exercise) => (
                   <div key={`${exercise.rowNumber}-${exercise.name}`} style={importPreviewRowStyle}>
@@ -674,43 +735,6 @@ function ExerciseBankPage({
               </div>
             </div>
           )}
-
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
-            <button
-              type="button"
-              onClick={handleImportExercises}
-              disabled={
-                isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
-              }
-              style={{
-                ...buttonStyle,
-                width: isMobile ? "100%" : "auto",
-                minHeight: "48px",
-                opacity:
-                  isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
-                    ? 0.7
-                    : 1,
-                cursor:
-                  isParsingExerciseImportFile || isImportingExercises || importedExercises.length === 0
-                    ? "default"
-                    : "pointer",
-              }}
-            >
-              {isParsingExerciseImportFile
-                ? "Läser fil..."
-                : isImportingExercises
-                ? "Importerar..."
-                : "Importera övningar"}
-            </button>
-
-            <button
-              type="button"
-              onClick={clearExerciseImport}
-              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto", minHeight: "48px" }}
-            >
-              Rensa
-            </button>
-          </div>
 
           {exerciseImportResults.length > 0 && (
             <div style={importResultsWrapStyle}>
@@ -1315,8 +1339,77 @@ const importPreviewCardStyle = {
   border: "1px solid #f2d7d7",
 }
 
-const importPreviewTitleStyle = {
+const importSectionSubtleTextStyle = {
+  marginTop: "8px",
+  fontSize: "13px",
+  lineHeight: 1.6,
+  color: "#566173",
+  maxWidth: "560px",
+}
+
+const importStatsWrapStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+}
+
+const importActionGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  marginTop: "14px",
+})
+
+const importActionCardStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  backgroundColor: "#fffdfd",
+  border: "1px solid #f1dfdf",
+  boxShadow: "0 8px 22px rgba(24, 32, 43, 0.04)",
+}
+
+const importActionEyebrowStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const importActionTitleStyle = {
+  marginBottom: "8px",
+  fontSize: "16px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const importActionTextStyle = {
+  fontSize: "13px",
+  lineHeight: 1.6,
+  color: "#566173",
+}
+
+const importFileMetaStyle = {
+  fontSize: "13px",
+  color: "#374151",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  backgroundColor: "#fff8f8",
+  border: "1px solid #f2dede",
+}
+
+const importPreviewHeaderStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: isMobile ? "stretch" : "flex-start",
+  justifyContent: "space-between",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "10px",
   marginBottom: "10px",
+})
+
+const importPreviewTitleStyle = {
   fontSize: "14px",
   fontWeight: "800",
   color: "#18202b",
