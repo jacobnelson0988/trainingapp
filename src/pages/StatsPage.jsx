@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../supabase"
 
 const LINE_COLORS = ["#c62828", "#1d4ed8", "#0f766e", "#7c3aed", "#ea580c", "#0891b2"]
+const PERIOD_OPTIONS = [
+  { value: "30", label: "Senaste 30 dagarna" },
+  { value: "90", label: "Senaste 90 dagarna" },
+  { value: "180", label: "Senaste 180 dagarna" },
+  { value: "365", label: "Senaste 365 dagarna" },
+  { value: "all", label: "Hela historiken" },
+]
 
 const parseWeightValue = (value) => {
   const normalized = String(value ?? "")
@@ -97,6 +104,7 @@ function StatsPage({
 }) {
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
   const [exerciseFilter, setExerciseFilter] = useState("all")
+  const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
 
@@ -158,9 +166,23 @@ function StatsPage({
     [sortedPlayers]
   )
 
+  const filteredStatsRows = useMemo(() => {
+    if (periodFilter === "all") return statsRows
+
+    const days = Number(periodFilter)
+    if (!Number.isFinite(days) || days <= 0) return statsRows
+
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+
+    return statsRows.filter((row) => {
+      const createdAt = new Date(row.created_at).getTime()
+      return Number.isFinite(createdAt) && createdAt >= cutoff
+    })
+  }, [periodFilter, statsRows])
+
   const progressionSeries = useMemo(
-    () => buildProgressionSeries(statsRows, playerMap),
-    [playerMap, statsRows]
+    () => buildProgressionSeries(filteredStatsRows, playerMap),
+    [filteredStatsRows, playerMap]
   )
 
   const exerciseOptions = useMemo(
@@ -254,6 +276,24 @@ function StatsPage({
           </select>
           <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
             Visar toppset per pass för vald övning och spelare.
+          </div>
+        </div>
+
+        <div style={filterCardStyle}>
+          <div style={filterTitleStyle}>Period</div>
+          <select
+            value={periodFilter}
+            onChange={(event) => setPeriodFilter(event.target.value)}
+            style={{ ...inputStyle, width: "100%" }}
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+            Begränsar graferna till vald tidsperiod utan att ändra spelare eller övningsval.
           </div>
         </div>
       </div>
@@ -426,7 +466,7 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile }) {
 const filterGridStyle = (isMobile) => ({
   display: "grid",
   gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.5fr) minmax(260px, 0.8fr)",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.5fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr)",
   marginBottom: "18px",
 })
 

@@ -180,7 +180,7 @@ Omfattning:
 - ~~Progression i graf för viktutveckling~~
 - Filter, till exempel:
   - ~~övning~~
-  - period
+  - ~~period~~
   - ~~spelare~~
 - Jämförelse över tid
 
