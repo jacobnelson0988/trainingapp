@@ -4573,7 +4573,7 @@ function TrainingApp() {
           {profile?.role === "head_admin"
             ? "Skapa lag, lägg till tränare och få överblick över alla användare."
             : profile?.role === "coach"
-            ? "Skapa spelare, bygg pass och sätt mål utan att leta runt i appen."
+            ? "Lägg till spelare, bygg pass, sätt indivuella mål och följ progression"
             : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
         </div>
       </div>
