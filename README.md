@@ -25,6 +25,7 @@ Viktiga databasfält för övningsbanken:
 Klart:
 - Import/export av övningsbank som JSON.
 - Städad live-övningsbank.
+- Första dublettstädning av namn och alias i aktiva övningsbanken genomförd.
 - Kategoriförsta navigation i övningsbanken.
 - Expandering i övningsbanken visar nu alias, utförande och video/gif när info finns.
 - Kategoriförsta övningsval i passbyggaren.
