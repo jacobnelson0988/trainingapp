@@ -3969,6 +3969,7 @@ function TrainingApp() {
   const activeWorkoutExercises = Array.isArray(activeWorkoutData?.exercises)
     ? activeWorkoutData.exercises
     : []
+  const activeWorkoutExerciseCount = activeWorkoutExercises.length
 
   const unreadMessageCount = messages.filter((message) => message.hasUnread).length
 
@@ -3992,7 +3993,14 @@ function TrainingApp() {
     },
   ]
 
-  const activeWorkoutSlideCount = activeWorkoutExercises.length + 1
+  const activeWorkoutSlideCount = activeWorkoutExerciseCount + 2
+  const isWarmupSlideActive = activeExerciseIndex === 0
+  const isFinishSlideActive = activeExerciseIndex === activeWorkoutSlideCount - 1
+  const activeWorkoutProgressSummary = isWarmupSlideActive
+    ? "Uppvärmning"
+    : isFinishSlideActive
+    ? "Avslut"
+    : `Övning ${Math.min(activeExerciseIndex, activeWorkoutExerciseCount)} / ${activeWorkoutExerciseCount}`
 
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
@@ -4863,43 +4871,12 @@ function TrainingApp() {
               <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutData?.label}</div>
             </div>
             <div style={activeWorkoutPageMetaCardStyle}>
-              <div style={activeWorkoutPageMetaLabelStyle}>Kort</div>
-              <div style={activeWorkoutPageMetaValueStyle}>
-                {Math.min(activeExerciseIndex + 1, activeWorkoutSlideCount)} / {activeWorkoutSlideCount}
-              </div>
+              <div style={activeWorkoutPageMetaLabelStyle}>Övning</div>
+              <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutProgressSummary}</div>
             </div>
           </div>
 
-          <div style={cardStyle}>
-            <h3 style={cardTitleStyle}>Uppvärmning</h3>
-
-            {!!activeWorkoutWarmup.cardio && (
-              <div style={{ marginBottom: activeWorkoutWarmup.technique.length ? 14 : 0 }}>
-                <p style={subheadingStyle}>Pulshöjande aktivitet</p>
-                <p style={mutedTextStyle}>
-                  {activeWorkoutWarmup.cardio}
-                </p>
-              </div>
-            )}
-
-            {!!activeWorkoutWarmup.technique.length && (
-              <div>
-                <p style={subheadingStyle}>Teknikuppvärmning</p>
-                <div style={mutedTextStyle}>
-                  {activeWorkoutWarmup.technique.map((item, index) => (
-                    <div key={index}>{index + 1}. {item}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!activeWorkoutWarmup.cardio &&
-              !activeWorkoutWarmup.technique.length && (
-                <div style={mutedTextStyle}>Ingen uppvärmning inlagd för passet ännu.</div>
-              )}
-          </div>
-
-          {isMobile && activeWorkoutExercises.length > 1 && (
+          {isMobile && activeWorkoutSlideCount > 1 && (
             <div style={exerciseCarouselToolbarStyle}>
               <button
                 type="button"
@@ -4916,7 +4893,7 @@ function TrainingApp() {
               </button>
 
               <div style={exerciseCarouselStatusStyle}>
-                Kort {activeExerciseIndex + 1} av {activeWorkoutSlideCount}
+                {activeWorkoutProgressSummary}
               </div>
 
               <button
@@ -4961,13 +4938,51 @@ function TrainingApp() {
             }}
           >
             <div style={isMobile ? exerciseCarouselTrackStyle : undefined}>
+              <div
+                data-exercise-card="true"
+                style={
+                  isMobile
+                    ? {
+                        ...cardStyle,
+                        ...exerciseSwipeCardStyle,
+                      }
+                    : cardStyle
+                }
+              >
+                <div style={exerciseProgressStyle}>Uppvärmning</div>
+
+                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Uppvärmning</h3>
+
+                {!!activeWorkoutWarmup.cardio && (
+                  <div style={{ marginBottom: activeWorkoutWarmup.technique.length ? 14 : 0 }}>
+                    <p style={subheadingStyle}>Pulshöjande aktivitet</p>
+                    <p style={mutedTextStyle}>{activeWorkoutWarmup.cardio}</p>
+                  </div>
+                )}
+
+                {!!activeWorkoutWarmup.technique.length && (
+                  <div>
+                    <p style={subheadingStyle}>Teknikuppvärmning</p>
+                    <div style={mutedTextStyle}>
+                      {activeWorkoutWarmup.technique.map((item, index) => (
+                        <div key={index}>{index + 1}. {item}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!activeWorkoutWarmup.cardio && !activeWorkoutWarmup.technique.length && (
+                  <div style={mutedTextStyle}>Ingen uppvärmning inlagd för passet ännu.</div>
+                )}
+              </div>
+
           {activeWorkoutExercises.map((exercise, i) => {
             const exerciseOptions = getExerciseExecutionOptions(exercise)
             const selectedExercise = getSelectedExerciseExecution(
               exercise,
               selectedExerciseOptionKeys[i]
             )
-            const totalExercises = activeWorkoutExercises.length
+            const totalExercises = activeWorkoutExerciseCount
             const infoKey = `${exercise.name}-${selectedExercise?.name || exercise.name}`
             const isInfoExpanded = !!expandedInfo[infoKey]
             const latestExerciseSets = selectedExercise ? latestWorkout[selectedExercise.name] || [] : []
@@ -4992,10 +5007,8 @@ function TrainingApp() {
                       }
                     : cardStyle
                 }
-              >
-                <div style={exerciseProgressStyle}>
-                  Övning {i + 1} / {totalExercises}
-                </div>
+                >
+                <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
 
                 <button
                   type="button"
@@ -5312,17 +5325,15 @@ function TrainingApp() {
                     ? {
                         ...cardStyle,
                         ...exerciseSwipeCardStyle,
-                        order: activeWorkoutSlideCount,
+                        order: activeWorkoutSlideCount - 1,
                       }
                     : {
                         ...cardStyle,
-                        order: activeWorkoutSlideCount,
+                        order: activeWorkoutSlideCount - 1,
                       }
                 }
               >
-                <div style={exerciseProgressStyle}>
-                  Avslut {activeWorkoutSlideCount} / {activeWorkoutSlideCount}
-                </div>
+                <div style={exerciseProgressStyle}>Avslut</div>
 
                 <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Sista kortet</h3>
                 <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
