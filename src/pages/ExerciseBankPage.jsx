@@ -109,12 +109,48 @@ const exerciseNavigationCategoryOrder = [
   "Övrigt",
 ]
 
+const normalizeExerciseNavigationCategory = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  const lookup = {
+    axlar: "Axlar",
+    ben: "Ben",
+    biceps: "Biceps",
+    brost: "Bröst",
+    kondition: "Kondition",
+    mage: "Mage",
+    bal: "Mage",
+    rygg: "Rygg",
+    triceps: "Triceps",
+    armar: "Armar",
+    lats: "Lats",
+    sate: "Säte",
+    baksidalar: "Baksida lår",
+    baksida_lar: "Baksida lår",
+    balans: "Balans",
+    rotation: "Rotation",
+    rorlighet: "Rörlighet",
+    helkropp: "Helkropp",
+    ovrigt: "Övrigt",
+  }
+
+  const compact = normalized.replace(/[^a-z0-9]+/g, "")
+  return lookup[compact] || ""
+}
+
 const getExerciseNavigationCategory = (exercise) => {
+  const explicitCategory = normalizeExerciseNavigationCategory(exercise?.navigation_category)
+  if (explicitCategory) return explicitCategory
+
   const muscleGroups = Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []
   const firstGroup = muscleGroups[0]
 
   if (firstGroup === "Bål") return "Mage"
-  if (firstGroup) return firstGroup
+  if (firstGroup) return normalizeExerciseNavigationCategory(firstGroup) || firstGroup
   if (muscleGroups.includes("Kondition") || exercise?.exercise_type === "seconds_only") return "Kondition"
   return "Övrigt"
 }
@@ -141,6 +177,8 @@ function ExerciseBankPage({
   setNewExerciseDisplayName,
   newExercisePrimaryCategory,
   setNewExercisePrimaryCategory,
+  newExerciseNavigationCategory,
+  setNewExerciseNavigationCategory,
   editingExerciseId,
   isSavingExercise,
   handleCreateExercise,
@@ -965,6 +1003,18 @@ function ExerciseBankPage({
                     </select>
                   </div>
 
+                  <select
+                    value={newExerciseNavigationCategory}
+                    onChange={(e) => setNewExerciseNavigationCategory(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+                  >
+                    {exerciseNavigationCategoryOrder.map((option) => (
+                      <option key={`create-navigation-${option}`} value={option}>
+                        Visa under kategori: {option}
+                      </option>
+                    ))}
+                  </select>
+
                   <textarea
                     rows={3}
                     placeholder="Kort beskrivning av övningen"
@@ -1355,6 +1405,18 @@ function ExerciseBankPage({
                             ))}
                         </select>
                       </div>
+
+                      <select
+                        value={newExerciseNavigationCategory}
+                        onChange={(e) => setNewExerciseNavigationCategory(e.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        {exerciseNavigationCategoryOrder.map((option) => (
+                          <option key={`edit-navigation-${option}`} value={option}>
+                            Visa under kategori: {option}
+                          </option>
+                        ))}
+                      </select>
 
                       <textarea
                         rows={3}

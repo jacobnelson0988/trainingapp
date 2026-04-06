@@ -56,6 +56,75 @@ const normalizeExercisePrimaryCategory = (value) => {
   return ""
 }
 
+const exerciseNavigationCategoryOptions = [
+  "Axlar",
+  "Ben",
+  "Biceps",
+  "Bröst",
+  "Kondition",
+  "Mage",
+  "Rygg",
+  "Triceps",
+  "Armar",
+  "Lats",
+  "Säte",
+  "Baksida lår",
+  "Balans",
+  "Rotation",
+  "Rörlighet",
+  "Helkropp",
+  "Övrigt",
+]
+
+const normalizeExerciseNavigationCategory = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  const lookup = {
+    axlar: "Axlar",
+    ben: "Ben",
+    biceps: "Biceps",
+    brost: "Bröst",
+    kondition: "Kondition",
+    mage: "Mage",
+    bal: "Mage",
+    rygg: "Rygg",
+    triceps: "Triceps",
+    armar: "Armar",
+    lats: "Lats",
+    sate: "Säte",
+    baksidalar: "Baksida lår",
+    baksida_lar: "Baksida lår",
+    balans: "Balans",
+    rotation: "Rotation",
+    rorlighet: "Rörlighet",
+    helkropp: "Helkropp",
+    ovrigt: "Övrigt",
+  }
+
+  const compact = normalized.replace(/[^a-z0-9]+/g, "")
+  return lookup[compact] || ""
+}
+
+const deriveExerciseNavigationCategory = (exercise) => {
+  const explicitCategory = normalizeExerciseNavigationCategory(exercise?.navigation_category)
+  if (explicitCategory) return explicitCategory
+
+  const muscleGroups = Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []
+  const firstGroup = muscleGroups[0]
+
+  if (firstGroup === "Bål") return "Mage"
+
+  const normalizedFirstGroup = normalizeExerciseNavigationCategory(firstGroup)
+  if (normalizedFirstGroup) return normalizedFirstGroup
+
+  if (muscleGroups.includes("Kondition") || exercise?.exercise_type === "seconds_only") return "Kondition"
+  return "Övrigt"
+}
+
 const deriveExercisePrimaryCategory = (exercise) => {
   const explicitCategory = normalizeExercisePrimaryCategory(exercise?.primary_category)
   if (explicitCategory) return explicitCategory
@@ -215,6 +284,7 @@ function TrainingApp() {
   const [newExerciseAliasesText, setNewExerciseAliasesText] = useState("")
   const [newExerciseDisplayName, setNewExerciseDisplayName] = useState("")
   const [newExercisePrimaryCategory, setNewExercisePrimaryCategory] = useState("styrka")
+  const [newExerciseNavigationCategory, setNewExerciseNavigationCategory] = useState("Övrigt")
   const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [isSavingExercise, setIsSavingExercise] = useState(false)
   const [importedExercises, setImportedExercises] = useState([])
@@ -2569,6 +2639,13 @@ function TrainingApp() {
           exercise_type: nextExerciseType,
           muscle_groups: parseExerciseImportMuscleGroups(exercise.muscle_groups),
         }),
+      navigation_category:
+        normalizeExerciseNavigationCategory(exercise.navigation_category) ||
+        deriveExerciseNavigationCategory({
+          navigation_category: exercise.navigation_category,
+          exercise_type: nextExerciseType,
+          muscle_groups: parseExerciseImportMuscleGroups(exercise.muscle_groups),
+        }),
     }
   }
 
@@ -2991,6 +3068,7 @@ function TrainingApp() {
     setNewExerciseAliasesText("")
     setNewExerciseDisplayName("")
     setNewExercisePrimaryCategory("styrka")
+    setNewExerciseNavigationCategory("Övrigt")
     setEditingExerciseId(null)
   }
 
@@ -3005,6 +3083,7 @@ function TrainingApp() {
     setNewExerciseAliasesText(Array.isArray(exercise.aliases) ? exercise.aliases.join(", ") : "")
     setNewExerciseDisplayName(exercise.display_name || "")
     setNewExercisePrimaryCategory(deriveExercisePrimaryCategory(exercise))
+    setNewExerciseNavigationCategory(deriveExerciseNavigationCategory(exercise))
     setEditingExerciseId(exercise.id)
     setCoachView("exerciseBank")
     setStatus("Redigerar övning")
@@ -3030,6 +3109,7 @@ function TrainingApp() {
       aliases: newExerciseAliasesText,
       display_name: newExerciseDisplayName,
       primary_category: newExercisePrimaryCategory,
+      navigation_category: newExerciseNavigationCategory,
     })
 
     const query = editingExerciseId
@@ -3045,11 +3125,12 @@ function TrainingApp() {
         errorMessage.includes("muscle_groups") ||
         errorMessage.includes("description") ||
         errorMessage.includes("media_url") ||
-        errorMessage.includes("primary_category")
+        errorMessage.includes("primary_category") ||
+        errorMessage.includes("navigation_category")
 
       setStatus(
         missingExerciseColumns
-          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url och primary_category."
+          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url, primary_category och navigation_category."
           : `${editingExerciseId ? "Kunde inte uppdatera övning" : "Kunde inte spara övning"}${error.message ? `: ${error.message}` : ""}`
       )
       setIsSavingExercise(false)
@@ -3106,7 +3187,8 @@ function TrainingApp() {
         if (
           errorMessage.includes("muscle_groups") ||
           errorMessage.includes("description") ||
-          errorMessage.includes("media_url")
+          errorMessage.includes("media_url") ||
+          errorMessage.includes("navigation_category")
         ) {
           hasMissingColumnError = true
         }
@@ -3142,7 +3224,7 @@ function TrainingApp() {
 
     if (hasMissingColumnError) {
       setStatus(
-        "Importen stoppades delvis. Kör SQL-ändringarna i Supabase först för muscle_groups, description och media_url."
+        "Importen stoppades delvis. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url och navigation_category."
       )
       return
     }
@@ -4317,6 +4399,8 @@ function TrainingApp() {
                 setNewExerciseDisplayName={setNewExerciseDisplayName}
                 newExercisePrimaryCategory={newExercisePrimaryCategory}
                 setNewExercisePrimaryCategory={setNewExercisePrimaryCategory}
+                newExerciseNavigationCategory={newExerciseNavigationCategory}
+                setNewExerciseNavigationCategory={setNewExerciseNavigationCategory}
                 editingExerciseId={editingExerciseId}
                 isSavingExercise={isSavingExercise}
                 handleCreateExercise={handleCreateExercise}
