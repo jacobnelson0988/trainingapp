@@ -37,6 +37,50 @@ const parseExerciseAliases = (value) => {
 const getExerciseDisplayName = (exercise) =>
   exercise?.display_name || exercise?.displayName || exercise?.name || ""
 
+const normalizeExercisePrimaryCategory = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+
+  if (normalized === "bål" || normalized === "bal") return "bal"
+  if (normalized === "overkropp") return "overkropp"
+  if (normalized === "underkropp") return "underkropp"
+  if (normalized === "rorlighet_kontroll" || normalized === "rorlighetkontroll") return "rorlighet_kontroll"
+  if (normalized === "kondition_tid" || normalized === "konditiontid") return "kondition_tid"
+  if (normalized === "styrka") return "styrka"
+
+  return ""
+}
+
+const deriveExercisePrimaryCategory = (exercise) => {
+  const explicitCategory = normalizeExercisePrimaryCategory(exercise?.primary_category)
+  if (explicitCategory) return explicitCategory
+
+  const muscleGroups = Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []
+  const exerciseType = exercise?.exercise_type || ""
+
+  if (muscleGroups.includes("Bål")) return "bal"
+  if (muscleGroups.some((group) => ["Balans", "Rotation", "Rörlighet"].includes(group))) {
+    return "rorlighet_kontroll"
+  }
+  if (exerciseType === "seconds_only" || muscleGroups.includes("Kondition")) return "kondition_tid"
+  if (muscleGroups.some((group) => ["Ben", "Säte", "Baksida lår"].includes(group))) return "underkropp"
+  if (
+    muscleGroups.some((group) =>
+      ["Bröst", "Rygg", "Lats", "Axlar", "Armar", "Biceps", "Triceps"].includes(group)
+    )
+  ) {
+    return "overkropp"
+  }
+  if (exerciseType === "weight_reps") return "styrka"
+
+  return "styrka"
+}
+
 const getExerciseExecutionOptions = (exercise) => {
   const baseOption = {
     optionKey: `base:${exercise.id || exercise.exerciseId || exercise.name}`,
@@ -170,6 +214,7 @@ function TrainingApp() {
   const [newExerciseMuscleGroups, setNewExerciseMuscleGroups] = useState([])
   const [newExerciseAliasesText, setNewExerciseAliasesText] = useState("")
   const [newExerciseDisplayName, setNewExerciseDisplayName] = useState("")
+  const [newExercisePrimaryCategory, setNewExercisePrimaryCategory] = useState("styrka")
   const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [isSavingExercise, setIsSavingExercise] = useState(false)
   const [importedExercises, setImportedExercises] = useState([])
@@ -2473,6 +2518,14 @@ function TrainingApp() {
           ),
           aliases,
           display_name: allowedDisplayNames.includes(requestedDisplayName) ? requestedDisplayName : "",
+          primary_category:
+            normalizeExercisePrimaryCategory(
+              normalizedEntries.primarycategory ||
+                normalizedEntries.primary_category ||
+                normalizedEntries.category ||
+                normalizedEntries.kategori ||
+                normalizedEntries.flik
+            ) || "",
         }
       })
       .filter((exercise) => {
@@ -2510,6 +2563,12 @@ function TrainingApp() {
       muscle_groups: parseExerciseImportMuscleGroups(exercise.muscle_groups),
       aliases: parsedAliases,
       display_name: nextDisplayName || null,
+      primary_category:
+        normalizeExercisePrimaryCategory(exercise.primary_category) ||
+        deriveExercisePrimaryCategory({
+          exercise_type: nextExerciseType,
+          muscle_groups: parseExerciseImportMuscleGroups(exercise.muscle_groups),
+        }),
     }
   }
 
@@ -2931,6 +2990,7 @@ function TrainingApp() {
     setNewExerciseMuscleGroups([])
     setNewExerciseAliasesText("")
     setNewExerciseDisplayName("")
+    setNewExercisePrimaryCategory("styrka")
     setEditingExerciseId(null)
   }
 
@@ -2944,6 +3004,7 @@ function TrainingApp() {
     setNewExerciseMuscleGroups(Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : [])
     setNewExerciseAliasesText(Array.isArray(exercise.aliases) ? exercise.aliases.join(", ") : "")
     setNewExerciseDisplayName(exercise.display_name || "")
+    setNewExercisePrimaryCategory(deriveExercisePrimaryCategory(exercise))
     setEditingExerciseId(exercise.id)
     setCoachView("exerciseBank")
     setStatus("Redigerar övning")
@@ -2968,6 +3029,7 @@ function TrainingApp() {
       muscle_groups: newExerciseMuscleGroups,
       aliases: newExerciseAliasesText,
       display_name: newExerciseDisplayName,
+      primary_category: newExercisePrimaryCategory,
     })
 
     const query = editingExerciseId
@@ -2982,11 +3044,12 @@ function TrainingApp() {
       const missingExerciseColumns =
         errorMessage.includes("muscle_groups") ||
         errorMessage.includes("description") ||
-        errorMessage.includes("media_url")
+        errorMessage.includes("media_url") ||
+        errorMessage.includes("primary_category")
 
       setStatus(
         missingExerciseColumns
-          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description och media_url."
+          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url och primary_category."
           : `${editingExerciseId ? "Kunde inte uppdatera övning" : "Kunde inte spara övning"}${error.message ? `: ${error.message}` : ""}`
       )
       setIsSavingExercise(false)
@@ -4252,6 +4315,8 @@ function TrainingApp() {
                 setNewExerciseAliasesText={setNewExerciseAliasesText}
                 newExerciseDisplayName={newExerciseDisplayName}
                 setNewExerciseDisplayName={setNewExerciseDisplayName}
+                newExercisePrimaryCategory={newExercisePrimaryCategory}
+                setNewExercisePrimaryCategory={setNewExercisePrimaryCategory}
                 editingExerciseId={editingExerciseId}
                 isSavingExercise={isSavingExercise}
                 handleCreateExercise={handleCreateExercise}

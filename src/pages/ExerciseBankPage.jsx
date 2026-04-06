@@ -32,6 +32,63 @@ const muscleGroupOptions = [
   "Rörlighet",
 ]
 
+const exerciseCategoryOptions = [
+  { key: "alla", label: "Alla" },
+  { key: "styrka", label: "Styrka" },
+  { key: "bal", label: "Bål" },
+  { key: "overkropp", label: "Överkropp" },
+  { key: "underkropp", label: "Underkropp" },
+  { key: "rorlighet_kontroll", label: "Rörlighet / kontroll" },
+  { key: "kondition_tid", label: "Kondition / tid" },
+]
+
+const normalizeExercisePrimaryCategory = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+
+  if (normalized === "bal") return "bal"
+  if (normalized === "overkropp") return "overkropp"
+  if (normalized === "underkropp") return "underkropp"
+  if (normalized === "rorlighet_kontroll" || normalized === "rorlighetkontroll") return "rorlighet_kontroll"
+  if (normalized === "kondition_tid" || normalized === "konditiontid") return "kondition_tid"
+  if (normalized === "styrka") return "styrka"
+
+  return ""
+}
+
+const deriveExercisePrimaryCategory = (exercise) => {
+  const explicitCategory = normalizeExercisePrimaryCategory(exercise?.primary_category)
+  if (explicitCategory) return explicitCategory
+
+  const muscleGroups = Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []
+  const exerciseType = exercise?.exercise_type || ""
+
+  if (muscleGroups.includes("Bål")) return "bal"
+  if (muscleGroups.some((group) => ["Balans", "Rotation", "Rörlighet"].includes(group))) {
+    return "rorlighet_kontroll"
+  }
+  if (exerciseType === "seconds_only" || muscleGroups.includes("Kondition")) return "kondition_tid"
+  if (muscleGroups.some((group) => ["Ben", "Säte", "Baksida lår"].includes(group))) return "underkropp"
+  if (
+    muscleGroups.some((group) =>
+      ["Bröst", "Rygg", "Lats", "Axlar", "Armar", "Biceps", "Triceps"].includes(group)
+    )
+  ) {
+    return "overkropp"
+  }
+  if (exerciseType === "weight_reps") return "styrka"
+
+  return "styrka"
+}
+
+const getExercisePrimaryCategoryLabel = (value) =>
+  exerciseCategoryOptions.find((option) => option.key === value)?.label || "Styrka"
+
 function ExerciseBankPage({
   canManageExercises,
   canRequestExercises,
@@ -52,6 +109,8 @@ function ExerciseBankPage({
   setNewExerciseAliasesText,
   newExerciseDisplayName,
   setNewExerciseDisplayName,
+  newExercisePrimaryCategory,
+  setNewExercisePrimaryCategory,
   editingExerciseId,
   isSavingExercise,
   handleCreateExercise,
@@ -86,6 +145,7 @@ function ExerciseBankPage({
 }) {
   const [adminSection, setAdminSection] = useState("exercises")
   const [searchValue, setSearchValue] = useState("")
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("alla")
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState("Alla")
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const [expandedExerciseId, setExpandedExerciseId] = useState(null)
@@ -122,10 +182,12 @@ function ExerciseBankPage({
   const filteredExercises = exercisesFromDB.filter((exercise) => {
     const exerciseMuscleGroups = Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : []
     const aliases = Array.isArray(exercise.aliases) ? exercise.aliases : []
+    const primaryCategory = deriveExercisePrimaryCategory(exercise)
     const normalizedSearch = normalizeExerciseSearchValue(searchValue.trim())
     const searchFields = [
       exercise.name,
       exercise.display_name,
+      primaryCategory,
       ...aliases,
       exercise.exercise_type,
       ...exerciseMuscleGroups,
@@ -133,10 +195,12 @@ function ExerciseBankPage({
     const normalizedHaystack = searchFields.map((entry) => normalizeExerciseSearchValue(entry)).join(" ")
     const matchesSearch =
       !normalizedSearch || normalizedHaystack.includes(normalizedSearch)
+    const matchesCategory =
+      selectedCategoryFilter === "alla" || primaryCategory === selectedCategoryFilter
     const matchesFilter =
       selectedMuscleFilter === "Alla" || exerciseMuscleGroups.includes(selectedMuscleFilter)
 
-    return matchesSearch && matchesFilter
+    return matchesSearch && matchesCategory && matchesFilter
   })
 
   const visibleRequests = useMemo(() => {
@@ -811,7 +875,7 @@ function ExerciseBankPage({
                       display: "grid",
                       gap: "10px",
                       marginBottom: "10px",
-                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
                     }}
                   >
                     <select
@@ -831,6 +895,20 @@ function ExerciseBankPage({
                     >
                       <option value="fixed">Fast reps</option>
                       <option value="max">Max</option>
+                    </select>
+
+                    <select
+                      value={newExercisePrimaryCategory}
+                      onChange={(e) => setNewExercisePrimaryCategory(e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    >
+                      {exerciseCategoryOptions
+                        .filter((option) => option.key !== "alla")
+                        .map((option) => (
+                          <option key={option.key} value={option.key}>
+                            {option.label}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
@@ -935,6 +1013,39 @@ function ExerciseBankPage({
               flexWrap: isMobile ? "nowrap" : "wrap",
               overflowX: isMobile ? "auto" : "visible",
               gap: "8px",
+              marginBottom: "12px",
+              paddingBottom: isMobile ? "4px" : 0,
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            {exerciseCategoryOptions.map((category) => {
+              const isSelected = selectedCategoryFilter === category.key
+
+              return (
+                <button
+                  key={category.key}
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter(category.key)}
+                  style={{
+                    ...tagButtonStyle,
+                    flex: isMobile ? "0 0 auto" : undefined,
+                    backgroundColor: isSelected ? "#991b1b" : "#ffffff",
+                    color: isSelected ? "#ffffff" : "#991b1b",
+                    border: isSelected ? "1px solid #991b1b" : "1px solid #efc7c7",
+                  }}
+                >
+                  {category.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: isMobile ? "nowrap" : "wrap",
+              overflowX: isMobile ? "auto" : "visible",
+              gap: "8px",
               marginBottom: "14px",
               paddingBottom: isMobile ? "4px" : 0,
               WebkitOverflowScrolling: "touch",
@@ -1011,6 +1122,9 @@ function ExerciseBankPage({
                       )}
 
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
+                        <span style={categoryPillStyle}>
+                          {getExercisePrimaryCategoryLabel(deriveExercisePrimaryCategory(exercise))}
+                        </span>
                         <span style={pillStyle}>{exerciseTypeLabel(exercise.exercise_type)}</span>
                         <span style={pillStyle}>{exercise.default_reps_mode === "max" ? "Max reps" : "Fast reps"}</span>
                         {(exercise.muscle_groups || []).map((group) => (
@@ -1090,7 +1204,7 @@ function ExerciseBankPage({
                         style={{
                           display: "grid",
                           gap: "10px",
-                          gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
                         }}
                       >
                         <select
@@ -1110,6 +1224,20 @@ function ExerciseBankPage({
                         >
                           <option value="fixed">Fast reps</option>
                           <option value="max">Max</option>
+                        </select>
+
+                        <select
+                          value={newExercisePrimaryCategory}
+                          onChange={(e) => setNewExercisePrimaryCategory(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        >
+                          {exerciseCategoryOptions
+                            .filter((option) => option.key !== "alla")
+                            .map((option) => (
+                              <option key={option.key} value={option.key}>
+                                {option.label}
+                              </option>
+                            ))}
                         </select>
                       </div>
 
@@ -1277,6 +1405,16 @@ const pillStyle = {
   color: "#991b1b",
   fontSize: "12px",
   fontWeight: "700",
+}
+
+const categoryPillStyle = {
+  display: "inline-flex",
+  padding: "4px 8px",
+  borderRadius: "999px",
+  backgroundColor: "#18202b",
+  color: "#ffffff",
+  fontSize: "12px",
+  fontWeight: "800",
 }
 
 const musclePillStyle = {
