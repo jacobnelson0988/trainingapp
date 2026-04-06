@@ -214,6 +214,9 @@ function TrainingApp() {
   const [deletingPlayerId, setDeletingPlayerId] = useState(null)
   const [showArchivedPlayers, setShowArchivedPlayers] = useState(false)
   const [isDeletingOwnAccount, setIsDeletingOwnAccount] = useState(false)
+  const [accountPassword, setAccountPassword] = useState("")
+  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("")
+  const [isUpdatingOwnPassword, setIsUpdatingOwnPassword] = useState(false)
   const [teams, setTeams] = useState([])
   const [isLoadingTeams, setIsLoadingTeams] = useState(false)
   const [messageRecipients, setMessageRecipients] = useState([])
@@ -1611,6 +1614,44 @@ function TrainingApp() {
 
     setStatus("Lösenord uppdaterat ✅")
     setResettingPasswordUserId(null)
+  }
+
+  const handleUpdateOwnPassword = async () => {
+    const nextPassword = accountPassword.trim()
+    const confirmPassword = accountPasswordConfirm.trim()
+
+    if (!nextPassword) {
+      setStatus("Ange ett nytt lösenord först")
+      return
+    }
+
+    if (nextPassword.length < 6) {
+      setStatus("Lösenordet måste vara minst 6 tecken")
+      return
+    }
+
+    if (nextPassword !== confirmPassword) {
+      setStatus("Lösenorden matchar inte")
+      return
+    }
+
+    setIsUpdatingOwnPassword(true)
+
+    const { error } = await supabase.auth.updateUser({
+      password: nextPassword,
+    })
+
+    if (error) {
+      console.error(error)
+      setStatus(error.message || "Kunde inte uppdatera ditt lösenord")
+      setIsUpdatingOwnPassword(false)
+      return
+    }
+
+    setAccountPassword("")
+    setAccountPasswordConfirm("")
+    setStatus("Ditt lösenord är uppdaterat ✅")
+    setIsUpdatingOwnPassword(false)
   }
 
   const handleRepairUserLogin = async (userId) => {
@@ -4433,6 +4474,43 @@ function TrainingApp() {
             )}
           </div>
 
+          <div style={accountPasswordCardStyle}>
+            <div style={accountPasswordTitleStyle}>Byt lösenord</div>
+            <div style={accountPasswordTextStyle}>
+              Här kan du byta lösenord för ditt eget konto. Gäller både spelare, tränare och huvudadmin.
+            </div>
+
+            <div style={accountPasswordFormStyle(isMobile)}>
+              <input
+                type="password"
+                placeholder="Nytt lösenord"
+                value={accountPassword}
+                onChange={(e) => setAccountPassword(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+              <input
+                type="password"
+                placeholder="Bekräfta nytt lösenord"
+                value={accountPasswordConfirm}
+                onChange={(e) => setAccountPasswordConfirm(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+              <button
+                type="button"
+                onClick={handleUpdateOwnPassword}
+                disabled={isUpdatingOwnPassword}
+                style={{
+                  ...buttonStyle,
+                  width: isMobile ? "100%" : "auto",
+                  opacity: isUpdatingOwnPassword ? 0.7 : 1,
+                  cursor: isUpdatingOwnPassword ? "default" : "pointer",
+                }}
+              >
+                {isUpdatingOwnPassword ? "Sparar..." : "Byt mitt lösenord"}
+              </button>
+            </div>
+          </div>
+
           <div style={accountWarningCardStyle}>
             <div style={accountWarningTitleStyle}>Radering av konto</div>
             <div style={accountWarningTextStyle}>
@@ -6621,6 +6699,35 @@ const accountActionGridStyle = (isMobile) => ({
   flexDirection: isMobile ? "column" : "row",
   flexWrap: "wrap",
   marginTop: "16px",
+})
+
+const accountPasswordCardStyle = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "18px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#f8fbff",
+}
+
+const accountPasswordTitleStyle = {
+  fontSize: "14px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "6px",
+}
+
+const accountPasswordTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#475569",
+  marginBottom: "12px",
+}
+
+const accountPasswordFormStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr)) auto",
+  alignItems: "center",
 })
 
 const accountInfoCardStyle = {

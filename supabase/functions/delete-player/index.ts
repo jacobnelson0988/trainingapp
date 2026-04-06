@@ -93,12 +93,27 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Du har inte rätt att ta bort den här spelaren" }, 403)
     }
 
+    const { data: sentMessages, error: sentMessagesError } = await adminClient
+      .from("messages")
+      .select("id")
+      .eq("sender_id", playerId)
+
+    if (sentMessagesError) {
+      return jsonResponse({ error: sentMessagesError.message }, 400)
+    }
+
+    const sentMessageIds = (sentMessages || []).map((entry) => entry.id).filter(Boolean)
+
     const deleteSteps = [
       () => adminClient.from("player_exercise_targets").delete().eq("player_id", playerId),
       () => adminClient.from("workout_logs").delete().eq("user_id", playerId),
       () => adminClient.from("exercise_requests").delete().eq("requester_id", playerId),
       () => adminClient.from("beta_feedback").delete().eq("user_id", playerId),
       () => adminClient.from("message_recipients").delete().eq("recipient_id", playerId),
+      () =>
+        sentMessageIds.length > 0
+          ? adminClient.from("message_recipients").delete().in("message_id", sentMessageIds)
+          : Promise.resolve({ error: null }),
       () => adminClient.from("messages").delete().eq("sender_id", playerId),
       () => adminClient.from("profiles").delete().eq("id", playerId),
     ]

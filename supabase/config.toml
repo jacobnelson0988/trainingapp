@@ -4,6 +4,16 @@ enabled = true
 entrypoint = "./functions/create-player/index.ts"
 import_map = "./functions/create-player/deno.json"
 
+[functions.archive-player]
+verify_jwt = false
+enabled = true
+entrypoint = "./functions/archive-player/index.ts"
+
+[functions.delete-player]
+verify_jwt = false
+enabled = true
+entrypoint = "./functions/delete-player/index.ts"
+
 [functions.reset-user-password]
 verify_jwt = false
 enabled = true
