@@ -1737,6 +1737,9 @@ function TrainingApp() {
     setArchivingPlayerId(playerId)
 
     const { data, error } = await supabase.functions.invoke("archive-player", {
+      headers: {
+        Authorization: `Bearer ${sessionToken}`,
+      },
       body: {
         player_id: playerId,
       },
@@ -1789,6 +1792,9 @@ function TrainingApp() {
     }
 
     const { data, error } = await supabase.functions.invoke("delete-player", {
+      headers: {
+        Authorization: `Bearer ${sessionToken}`,
+      },
       body: {
         player_id: playerId,
       },
