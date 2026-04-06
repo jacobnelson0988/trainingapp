@@ -1,4 +1,78 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+
+const exerciseNavigationCategoryOrder = [
+  "Axlar",
+  "Ben",
+  "Biceps",
+  "Bröst",
+  "Kondition",
+  "Mage",
+  "Rygg",
+  "Triceps",
+  "Armar",
+  "Lats",
+  "Säte",
+  "Baksida lår",
+  "Balans",
+  "Rotation",
+  "Rörlighet",
+  "Helkropp",
+  "Övrigt",
+]
+
+const normalizeExerciseSearchValue = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[åä]/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/[\s\-_]+/g, "")
+    .replace(/[^a-z0-9]/g, "")
+
+const normalizeExerciseNavigationCategory = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  const lookup = {
+    axlar: "Axlar",
+    ben: "Ben",
+    biceps: "Biceps",
+    brost: "Bröst",
+    kondition: "Kondition",
+    mage: "Mage",
+    bal: "Mage",
+    rygg: "Rygg",
+    triceps: "Triceps",
+    armar: "Armar",
+    lats: "Lats",
+    sate: "Säte",
+    baksidalar: "Baksida lår",
+    baksida_lar: "Baksida lår",
+    balans: "Balans",
+    rotation: "Rotation",
+    rorlighet: "Rörlighet",
+    helkropp: "Helkropp",
+    ovrigt: "Övrigt",
+  }
+
+  const compact = normalized.replace(/[^a-z0-9]+/g, "")
+  return lookup[compact] || ""
+}
+
+const getExerciseNavigationCategory = (exercise) => {
+  const explicitCategory = normalizeExerciseNavigationCategory(exercise?.navigation_category)
+  if (explicitCategory) return explicitCategory
+
+  const muscleGroups = Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []
+  const firstGroup = muscleGroups[0]
+
+  if (firstGroup === "Bål") return "Mage"
+  if (firstGroup) return normalizeExerciseNavigationCategory(firstGroup) || firstGroup
+  if (muscleGroups.includes("Kondition") || exercise?.exercise_type === "seconds_only") return "Kondition"
+  return "Övrigt"
+}
 
 function PassBuilderPage({
   activeWorkouts,
@@ -53,7 +127,9 @@ function PassBuilderPage({
   buttonStyle,
   isMobile,
 }) {
-const [view, setView] = useState("overview")
+  const [view, setView] = useState("overview")
+  const [exerciseSearchValue, setExerciseSearchValue] = useState("")
+  const [selectedExerciseCategory, setSelectedExerciseCategory] = useState("alla")
   const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
@@ -78,6 +154,8 @@ const [view, setView] = useState("overview")
     if (!selectedTemplateCode) return
     resetPassEditorState(selectedTemplateCode)
     setSelectedAlternativeExerciseByRow({})
+    setExerciseSearchValue("")
+    setSelectedExerciseCategory("alla")
     setView("edit")
   }
 
@@ -85,6 +163,8 @@ const [view, setView] = useState("overview")
     resetPassEditorState(selectedTemplateCode)
     setSelectedExerciseId("")
     setSelectedAlternativeExerciseByRow({})
+    setExerciseSearchValue("")
+    setSelectedExerciseCategory("alla")
     setView("overview")
   }
 
@@ -132,6 +212,54 @@ const [view, setView] = useState("overview")
   }
 
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
+
+  const visibleExerciseCategories = useMemo(() => {
+    const counts = (exercisesFromDB || []).reduce((acc, exercise) => {
+      const category = getExerciseNavigationCategory(exercise)
+      acc[category] = (acc[category] || 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(counts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => {
+        const orderA = exerciseNavigationCategoryOrder.indexOf(a.label)
+        const orderB = exerciseNavigationCategoryOrder.indexOf(b.label)
+        const safeOrderA = orderA === -1 ? 999 : orderA
+        const safeOrderB = orderB === -1 ? 999 : orderB
+        if (safeOrderA !== safeOrderB) return safeOrderA - safeOrderB
+        return a.label.localeCompare(b.label, "sv")
+      })
+  }, [exercisesFromDB])
+
+  const visibleExercisesForPicker = useMemo(() => {
+    const normalizedSearch = normalizeExerciseSearchValue(exerciseSearchValue.trim())
+
+    return (exercisesFromDB || []).filter((exercise) => {
+      const navigationCategory = getExerciseNavigationCategory(exercise)
+      const haystack = [
+        getExerciseDisplayName(exercise),
+        exercise?.name,
+        navigationCategory,
+        ...(Array.isArray(exercise?.aliases) ? exercise.aliases : []),
+        ...(Array.isArray(exercise?.muscle_groups) ? exercise.muscle_groups : []),
+      ]
+        .map((entry) => normalizeExerciseSearchValue(entry))
+        .join(" ")
+
+      const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch)
+      const matchesCategory =
+        normalizedSearch ||
+        selectedExerciseCategory === "alla" ||
+        navigationCategory === selectedExerciseCategory
+
+      return matchesSearch && matchesCategory
+    })
+  }, [exerciseSearchValue, exercisesFromDB, selectedExerciseCategory])
+
+  const hasActiveExerciseSearch = Boolean(exerciseSearchValue.trim())
+  const isShowingExerciseCategoryOverview =
+    !hasActiveExerciseSearch && selectedExerciseCategory === "alla"
 
   if (view === "create") {
     return (
@@ -362,31 +490,125 @@ const [view, setView] = useState("overview")
             </div>
 
             <div style={addExercisePanelStyle}>
-              <select
-                value={selectedExerciseId}
-                onChange={(e) => setSelectedExerciseId(e.target.value)}
+              <input
+                type="text"
+                placeholder="Sök övning i hela banken"
+                value={exerciseSearchValue}
+                onChange={(e) => setExerciseSearchValue(e.target.value)}
                 style={{ ...inputStyle, width: "100%" }}
-              >
-                <option value="">Välj övning</option>
-                {(exercisesFromDB || []).map((exercise) => (
-                  <option key={exercise.id} value={String(exercise.id)}>
-                    {getExerciseDisplayName(exercise)}
-                  </option>
-                ))}
-              </select>
+              />
 
-              <button
-                type="button"
-                onClick={handleAddExerciseToPass}
-                disabled={isSavingPassExercise || !selectedTemplateCode}
-                style={{
-                  ...buttonStyle,
-                  width: isMobile ? "100%" : "auto",
-                  opacity: isSavingPassExercise || !selectedTemplateCode ? 0.7 : 1,
-                }}
-              >
-                {isSavingPassExercise ? "Lägger till..." : "Lägg till övning"}
-              </button>
+              {isShowingExerciseCategoryOverview ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "10px",
+                    gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                  }}
+                >
+                  {visibleExerciseCategories.map((category) => (
+                    <button
+                      key={category.label}
+                      type="button"
+                      onClick={() => {
+                        setSelectedExerciseCategory(category.label)
+                        setSelectedExerciseId("")
+                      }}
+                      style={exercisePickerCategoryCardStyle}
+                    >
+                      <div>
+                        <div style={exercisePickerCategoryTitleStyle}>{category.label}</div>
+                        <div style={exercisePickerCategoryHintStyle}>Visa övningar i kategorin</div>
+                      </div>
+                      <div style={summaryBadgeStyle}>{category.count}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "stretch" : "center",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: "10px",
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", color: "#64748b" }}>
+                      {hasActiveExerciseSearch
+                        ? `Sökresultat i hela banken (${visibleExercisesForPicker.length})`
+                        : `${selectedExerciseCategory} (${visibleExercisesForPicker.length})`}
+                    </div>
+
+                    {!hasActiveExerciseSearch && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedExerciseCategory("alla")
+                          setSelectedExerciseId("")
+                        }}
+                        style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                      >
+                        Tillbaka till kategorier
+                      </button>
+                    )}
+                  </div>
+
+                  {visibleExercisesForPicker.length === 0 ? (
+                    <div style={exercisePickerEmptyStyle}>
+                      {hasActiveExerciseSearch
+                        ? "Ingen övning matchar din sökning."
+                        : "Inga övningar finns i den här kategorin."}
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      {visibleExercisesForPicker.map((exercise) => {
+                        const isSelected = String(selectedExerciseId) === String(exercise.id)
+
+                        return (
+                          <button
+                            key={exercise.id}
+                            type="button"
+                            onClick={() => setSelectedExerciseId(String(exercise.id))}
+                            style={{
+                              ...exercisePickerRowStyle,
+                              border: isSelected ? "2px solid #c62828" : "1px solid #ece5e5",
+                              backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                            }}
+                          >
+                            <div>
+                              <div style={exercisePickerRowTitleStyle}>{getExerciseDisplayName(exercise)}</div>
+                              <div style={exercisePickerRowMetaStyle}>
+                                {getExerciseNavigationCategory(exercise)}
+                                {Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0
+                                  ? ` • ${exercise.muscle_groups.join(", ")}`
+                                  : ""}
+                              </div>
+                            </div>
+                            <div style={exercisePickerRowSelectStyle}>
+                              {isSelected ? "Vald" : "Välj"}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleAddExerciseToPass}
+                    disabled={isSavingPassExercise || !selectedTemplateCode || !selectedExerciseId}
+                    style={{
+                      ...buttonStyle,
+                      width: isMobile ? "100%" : "auto",
+                      opacity: isSavingPassExercise || !selectedTemplateCode || !selectedExerciseId ? 0.7 : 1,
+                    }}
+                  >
+                    {isSavingPassExercise ? "Lägger till..." : "Lägg till vald övning"}
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 
@@ -746,6 +968,74 @@ const panelStyle = {
   border: "1px solid #ece5e5",
   backgroundColor: "#ffffff",
   boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+}
+
+const exercisePickerCategoryCardStyle = {
+  width: "100%",
+  padding: "16px 18px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const exercisePickerCategoryTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const exercisePickerCategoryHintStyle = {
+  fontSize: "12px",
+  color: "#64748b",
+  marginTop: "4px",
+}
+
+const exercisePickerEmptyStyle = {
+  padding: "16px 18px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  color: "#64748b",
+}
+
+const exercisePickerRowStyle = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const exercisePickerRowTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const exercisePickerRowMetaStyle = {
+  fontSize: "12px",
+  color: "#64748b",
+  marginTop: "4px",
+}
+
+const exercisePickerRowSelectStyle = {
+  fontSize: "12px",
+  fontWeight: "700",
+  color: "#991b1b",
+  whiteSpace: "nowrap",
 }
 
 const panelHeaderStyle = {
