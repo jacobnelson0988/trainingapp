@@ -32,6 +32,7 @@ Klart:
 
 Pågående fokus:
 - Finslipa kategoriflödets UX i både övningsbanken och passbyggaren.
+- Löpande städning av namn och alias i övningsbanken för att minska dubletter.
 
 Nästa steg:
 1. Lägg till enkel snabbändring för `navigation_category` direkt från övningskort/lista, så `head_admin` slipper öppna full redigering för små flyttar.
