@@ -1,3 +1,11 @@
+# Lokala env-filer (innehåller hemligheter – committas ALDRIG)
+.env
+.env.local
+.env.*.local
+
+# Supabase CLI – lokal projektlänk (sätts per maskin med "supabase link")
+.supabase/
+
 # Logs
 logs
 *.log

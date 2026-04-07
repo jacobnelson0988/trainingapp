@@ -1,3 +1,13 @@
+# Supabase CLI-konfiguration
+# Länka till rätt projekt med:
+#   supabase link --project-ref <project-ref>
+#
+# Staging:    supabase link --project-ref <STAGING_PROJECT_REF>
+# Produktion: supabase link --project-ref <PROD_PROJECT_REF>
+#
+# Project Reference hittas i Supabase Dashboard:
+#   → Project Settings → General → Reference ID
+
 [functions.create-player]
 verify_jwt = false
 enabled = true
