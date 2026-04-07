@@ -90,34 +90,6 @@ function PlayersPage({
         backgroundColor: "#fffdfd",
       }}
     >
-      <div
-        style={{
-          display: "grid",
-          gap: "10px",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))",
-          marginBottom: "14px",
-        }}
-      >
-        <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Namn</div>
-          <div style={summaryValueStyle}>{player.full_name}</div>
-        </div>
-        <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Målstyrning</div>
-          <div style={summaryValueStyle}>
-            {player.individual_goals_enabled === false ? "Historikbaserad" : "Individuella mål"}
-          </div>
-        </div>
-        <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Senaste pass</div>
-          <div style={summaryValueStyle}>{player.latestPass || "-"}</div>
-        </div>
-        <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Totalt antal pass</div>
-          <div style={summaryValueStyle}>{player.totalPasses ?? 0}</div>
-        </div>
-      </div>
-
       <div style={playerActionBarStyle(isMobile)}>
         {player.is_archived ? (
           <div style={archivedStatusBadgeStyle}>
@@ -311,10 +283,10 @@ function PlayersPage({
           <div>
             {(() => {
               const selectedPassKey =
-                selectedWorkoutByPlayer[player.id] ||
-                assignedPassCodes[0] ||
-                ""
-              const passExercises = activeWorkouts[selectedPassKey]?.exercises || []
+                Object.prototype.hasOwnProperty.call(selectedWorkoutByPlayer, player.id)
+                  ? selectedWorkoutByPlayer[player.id]
+                  : ""
+              const passExercises = selectedPassKey ? activeWorkouts[selectedPassKey]?.exercises || [] : []
               const selectedExerciseName =
                 selectedTargetExerciseByPass[selectedPassKey] ||
                 passExercises[0]?.name ||
@@ -346,6 +318,7 @@ function PlayersPage({
                       onChange={(e) => handleSelectedWorkoutChange(player.id, e.target.value)}
                       style={{ ...inputStyle, width: "100%" }}
                     >
+                      <option value="">Välj pass</option>
                       {assignedPassCodes.map((passKey) => (
                         <option key={passKey} value={passKey}>
                           {activeWorkouts[passKey]?.label || passKey}
@@ -354,13 +327,17 @@ function PlayersPage({
                     </select>
                   </div>
 
-                  <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "14px" }}>
-                    {(activeWorkouts[selectedPassKey]?.exercises || []).length} övningar. Välj en övning och sätt bara individuella reps, vikt eller kommentar här.
-                  </div>
-
-                  {passExercises.length === 0 ? (
-                    <div style={mutedTextStyle}>Det här passet har inga styrkeövningar att sätta individuella mål på.</div>
+                  {!selectedPassKey ? (
+                    <div style={mutedTextStyle}>Välj ett pass för att visa och redigera individuella mål.</div>
                   ) : (
+                    <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "14px" }}>
+                      {(activeWorkouts[selectedPassKey]?.exercises || []).length} övningar. Välj en övning och sätt bara individuella reps, vikt eller kommentar här.
+                    </div>
+                  )}
+
+                  {selectedPassKey && passExercises.length === 0 ? (
+                    <div style={mutedTextStyle}>Det här passet har inga styrkeövningar att sätta individuella mål på.</div>
+                  ) : selectedPassKey ? (
                     <>
                       <div
                         style={{
@@ -774,35 +751,46 @@ function PlayersPage({
       </label>
 
       {filteredPlayers.length > 0 && (
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
-          <button
-            type="button"
-            onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, false)}
-            disabled={bulkSelectedPlayerIds.length === 0}
-            style={{
-              ...quickActionButtonStyle,
-              opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
-              cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
-              width: isMobile ? "100%" : "auto",
-            }}
-          >
-            Stäng av mål för valda
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, true)}
-            disabled={bulkSelectedPlayerIds.length === 0}
-            style={{
-              ...quickActionButtonStyle,
-              backgroundColor: "#ffffff",
-              color: "#18202b",
-              opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
-              cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
-              width: isMobile ? "100%" : "auto",
-            }}
-          >
-            Aktivera mål för valda
-          </button>
+        <div style={bulkActionCardStyle(isMobile)}>
+          <div>
+            <div style={bulkActionTitleStyle}>Snabbval för flera spelare</div>
+            <div style={bulkActionMetaStyle}>
+              {bulkSelectedPlayerIds.length > 0
+                ? `${bulkSelectedPlayerIds.length} spelare valda för målstyrning`
+                : "Välj spelare i listan för att ändra målstyrning samtidigt"}
+            </div>
+          </div>
+
+          <div style={bulkActionButtonsStyle(isMobile)}>
+            <button
+              type="button"
+              onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, false)}
+              disabled={bulkSelectedPlayerIds.length === 0}
+              style={{
+                ...quickActionButtonStyle,
+                opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
+                cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              Stäng av mål
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, true)}
+              disabled={bulkSelectedPlayerIds.length === 0}
+              style={{
+                ...quickActionButtonStyle,
+                backgroundColor: "#ffffff",
+                color: "#18202b",
+                opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
+                cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              Aktivera mål
+            </button>
+          </div>
         </div>
       )}
 
@@ -835,7 +823,7 @@ function PlayersPage({
                   onChange={() => handleToggleBulkSelectedPlayer(player.id)}
                 />
                 <span style={{ fontSize: "12px", fontWeight: "800", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Markera för bulkändring
+                  Välj för snabbval
                 </span>
               </label>
               <button
@@ -897,10 +885,10 @@ function PlayersPage({
                       onClick={() => setSelectedPlayer(isSelected ? null : player)}
                     >
                       <td style={{ ...tableCellStyle, borderTopLeftRadius: "12px", borderBottomLeftRadius: "12px", borderLeft: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
-                        <input
-                          type="checkbox"
-                          checked={bulkSelectedPlayerIds.includes(player.id)}
-                          onChange={(event) => {
+                <input
+                  type="checkbox"
+                  checked={bulkSelectedPlayerIds.includes(player.id)}
+                  onChange={(event) => {
                             event.stopPropagation()
                             handleToggleBulkSelectedPlayer(player.id)
                           }}
@@ -962,6 +950,38 @@ const quickActionButtonStyle = {
   fontSize: "14px",
   fontWeight: "700",
 }
+
+const bulkActionCardStyle = (isMobile) => ({
+  marginBottom: "14px",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffdfd",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: isMobile ? "stretch" : "center",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "12px",
+})
+
+const bulkActionTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const bulkActionMetaStyle = {
+  fontSize: "13px",
+  color: "#6b7280",
+}
+
+const bulkActionButtonsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  width: isMobile ? "100%" : "auto",
+})
 
 const summaryCardStyle = {
   padding: "12px",

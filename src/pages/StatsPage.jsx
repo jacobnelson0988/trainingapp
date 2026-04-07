@@ -103,6 +103,7 @@ function StatsPage({
   isMobile,
 }) {
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
+  const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
   const [exerciseFilter, setExerciseFilter] = useState("all")
   const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
@@ -191,6 +192,15 @@ function StatsPage({
     [progressionSeries]
   )
 
+  const selectedPlayerSummary = useMemo(() => {
+    if (selectedPlayerIds.length === 0) return "Välj spelare"
+    if (selectedPlayerIds.length === sortedPlayers.length) return "Alla spelare"
+
+    const selectedPlayers = sortedPlayers.filter((player) => selectedPlayerIds.includes(player.id))
+    if (selectedPlayers.length === 1) return selectedPlayers[0].full_name
+    return `${selectedPlayers.length} spelare valda`
+  }, [selectedPlayerIds, sortedPlayers])
+
   const visibleSeries = useMemo(() => {
     if (exerciseFilter === "all") return progressionSeries
     return progressionSeries.filter((entry) => entry.exerciseName === exerciseFilter)
@@ -217,7 +227,10 @@ function StatsPage({
 
         <button
           type="button"
-          onClick={() => setSelectedPlayerIds(sortedPlayers.map((player) => player.id))}
+          onClick={() => {
+            setSelectedPlayerIds(sortedPlayers.map((player) => player.id))
+            setIsPlayerMenuOpen(false)
+          }}
           style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
           disabled={!sortedPlayers.length}
         >
@@ -231,32 +244,67 @@ function StatsPage({
           {sortedPlayers.length === 0 ? (
             <div style={mutedTextStyle}>Inga aktiva spelare tillgängliga.</div>
           ) : (
-            <div style={playerChipWrapStyle}>
-              {sortedPlayers.map((player) => {
-                const isActive = selectedPlayerIds.includes(player.id)
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => setIsPlayerMenuOpen((prev) => !prev)}
+                style={{
+                  ...inputStyle,
+                  width: "100%",
+                  textAlign: "left",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "10px",
+                  cursor: "pointer",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <span>{selectedPlayerSummary}</span>
+                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>
+                  {isPlayerMenuOpen ? "Stäng" : "Öppna"}
+                </span>
+              </button>
 
-                return (
-                  <button
-                    key={player.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedPlayerIds((prev) =>
-                        prev.includes(player.id)
-                          ? prev.filter((entry) => entry !== player.id)
-                          : [...prev, player.id]
-                      )
-                    }
-                    style={{
-                      ...playerChipStyle,
-                      backgroundColor: isActive ? "#c62828" : "#ffffff",
-                      color: isActive ? "#ffffff" : "#18202b",
-                      borderColor: isActive ? "#c62828" : "#dbe5ef",
-                    }}
-                  >
-                    {player.full_name}
-                  </button>
-                )
-              })}
+              {isPlayerMenuOpen && (
+                <div style={playerDropdownMenuStyle}>
+                  <div style={playerDropdownActionsStyle}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlayerIds(sortedPlayers.map((player) => player.id))}
+                      style={{ ...secondaryButtonStyle, width: "100%" }}
+                    >
+                      Markera alla
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlayerIds([])}
+                      style={{ ...secondaryButtonStyle, width: "100%", backgroundColor: "#ffffff", color: "#18202b" }}
+                    >
+                      Rensa val
+                    </button>
+                  </div>
+
+                  <div style={playerDropdownListStyle}>
+                    {sortedPlayers.map((player) => (
+                      <label key={player.id} style={playerDropdownItemStyle}>
+                        <input
+                          type="checkbox"
+                          checked={selectedPlayerIds.includes(player.id)}
+                          onChange={() =>
+                            setSelectedPlayerIds((prev) =>
+                              prev.includes(player.id)
+                                ? prev.filter((entry) => entry !== player.id)
+                                : [...prev, player.id]
+                            )
+                          }
+                        />
+                        <span>{player.full_name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -587,6 +635,46 @@ const filterTitleStyle = {
   fontWeight: "900",
   color: "#18202b",
   marginBottom: "10px",
+}
+
+const playerDropdownMenuStyle = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  zIndex: 20,
+  padding: "12px",
+  borderRadius: "16px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.12)",
+}
+
+const playerDropdownActionsStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "8px",
+  marginBottom: "10px",
+}
+
+const playerDropdownListStyle = {
+  display: "grid",
+  gap: "8px",
+  maxHeight: "220px",
+  overflowY: "auto",
+}
+
+const playerDropdownItemStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #eef2f7",
+  backgroundColor: "#f8fafc",
+  color: "#18202b",
+  fontSize: "14px",
+  fontWeight: "700",
 }
 
 const playerChipWrapStyle = {
