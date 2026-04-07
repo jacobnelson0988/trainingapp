@@ -831,6 +831,7 @@ function PassBuilderPage({
               )}
             </div>
           </section>
+          )}
 
           {renamePassWorkoutKind !== "running" && (
           <section style={panelStyle}>
