@@ -450,7 +450,7 @@ function PlayersPage({
                         </div>
                       )}
                     </>
-                  )}
+                  ) : null}
                 </div>
               )
             })()}
@@ -983,28 +983,6 @@ const bulkActionButtonsStyle = (isMobile) => ({
   width: isMobile ? "100%" : "auto",
 })
 
-const summaryCardStyle = {
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px solid #f0e5e5",
-  backgroundColor: "#ffffff",
-}
-
-const summaryLabelStyle = {
-  marginBottom: "4px",
-  fontSize: "12px",
-  color: "#6b7280",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-}
-
-const summaryValueStyle = {
-  fontSize: "14px",
-  color: "#18202b",
-  fontWeight: "800",
-}
-
 const mobilePlayerMetaPillStyle = {
   display: "inline-flex",
   padding: "5px 9px",
@@ -1058,16 +1036,6 @@ const archiveButtonStyle = {
   border: "1px solid #dbe5ef",
   backgroundColor: "#ffffff",
   color: "#18202b",
-  fontSize: "14px",
-  fontWeight: "800",
-}
-
-const deleteButtonStyle = {
-  padding: "10px 14px",
-  borderRadius: "12px",
-  border: "1px solid #efc7c7",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
   fontSize: "14px",
   fontWeight: "800",
 }

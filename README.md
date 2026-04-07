@@ -265,6 +265,7 @@ Det betyder:
 - Fas 5 är påbörjad och används redan i viss form
 - Fas 6 är påbörjad genom historik, progression, löppass och coachmål från historik
 - Statistikvyn för tränare har nu spelarval i dropdown och en renare coachvy för spelarhantering
+- Coachvyns spelarsida är också städad så att builden inte faller på parserfel i den nya pass- och målhanteringen
 - Fas 7 pågår löpande genom förbättringar i övningsbank, passbyggare, integritet och datakvalitet
 
 Detta är den punkt där appen redan är ett fungerande coachverktyg, men där nästa värde ligger i att göra programstyrningen smidigare och admin-flödena snabbare.
