@@ -179,6 +179,9 @@ Omfattning:
 - ~~Grundläggande historik per övning i tränarvyn~~
 - ~~Progression i graf för viktutveckling~~
 - ~~Förstoringsläge för grafer med högre upplösning~~
+- ~~Löppass kan loggas separat som intervaller eller distans~~
+- ~~Tränare kan sätta personliga övningsmål direkt från spelarens historik~~
+- ~~Spelare kan redigera datum på genomförda pass för retroaktiv loggning~~
 - Filter, till exempel:
   - ~~övning~~
   - ~~period~~
@@ -249,7 +252,7 @@ Funktioner som inte behöver byggas tidigt, men som kan ge stort värde längre 
 
 Appen befinner sig nu:
 
-`I tidig Fas 5`, med `Fas 7` aktiv parallellt.
+`I Fas 6`, med `Fas 7` aktiv parallellt.
 
 Det betyder:
 
@@ -257,6 +260,7 @@ Det betyder:
 - Fas 3.5 är i praktiken genomförd
 - Fas 4 är till stor del klar
 - Fas 5 är påbörjad och används redan i viss form
+- Fas 6 är påbörjad genom historik, progression, löppass och coachmål från historik
 - Fas 7 pågår löpande genom förbättringar i övningsbank, passbyggare, integritet och datakvalitet
 
 Detta är den punkt där appen redan är ett fungerande coachverktyg, men där nästa värde ligger i att göra programstyrningen smidigare och admin-flödena snabbare.
@@ -265,12 +269,12 @@ Detta är den punkt där appen redan är ett fungerande coachverktyg, men där n
 
 ## Rekommenderat nästa steg enligt denna roadmap
 
-Fortsätt i Fas 5 och Fas 7 med denna leverans:
+Fortsätt i Fas 6 och Fas 7 med denna leverans:
 
+- jämförelse över tid per spelare och övning
+- fler progressionsmått än vikt, till exempel reps och tid
 - snabbändring av `navigation_category` direkt i övningsbanken
 - dublettskydd i importen via `external_id` eller `slug`
-- fortsatt minskning av manuell städning i övningsbanken
-- färgkodning eller tydlig status för aktiva kontra arkiverade spelare
 
 Detta ger hög nytta direkt, utan att byta produktspår.
 

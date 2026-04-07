@@ -27,6 +27,14 @@ function PlayersPage({
   handleTargetDraftChange,
   handleSaveTargets,
   isSavingTargets,
+  selectedPlayerHistory,
+  isLoadingSelectedPlayerHistory,
+  exerciseGoalDrafts,
+  selectedPlayerExerciseGoals,
+  handleExerciseGoalDraftChange,
+  handlePrefillExerciseGoalFromHistory,
+  handleSaveExerciseGoals,
+  isSavingExerciseGoals,
   handleAssignPassToPlayer,
   handleUnassignPassFromPlayer,
   handleAssignAllPassesToPlayer,
@@ -473,6 +481,193 @@ function PlayersPage({
           </div>
         )}
       </div>
+
+      <div style={{ marginTop: "18px" }}>
+        <h3 style={cardTitleStyle}>Historik och personliga mål per övning</h3>
+        <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
+          Använd spelarens historik som grund och spara ett separat personligt mål per övning.
+        </p>
+
+        {isLoadingSelectedPlayerHistory ? (
+          <p style={mutedTextStyle}>Laddar historik...</p>
+        ) : selectedPlayerHistory.length === 0 ? (
+          <p style={mutedTextStyle}>Ingen historik finns ännu för spelaren.</p>
+        ) : (
+          <div>
+            <div style={{ display: "grid", gap: "12px", marginBottom: "14px" }}>
+              {selectedPlayerHistory.map((entry) => {
+                const draft = exerciseGoalDrafts[entry.exercise_id] || {}
+                const existingGoal = selectedPlayerExerciseGoals[entry.exercise_id]
+
+                return (
+                  <div
+                    key={entry.exercise_id}
+                    style={{
+                      padding: "14px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "14px",
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: isMobile ? "flex-start" : "center",
+                        gap: "10px",
+                        flexDirection: isMobile ? "column" : "row",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div>
+                        <div style={{ marginBottom: "4px", fontWeight: "800", color: "#18202b" }}>
+                          {entry.exercise_display_name}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#64748b" }}>
+                          {entry.entry_count} loggade pass
+                          {entry.latest_entry?.created_at
+                            ? ` • senast ${new Date(entry.latest_entry.created_at).toLocaleDateString("sv-SE")}`
+                            : ""}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          padding: "5px 10px",
+                          borderRadius: "999px",
+                          backgroundColor: existingGoal ? "#ecfdf3" : "#f3f4f6",
+                          color: existingGoal ? "#166534" : "#4b5563",
+                          fontSize: "12px",
+                          fontWeight: "800",
+                        }}
+                      >
+                        {existingGoal ? "Befintligt mål" : "Förslag från historik"}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "10px",
+                        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div style={historyStatCardStyle}>
+                        <div style={historyStatLabelStyle}>Senaste pass</div>
+                        <div style={historyStatValueStyle}>
+                          {entry.latest_entry?.top_weight != null
+                            ? `${entry.latest_entry.top_weight} kg`
+                            : entry.latest_entry?.top_reps || entry.latest_entry?.top_seconds || "-"}
+                        </div>
+                        <div style={historyStatMetaStyle}>
+                          {entry.latest_entry?.top_reps
+                            ? `${entry.latest_entry.top_reps} reps`
+                            : entry.latest_entry?.top_seconds
+                            ? `${entry.latest_entry.top_seconds} sek`
+                            : `${entry.latest_entry?.set_count || 0} set`}
+                        </div>
+                      </div>
+
+                      <div style={historyStatCardStyle}>
+                        <div style={historyStatLabelStyle}>Bästa noterade vikt</div>
+                        <div style={historyStatValueStyle}>
+                          {entry.best_weight_entry?.top_weight != null
+                            ? `${entry.best_weight_entry.top_weight} kg`
+                            : "-"}
+                        </div>
+                        <div style={historyStatMetaStyle}>
+                          {entry.best_weight_entry?.top_reps
+                            ? `${entry.best_weight_entry.top_reps} reps`
+                            : entry.best_weight_entry?.top_seconds
+                            ? `${entry.best_weight_entry.top_seconds} sek`
+                            : `${entry.best_weight_entry?.set_count || 0} set`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "8px",
+                        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <input
+                        type="number"
+                        placeholder="Mål set"
+                        value={draft.target_sets ?? ""}
+                        onChange={(e) =>
+                          handleExerciseGoalDraftChange(entry.exercise_id, "target_sets", e.target.value)
+                        }
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Mål reps"
+                        value={draft.target_reps ?? ""}
+                        onChange={(e) =>
+                          handleExerciseGoalDraftChange(entry.exercise_id, "target_reps", e.target.value)
+                        }
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Mål vikt"
+                        value={draft.target_weight ?? ""}
+                        onChange={(e) =>
+                          handleExerciseGoalDraftChange(entry.exercise_id, "target_weight", e.target.value)
+                        }
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="Kommentar"
+                      value={draft.comment ?? ""}
+                      onChange={(e) =>
+                        handleExerciseGoalDraftChange(entry.exercise_id, "comment", e.target.value)
+                      }
+                      style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => handlePrefillExerciseGoalFromHistory(entry.exercise_id)}
+                      style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto" }}
+                    >
+                      Fyll från historik
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveExerciseGoals}
+              disabled={isSavingExerciseGoals}
+              style={{
+                width: isMobile ? "100%" : "auto",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "none",
+                backgroundColor: "#111827",
+                color: "#ffffff",
+                cursor: isSavingExerciseGoals ? "default" : "pointer",
+                fontSize: "14px",
+                fontWeight: "700",
+                opacity: isSavingExerciseGoals ? 0.7 : 1,
+              }}
+            >
+              {isSavingExerciseGoals ? "Sparar..." : "Spara personliga övningsmål"}
+            </button>
+          </div>
+        )}
+      </div>
         </>
       )}
     </div>
@@ -824,6 +1019,34 @@ const coachChipNameStyle = {
 const coachChipMetaStyle = {
   fontSize: "12px",
   color: "#6b7280",
+}
+
+const historyStatCardStyle = {
+  padding: "12px",
+  borderRadius: "12px",
+  backgroundColor: "#f8fafc",
+  border: "1px solid #dbe5ef",
+}
+
+const historyStatLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  color: "#46607a",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  marginBottom: "6px",
+}
+
+const historyStatValueStyle = {
+  fontSize: "18px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const historyStatMetaStyle = {
+  fontSize: "13px",
+  color: "#64748b",
 }
 
 export default PlayersPage

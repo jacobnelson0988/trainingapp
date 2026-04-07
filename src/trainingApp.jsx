@@ -39,6 +39,152 @@ const parseExerciseAliases = (value) => {
 const getExerciseDisplayName = (exercise) =>
   exercise?.display_name || exercise?.displayName || exercise?.name || ""
 
+const parseLoggedNumber = (value) => {
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(",", ".")
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const getTodayDateInputValue = () => new Date().toISOString().slice(0, 10)
+
+const combineDateWithExistingTime = (dateValue, existingTimestamp) => {
+  if (!dateValue) return null
+
+  const sourceDate = existingTimestamp ? new Date(existingTimestamp) : new Date()
+  const nextDate = new Date(dateValue)
+
+  if (Number.isNaN(nextDate.getTime())) return null
+
+  sourceDate.setFullYear(nextDate.getUTCFullYear(), nextDate.getUTCMonth(), nextDate.getUTCDate())
+  return sourceDate.toISOString()
+}
+
+const buildRunningSummary = (session) => {
+  if (!session) return ""
+
+  if (session.running_type === "intervals") {
+    const intervalsCount = session.intervals_count ? `${session.intervals_count} intervaller` : null
+    const intervalTime = session.interval_time ? `${session.interval_time}/intervall` : null
+    return [intervalsCount, intervalTime].filter(Boolean).join(" • ") || "Intervaller"
+  }
+
+  const distance = session.running_distance != null && session.running_distance !== ""
+    ? `${session.running_distance} km`
+    : null
+  const runningTime = session.running_time || null
+  const averagePulse = session.average_pulse ? `${session.average_pulse} bpm` : null
+
+  return [distance, runningTime, averagePulse].filter(Boolean).join(" • ") || "Distans"
+}
+
+const summarizeHistoryRowsByExercise = (rows) => {
+  const grouped = new Map()
+
+  ;(rows || []).forEach((row) => {
+    const sessionId =
+      row.workout_session_id ||
+      `${String(row.created_at || "").slice(0, 19)}:${row.exercise || ""}:${row.pass_name || ""}`
+    const exerciseName = String(row.exercise || "").trim()
+
+    if (!exerciseName || row.workout_kind === "running") return
+
+    const key = `${exerciseName}__${sessionId}`
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        exercise_name: exerciseName,
+        pass_name: row.pass_name || null,
+        created_at: row.created_at,
+        set_count: 0,
+        top_weight: null,
+        top_reps: null,
+        top_seconds: null,
+        comment: row.exercise_comment || row.pass_comment || "",
+      })
+    }
+
+    const entry = grouped.get(key)
+    entry.set_count += 1
+
+    const weightValue = parseLoggedNumber(row.weight)
+    if (weightValue != null && (entry.top_weight == null || weightValue > entry.top_weight)) {
+      entry.top_weight = weightValue
+      entry.top_reps = row.reps || entry.top_reps
+    }
+
+    if (entry.top_reps == null && row.reps) {
+      entry.top_reps = row.reps
+    }
+
+    if (entry.top_seconds == null && row.seconds) {
+      entry.top_seconds = row.seconds
+    }
+
+    if (!entry.comment && (row.exercise_comment || row.pass_comment)) {
+      entry.comment = row.exercise_comment || row.pass_comment || ""
+    }
+  })
+
+  const byExercise = {}
+
+  Array.from(grouped.values()).forEach((entry) => {
+    if (!byExercise[entry.exercise_name]) {
+      byExercise[entry.exercise_name] = []
+    }
+    byExercise[entry.exercise_name].push(entry)
+  })
+
+  return Object.entries(byExercise)
+    .map(([exerciseName, entries]) => ({
+      exercise_name: exerciseName,
+      entries: entries
+        .slice()
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    }))
+    .sort((a, b) => {
+      const aDate = new Date(a.entries[0]?.created_at || 0).getTime()
+      const bDate = new Date(b.entries[0]?.created_at || 0).getTime()
+      return bDate - aDate
+    })
+}
+
+const buildExerciseGoalPrefill = (historyEntry) => ({
+  target_sets: historyEntry?.set_count ?? "",
+  target_reps:
+    historyEntry?.top_reps != null && Number.isFinite(Number(historyEntry.top_reps))
+      ? Number(historyEntry.top_reps)
+      : "",
+  target_weight:
+    historyEntry?.top_weight != null && Number.isFinite(historyEntry.top_weight)
+      ? historyEntry.top_weight
+      : "",
+  comment: historyEntry?.comment || "",
+})
+
+const findExerciseByLoggedName = (exercises, exerciseName) => {
+  const trimmedName = String(exerciseName || "").trim()
+  if (!trimmedName) return null
+
+  const exactMatch = (exercises || []).find((exercise) => exercise.name === trimmedName)
+  if (exactMatch) return exactMatch
+
+  const normalizedName = normalizeExerciseSearchValue(trimmedName)
+
+  return (
+    (exercises || []).find((exercise) => {
+      const names = [
+        exercise.name,
+        exercise.display_name,
+        exercise.displayName,
+        ...(Array.isArray(exercise.aliases) ? exercise.aliases : []),
+      ]
+
+      return names.some((candidate) => normalizeExerciseSearchValue(candidate) === normalizedName)
+    }) || null
+  )
+}
+
 const normalizeExercisePrimaryCategory = (value) => {
   const normalized = String(value || "")
     .trim()
@@ -316,6 +462,25 @@ function TrainingApp() {
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
   const [passComment, setPassComment] = useState("")
+  const [completedWorkoutSessions, setCompletedWorkoutSessions] = useState([])
+  const [isLoadingCompletedWorkoutSessions, setIsLoadingCompletedWorkoutSessions] = useState(false)
+  const [workoutDateDrafts, setWorkoutDateDrafts] = useState({})
+  const [savingWorkoutDateSessionId, setSavingWorkoutDateSessionId] = useState(null)
+  const [runningDraft, setRunningDraft] = useState({
+    log_date: getTodayDateInputValue(),
+    running_type: "distance",
+    interval_time: "",
+    intervals_count: "",
+    running_distance: "",
+    running_time: "",
+    average_pulse: "",
+  })
+  const [isSavingRunningSession, setIsSavingRunningSession] = useState(false)
+  const [selectedPlayerHistory, setSelectedPlayerHistory] = useState([])
+  const [selectedPlayerExerciseGoals, setSelectedPlayerExerciseGoals] = useState({})
+  const [exerciseGoalDrafts, setExerciseGoalDrafts] = useState({})
+  const [isLoadingSelectedPlayerHistory, setIsLoadingSelectedPlayerHistory] = useState(false)
+  const [isSavingExerciseGoals, setIsSavingExerciseGoals] = useState(false)
   const exerciseCarouselRef = useRef(null)
 
   useEffect(() => {
@@ -338,6 +503,15 @@ function TrainingApp() {
       loadLatestData(user.id)
     }
   }, [user])
+
+  useEffect(() => {
+    if (!user || profile?.role !== "player") {
+      setCompletedWorkoutSessions([])
+      return
+    }
+
+    loadCompletedWorkoutSessions(user.id)
+  }, [user, profile?.role])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -402,11 +576,21 @@ function TrainingApp() {
   useEffect(() => {
     if (selectedPlayer) {
       loadPlayerTargets(selectedPlayer.id)
+      loadSelectedPlayerHistoryAndGoals(selectedPlayer.id)
     } else {
       setTargetDrafts({})
       setSelectedPlayerAssignedPasses([])
+      setSelectedPlayerHistory([])
+      setSelectedPlayerExerciseGoals({})
+      setExerciseGoalDrafts({})
     }
   }, [selectedPlayer])
+
+  useEffect(() => {
+    if (selectedPlayer && exercisesFromDB.length > 0) {
+      loadSelectedPlayerHistoryAndGoals(selectedPlayer.id)
+    }
+  }, [selectedPlayer, exercisesFromDB])
 
   useEffect(() => {
     if (user) {
@@ -837,8 +1021,9 @@ function TrainingApp() {
 
     const { data: logData, error: logError } = await supabase
       .from("workout_logs")
-      .select("user_id, pass_name, created_at, workout_session_id, is_completed")
+      .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind")
       .eq("is_completed", true)
+      .neq("workout_kind", "running")
       .not("workout_session_id", "is", null)
       .order("created_at", { ascending: false })
 
@@ -1932,6 +2117,173 @@ function TrainingApp() {
     setIsLoadingTargets(false)
   }
 
+  const loadSelectedPlayerHistoryAndGoals = async (playerId) => {
+    if (!playerId) {
+      setSelectedPlayerHistory([])
+      setSelectedPlayerExerciseGoals({})
+      setExerciseGoalDrafts({})
+      return
+    }
+
+    setIsLoadingSelectedPlayerHistory(true)
+
+    const [{ data: historyRows, error: historyError }, { data: goalRows, error: goalsError }] =
+      await Promise.all([
+        supabase
+          .from("workout_logs")
+          .select(
+            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, exercise_comment, pass_comment, workout_kind"
+          )
+          .eq("user_id", playerId)
+          .eq("is_completed", true)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("player_exercise_goals")
+          .select("exercise_id, target_sets, target_reps, target_weight, comment")
+          .eq("player_id", playerId),
+      ])
+
+    if (historyError || goalsError) {
+      console.error(historyError || goalsError)
+      setSelectedPlayerHistory([])
+      setSelectedPlayerExerciseGoals({})
+      setExerciseGoalDrafts({})
+      setIsLoadingSelectedPlayerHistory(false)
+      return
+    }
+
+    const goalsByExerciseId = (goalRows || []).reduce((acc, row) => {
+      acc[row.exercise_id] = row
+      return acc
+    }, {})
+
+    const nextHistory = summarizeHistoryRowsByExercise(historyRows || [])
+      .map((exerciseHistory) => {
+        const matchedExercise = findExerciseByLoggedName(exercisesFromDB, exerciseHistory.exercise_name)
+        if (!matchedExercise?.id) return null
+
+        const latestEntry = exerciseHistory.entries[0] || null
+        const bestWeightEntry =
+          exerciseHistory.entries.find((entry) => entry.top_weight != null) || latestEntry || null
+        const existingGoal = goalsByExerciseId[matchedExercise.id] || null
+
+        return {
+          exercise_id: matchedExercise.id,
+          exercise_name: matchedExercise.name,
+          exercise_display_name: getExerciseDisplayName(matchedExercise),
+          latest_entry: latestEntry,
+          best_weight_entry: bestWeightEntry,
+          entry_count: exerciseHistory.entries.length,
+          existing_goal: existingGoal,
+        }
+      })
+      .filter(Boolean)
+
+    const nextDrafts = nextHistory.reduce((acc, entry) => {
+      const existingGoal = entry.existing_goal
+      const prefill = buildExerciseGoalPrefill(entry.best_weight_entry || entry.latest_entry)
+
+      acc[entry.exercise_id] = existingGoal
+        ? {
+            target_sets: existingGoal.target_sets ?? "",
+            target_reps: existingGoal.target_reps ?? "",
+            target_weight: existingGoal.target_weight ?? "",
+            comment: existingGoal.comment ?? "",
+          }
+        : prefill
+
+      return acc
+    }, {})
+
+    setSelectedPlayerHistory(nextHistory)
+    setSelectedPlayerExerciseGoals(goalsByExerciseId)
+    setExerciseGoalDrafts(nextDrafts)
+    setIsLoadingSelectedPlayerHistory(false)
+  }
+
+  const loadCompletedWorkoutSessions = async (userId) => {
+    if (!userId) {
+      setCompletedWorkoutSessions([])
+      setWorkoutDateDrafts({})
+      return
+    }
+
+    setIsLoadingCompletedWorkoutSessions(true)
+
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select(
+        "workout_session_id, created_at, pass_name, exercise, set_number, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse"
+      )
+      .eq("user_id", userId)
+      .eq("is_completed", true)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setCompletedWorkoutSessions([])
+      setWorkoutDateDrafts({})
+      setIsLoadingCompletedWorkoutSessions(false)
+      return
+    }
+
+    const groupedSessions = new Map()
+
+    ;(data || []).forEach((row) => {
+      const sessionId =
+        row.workout_session_id ||
+        `${String(row.created_at || "").slice(0, 19)}:${row.pass_name || ""}:${row.exercise || ""}`
+
+      if (!groupedSessions.has(sessionId)) {
+        groupedSessions.set(sessionId, {
+          session_id: sessionId,
+          created_at: row.created_at,
+          pass_name: row.pass_name || "Pass",
+          workout_kind: row.workout_kind || "gym",
+          running_type: row.running_type || null,
+          interval_time: row.interval_time || null,
+          intervals_count: row.intervals_count ?? null,
+          running_distance: row.running_distance ?? null,
+          running_time: row.running_time || null,
+          average_pulse: row.average_pulse ?? null,
+          rows: [],
+        })
+      }
+
+      groupedSessions.get(sessionId).rows.push(row)
+    })
+
+    const sessions = Array.from(groupedSessions.values())
+      .map((session) => {
+        const exerciseNames = Array.from(
+          new Set(session.rows.map((row) => String(row.exercise || "").trim()).filter(Boolean))
+        )
+
+        return {
+          ...session,
+          exercise_names: exerciseNames,
+          exercise_count:
+            session.workout_kind === "running"
+              ? 1
+              : exerciseNames.length,
+          summary:
+            session.workout_kind === "running"
+              ? buildRunningSummary(session)
+              : exerciseNames.slice(0, 3).join(", "),
+        }
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    setCompletedWorkoutSessions(sessions)
+    setWorkoutDateDrafts(
+      sessions.reduce((acc, session) => {
+        acc[session.session_id] = String(session.created_at || "").slice(0, 10)
+        return acc
+      }, {})
+    )
+    setIsLoadingCompletedWorkoutSessions(false)
+  }
+
   const generateSessionId = () => {
     return `session-${Date.now()}`
   }
@@ -2208,6 +2560,7 @@ function TrainingApp() {
       .select("*")
       .eq("user_id", userId)
       .eq("is_completed", true)
+      .neq("workout_kind", "running")
       .not("workout_session_id", "is", null)
       .not("pass_name", "is", null)
       .order("created_at", { ascending: false })
@@ -2262,6 +2615,7 @@ function TrainingApp() {
       .eq("user_id", userId)
       .eq("pass_name", workoutKey)
       .eq("is_completed", true)
+      .neq("workout_kind", "running")
       .not("workout_session_id", "is", null)
       .order("created_at", { ascending: false })
 
@@ -2368,6 +2722,7 @@ function TrainingApp() {
             workout_session_id: currentSessionId,
             pass_name: selectedWorkout,
             is_completed: false,
+            workout_kind: "gym",
             exercise: selectedExercise.name,
             set_number: 1,
             weight: firstSet.weight || null,
@@ -2458,6 +2813,7 @@ function TrainingApp() {
         workout_session_id: set.workout_session_id,
         pass_name: selectedWorkout,
         is_completed: false,
+        workout_kind: "gym",
         exercise: selectedExercise.name,
         set_number: setIndex + 1,
         weight: set.weight || null,
@@ -2538,6 +2894,7 @@ function TrainingApp() {
         workout_session_id: currentSessionId,
         pass_name: selectedWorkout,
         is_completed: false,
+        workout_kind: "gym",
         exercise: selectedExercise.name,
         set_number: 1,
         weight: firstSet.weight || null,
@@ -2589,6 +2946,226 @@ function TrainingApp() {
     )
 
     setStatus("Kommentar sparad ✅")
+  }
+
+  const handleRunningDraftChange = (field, value) => {
+    setRunningDraft((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleSaveRunningSession = async () => {
+    if (!user) return
+    if (!runningDraft.log_date) {
+      setStatus("Välj ett giltigt datum för löppasset")
+      return
+    }
+
+    const createdAt = combineDateWithExistingTime(runningDraft.log_date, new Date().toISOString())
+    if (!createdAt) {
+      setStatus("Välj ett giltigt datum för löppasset")
+      return
+    }
+
+    setIsSavingRunningSession(true)
+
+    const workoutSessionId = generateSessionId()
+    const payload = {
+      client_set_id: `running-${workoutSessionId}`,
+      user_id: user.id,
+      workout_session_id: workoutSessionId,
+      pass_name: "Löpning",
+      exercise: "Löpning",
+      set_number: 1,
+      is_completed: true,
+      created_at: createdAt,
+      workout_kind: "running",
+      running_type: runningDraft.running_type,
+      interval_time:
+        runningDraft.running_type === "intervals" && String(runningDraft.interval_time || "").trim()
+          ? String(runningDraft.interval_time || "").trim()
+          : null,
+      intervals_count:
+        runningDraft.running_type === "intervals" && String(runningDraft.intervals_count || "").trim()
+          ? Number(runningDraft.intervals_count)
+          : null,
+      running_distance:
+        runningDraft.running_type === "distance" && String(runningDraft.running_distance || "").trim()
+          ? parseLoggedNumber(runningDraft.running_distance)
+          : null,
+      running_time:
+        runningDraft.running_type === "distance" && String(runningDraft.running_time || "").trim()
+          ? String(runningDraft.running_time || "").trim()
+          : null,
+      average_pulse:
+        runningDraft.running_type === "distance" && String(runningDraft.average_pulse || "").trim()
+          ? Number(runningDraft.average_pulse)
+          : null,
+      weight: null,
+      reps: null,
+      seconds: null,
+      exercise_comment: null,
+      pass_comment: null,
+    }
+
+    const { error } = await supabase.from("workout_logs").insert(payload)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara löppasset")
+      setIsSavingRunningSession(false)
+      return
+    }
+
+    setRunningDraft((prev) => ({
+      ...prev,
+      log_date: getTodayDateInputValue(),
+      interval_time: "",
+      intervals_count: "",
+      running_distance: "",
+      running_time: "",
+      average_pulse: "",
+    }))
+    setStatus("Löppass sparat ✅")
+    setIsSavingRunningSession(false)
+    await loadCompletedWorkoutSessions(user.id)
+    await loadLatestData(user.id)
+  }
+
+  const handleWorkoutDateDraftChange = (sessionId, value) => {
+    setWorkoutDateDrafts((prev) => ({
+      ...prev,
+      [sessionId]: value,
+    }))
+  }
+
+  const handleSaveWorkoutDate = async (session) => {
+    if (!user || !session?.session_id) return
+
+    const nextDate = workoutDateDrafts[session.session_id]
+    if (!nextDate) {
+      setStatus("Välj ett giltigt datum")
+      return
+    }
+
+    const updatedTimestamp = combineDateWithExistingTime(nextDate, session.created_at)
+    if (!updatedTimestamp) {
+      setStatus("Välj ett giltigt datum")
+      return
+    }
+
+    setSavingWorkoutDateSessionId(session.session_id)
+
+    const { error } = await supabase
+      .from("workout_logs")
+      .update({ created_at: updatedTimestamp })
+      .eq("user_id", user.id)
+      .eq("workout_session_id", session.session_id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera datumet")
+      setSavingWorkoutDateSessionId(null)
+      return
+    }
+
+    setStatus("Träningsdatum uppdaterat ✅")
+    setSavingWorkoutDateSessionId(null)
+    await loadCompletedWorkoutSessions(user.id)
+    await loadLatestData(user.id)
+    if (selectedWorkout) {
+      await loadLatestWorkoutForPass(selectedWorkout, user.id)
+    }
+  }
+
+  const handleExerciseGoalDraftChange = (exerciseId, field, value) => {
+    setExerciseGoalDrafts((prev) => ({
+      ...prev,
+      [exerciseId]: {
+        ...(prev[exerciseId] || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const handlePrefillExerciseGoalFromHistory = (exerciseId) => {
+    const historyItem = selectedPlayerHistory.find((entry) => entry.exercise_id === exerciseId)
+    if (!historyItem) return
+
+    setExerciseGoalDrafts((prev) => ({
+      ...prev,
+      [exerciseId]: buildExerciseGoalPrefill(historyItem.best_weight_entry || historyItem.latest_entry),
+    }))
+  }
+
+  const handleSaveExerciseGoals = async () => {
+    if (!selectedPlayer) return
+
+    const rows = Object.entries(exerciseGoalDrafts)
+      .map(([exerciseId, draft]) => ({
+        player_id: selectedPlayer.id,
+        exercise_id: exerciseId,
+        target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
+        target_reps: draft.target_reps === "" ? null : Number(draft.target_reps),
+        target_weight:
+          draft.target_weight === "" || draft.target_weight == null
+            ? null
+            : Number(draft.target_weight),
+        comment: String(draft.comment || "").trim() || null,
+      }))
+      .filter(
+        (row) =>
+          row.target_sets != null ||
+          row.target_reps != null ||
+          row.target_weight != null ||
+          row.comment
+      )
+
+    setIsSavingExerciseGoals(true)
+
+    const deleteExerciseIds = Object.entries(exerciseGoalDrafts)
+      .filter(([_, draft]) => {
+        const hasValue =
+          draft.target_sets !== "" ||
+          draft.target_reps !== "" ||
+          draft.target_weight !== "" ||
+          String(draft.comment || "").trim()
+        return !hasValue
+      })
+      .map(([exerciseId]) => exerciseId)
+
+    if (deleteExerciseIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("player_exercise_goals")
+        .delete()
+        .eq("player_id", selectedPlayer.id)
+        .in("exercise_id", deleteExerciseIds)
+
+      if (deleteError) {
+        console.error(deleteError)
+        setStatus("Kunde inte uppdatera personliga övningsmål")
+        setIsSavingExerciseGoals(false)
+        return
+      }
+    }
+
+    if (rows.length > 0) {
+      const { error } = await supabase
+        .from("player_exercise_goals")
+        .upsert(rows, { onConflict: "player_id,exercise_id" })
+
+      if (error) {
+        console.error(error)
+        setStatus("Kunde inte spara personliga övningsmål")
+        setIsSavingExerciseGoals(false)
+        return
+      }
+    }
+
+    setStatus("Personliga övningsmål sparade ✅")
+    setIsSavingExerciseGoals(false)
+    await loadSelectedPlayerHistoryAndGoals(selectedPlayer.id)
   }
 
   const getFunctionErrorMessage = async (error, fallbackMessage) => {
@@ -5030,6 +5607,14 @@ function TrainingApp() {
                 handleTargetDraftChange={handleTargetDraftChange}
                 handleSaveTargets={handleSaveTargets}
                 isSavingTargets={isSavingTargets}
+                selectedPlayerHistory={selectedPlayerHistory}
+                isLoadingSelectedPlayerHistory={isLoadingSelectedPlayerHistory}
+                exerciseGoalDrafts={exerciseGoalDrafts}
+                selectedPlayerExerciseGoals={selectedPlayerExerciseGoals}
+                handleExerciseGoalDraftChange={handleExerciseGoalDraftChange}
+                handlePrefillExerciseGoalFromHistory={handlePrefillExerciseGoalFromHistory}
+                handleSaveExerciseGoals={handleSaveExerciseGoals}
+                isSavingExerciseGoals={isSavingExerciseGoals}
                 handleAssignPassToPlayer={handleAssignPassToPlayer}
                 handleUnassignPassFromPlayer={handleUnassignPassFromPlayer}
                 handleAssignAllPassesToPlayer={handleAssignAllPassesToPlayer}
@@ -5141,9 +5726,209 @@ function TrainingApp() {
                   <div style={playerOverviewStatValueStyle}>{Object.keys(visibleWorkouts).length}</div>
                 </div>
 
-                <div style={playerOverviewStatCardStyle}>
-                  <div style={playerOverviewStatLabelStyle}>Olästa meddelanden</div>
-                  <div style={playerOverviewStatValueStyle}>{unreadMessageCount}</div>
+                  <div style={playerOverviewStatCardStyle}>
+                    <div style={playerOverviewStatLabelStyle}>Olästa meddelanden</div>
+                    <div style={playerOverviewStatValueStyle}>{unreadMessageCount}</div>
+                  </div>
+                </div>
+
+              <div
+                style={{
+                  marginTop: "18px",
+                  display: "grid",
+                  gap: "14px",
+                  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(0, 1fr)",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "14px",
+                    borderRadius: "18px",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.16)",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.82, marginBottom: "8px" }}>
+                    Logga löppass
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "10px",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                    }}
+                  >
+                    <input
+                      type="date"
+                      value={runningDraft.log_date}
+                      onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
+                      style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                    />
+                    <select
+                      value={runningDraft.running_type}
+                      onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
+                      style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                    >
+                      <option value="distance">Distans</option>
+                      <option value="intervals">Intervaller</option>
+                    </select>
+
+                    {runningDraft.running_type === "intervals" ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Tid/intervall, t.ex. 45 sek"
+                          value={runningDraft.interval_time}
+                          onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Antal intervaller"
+                          value={runningDraft.intervals_count}
+                          onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Distans i km"
+                          value={runningDraft.running_distance}
+                          onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Tid, t.ex. 24:30"
+                          value={runningDraft.running_time}
+                          onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Snittpuls"
+                          value={runningDraft.average_pulse}
+                          onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
+                          style={{
+                            ...inputStyle,
+                            width: "100%",
+                            backgroundColor: "#ffffff",
+                            color: "#111827",
+                            gridColumn: isMobile ? "auto" : "span 2",
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveRunningSession}
+                    disabled={isSavingRunningSession}
+                    style={{
+                      ...buttonStyle,
+                      width: isMobile ? "100%" : "auto",
+                      marginTop: "12px",
+                      opacity: isSavingRunningSession ? 0.7 : 1,
+                      cursor: isSavingRunningSession ? "default" : "pointer",
+                    }}
+                  >
+                    {isSavingRunningSession ? "Sparar..." : "Spara löppass"}
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    padding: "14px",
+                    borderRadius: "18px",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.16)",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.82, marginBottom: "8px" }}>
+                    Senaste historik
+                  </div>
+
+                  {isLoadingCompletedWorkoutSessions ? (
+                    <div style={{ fontSize: "14px", opacity: 0.9 }}>Laddar historik...</div>
+                  ) : completedWorkoutSessions.length === 0 ? (
+                    <div style={{ fontSize: "14px", opacity: 0.9 }}>Ingen träningshistorik ännu.</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: "10px" }}>
+                      {completedWorkoutSessions.slice(0, 6).map((session) => (
+                        <div
+                          key={session.session_id}
+                          style={{
+                            padding: "12px",
+                            borderRadius: "14px",
+                            backgroundColor: "rgba(255,255,255,0.92)",
+                            color: "#18202b",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: isMobile ? "flex-start" : "center",
+                              gap: "10px",
+                              flexDirection: isMobile ? "column" : "row",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: "800", marginBottom: "4px" }}>
+                                {session.workout_kind === "running" ? "Löpning" : session.pass_name}
+                              </div>
+                              <div style={{ fontSize: "13px", color: "#566173" }}>
+                                {session.workout_kind === "running"
+                                  ? buildRunningSummary(session)
+                                  : session.summary || `${session.exercise_count} övningar`}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "13px", fontWeight: "700", color: "#566173" }}>
+                              {new Date(session.created_at).toLocaleDateString("sv-SE")}
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              flexDirection: isMobile ? "column" : "row",
+                              alignItems: isMobile ? "stretch" : "center",
+                            }}
+                          >
+                            <input
+                              type="date"
+                              value={workoutDateDrafts[session.session_id] || ""}
+                              onChange={(event) =>
+                                handleWorkoutDateDraftChange(session.session_id, event.target.value)
+                              }
+                              style={{ ...inputStyle, width: "100%" }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveWorkoutDate(session)}
+                              disabled={savingWorkoutDateSessionId === session.session_id}
+                              style={{
+                                ...secondaryButtonStyle,
+                                width: isMobile ? "100%" : "auto",
+                                opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
+                                cursor:
+                                  savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
+                              }}
+                            >
+                              {savingWorkoutDateSessionId === session.session_id
+                                ? "Sparar..."
+                                : "Spara datum"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
