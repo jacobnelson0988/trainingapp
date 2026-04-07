@@ -182,6 +182,8 @@ Omfattning:
 - ~~Löppass kan loggas separat som intervaller eller distans~~
 - ~~Tränare kan sätta personliga övningsmål direkt från spelarens historik~~
 - ~~Spelare kan redigera datum på genomförda pass för retroaktiv loggning~~
+- ~~Tränare kan skapa och tilldela löppass som egna pass~~
+- ~~Individuella mål kan stängas av så rekommendationer bygger på historik~~
 - Filter, till exempel:
   - ~~övning~~
   - ~~period~~
@@ -221,6 +223,7 @@ Omfattning:
 - ~~GDPR-säker radering av spelare via edge functions~~
 - ~~Spelare kan ta bort sitt eget konto från Mitt konto~~
 - ~~Stabiliserat auth-flöde för arkivering och radering av spelare~~
+- ~~Förenklad tränarvy för rekommenderade vikter med ett valt pass i taget~~
 - Snabbändring av `navigation_category` direkt i övningsbanken för `head_admin`
 - Dublettskydd i importen
 

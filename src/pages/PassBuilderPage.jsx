@@ -74,6 +74,23 @@ const getExerciseNavigationCategory = (exercise) => {
   return "Övrigt"
 }
 
+const buildRunningWorkoutSummary = (workoutKind, runningType, runningConfig) => {
+  if (workoutKind !== "running") return ""
+
+  if (runningType === "intervals") {
+    const count = runningConfig?.intervals_count ? `${runningConfig.intervals_count} intervaller` : null
+    const time = runningConfig?.interval_time ? `${runningConfig.interval_time}/intervall` : null
+    return [count, time].filter(Boolean).join(" • ") || "Intervaller"
+  }
+
+  const distance =
+    runningConfig?.running_distance != null && runningConfig?.running_distance !== ""
+      ? `${runningConfig.running_distance} km`
+      : null
+  const time = runningConfig?.running_time || null
+  return [distance, time].filter(Boolean).join(" • ") || "Distans"
+}
+
 function PassBuilderPage({
   activeWorkouts,
   selectedTemplateCode,
@@ -86,6 +103,18 @@ function PassBuilderPage({
   setNewPassWarmupCardio,
   newPassWarmupTechnique,
   setNewPassWarmupTechnique,
+  newPassWorkoutKind,
+  setNewPassWorkoutKind,
+  newPassRunningType,
+  setNewPassRunningType,
+  newPassRunningIntervalTime,
+  setNewPassRunningIntervalTime,
+  newPassRunningIntervalsCount,
+  setNewPassRunningIntervalsCount,
+  newPassRunningDistance,
+  setNewPassRunningDistance,
+  newPassRunningTime,
+  setNewPassRunningTime,
   newWarmupTemplateName,
   setNewWarmupTemplateName,
   handleCreatePass,
@@ -98,6 +127,18 @@ function PassBuilderPage({
   setRenamePassWarmupCardio,
   renamePassWarmupTechnique,
   setRenamePassWarmupTechnique,
+  renamePassWorkoutKind,
+  setRenamePassWorkoutKind,
+  renamePassRunningType,
+  setRenamePassRunningType,
+  renamePassRunningIntervalTime,
+  setRenamePassRunningIntervalTime,
+  renamePassRunningIntervalsCount,
+  setRenamePassRunningIntervalsCount,
+  renamePassRunningDistance,
+  setRenamePassRunningDistance,
+  renamePassRunningTime,
+  setRenamePassRunningTime,
   renameWarmupTemplateName,
   setRenameWarmupTemplateName,
   warmupTemplates,
@@ -146,6 +187,12 @@ function PassBuilderPage({
     setNewPassInfo("")
     setNewPassWarmupCardio("")
     setNewPassWarmupTechnique("")
+    setNewPassWorkoutKind("gym")
+    setNewPassRunningType("intervals")
+    setNewPassRunningIntervalTime("")
+    setNewPassRunningIntervalsCount("")
+    setNewPassRunningDistance("")
+    setNewPassRunningTime("")
     setNewWarmupTemplateName("")
     setView("create")
   }
@@ -300,6 +347,81 @@ function PassBuilderPage({
             </div>
 
             <div style={subSectionStyle}>
+              <div style={sectionTitleStyle}>Passupplägg</div>
+              <div>
+                <div style={fieldLabelStyle}>Typ av pass</div>
+                <select
+                  value={newPassWorkoutKind}
+                  onChange={(e) => setNewPassWorkoutKind(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                >
+                  <option value="gym">Gympass</option>
+                  <option value="running">Löppass</option>
+                </select>
+              </div>
+
+              {newPassWorkoutKind === "running" && (
+                <>
+                  <div>
+                    <div style={fieldLabelStyle}>Typ av löppass</div>
+                    <select
+                      value={newPassRunningType}
+                      onChange={(e) => setNewPassRunningType(e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    >
+                      <option value="intervals">Intervaller</option>
+                      <option value="distance">Distans</option>
+                    </select>
+                  </div>
+
+                  {newPassRunningType === "intervals" ? (
+                    <div style={targetGridStyle}>
+                      <div>
+                        <div style={fieldLabelStyle}>Tid per intervall</div>
+                        <input
+                          type="text"
+                          value={newPassRunningIntervalTime}
+                          onChange={(e) => setNewPassRunningIntervalTime(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                      <div>
+                        <div style={fieldLabelStyle}>Antal intervaller</div>
+                        <input
+                          type="number"
+                          value={newPassRunningIntervalsCount}
+                          onChange={(e) => setNewPassRunningIntervalsCount(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={targetGridStyle}>
+                      <div>
+                        <div style={fieldLabelStyle}>Distans (km)</div>
+                        <input
+                          type="text"
+                          value={newPassRunningDistance}
+                          onChange={(e) => setNewPassRunningDistance(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                      <div>
+                        <div style={fieldLabelStyle}>Måltid</div>
+                        <input
+                          type="text"
+                          value={newPassRunningTime}
+                          onChange={(e) => setNewPassRunningTime(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div style={subSectionStyle}>
               <div style={sectionTitleStyle}>Uppvärmning</div>
               <div>
                 <div style={fieldLabelStyle}>Pulsdel</div>
@@ -441,9 +563,82 @@ function PassBuilderPage({
                   style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
                 />
               </div>
+
+              <div>
+                <div style={fieldLabelStyle}>Typ av pass</div>
+                <select
+                  value={renamePassWorkoutKind}
+                  onChange={(e) => setRenamePassWorkoutKind(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }}
+                >
+                  <option value="gym">Gympass</option>
+                  <option value="running">Löppass</option>
+                </select>
+              </div>
+
+              {renamePassWorkoutKind === "running" && (
+                <>
+                  <div>
+                    <div style={fieldLabelStyle}>Typ av löppass</div>
+                    <select
+                      value={renamePassRunningType}
+                      onChange={(e) => setRenamePassRunningType(e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    >
+                      <option value="intervals">Intervaller</option>
+                      <option value="distance">Distans</option>
+                    </select>
+                  </div>
+
+                  {renamePassRunningType === "intervals" ? (
+                    <div style={targetGridStyle}>
+                      <div>
+                        <div style={fieldLabelStyle}>Tid per intervall</div>
+                        <input
+                          type="text"
+                          value={renamePassRunningIntervalTime}
+                          onChange={(e) => setRenamePassRunningIntervalTime(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                      <div>
+                        <div style={fieldLabelStyle}>Antal intervaller</div>
+                        <input
+                          type="number"
+                          value={renamePassRunningIntervalsCount}
+                          onChange={(e) => setRenamePassRunningIntervalsCount(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={targetGridStyle}>
+                      <div>
+                        <div style={fieldLabelStyle}>Distans (km)</div>
+                        <input
+                          type="text"
+                          value={renamePassRunningDistance}
+                          onChange={(e) => setRenamePassRunningDistance(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                      <div>
+                        <div style={fieldLabelStyle}>Måltid</div>
+                        <input
+                          type="text"
+                          value={renamePassRunningTime}
+                          onChange={(e) => setRenamePassRunningTime(e.target.value)}
+                          style={{ ...inputStyle, width: "100%" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </section>
 
+          {renamePassWorkoutKind !== "running" && (
           <section style={panelStyle}>
             <div style={sectionEyebrowStyle}>Uppvärmning</div>
             <div style={formStackStyle}>
@@ -502,7 +697,9 @@ function PassBuilderPage({
               </div>
             </div>
           </section>
+          )}
 
+          {renamePassWorkoutKind !== "running" && (
           <section style={panelStyle}>
             <div style={panelHeaderStyle}>
               <div>
@@ -858,6 +1055,7 @@ function PassBuilderPage({
               </div>
             )}
           </section>
+          )}
         </div>
       </>
     )
@@ -908,7 +1106,15 @@ function PassBuilderPage({
                     }}
                   >
                     <div style={passCardTitleStyle}>{workout.label}</div>
-                    <div style={passCardMetaStyle}>{(workout.exercises || []).length} övningar</div>
+                    <div style={passCardMetaStyle}>
+                      {workout.workoutKind === "running"
+                        ? `Löppass • ${buildRunningWorkoutSummary(
+                            workout.workoutKind,
+                            workout.runningType,
+                            workout.runningConfig
+                          )}`
+                        : `${(workout.exercises || []).length} övningar`}
+                    </div>
                     <div
                       style={{
                         ...chipStyle,
@@ -939,8 +1145,12 @@ function PassBuilderPage({
 
             <div style={selectedPassInfoStyle}>
               <div style={selectedPassMetricStyle}>
-                <div style={selectedPassMetricLabelStyle}>Övningar</div>
-                <div style={selectedPassMetricValueStyle}>{exerciseCount}</div>
+                <div style={selectedPassMetricLabelStyle}>
+                  {currentWorkout.workoutKind === "running" ? "Typ" : "Övningar"}
+                </div>
+                <div style={selectedPassMetricValueStyle}>
+                  {currentWorkout.workoutKind === "running" ? "Löpning" : exerciseCount}
+                </div>
               </div>
 
               {currentWorkout.info ? (
@@ -950,9 +1160,19 @@ function PassBuilderPage({
               )}
 
               <div style={selectedPassExerciseListCardStyle}>
-                <div style={selectedPassMetricLabelStyle}>Övningar i passet</div>
+                <div style={selectedPassMetricLabelStyle}>
+                  {currentWorkout.workoutKind === "running" ? "Löppass" : "Övningar i passet"}
+                </div>
 
-                {exerciseCount > 0 ? (
+                {currentWorkout.workoutKind === "running" ? (
+                  <div style={selectedPassDescriptionStyle}>
+                    {buildRunningWorkoutSummary(
+                      currentWorkout.workoutKind,
+                      currentWorkout.runningType,
+                      currentWorkout.runningConfig
+                    )}
+                  </div>
+                ) : exerciseCount > 0 ? (
                   <div style={selectedPassExerciseListStyle}>
                     {(currentWorkout.exercises || []).map((exercise, index) => (
                       <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>

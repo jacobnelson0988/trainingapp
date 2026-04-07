@@ -106,6 +106,7 @@ serve(async (req: Request) => {
 
     const deleteSteps = [
       () => adminClient.from("player_exercise_targets").delete().eq("player_id", playerId),
+      () => adminClient.from("player_exercise_goals").delete().eq("player_id", playerId),
       () => adminClient.from("workout_logs").delete().eq("user_id", playerId),
       () => adminClient.from("exercise_requests").delete().eq("requester_id", playerId),
       () => adminClient.from("beta_feedback").delete().eq("user_id", playerId),

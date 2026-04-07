@@ -8,12 +8,12 @@ function PlayersPage({
   showArchivedPlayers,
   setShowArchivedPlayers,
   archivingPlayerId,
-  deletingPlayerId,
   handleArchivePlayer,
-  handleDeletePlayer,
   teamCoaches,
   selectedPlayer,
   setSelectedPlayer,
+  updatingGoalAvailabilityIds,
+  handleSetIndividualGoalsEnabled,
   commentDrafts,
   handleCommentChange,
   handleCommentSave,
@@ -45,30 +45,30 @@ function PlayersPage({
 }) {
   const [searchValue, setSearchValue] = useState("")
   const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
+  const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
+  const [bulkSelectedPlayerIds, setBulkSelectedPlayerIds] = useState([])
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
-
-  const formatLastLogin = (value) => {
-    if (!value) return "Aldrig"
-
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return "Aldrig"
-
-    return date.toLocaleString("sv-SE", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
 
   const handleSelectedTargetExerciseChange = (passKey, exerciseName) => {
     setSelectedTargetExerciseByPass((prev) => ({
       ...prev,
       [passKey]: exerciseName,
     }))
+  }
+
+  const handleSelectedWorkoutChange = (playerId, passKey) => {
+    setSelectedWorkoutByPlayer((prev) => ({
+      ...prev,
+      [playerId]: passKey,
+    }))
+  }
+
+  const handleToggleBulkSelectedPlayer = (playerId) => {
+    setBulkSelectedPlayerIds((prev) =>
+      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]
+    )
   }
 
   const filteredPlayers = players.filter((player) => {
@@ -103,8 +103,10 @@ function PlayersPage({
           <div style={summaryValueStyle}>{player.full_name}</div>
         </div>
         <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Användarnamn</div>
-          <div style={summaryValueStyle}>@{player.username}</div>
+          <div style={summaryLabelStyle}>Målstyrning</div>
+          <div style={summaryValueStyle}>
+            {player.individual_goals_enabled === false ? "Historikbaserad" : "Individuella mål"}
+          </div>
         </div>
         <div style={summaryCardStyle}>
           <div style={summaryLabelStyle}>Senaste pass</div>
@@ -113,10 +115,6 @@ function PlayersPage({
         <div style={summaryCardStyle}>
           <div style={summaryLabelStyle}>Totalt antal pass</div>
           <div style={summaryValueStyle}>{player.totalPasses ?? 0}</div>
-        </div>
-        <div style={summaryCardStyle}>
-          <div style={summaryLabelStyle}>Senast inloggad</div>
-          <div style={summaryValueStyle}>{formatLastLogin(player.lastSignInAt)}</div>
         </div>
       </div>
 
@@ -143,16 +141,22 @@ function PlayersPage({
 
         <button
           type="button"
-          onClick={() => handleDeletePlayer(player.id, player.full_name)}
-          disabled={deletingPlayerId === player.id}
+          onClick={() =>
+            handleSetIndividualGoalsEnabled([player.id], player.individual_goals_enabled === false)
+          }
+          disabled={updatingGoalAvailabilityIds.includes(player.id)}
           style={{
-            ...deleteButtonStyle,
+            ...quickActionButtonStyle,
             width: isMobile ? "100%" : "auto",
-            opacity: deletingPlayerId === player.id ? 0.7 : 1,
-            cursor: deletingPlayerId === player.id ? "default" : "pointer",
+            opacity: updatingGoalAvailabilityIds.includes(player.id) ? 0.7 : 1,
+            cursor: updatingGoalAvailabilityIds.includes(player.id) ? "default" : "pointer",
           }}
         >
-          {deletingPlayerId === player.id ? "Tar bort..." : "Ta bort"}
+          {updatingGoalAvailabilityIds.includes(player.id)
+            ? "Sparar..."
+            : player.individual_goals_enabled === false
+            ? "Aktivera individuella mål"
+            : "Stäng av individuella mål"}
         </button>
       </div>
 
@@ -298,57 +302,66 @@ function PlayersPage({
           <p style={mutedTextStyle}>Laddar individuella mål...</p>
         ) : assignedPassCodes.length === 0 ? (
           <p style={mutedTextStyle}>Tilldela minst ett pass för att kunna sätta mål på övningarna.</p>
+        ) : player.individual_goals_enabled === false ? (
+          <div style={archivedInfoCardStyle}>
+            Individuella mål är avstängda för den här spelaren. Rekommendationer i passet baseras nu bara
+            på tidigare lyft och historik.
+          </div>
         ) : (
           <div>
-            {assignedPassCodes.map((passKey) => (
-              <div
-                key={passKey}
-                style={{
-                  marginBottom: "16px",
-                  padding: "16px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "16px",
-                  backgroundColor: "#ffffff",
-                }}
-              >
-                {(() => {
-                  const passExercises = activeWorkouts[passKey]?.exercises || []
-                  const selectedExerciseName =
-                    selectedTargetExerciseByPass[passKey] ||
-                    passExercises[0]?.name ||
-                    ""
-                  const selectedExercise = passExercises.find(
-                    (exercise) => exercise.name === selectedExerciseName
-                  )
-                  const draft = selectedExercise
-                    ? {
-                        target_reps_mode: selectedExercise.defaultRepsMode || "fixed",
-                        ...((targetDrafts[passKey] || {})[selectedExercise.name] || {}),
-                      }
-                    : null
+            {(() => {
+              const selectedPassKey =
+                selectedWorkoutByPlayer[player.id] ||
+                assignedPassCodes[0] ||
+                ""
+              const passExercises = activeWorkouts[selectedPassKey]?.exercises || []
+              const selectedExerciseName =
+                selectedTargetExerciseByPass[selectedPassKey] ||
+                passExercises[0]?.name ||
+                ""
+              const selectedExercise = passExercises.find((exercise) => exercise.name === selectedExerciseName)
+              const draft = selectedExercise
+                ? {
+                    target_reps_mode: selectedExercise.defaultRepsMode || "fixed",
+                    ...((targetDrafts[selectedPassKey] || {})[selectedExercise.name] || {}),
+                  }
+                : null
 
-                  return (
+              return (
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "16px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <div style={{ marginBottom: "12px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Välj pass
+                    </div>
+                    <select
+                      value={selectedPassKey}
+                      onChange={(e) => handleSelectedWorkoutChange(player.id, e.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    >
+                      {assignedPassCodes.map((passKey) => (
+                        <option key={passKey} value={passKey}>
+                          {activeWorkouts[passKey]?.label || passKey}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "14px" }}>
+                    {(activeWorkouts[selectedPassKey]?.exercises || []).length} övningar. Välj en övning och sätt bara individuella reps, vikt eller kommentar här.
+                  </div>
+
+                  {passExercises.length === 0 ? (
+                    <div style={mutedTextStyle}>Det här passet har inga styrkeövningar att sätta individuella mål på.</div>
+                  ) : (
                     <>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: isMobile ? "flex-start" : "center",
-                          gap: "12px",
-                          flexDirection: isMobile ? "column" : "row",
-                          marginBottom: "14px",
-                        }}
-                      >
-                        <div>
-                          <div style={{ marginBottom: "4px", fontWeight: "800", color: "#18202b" }}>
-                            {activeWorkouts[passKey]?.label || passKey}
-                          </div>
-                          <div style={{ fontSize: "13px", color: "#64748b" }}>
-                            {passExercises.length} övningar. Välj en övning och sätt bara individuella reps, vikt eller kommentar här. Antal set kommer från passet.
-                          </div>
-                        </div>
-                      </div>
-
                       <div
                         style={{
                           marginBottom: "14px",
@@ -363,11 +376,11 @@ function PlayersPage({
                         </div>
                         <select
                           value={selectedExerciseName}
-                          onChange={(e) => handleSelectedTargetExerciseChange(passKey, e.target.value)}
+                          onChange={(e) => handleSelectedTargetExerciseChange(selectedPassKey, e.target.value)}
                           style={{ ...inputStyle, width: "100%" }}
                         >
                           {passExercises.map((exercise) => (
-                            <option key={`${passKey}-${exercise.name}`} value={exercise.name}>
+                            <option key={`${selectedPassKey}-${exercise.name}`} value={exercise.name}>
                               {getExerciseDisplayName(exercise)}
                             </option>
                           ))}
@@ -375,89 +388,95 @@ function PlayersPage({
                       </div>
 
                       {selectedExercise && draft && (
-                    <div
-                      key={`${passKey}-${selectedExercise.name}`}
-                      style={{
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "14px",
-                        padding: "14px",
-                        marginBottom: "10px",
-                        backgroundColor: "#ffffff",
-                      }}
-                    >
-                      <div style={{ marginBottom: "10px" }}>
-                        <strong>{getExerciseDisplayName(selectedExercise)}</strong>
-                        <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
-                          Den här rutan används bara för avvikelser från standardpasset. Lämna fälten tomma om spelaren ska följa passets vanliga upplägg.
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                          flexWrap: "wrap",
-                          marginBottom: "8px",
-                          flexDirection: isMobile ? "column" : "row",
-                        }}
-                      >
-                        <input
-                          type="number"
-                          placeholder="Reps"
-                          disabled={draft.target_reps_mode === "max"}
-                          value={draft.target_reps ?? ""}
-                          onChange={(e) => handleTargetDraftChange(passKey, selectedExercise.name, "target_reps", e.target.value)}
-                          style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleTargetDraftChange(
-                              passKey,
-                              selectedExercise.name,
-                              "target_reps_mode",
-                              draft.target_reps_mode === "max" ? "fixed" : "max"
-                            )
-                          }
+                        <div
+                          key={`${selectedPassKey}-${selectedExercise.name}`}
                           style={{
-                            width: isMobile ? "100%" : "auto",
-                            padding: "10px 14px",
-                            borderRadius: "10px",
-                            border: "1px solid #d1d5db",
-                            backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
-                            color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            fontWeight: "700",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: "14px",
+                            padding: "14px",
+                            marginBottom: "10px",
+                            backgroundColor: "#ffffff",
                           }}
                         >
-                          {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
-                        </button>
-                        {selectedExercise.type === "weight_reps" && (
-                          <input
-                            type="number"
-                            placeholder="Vikt"
-                            value={draft.target_weight ?? ""}
-                            onChange={(e) => handleTargetDraftChange(passKey, selectedExercise.name, "target_weight", e.target.value)}
-                            style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
-                          />
-                        )}
-                      </div>
+                          <div style={{ marginBottom: "10px" }}>
+                            <strong>{getExerciseDisplayName(selectedExercise)}</strong>
+                            <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
+                              Den här rutan används bara för avvikelser från standardpasset. Lämna fälten tomma om spelaren ska följa passets vanliga upplägg.
+                            </div>
+                          </div>
 
-                      <input
-                        type="text"
-                        placeholder="Kommentar / teknikfokus"
-                        value={draft.target_comment ?? ""}
-                        onChange={(e) => handleTargetDraftChange(passKey, selectedExercise.name, "target_comment", e.target.value)}
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
-                    </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              flexWrap: "wrap",
+                              marginBottom: "8px",
+                              flexDirection: isMobile ? "column" : "row",
+                            }}
+                          >
+                            <input
+                              type="number"
+                              placeholder="Reps"
+                              disabled={draft.target_reps_mode === "max"}
+                              value={draft.target_reps ?? ""}
+                              onChange={(e) =>
+                                handleTargetDraftChange(selectedPassKey, selectedExercise.name, "target_reps", e.target.value)
+                              }
+                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleTargetDraftChange(
+                                  selectedPassKey,
+                                  selectedExercise.name,
+                                  "target_reps_mode",
+                                  draft.target_reps_mode === "max" ? "fixed" : "max"
+                                )
+                              }
+                              style={{
+                                width: isMobile ? "100%" : "auto",
+                                padding: "10px 14px",
+                                borderRadius: "10px",
+                                border: "1px solid #d1d5db",
+                                backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
+                                color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                fontWeight: "700",
+                              }}
+                            >
+                              {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
+                            </button>
+                            {selectedExercise.type === "weight_reps" && (
+                              <input
+                                type="number"
+                                placeholder="Vikt"
+                                value={draft.target_weight ?? ""}
+                                onChange={(e) =>
+                                  handleTargetDraftChange(selectedPassKey, selectedExercise.name, "target_weight", e.target.value)
+                                }
+                                style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
+                              />
+                            )}
+                          </div>
+
+                          <input
+                            type="text"
+                            placeholder="Kommentar / teknikfokus"
+                            value={draft.target_comment ?? ""}
+                            onChange={(e) =>
+                              handleTargetDraftChange(selectedPassKey, selectedExercise.name, "target_comment", e.target.value)
+                            }
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </div>
                       )}
                     </>
-                  )
-                })()}
-              </div>
-            ))}
+                  )}
+                </div>
+              )
+            })()}
 
             <button
               type="button"
@@ -488,7 +507,11 @@ function PlayersPage({
           Använd spelarens historik som grund och spara ett separat personligt mål per övning.
         </p>
 
-        {isLoadingSelectedPlayerHistory ? (
+        {player.individual_goals_enabled === false ? (
+          <div style={archivedInfoCardStyle}>
+            Personliga övningsmål är avstängda. Träningsrekommendationer byggs nu i stället på spelarens egen historik.
+          </div>
+        ) : isLoadingSelectedPlayerHistory ? (
           <p style={mutedTextStyle}>Laddar historik...</p>
         ) : selectedPlayerHistory.length === 0 ? (
           <p style={mutedTextStyle}>Ingen historik finns ännu för spelaren.</p>
@@ -750,6 +773,39 @@ function PlayersPage({
         <span>Visa arkiverade</span>
       </label>
 
+      {filteredPlayers.length > 0 && (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
+          <button
+            type="button"
+            onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, false)}
+            disabled={bulkSelectedPlayerIds.length === 0}
+            style={{
+              ...quickActionButtonStyle,
+              opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
+              cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            Stäng av mål för valda
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, true)}
+            disabled={bulkSelectedPlayerIds.length === 0}
+            style={{
+              ...quickActionButtonStyle,
+              backgroundColor: "#ffffff",
+              color: "#18202b",
+              opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
+              cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            Aktivera mål för valda
+          </button>
+        </div>
+      )}
+
       <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "10px" }}>Spelare</div>
 
       {isLoadingPlayers ? (
@@ -772,6 +828,16 @@ function PlayersPage({
                     : "0 8px 18px rgba(24, 32, 43, 0.04)",
               }}
             >
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                <input
+                  type="checkbox"
+                  checked={bulkSelectedPlayerIds.includes(player.id)}
+                  onChange={() => handleToggleBulkSelectedPlayer(player.id)}
+                />
+                <span style={{ fontSize: "12px", fontWeight: "800", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Markera för bulkändring
+                </span>
+              </label>
               <button
                 type="button"
                 onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
@@ -788,10 +854,11 @@ function PlayersPage({
                   {player.full_name}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "8px" }}>
-                  <span style={mobilePlayerMetaPillStyle}>@{player.username}</span>
                   <span style={mobilePlayerMetaPillStyle}>Senaste: {player.latestPass || "-"}</span>
-                  <span style={mobilePlayerMetaPillStyle}>Inlogg: {formatLastLogin(player.lastSignInAt)}</span>
                   <span style={mobilePlayerMetaPillStyle}>{player.totalPasses ?? 0} pass</span>
+                  <span style={mobilePlayerMetaPillStyle}>
+                    {player.individual_goals_enabled === false ? "Historikläge" : "Individuella mål"}
+                  </span>
                   {player.is_archived && <span style={mobileArchivedPillStyle}>Arkiverad</span>}
                 </div>
                 <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "700" }}>
@@ -808,19 +875,15 @@ function PlayersPage({
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px", fontSize: "14px" }}>
             <thead>
               <tr style={{ textAlign: "left" }}>
-                <th style={tableHeadStyle}>Användarnamn</th>
-                <th style={tableHeadStyle}>Förnamn</th>
-                <th style={tableHeadStyle}>Efternamn</th>
+                <th style={tableHeadStyle}>Val</th>
+                <th style={tableHeadStyle}>Namn</th>
                 <th style={tableHeadStyle}>Senaste pass</th>
-                <th style={tableHeadStyle}>Senast inloggad</th>
+                <th style={tableHeadStyle}>Målstyrning</th>
                 <th style={tableHeadStyle}>Totalt antal pass</th>
               </tr>
             </thead>
             <tbody>
               {filteredPlayers.map((player) => {
-                const names = (player.full_name || "").trim().split(/\s+/)
-                const firstName = names[0] || ""
-                const lastName = names.slice(1).join(" ")
                 const isSelected = selectedPlayer?.id === player.id
 
                 return (
@@ -834,20 +897,30 @@ function PlayersPage({
                       onClick={() => setSelectedPlayer(isSelected ? null : player)}
                     >
                       <td style={{ ...tableCellStyle, borderTopLeftRadius: "12px", borderBottomLeftRadius: "12px", borderLeft: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
-                        <div>{player.username}</div>
+                        <input
+                          type="checkbox"
+                          checked={bulkSelectedPlayerIds.includes(player.id)}
+                          onChange={(event) => {
+                            event.stopPropagation()
+                            handleToggleBulkSelectedPlayer(player.id)
+                          }}
+                        />
+                      </td>
+                      <td style={tableCellStyle}>
+                        <div>{player.full_name}</div>
                         {player.is_archived && <div style={desktopArchivedMetaStyle}>Arkiverad</div>}
                       </td>
-                      <td style={tableCellStyle}>{firstName}</td>
-                      <td style={tableCellStyle}>{lastName}</td>
                       <td style={tableCellStyle}>{player.latestPass || "-"}</td>
-                      <td style={tableCellStyle}>{formatLastLogin(player.lastSignInAt)}</td>
+                      <td style={tableCellStyle}>
+                        {player.individual_goals_enabled === false ? "Historikläge" : "Individuella mål"}
+                      </td>
                       <td style={{ ...tableCellStyle, borderTopRightRadius: "12px", borderBottomRightRadius: "12px", borderRight: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
                         {player.totalPasses ?? 0}
                       </td>
                     </tr>
                     {isSelected && (
                       <tr key={`${player.id}-editor`}>
-                        <td colSpan={6} style={{ padding: 0 }}>
+                        <td colSpan={5} style={{ padding: 0 }}>
                           {renderPlayerEditor(player)}
                         </td>
                       </tr>

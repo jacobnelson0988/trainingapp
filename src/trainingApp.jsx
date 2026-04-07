@@ -13,6 +13,8 @@ import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
 import StatsPage from "./pages/StatsPage"
 
+const PASS_ASSIGNMENT_EXERCISE_NAME = "__PASS_ASSIGNMENT__"
+
 const normalizeExerciseSearchValue = (value) =>
   String(value || "")
     .toLowerCase()
@@ -411,12 +413,24 @@ function TrainingApp() {
   const [newPassInfo, setNewPassInfo] = useState("")
   const [newPassWarmupCardio, setNewPassWarmupCardio] = useState("")
   const [newPassWarmupTechnique, setNewPassWarmupTechnique] = useState("")
+  const [newPassWorkoutKind, setNewPassWorkoutKind] = useState("gym")
+  const [newPassRunningType, setNewPassRunningType] = useState("intervals")
+  const [newPassRunningIntervalTime, setNewPassRunningIntervalTime] = useState("")
+  const [newPassRunningIntervalsCount, setNewPassRunningIntervalsCount] = useState("")
+  const [newPassRunningDistance, setNewPassRunningDistance] = useState("")
+  const [newPassRunningTime, setNewPassRunningTime] = useState("")
   const [newWarmupTemplateName, setNewWarmupTemplateName] = useState("")
   const [isCreatingPass, setIsCreatingPass] = useState(false)
   const [renamePassName, setRenamePassName] = useState("")
   const [renamePassInfo, setRenamePassInfo] = useState("")
   const [renamePassWarmupCardio, setRenamePassWarmupCardio] = useState("")
   const [renamePassWarmupTechnique, setRenamePassWarmupTechnique] = useState("")
+  const [renamePassWorkoutKind, setRenamePassWorkoutKind] = useState("gym")
+  const [renamePassRunningType, setRenamePassRunningType] = useState("intervals")
+  const [renamePassRunningIntervalTime, setRenamePassRunningIntervalTime] = useState("")
+  const [renamePassRunningIntervalsCount, setRenamePassRunningIntervalsCount] = useState("")
+  const [renamePassRunningDistance, setRenamePassRunningDistance] = useState("")
+  const [renamePassRunningTime, setRenamePassRunningTime] = useState("")
   const [renameWarmupTemplateName, setRenameWarmupTemplateName] = useState("")
   const [selectedExerciseId, setSelectedExerciseId] = useState("")
   const [isSavingPassExercise, setIsSavingPassExercise] = useState(false)
@@ -481,6 +495,14 @@ function TrainingApp() {
   const [exerciseGoalDrafts, setExerciseGoalDrafts] = useState({})
   const [isLoadingSelectedPlayerHistory, setIsLoadingSelectedPlayerHistory] = useState(false)
   const [isSavingExerciseGoals, setIsSavingExerciseGoals] = useState(false)
+  const [updatingGoalAvailabilityIds, setUpdatingGoalAvailabilityIds] = useState([])
+  const [activeRunningInput, setActiveRunningInput] = useState({
+    interval_time: "",
+    intervals_count: "",
+    running_distance: "",
+    running_time: "",
+    average_pulse: "",
+  })
   const exerciseCarouselRef = useRef(null)
 
   useEffect(() => {
@@ -599,7 +621,7 @@ function TrainingApp() {
       setPlayerTargets({})
       setAssignedWorkoutCodes([])
     }
-  }, [user, selectedWorkout])
+  }, [user, selectedWorkout, profile?.individual_goals_enabled])
 
   useEffect(() => {
     if (!user || profile?.role !== "player") return
@@ -636,6 +658,18 @@ function TrainingApp() {
     setRenamePassInfo(selectedTemplate?.info || "")
     setRenamePassWarmupCardio(selectedTemplate?.warmup_cardio || "")
     setRenamePassWarmupTechnique(selectedTemplate?.warmup_technique || "")
+    setRenamePassWorkoutKind(selectedTemplate?.workout_kind || "gym")
+    setRenamePassRunningType(selectedTemplate?.running_type || "intervals")
+    setRenamePassRunningIntervalTime(selectedTemplate?.running_interval_time || "")
+    setRenamePassRunningIntervalsCount(
+      selectedTemplate?.running_intervals_count != null
+        ? String(selectedTemplate.running_intervals_count)
+        : ""
+    )
+    setRenamePassRunningDistance(
+      selectedTemplate?.running_distance != null ? String(selectedTemplate.running_distance) : ""
+    )
+    setRenamePassRunningTime(selectedTemplate?.running_time || "")
   }, [selectedTemplateCode, templatesFromDB])
 
   useEffect(() => {
@@ -857,8 +891,17 @@ function TrainingApp() {
         })
 
       acc[template.code] = {
+        id: template.id,
         label: template.label,
         info: template.info || "",
+        workoutKind: template.workout_kind || "gym",
+        runningType: template.running_type || "intervals",
+        runningConfig: {
+          interval_time: template.running_interval_time || "",
+          intervals_count: template.running_intervals_count ?? null,
+          running_distance: template.running_distance ?? null,
+          running_time: template.running_time || "",
+        },
         warmup: {
           cardio: template.warmup_cardio || "",
           technique: String(template.warmup_technique || "")
@@ -866,7 +909,7 @@ function TrainingApp() {
             .map((item) => item.trim())
             .filter(Boolean),
         },
-        exercises: relatedExercises,
+        exercises: template.workout_kind === "running" ? [] : relatedExercises,
       }
 
       return acc
@@ -892,6 +935,10 @@ function TrainingApp() {
       if (!row.pass_name) return
 
       nextAssignedPasses.add(row.pass_name)
+
+      if (row.exercise_name === PASS_ASSIGNMENT_EXERCISE_NAME) {
+        return
+      }
 
       if (!targetsByPass[row.pass_name]) {
         targetsByPass[row.pass_name] = {}
@@ -927,7 +974,7 @@ function TrainingApp() {
     }
 
     setAssignedWorkoutCodes(assignedPasses)
-    setPlayerTargets(targetsByPass[passName] || {})
+    setPlayerTargets(profile?.individual_goals_enabled === false ? {} : targetsByPass[passName] || {})
     setIsLoadingPlayerTargets(false)
   }
 
@@ -977,7 +1024,7 @@ function TrainingApp() {
 
     let playerQuery = supabase
       .from("profiles")
-      .select("id, full_name, username, role, comment, team_id, is_archived, archived_at, archived_by")
+      .select("id, full_name, username, role, comment, team_id, is_archived, archived_at, archived_by, individual_goals_enabled")
       .eq("role", "player")
       .order("full_name", { ascending: true })
 
@@ -2099,6 +2146,10 @@ function TrainingApp() {
 
       assignedPasses.add(row.pass_name)
 
+      if (row.exercise_name === PASS_ASSIGNMENT_EXERCISE_NAME) {
+        return
+      }
+
       if (!draftMap[row.pass_name]) {
         draftMap[row.pass_name] = {}
       }
@@ -2213,7 +2264,7 @@ function TrainingApp() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_session_id, created_at, pass_name, exercise, set_number, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse"
+        "workout_session_id, created_at, pass_name, exercise, set_number, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin"
       )
       .eq("user_id", userId)
       .eq("is_completed", true)
@@ -2246,6 +2297,7 @@ function TrainingApp() {
           running_distance: row.running_distance ?? null,
           running_time: row.running_time || null,
           average_pulse: row.average_pulse ?? null,
+          running_origin: row.running_origin || null,
           rows: [],
         })
       }
@@ -2270,6 +2322,10 @@ function TrainingApp() {
             session.workout_kind === "running"
               ? buildRunningSummary(session)
               : exerciseNames.slice(0, 3).join(", "),
+          session_label:
+            session.workout_kind === "running" && session.running_origin !== "assigned"
+              ? "Egna löppass"
+              : session.pass_name || "Pass",
         }
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -2394,6 +2450,18 @@ function TrainingApp() {
     setRenamePassInfo(selectedTemplate?.info || "")
     setRenamePassWarmupCardio(selectedTemplate?.warmup_cardio || "")
     setRenamePassWarmupTechnique(selectedTemplate?.warmup_technique || "")
+    setRenamePassWorkoutKind(selectedTemplate?.workout_kind || "gym")
+    setRenamePassRunningType(selectedTemplate?.running_type || "intervals")
+    setRenamePassRunningIntervalTime(selectedTemplate?.running_interval_time || "")
+    setRenamePassRunningIntervalsCount(
+      selectedTemplate?.running_intervals_count != null
+        ? String(selectedTemplate.running_intervals_count)
+        : ""
+    )
+    setRenamePassRunningDistance(
+      selectedTemplate?.running_distance != null ? String(selectedTemplate.running_distance) : ""
+    )
+    setRenamePassRunningTime(selectedTemplate?.running_time || "")
     setRenameWarmupTemplateName("")
     setPassExerciseDrafts({})
     setSelectedExerciseId("")
@@ -2670,6 +2738,29 @@ function TrainingApp() {
     setIsWorkoutActive(true)
     setExpandedInfo({})
 
+    if (workout.workoutKind === "running") {
+      setActiveRunningInput({
+        interval_time: workout.runningConfig?.interval_time || "",
+        intervals_count:
+          workout.runningConfig?.intervals_count != null
+            ? String(workout.runningConfig.intervals_count)
+            : "",
+        running_distance:
+          workout.runningConfig?.running_distance != null
+            ? String(workout.runningConfig.running_distance)
+            : "",
+        running_time: workout.runningConfig?.running_time || "",
+        average_pulse: "",
+      })
+      setInputs({})
+      setSelectedExerciseOptionKeys({})
+      setExerciseComments({})
+      setPassComment("")
+      setPlayerView("workout")
+      setStatus(`${workout.label} startat`)
+      return
+    }
+
     const defaultInputs = {}
     const defaultExerciseComments = {}
     const defaultExerciseOptionKeys = {}
@@ -2701,6 +2792,59 @@ function TrainingApp() {
 
   const finishWorkout = async () => {
     if (!currentSessionId || !selectedWorkout || !user) return
+
+    if (activeWorkouts[selectedWorkout]?.workoutKind === "running") {
+      const activeRunningWorkout = activeWorkouts[selectedWorkout]
+      const { error } = await supabase.from("workout_logs").insert({
+        client_set_id: `assigned-running-${currentSessionId}`,
+        user_id: user.id,
+        workout_session_id: currentSessionId,
+        pass_name: activeRunningWorkout.label,
+        exercise: "Löpning",
+        set_number: 1,
+        is_completed: true,
+        workout_kind: "running",
+        running_origin: "assigned",
+        running_type: activeRunningWorkout.runningType || "intervals",
+        interval_time: String(activeRunningInput.interval_time || "").trim() || null,
+        intervals_count: String(activeRunningInput.intervals_count || "").trim()
+          ? Number(activeRunningInput.intervals_count)
+          : null,
+        running_distance: String(activeRunningInput.running_distance || "").trim()
+          ? parseLoggedNumber(activeRunningInput.running_distance)
+          : null,
+        running_time: String(activeRunningInput.running_time || "").trim() || null,
+        average_pulse: String(activeRunningInput.average_pulse || "").trim()
+          ? Number(activeRunningInput.average_pulse)
+          : null,
+        pass_comment: passComment.trim() || null,
+      })
+
+      if (error) {
+        console.error(error)
+        setStatus("Kunde inte avsluta löppasset")
+        return
+      }
+
+      setIsWorkoutActive(false)
+      setCurrentSessionId(null)
+      setInputs({})
+      setSelectedExerciseOptionKeys({})
+      setExerciseComments({})
+      setPassComment("")
+      setActiveRunningInput({
+        interval_time: "",
+        intervals_count: "",
+        running_distance: "",
+        running_time: "",
+        average_pulse: "",
+      })
+      setPlayerView("overview")
+      setStatus(`${activeRunningWorkout.label} avslutat`)
+      await loadCompletedWorkoutSessions(user.id)
+      await loadLatestData(user.id)
+      return
+    }
 
     const activeExercises = activeWorkouts[selectedWorkout]?.exercises || []
     const commentWrites = activeExercises
@@ -2948,8 +3092,54 @@ function TrainingApp() {
     setStatus("Kommentar sparad ✅")
   }
 
+  const handleSetIndividualGoalsEnabled = async (playerIds, enabled) => {
+    const ids = Array.isArray(playerIds)
+      ? playerIds.filter(Boolean)
+      : playerIds
+      ? [playerIds]
+      : []
+
+    if (ids.length === 0) return
+
+    setUpdatingGoalAvailabilityIds(ids)
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ individual_goals_enabled: enabled })
+      .in("id", ids)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera inställningen för individuella mål")
+      setUpdatingGoalAvailabilityIds([])
+      return
+    }
+
+    setPlayers((prev) =>
+      prev.map((player) =>
+        ids.includes(player.id) ? { ...player, individual_goals_enabled: enabled } : player
+      )
+    )
+    setSelectedPlayer((prev) =>
+      prev && ids.includes(prev.id) ? { ...prev, individual_goals_enabled: enabled } : prev
+    )
+    setStatus(
+      enabled
+        ? "Individuella mål aktiverade ✅"
+        : "Individuella mål avstängda ✅"
+    )
+    setUpdatingGoalAvailabilityIds([])
+  }
+
   const handleRunningDraftChange = (field, value) => {
     setRunningDraft((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleActiveRunningInputChange = (field, value) => {
+    setActiveRunningInput((prev) => ({
       ...prev,
       [field]: value,
     }))
@@ -2975,12 +3165,13 @@ function TrainingApp() {
       client_set_id: `running-${workoutSessionId}`,
       user_id: user.id,
       workout_session_id: workoutSessionId,
-      pass_name: "Löpning",
+      pass_name: "Egna löppass",
       exercise: "Löpning",
       set_number: 1,
       is_completed: true,
       created_at: createdAt,
       workout_kind: "running",
+      running_origin: "free",
       running_type: runningDraft.running_type,
       interval_time:
         runningDraft.running_type === "intervals" && String(runningDraft.interval_time || "").trim()
@@ -3772,7 +3963,7 @@ function TrainingApp() {
     })
 
     if (rows.length === 0) {
-      setStatus("Tilldela minst ett pass först")
+      setStatus("Det finns inga övningar med individuella mål i de tilldelade passen")
       setIsSavingTargets(false)
       return
     }
@@ -3797,22 +3988,28 @@ function TrainingApp() {
     if (!selectedPlayer) return
 
     const exercises = activeWorkouts[passName]?.exercises || []
-
-    if (exercises.length === 0) {
-      setStatus("Passet har inga övningar än")
-      return
-    }
-
-    const rows = exercises.map((exercise) => ({
-      player_id: selectedPlayer.id,
-      pass_name: passName,
-      exercise_name: exercise.name,
-      target_sets: null,
-      target_reps: null,
-      target_reps_mode: exercise.defaultRepsMode || "fixed",
-      target_weight: null,
-      target_comment: null,
-    }))
+    const rows = [
+      {
+        player_id: selectedPlayer.id,
+        pass_name: passName,
+        exercise_name: PASS_ASSIGNMENT_EXERCISE_NAME,
+        target_sets: null,
+        target_reps: null,
+        target_reps_mode: "fixed",
+        target_weight: null,
+        target_comment: null,
+      },
+      ...exercises.map((exercise) => ({
+        player_id: selectedPlayer.id,
+        pass_name: passName,
+        exercise_name: exercise.name,
+        target_sets: null,
+        target_reps: null,
+        target_reps_mode: exercise.defaultRepsMode || "fixed",
+        target_weight: null,
+        target_comment: null,
+      })),
+    ]
 
     setIsUpdatingPassAssignments(true)
 
@@ -3859,31 +4056,45 @@ function TrainingApp() {
     if (!selectedPlayer) return
 
     const passRows = Object.entries(activeWorkouts).flatMap(([passName, workout]) =>
-      (workout.exercises || []).map((exercise) => ({
-        player_id: selectedPlayer.id,
-        pass_name: passName,
-        exercise_name: exercise.name,
-        target_sets:
-          targetDrafts[passName]?.[exercise.name]?.target_sets === "" ||
-          targetDrafts[passName]?.[exercise.name]?.target_sets == null
-            ? null
-            : Number(targetDrafts[passName][exercise.name].target_sets),
-        target_reps:
-          targetDrafts[passName]?.[exercise.name]?.target_reps_mode === "max"
-            ? null
-            : targetDrafts[passName]?.[exercise.name]?.target_reps === "" ||
-              targetDrafts[passName]?.[exercise.name]?.target_reps == null
-            ? null
-            : Number(targetDrafts[passName][exercise.name].target_reps),
-        target_reps_mode:
-          targetDrafts[passName]?.[exercise.name]?.target_reps_mode || exercise.defaultRepsMode || "fixed",
-        target_weight:
-          targetDrafts[passName]?.[exercise.name]?.target_weight === "" ||
-          targetDrafts[passName]?.[exercise.name]?.target_weight == null
-            ? null
-            : Number(targetDrafts[passName][exercise.name].target_weight),
-        target_comment: targetDrafts[passName]?.[exercise.name]?.target_comment || null,
-      }))
+      [
+        {
+          player_id: selectedPlayer.id,
+          pass_name: passName,
+          exercise_name: PASS_ASSIGNMENT_EXERCISE_NAME,
+          target_sets: null,
+          target_reps: null,
+          target_reps_mode: "fixed",
+          target_weight: null,
+          target_comment: null,
+        },
+        ...(workout.exercises || []).map((exercise) => ({
+          player_id: selectedPlayer.id,
+          pass_name: passName,
+          exercise_name: exercise.name,
+          target_sets:
+            targetDrafts[passName]?.[exercise.name]?.target_sets === "" ||
+            targetDrafts[passName]?.[exercise.name]?.target_sets == null
+              ? null
+              : Number(targetDrafts[passName][exercise.name].target_sets),
+          target_reps:
+            targetDrafts[passName]?.[exercise.name]?.target_reps_mode === "max"
+              ? null
+              : targetDrafts[passName]?.[exercise.name]?.target_reps === "" ||
+                targetDrafts[passName]?.[exercise.name]?.target_reps == null
+              ? null
+              : Number(targetDrafts[passName][exercise.name].target_reps),
+          target_reps_mode:
+            targetDrafts[passName]?.[exercise.name]?.target_reps_mode ||
+            exercise.defaultRepsMode ||
+            "fixed",
+          target_weight:
+            targetDrafts[passName]?.[exercise.name]?.target_weight === "" ||
+            targetDrafts[passName]?.[exercise.name]?.target_weight == null
+              ? null
+              : Number(targetDrafts[passName][exercise.name].target_weight),
+          target_comment: targetDrafts[passName]?.[exercise.name]?.target_comment || null,
+        })),
+      ]
     )
 
     if (passRows.length === 0) {
@@ -4348,10 +4559,25 @@ function TrainingApp() {
     const nextInfoValue = renamePassInfo.trim()
     const nextWarmupCardioValue = renamePassWarmupCardio.trim()
     const nextWarmupTechniqueValue = renamePassWarmupTechnique.trim()
+    const nextWorkoutKind = renamePassWorkoutKind || "gym"
+    const nextRunningType = renamePassRunningType || "intervals"
+    const nextRunningIntervalTime = renamePassRunningIntervalTime.trim()
+    const nextRunningIntervalsCount = renamePassRunningIntervalsCount.trim()
+    const nextRunningDistance = renamePassRunningDistance.trim()
+    const nextRunningTime = renamePassRunningTime.trim()
     const hasInfoChange = nextInfoValue !== (selectedTemplate.info || "")
     const hasWarmupCardioChange = nextWarmupCardioValue !== (selectedTemplate.warmup_cardio || "")
     const hasWarmupTechniqueChange =
       nextWarmupTechniqueValue !== (selectedTemplate.warmup_technique || "")
+    const hasWorkoutKindChange = nextWorkoutKind !== (selectedTemplate.workout_kind || "gym")
+    const hasRunningConfigChange =
+      nextRunningType !== (selectedTemplate.running_type || "intervals") ||
+      nextRunningIntervalTime !== (selectedTemplate.running_interval_time || "") ||
+      nextRunningIntervalsCount !==
+        String(selectedTemplate.running_intervals_count != null ? selectedTemplate.running_intervals_count : "") ||
+      nextRunningDistance !==
+        String(selectedTemplate.running_distance != null ? selectedTemplate.running_distance : "") ||
+      nextRunningTime !== (selectedTemplate.running_time || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const nextGuide = draft.guide?.trim() || ""
 
@@ -4369,7 +4595,15 @@ function TrainingApp() {
       }
     })
 
-    if (!hasRenameChange && !hasInfoChange && !hasWarmupCardioChange && !hasWarmupTechniqueChange && updates.length === 0) {
+    if (
+      !hasRenameChange &&
+      !hasInfoChange &&
+      !hasWarmupCardioChange &&
+      !hasWarmupTechniqueChange &&
+      !hasWorkoutKindChange &&
+      !hasRunningConfigChange &&
+      updates.length === 0
+    ) {
       setStatus("Inga passändringar att spara")
       return true
     }
@@ -4377,7 +4611,14 @@ function TrainingApp() {
     setStatus("")
     let missingInfoColumn = false
 
-    if (hasRenameChange || hasInfoChange || hasWarmupCardioChange || hasWarmupTechniqueChange) {
+    if (
+      hasRenameChange ||
+      hasInfoChange ||
+      hasWarmupCardioChange ||
+      hasWarmupTechniqueChange ||
+      hasWorkoutKindChange ||
+      hasRunningConfigChange
+    ) {
       let { data, error } = await supabase
         .from("workout_templates")
         .update({
@@ -4385,6 +4626,18 @@ function TrainingApp() {
           info: nextInfoValue || null,
           warmup_cardio: nextWarmupCardioValue || null,
           warmup_technique: nextWarmupTechniqueValue || null,
+          workout_kind: nextWorkoutKind,
+          running_type: nextWorkoutKind === "running" ? nextRunningType : null,
+          running_interval_time: nextWorkoutKind === "running" ? nextRunningIntervalTime || null : null,
+          running_intervals_count:
+            nextWorkoutKind === "running" && nextRunningIntervalsCount
+              ? Number(nextRunningIntervalsCount)
+              : null,
+          running_distance:
+            nextWorkoutKind === "running" && nextRunningDistance
+              ? parseLoggedNumber(nextRunningDistance)
+              : null,
+          running_time: nextWorkoutKind === "running" ? nextRunningTime || null : null,
         })
         .eq("id", selectedTemplate.id)
         .select()
@@ -4398,6 +4651,18 @@ function TrainingApp() {
             label: hasRenameChange ? renamePassName.trim() : selectedTemplate.label,
             warmup_cardio: nextWarmupCardioValue || null,
             warmup_technique: nextWarmupTechniqueValue || null,
+            workout_kind: nextWorkoutKind,
+            running_type: nextWorkoutKind === "running" ? nextRunningType : null,
+            running_interval_time: nextWorkoutKind === "running" ? nextRunningIntervalTime || null : null,
+            running_intervals_count:
+              nextWorkoutKind === "running" && nextRunningIntervalsCount
+                ? Number(nextRunningIntervalsCount)
+                : null,
+            running_distance:
+              nextWorkoutKind === "running" && nextRunningDistance
+                ? parseLoggedNumber(nextRunningDistance)
+                : null,
+            running_time: nextWorkoutKind === "running" ? nextRunningTime || null : null,
           })
           .eq("id", selectedTemplate.id)
           .select()
@@ -4422,6 +4687,14 @@ function TrainingApp() {
             ...next[data.code],
             label: data.label,
             info: data.info || "",
+            workoutKind: data.workout_kind || "gym",
+            runningType: data.running_type || "intervals",
+            runningConfig: {
+              interval_time: data.running_interval_time || "",
+              intervals_count: data.running_intervals_count ?? null,
+              running_distance: data.running_distance ?? null,
+              running_time: data.running_time || "",
+            },
             warmup: {
               cardio: data.warmup_cardio || "",
               technique: String(data.warmup_technique || "")
@@ -4623,6 +4896,19 @@ function TrainingApp() {
         info: newPassInfo.trim() || null,
         warmup_cardio: newPassWarmupCardio.trim() || null,
         warmup_technique: newPassWarmupTechnique.trim() || null,
+        workout_kind: newPassWorkoutKind || "gym",
+        running_type: newPassWorkoutKind === "running" ? newPassRunningType : null,
+        running_interval_time:
+          newPassWorkoutKind === "running" ? newPassRunningIntervalTime.trim() || null : null,
+        running_intervals_count:
+          newPassWorkoutKind === "running" && newPassRunningIntervalsCount.trim()
+            ? Number(newPassRunningIntervalsCount)
+            : null,
+        running_distance:
+          newPassWorkoutKind === "running" && newPassRunningDistance.trim()
+            ? parseLoggedNumber(newPassRunningDistance)
+            : null,
+        running_time: newPassWorkoutKind === "running" ? newPassRunningTime.trim() || null : null,
         team_id: profile?.team_id,
       })
       .select()
@@ -4639,6 +4925,19 @@ function TrainingApp() {
           label: newPassName.trim(),
           warmup_cardio: newPassWarmupCardio.trim() || null,
           warmup_technique: newPassWarmupTechnique.trim() || null,
+          workout_kind: newPassWorkoutKind || "gym",
+          running_type: newPassWorkoutKind === "running" ? newPassRunningType : null,
+          running_interval_time:
+            newPassWorkoutKind === "running" ? newPassRunningIntervalTime.trim() || null : null,
+          running_intervals_count:
+            newPassWorkoutKind === "running" && newPassRunningIntervalsCount.trim()
+              ? Number(newPassRunningIntervalsCount)
+              : null,
+          running_distance:
+            newPassWorkoutKind === "running" && newPassRunningDistance.trim()
+              ? parseLoggedNumber(newPassRunningDistance)
+              : null,
+          running_time: newPassWorkoutKind === "running" ? newPassRunningTime.trim() || null : null,
           team_id: profile?.team_id,
         })
         .select()
@@ -4657,6 +4956,12 @@ function TrainingApp() {
     setNewPassInfo("")
     setNewPassWarmupCardio("")
     setNewPassWarmupTechnique("")
+    setNewPassWorkoutKind("gym")
+    setNewPassRunningType("intervals")
+    setNewPassRunningIntervalTime("")
+    setNewPassRunningIntervalsCount("")
+    setNewPassRunningDistance("")
+    setNewPassRunningTime("")
     setNewWarmupTemplateName("")
     setSelectedTemplateCode(data.code)
     resetPassEditorState(data.code)
@@ -4826,7 +5131,7 @@ function TrainingApp() {
           return acc
         }, {})
 
-  const currentWorkoutTargets = playerTargets || {}
+  const currentWorkoutTargets = profile?.individual_goals_enabled === false ? {} : playerTargets || {}
   const sortedVisibleWorkoutEntries = Object.entries(visibleWorkouts).sort(([keyA, workoutA], [keyB, workoutB]) => {
     const daysA = getDaysSinceNumber(latestPassDates[keyA])
     const daysB = getDaysSinceNumber(latestPassDates[keyB])
@@ -4838,12 +5143,14 @@ function TrainingApp() {
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
   const selectedWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
+  const selectedWorkoutIsRunning = selectedWorkoutData?.workoutKind === "running"
   const selectedWorkoutPreviewExercises = (selectedWorkoutData?.exercises || []).slice(0, 3)
   const selectedWorkoutRemainingExerciseCount = Math.max(
     (selectedWorkoutData?.exercises || []).length - selectedWorkoutPreviewExercises.length,
     0
   )
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
+  const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmup = {
     cardio: activeWorkoutData?.warmup?.cardio || "",
     technique: Array.isArray(activeWorkoutData?.warmup?.technique)
@@ -4853,7 +5160,7 @@ function TrainingApp() {
   const activeWorkoutExercises = Array.isArray(activeWorkoutData?.exercises)
     ? activeWorkoutData.exercises
     : []
-  const activeWorkoutExerciseCount = activeWorkoutExercises.length
+  const activeWorkoutExerciseCount = isRunningWorkoutActive ? 1 : activeWorkoutExercises.length
 
   const unreadMessageCount = messages.filter((message) => message.hasUnread).length
 
@@ -4885,7 +5192,15 @@ function TrainingApp() {
     ? "Uppvärmning"
     : isFinishSlideActive
     ? "Avslut"
+    : isRunningWorkoutActive
+    ? "Löppass"
     : `Övning ${Math.min(activeExerciseIndex, activeWorkoutExerciseCount)} / ${activeWorkoutExerciseCount}`
+  const assignedCompletedSessions = completedWorkoutSessions.filter(
+    (session) => !(session.workout_kind === "running" && session.running_origin !== "assigned")
+  )
+  const ownRunningSessions = completedWorkoutSessions.filter(
+    (session) => session.workout_kind === "running" && session.running_origin !== "assigned"
+  )
 
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
@@ -5506,6 +5821,18 @@ function TrainingApp() {
                 setNewPassWarmupCardio={setNewPassWarmupCardio}
                 newPassWarmupTechnique={newPassWarmupTechnique}
                 setNewPassWarmupTechnique={setNewPassWarmupTechnique}
+                newPassWorkoutKind={newPassWorkoutKind}
+                setNewPassWorkoutKind={setNewPassWorkoutKind}
+                newPassRunningType={newPassRunningType}
+                setNewPassRunningType={setNewPassRunningType}
+                newPassRunningIntervalTime={newPassRunningIntervalTime}
+                setNewPassRunningIntervalTime={setNewPassRunningIntervalTime}
+                newPassRunningIntervalsCount={newPassRunningIntervalsCount}
+                setNewPassRunningIntervalsCount={setNewPassRunningIntervalsCount}
+                newPassRunningDistance={newPassRunningDistance}
+                setNewPassRunningDistance={setNewPassRunningDistance}
+                newPassRunningTime={newPassRunningTime}
+                setNewPassRunningTime={setNewPassRunningTime}
                 newWarmupTemplateName={newWarmupTemplateName}
                 setNewWarmupTemplateName={setNewWarmupTemplateName}
                 handleCreatePass={handleCreatePass}
@@ -5518,6 +5845,18 @@ function TrainingApp() {
                 setRenamePassWarmupCardio={setRenamePassWarmupCardio}
                 renamePassWarmupTechnique={renamePassWarmupTechnique}
                 setRenamePassWarmupTechnique={setRenamePassWarmupTechnique}
+                renamePassWorkoutKind={renamePassWorkoutKind}
+                setRenamePassWorkoutKind={setRenamePassWorkoutKind}
+                renamePassRunningType={renamePassRunningType}
+                setRenamePassRunningType={setRenamePassRunningType}
+                renamePassRunningIntervalTime={renamePassRunningIntervalTime}
+                setRenamePassRunningIntervalTime={setRenamePassRunningIntervalTime}
+                renamePassRunningIntervalsCount={renamePassRunningIntervalsCount}
+                setRenamePassRunningIntervalsCount={setRenamePassRunningIntervalsCount}
+                renamePassRunningDistance={renamePassRunningDistance}
+                setRenamePassRunningDistance={setRenamePassRunningDistance}
+                renamePassRunningTime={renamePassRunningTime}
+                setRenamePassRunningTime={setRenamePassRunningTime}
                 renameWarmupTemplateName={renameWarmupTemplateName}
                 setRenameWarmupTemplateName={setRenameWarmupTemplateName}
                 warmupTemplates={warmupTemplates}
@@ -5588,12 +5927,12 @@ function TrainingApp() {
                 showArchivedPlayers={showArchivedPlayers}
                 setShowArchivedPlayers={setShowArchivedPlayers}
                 archivingPlayerId={archivingPlayerId}
-                deletingPlayerId={deletingPlayerId}
                 handleArchivePlayer={handleArchivePlayer}
-                handleDeletePlayer={handleDeletePlayer}
                 teamCoaches={teamCoaches}
                 selectedPlayer={selectedPlayer}
                 setSelectedPlayer={setSelectedPlayer}
+                updatingGoalAvailabilityIds={updatingGoalAvailabilityIds}
+                handleSetIndividualGoalsEnabled={handleSetIndividualGoalsEnabled}
                 commentDrafts={commentDrafts}
                 handleCommentChange={handleCommentChange}
                 handleCommentSave={handleCommentSave}
@@ -5749,7 +6088,7 @@ function TrainingApp() {
                   }}
                 >
                   <div style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.82, marginBottom: "8px" }}>
-                    Logga löppass
+                    Egna löppass
                   </div>
                   <div
                     style={{
@@ -5856,77 +6195,160 @@ function TrainingApp() {
                   ) : completedWorkoutSessions.length === 0 ? (
                     <div style={{ fontSize: "14px", opacity: 0.9 }}>Ingen träningshistorik ännu.</div>
                   ) : (
-                    <div style={{ display: "grid", gap: "10px" }}>
-                      {completedWorkoutSessions.slice(0, 6).map((session) => (
-                        <div
-                          key={session.session_id}
-                          style={{
-                            padding: "12px",
-                            borderRadius: "14px",
-                            backgroundColor: "rgba(255,255,255,0.92)",
-                            color: "#18202b",
-                          }}
-                        >
+                    <div style={{ display: "grid", gap: "12px" }}>
+                      <div style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.8 }}>
+                        Tilldelade pass och coachpass
+                      </div>
+                      <div style={{ display: "grid", gap: "10px" }}>
+                        {assignedCompletedSessions.slice(0, 4).map((session) => (
                           <div
+                            key={session.session_id}
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: isMobile ? "flex-start" : "center",
-                              gap: "10px",
-                              flexDirection: isMobile ? "column" : "row",
-                              marginBottom: "8px",
+                              padding: "12px",
+                              borderRadius: "14px",
+                              backgroundColor: "rgba(255,255,255,0.92)",
+                              color: "#18202b",
                             }}
                           >
-                            <div>
-                              <div style={{ fontWeight: "800", marginBottom: "4px" }}>
-                                {session.workout_kind === "running" ? "Löpning" : session.pass_name}
-                              </div>
-                              <div style={{ fontSize: "13px", color: "#566173" }}>
-                                {session.workout_kind === "running"
-                                  ? buildRunningSummary(session)
-                                  : session.summary || `${session.exercise_count} övningar`}
-                              </div>
-                            </div>
-                            <div style={{ fontSize: "13px", fontWeight: "700", color: "#566173" }}>
-                              {new Date(session.created_at).toLocaleDateString("sv-SE")}
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              flexDirection: isMobile ? "column" : "row",
-                              alignItems: isMobile ? "stretch" : "center",
-                            }}
-                          >
-                            <input
-                              type="date"
-                              value={workoutDateDrafts[session.session_id] || ""}
-                              onChange={(event) =>
-                                handleWorkoutDateDraftChange(session.session_id, event.target.value)
-                              }
-                              style={{ ...inputStyle, width: "100%" }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleSaveWorkoutDate(session)}
-                              disabled={savingWorkoutDateSessionId === session.session_id}
+                            <div
                               style={{
-                                ...secondaryButtonStyle,
-                                width: isMobile ? "100%" : "auto",
-                                opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
-                                cursor:
-                                  savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: isMobile ? "flex-start" : "center",
+                                gap: "10px",
+                                flexDirection: isMobile ? "column" : "row",
+                                marginBottom: "8px",
                               }}
                             >
-                              {savingWorkoutDateSessionId === session.session_id
-                                ? "Sparar..."
-                                : "Spara datum"}
-                            </button>
+                              <div>
+                                <div style={{ fontWeight: "800", marginBottom: "4px" }}>
+                                  {session.session_label}
+                                </div>
+                                <div style={{ fontSize: "13px", color: "#566173" }}>
+                                  {session.workout_kind === "running"
+                                    ? buildRunningSummary(session)
+                                    : session.summary || `${session.exercise_count} övningar`}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: "13px", fontWeight: "700", color: "#566173" }}>
+                                {new Date(session.created_at).toLocaleDateString("sv-SE")}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                flexDirection: isMobile ? "column" : "row",
+                                alignItems: isMobile ? "stretch" : "center",
+                              }}
+                            >
+                              <input
+                                type="date"
+                                value={workoutDateDrafts[session.session_id] || ""}
+                                onChange={(event) =>
+                                  handleWorkoutDateDraftChange(session.session_id, event.target.value)
+                                }
+                                style={{ ...inputStyle, width: "100%" }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveWorkoutDate(session)}
+                                disabled={savingWorkoutDateSessionId === session.session_id}
+                                style={{
+                                  ...secondaryButtonStyle,
+                                  width: isMobile ? "100%" : "auto",
+                                  opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
+                                  cursor:
+                                    savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
+                                }}
+                              >
+                                {savingWorkoutDateSessionId === session.session_id
+                                  ? "Sparar..."
+                                  : "Spara datum"}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                        {assignedCompletedSessions.length === 0 && (
+                          <div style={{ fontSize: "14px", opacity: 0.9 }}>Inga tilldelade pass loggade ännu.</div>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.8 }}>
+                        Egna löppass
+                      </div>
+                      <div style={{ display: "grid", gap: "10px" }}>
+                        {ownRunningSessions.slice(0, 4).map((session) => (
+                          <div
+                            key={session.session_id}
+                            style={{
+                              padding: "12px",
+                              borderRadius: "14px",
+                              backgroundColor: "rgba(255,255,255,0.92)",
+                              color: "#18202b",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: isMobile ? "flex-start" : "center",
+                                gap: "10px",
+                                flexDirection: isMobile ? "column" : "row",
+                                marginBottom: "8px",
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: "800", marginBottom: "4px" }}>{session.session_label}</div>
+                                <div style={{ fontSize: "13px", color: "#566173" }}>
+                                  {buildRunningSummary(session)}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: "13px", fontWeight: "700", color: "#566173" }}>
+                                {new Date(session.created_at).toLocaleDateString("sv-SE")}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                flexDirection: isMobile ? "column" : "row",
+                                alignItems: isMobile ? "stretch" : "center",
+                              }}
+                            >
+                              <input
+                                type="date"
+                                value={workoutDateDrafts[session.session_id] || ""}
+                                onChange={(event) =>
+                                  handleWorkoutDateDraftChange(session.session_id, event.target.value)
+                                }
+                                style={{ ...inputStyle, width: "100%" }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveWorkoutDate(session)}
+                                disabled={savingWorkoutDateSessionId === session.session_id}
+                                style={{
+                                  ...secondaryButtonStyle,
+                                  width: isMobile ? "100%" : "auto",
+                                  opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
+                                  cursor:
+                                    savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
+                                }}
+                              >
+                                {savingWorkoutDateSessionId === session.session_id
+                                  ? "Sparar..."
+                                  : "Spara datum"}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {ownRunningSessions.length === 0 && (
+                          <div style={{ fontSize: "14px", opacity: 0.9 }}>Inga egna löppass loggade ännu.</div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -6010,7 +6432,15 @@ function TrainingApp() {
                           {formatDaysSince(latestPassDates[key])}
                         </div>
                         <div style={{ ...pickerSubtitleStyle, marginTop: "8px", color: "#18202b", fontWeight: "700" }}>
-                          {workout.exercises.length} övningar
+                          {workout.workoutKind === "running"
+                            ? `Löppass • ${buildRunningSummary({
+                                running_type: workout.runningType,
+                                interval_time: workout.runningConfig?.interval_time,
+                                intervals_count: workout.runningConfig?.intervals_count,
+                                running_distance: workout.runningConfig?.running_distance,
+                                running_time: workout.runningConfig?.running_time,
+                              })}`
+                            : `${workout.exercises.length} övningar`}
                         </div>
                       </button>
                     )
@@ -6042,10 +6472,22 @@ function TrainingApp() {
                       </div>
                     )}
 
-                    <div style={passPreviewStatLabelStyle}>Övningar</div>
-                    <div style={passPreviewExerciseCountStyle}>{selectedWorkoutData.exercises.length} st</div>
+                    <div style={passPreviewStatLabelStyle}>
+                      {selectedWorkoutIsRunning ? "Löppass" : "Övningar"}
+                    </div>
+                    <div style={passPreviewExerciseCountStyle}>
+                      {selectedWorkoutIsRunning
+                        ? buildRunningSummary({
+                            running_type: selectedWorkoutData.runningType,
+                            interval_time: selectedWorkoutData.runningConfig?.interval_time,
+                            intervals_count: selectedWorkoutData.runningConfig?.intervals_count,
+                            running_distance: selectedWorkoutData.runningConfig?.running_distance,
+                            running_time: selectedWorkoutData.runningConfig?.running_time,
+                          })
+                        : `${selectedWorkoutData.exercises.length} st`}
+                    </div>
 
-                    {selectedWorkoutPreviewExercises.length > 0 && (
+                    {!selectedWorkoutIsRunning && selectedWorkoutPreviewExercises.length > 0 && (
                       <div style={passPreviewListWrapStyle}>
                         <div style={passPreviewListStyle}>
                           {selectedWorkoutPreviewExercises.map((exercise) => (
@@ -6062,7 +6504,7 @@ function TrainingApp() {
                       </div>
                     )}
 
-                    {selectedWorkoutData.exercises.length === 0 && (
+                    {!selectedWorkoutIsRunning && selectedWorkoutData.exercises.length === 0 && (
                       <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
                     )}
                   </div>
@@ -6195,7 +6637,69 @@ function TrainingApp() {
                 )}
               </div>
 
-          {activeWorkoutExercises.map((exercise, i) => {
+          {isRunningWorkoutActive ? (
+            <div
+              data-exercise-card="true"
+              style={
+                isMobile
+                  ? {
+                      ...cardStyle,
+                      ...exerciseSwipeCardStyle,
+                    }
+                  : cardStyle
+              }
+            >
+              <div style={exerciseProgressStyle}>Löppass</div>
+              <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>{activeWorkoutData?.label || "Löppass"}</h3>
+              <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
+                {buildRunningSummary({
+                  running_type: activeWorkoutData?.runningType,
+                  interval_time: activeWorkoutData?.runningConfig?.interval_time,
+                  intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
+                  running_distance: activeWorkoutData?.runningConfig?.running_distance,
+                  running_time: activeWorkoutData?.runningConfig?.running_time,
+                })}
+              </p>
+
+              {activeWorkoutData?.runningType === "intervals" ? (
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <input
+                    placeholder="Tid per intervall"
+                    value={activeRunningInput.interval_time}
+                    onChange={(e) => handleActiveRunningInputChange("interval_time", e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                  <input
+                    placeholder="Antal intervaller"
+                    value={activeRunningInput.intervals_count}
+                    onChange={(e) => handleActiveRunningInputChange("intervals_count", e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <input
+                    placeholder="Distans i km"
+                    value={activeRunningInput.running_distance}
+                    onChange={(e) => handleActiveRunningInputChange("running_distance", e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                  <input
+                    placeholder="Tid, t.ex. 24:30"
+                    value={activeRunningInput.running_time}
+                    onChange={(e) => handleActiveRunningInputChange("running_time", e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                  <input
+                    placeholder="Snittpuls"
+                    value={activeRunningInput.average_pulse}
+                    onChange={(e) => handleActiveRunningInputChange("average_pulse", e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                </div>
+              )}
+            </div>
+          ) : activeWorkoutExercises.map((exercise, i) => {
             const exerciseOptions = getExerciseExecutionOptions(exercise)
             const selectedExercise = getSelectedExerciseExecution(
               exercise,
@@ -6342,14 +6846,19 @@ function TrainingApp() {
                 )}
 
                 {!isLoadingPlayerTargets &&
-                  currentTarget &&
-                  (currentTarget.target_reps != null ||
-                    currentTarget.target_weight != null ||
-                    String(currentTarget.target_comment || "").trim() ||
-                    currentTarget.target_reps_mode === "max") && (
+                  ((currentTarget &&
+                    (currentTarget.target_reps != null ||
+                      currentTarget.target_weight != null ||
+                      String(currentTarget.target_comment || "").trim() ||
+                      currentTarget.target_reps_mode === "max")) ||
+                    (profile?.individual_goals_enabled === false && latestExerciseTopSet)) && (
                   <div style={targetBoxStyle}>
                     <div style={targetBoxHeaderStyle}>
-                      <div style={targetBoxTitleStyle}>Individuella mål</div>
+                      <div style={targetBoxTitleStyle}>
+                        {profile?.individual_goals_enabled === false
+                          ? "Rekommendation från historik"
+                          : "Individuella mål"}
+                      </div>
                       {latestExerciseTopSet && (
                         <div style={targetHistoryBadgeStyle}>Senaste passet</div>
                       )}
@@ -6371,10 +6880,25 @@ function TrainingApp() {
                     )}
 
                     <div style={targetSectionDividerStyle} />
-                    <div style={targetSectionLabelStyle}>Dagens mål</div>
+                    <div style={targetSectionLabelStyle}>
+                      {profile?.individual_goals_enabled === false ? "Rekommenderat idag" : "Dagens mål"}
+                    </div>
 
                     <>
-                      {selectedExercise?.type === "seconds_only" ? (
+                      {profile?.individual_goals_enabled === false ? (
+                        <div style={targetRowStyle}>
+                          <span style={targetLabelStyle}>
+                            {selectedExercise?.type === "seconds_only"
+                              ? "Tid"
+                              : selectedExercise?.type === "weight_reps"
+                              ? "Senaste arbetsset"
+                              : "Reps"}
+                          </span>
+                          <span style={targetValueStyle}>
+                            {formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)}
+                          </span>
+                        </div>
+                      ) : selectedExercise?.type === "seconds_only" ? (
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Tid</span>
                           <span style={targetValueStyle}>

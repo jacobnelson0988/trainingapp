@@ -105,6 +105,7 @@ serve(async (req: Request) => {
     }
 
     await adminClient.from("player_exercise_targets").delete().eq("player_id", userId)
+    await adminClient.from("player_exercise_goals").delete().eq("player_id", userId)
     await adminClient.from("workout_logs").delete().eq("user_id", userId)
     await adminClient.from("profiles").delete().eq("id", userId)
 
