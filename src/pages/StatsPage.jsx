@@ -370,7 +370,8 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile, onExpand }) {
           </div>
 
           <button type="button" onClick={onExpand} style={expandButtonStyle}>
-            Förstora graf
+            <span aria-hidden="true">+</span>
+            <span style={srOnlyStyle}>Förstora graf</span>
           </button>
         </div>
       </div>
@@ -660,14 +661,33 @@ const legendColorStyle = {
 }
 
 const expandButtonStyle = {
+  width: "34px",
+  height: "34px",
   border: "1px solid #cbd5e1",
   backgroundColor: "#ffffff",
   color: "#18202b",
   borderRadius: "999px",
-  padding: "9px 12px",
-  fontSize: "12px",
+  padding: "0",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "22px",
+  lineHeight: 1,
   fontWeight: "800",
   cursor: "pointer",
+  flexShrink: 0,
+}
+
+const srOnlyStyle = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: 0,
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
 }
 
 const statGridStyle = (isMobile) => ({
