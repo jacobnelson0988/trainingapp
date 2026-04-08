@@ -52,32 +52,31 @@ function AdminHomePage({
 
   return (
     <>
-      <div style={heroCardStyle}>
-        <div style={heroHeaderRowStyle}>
-          <div>
-            <div style={heroTitleStyle}>Admin</div>
-            <div style={heroSubStyle}>{organizationLabel}</div>
-          </div>
-          <div style={avatarStyle}>AD</div>
+      <div style={headerStyle}>
+        <div>
+          <div style={titleStyle}>Admin</div>
+          <div style={subStyle}>{organizationLabel}</div>
         </div>
-
-        <div style={statsGridStyle(isMobile, 2)}>
-          <div style={statCardStyle}>
-            <div style={statLabelStyle}>Användare</div>
-            <div style={{ ...statValueStyle, color: "#7c3aed" }}>{totalUsers}</div>
-          </div>
-          <div style={statCardStyle}>
-            <div style={statLabelStyle}>Lag</div>
-            <div style={statValueStyle}>{totalTeams}</div>
-          </div>
-        </div>
-
-        <p style={introTextStyle}>
-          Här får du snabb överblick och kan gå vidare till rätt del direkt.
-        </p>
+        <div style={avatarStyle}>AD</div>
       </div>
 
-      <div style={sectionLabelStyle}>Snabbval</div>
+      <div style={statsGridStyle(isMobile, 2)}>
+        <div style={statCardStyle}>
+          <div style={statLabelStyle}>Användare</div>
+          <div style={{ ...statValueStyle, color: "#b61e24" }}>{totalUsers}</div>
+        </div>
+        <div style={statCardStyle}>
+          <div style={statLabelStyle}>Lag</div>
+          <div style={statValueStyle}>{totalTeams}</div>
+        </div>
+      </div>
+
+      <div style={introCardStyle}>
+        <div style={introTitleStyle}>Snabbval för administration</div>
+        <p style={introTextStyle}>
+          Gå direkt till rätt del och håll överblick över användare, lag och feedback.
+        </p>
+      </div>
 
       <div style={navGridStyle(isMobile)}>
         {cards.map((card) => (
@@ -99,30 +98,21 @@ function AdminHomePage({
   )
 }
 
-const heroCardStyle = {
-  marginBottom: "18px",
-  padding: "20px",
-  borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
-}
-
-const heroHeaderRowStyle = {
+const headerStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "12px",
-  marginBottom: "16px",
+  marginBottom: "14px",
 }
 
-const heroTitleStyle = {
-  fontSize: "24px",
+const titleStyle = {
+  fontSize: "28px",
   fontWeight: "900",
   color: "#111827",
 }
 
-const heroSubStyle = {
+const subStyle = {
   marginTop: "4px",
   fontSize: "14px",
   color: "#6b7280",
@@ -135,9 +125,9 @@ const avatarStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#f5f0ff",
-  border: "1px solid rgba(124, 58, 237, 0.15)",
-  color: "#7c3aed",
+  backgroundColor: "#fff1f1",
+  border: "1px solid rgba(182, 30, 36, 0.14)",
+  color: "#b61e24",
   fontSize: "13px",
   fontWeight: "900",
   flexShrink: 0,
@@ -147,7 +137,7 @@ const statsGridStyle = (isMobile, count) => ({
   display: "grid",
   gap: "10px",
   gridTemplateColumns: `repeat(${Math.max(1, count)}, minmax(0, 1fr))`,
-  marginBottom: "14px",
+  marginBottom: "12px",
 })
 
 const statCardStyle = {
@@ -173,19 +163,26 @@ const statValueStyle = {
   color: "#111827",
 }
 
+const introCardStyle = {
+  marginBottom: "14px",
+  padding: "16px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#fffdfd",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+}
+
+const introTitleStyle = {
+  marginBottom: "6px",
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#111827",
+}
+
 const introTextStyle = {
   margin: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
-}
-
-const sectionLabelStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
   color: "#6b7280",
 }
 

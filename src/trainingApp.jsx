@@ -5266,12 +5266,20 @@ function TrainingApp() {
     { key: "stats", label: "Statistik", icon: "stats" },
   ]
   const showCoachBottomNav = profile?.role === "coach" && isMobile
+  const adminBottomTabs = [
+    { key: "home", label: "Hem", icon: "home" },
+    { key: "users", label: "Användare", icon: "players" },
+    { key: "teams", label: "Lag", icon: "teams" },
+    { key: "messages", label: "Meddelanden", icon: "messages" },
+    { key: "feedback", label: "Feedback", icon: "feedback" },
+  ]
   const playerBottomTabs = [
     { key: "overview", label: "Hem", icon: "home" },
     { key: "pass", label: "Pass", icon: "pass" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
     { key: "account", label: "Konto", icon: "account" },
   ]
+  const showAdminBottomNav = profile?.role === "head_admin" && isMobile && globalView === "app"
   const showPlayerBottomNav =
     profile?.role === "player" && isMobile && globalView !== "gdpr" && !isWorkoutActive
   const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
@@ -5331,6 +5339,7 @@ function TrainingApp() {
         padding: isMobile
           ? `max(14px, env(safe-area-inset-top)) 12px ${
               showCoachBottomNav || showPlayerBottomNav
+              || showAdminBottomNav
                 ? "calc(104px + env(safe-area-inset-bottom))"
                 : "calc(36px + env(safe-area-inset-bottom))"
             }`
@@ -5564,37 +5573,6 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      {profile?.role === "head_admin" && (
-        <div
-          style={{
-            ...heroCardStyle,
-            padding: isMobile ? "18px 16px" : heroCardStyle.padding,
-            borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius,
-            marginBottom: isMobile ? "16px" : heroCardStyle.marginBottom,
-          }}
-        >
-          <div style={heroBadgeStyle}>Gustavsbergs Handboll</div>
-          <div
-            style={{
-              ...heroHeadingStyle,
-              fontSize: isMobile ? "1.8rem" : heroHeadingStyle.fontSize,
-              lineHeight: isMobile ? 1.05 : heroHeadingStyle.lineHeight,
-            }}
-          >
-            Administrera hela föreningen
-          </div>
-          <div
-            style={{
-              ...heroTextStyle,
-              maxWidth: isMobile ? "100%" : heroTextStyle.maxWidth,
-              fontSize: isMobile ? "14px" : heroTextStyle.fontSize,
-            }}
-          >
-            Skapa lag, lägg till tränare och få överblick över alla användare.
-          </div>
-        </div>
-      )}
-
       <div
         style={{
           ...feedbackActionBarStyle,
@@ -5661,7 +5639,7 @@ function TrainingApp() {
 
       {(profile?.role === "coach" || profile?.role === "head_admin") && (
         <>
-          {(!showCoachBottomNav || profile?.role === "head_admin") && (
+          {!showCoachBottomNav && !showAdminBottomNav && (
             <div
               style={{
                 ...coachTabsWrapStyle,
@@ -6072,6 +6050,38 @@ function TrainingApp() {
                       style={{
                         ...coachBottomNavButtonStyle,
                         color: isActive ? "#dc2626" : "#6b7280",
+                      }}
+                    >
+                      <span
+                        style={{
+                          ...coachBottomNavIconWrapStyle,
+                          backgroundColor: isActive ? "#fff1f1" : "transparent",
+                        }}
+                      >
+                        {renderCoachBottomNavIcon(tab.icon, isActive)}
+                      </span>
+                      <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {showAdminBottomNav && (
+            <div style={coachBottomNavWrapStyle}>
+              <div style={coachBottomNavStyle}>
+                {adminBottomTabs.map((tab) => {
+                  const isActive = coachView === tab.key
+
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => navigateCoachSection(tab.key)}
+                      style={{
+                        ...coachBottomNavButtonStyle,
+                        color: isActive ? "#b61e24" : "#6b7280",
                       }}
                     >
                       <span
@@ -8707,6 +8717,17 @@ const renderCoachBottomNavIcon = (icon, isActive) => {
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       )
+    case "teams":
+      return (
+        <svg {...commonProps}>
+          <path d="M8 6h12" />
+          <path d="M8 12h12" />
+          <path d="M8 18h12" />
+          <circle cx="4" cy="6" r="1.5" />
+          <circle cx="4" cy="12" r="1.5" />
+          <circle cx="4" cy="18" r="1.5" />
+        </svg>
+      )
     case "pass":
       return (
         <svg {...commonProps}>
@@ -8735,6 +8756,14 @@ const renderCoachBottomNavIcon = (icon, isActive) => {
         <svg {...commonProps}>
           <circle cx="12" cy="8" r="4" />
           <path d="M4 20a8 8 0 0 1 16 0" />
+        </svg>
+      )
+    case "feedback":
+      return (
+        <svg {...commonProps}>
+          <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <path d="M9 9h6" />
+          <path d="M9 13h3" />
         </svg>
       )
     default:
