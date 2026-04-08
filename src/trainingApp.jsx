@@ -5536,42 +5536,40 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      <div
-        style={{
-          ...heroCardStyle,
-          padding: isMobile ? "18px 16px" : heroCardStyle.padding,
-          borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius,
-          marginBottom: isMobile ? "16px" : heroCardStyle.marginBottom,
-        }}
-      >
-        <div style={heroBadgeStyle}>Gustavsbergs Handboll</div>
+      {profile?.role !== "coach" && (
         <div
           style={{
-            ...heroHeadingStyle,
-            fontSize: isMobile ? "1.8rem" : heroHeadingStyle.fontSize,
-            lineHeight: isMobile ? 1.05 : heroHeadingStyle.lineHeight,
+            ...heroCardStyle,
+            padding: isMobile ? "18px 16px" : heroCardStyle.padding,
+            borderRadius: isMobile ? "20px" : heroCardStyle.borderRadius,
+            marginBottom: isMobile ? "16px" : heroCardStyle.marginBottom,
           }}
         >
-          {profile?.role === "head_admin"
-            ? "Administrera hela föreningen"
-            : profile?.role === "coach"
-            ? "Led laget enkelt"
-            : "Hitta ditt pass snabbt"}
+          <div style={heroBadgeStyle}>Gustavsbergs Handboll</div>
+          <div
+            style={{
+              ...heroHeadingStyle,
+              fontSize: isMobile ? "1.8rem" : heroHeadingStyle.fontSize,
+              lineHeight: isMobile ? 1.05 : heroHeadingStyle.lineHeight,
+            }}
+          >
+            {profile?.role === "head_admin"
+              ? "Administrera hela föreningen"
+              : "Hitta ditt pass snabbt"}
+          </div>
+          <div
+            style={{
+              ...heroTextStyle,
+              maxWidth: isMobile ? "100%" : heroTextStyle.maxWidth,
+              fontSize: isMobile ? "14px" : heroTextStyle.fontSize,
+            }}
+          >
+            {profile?.role === "head_admin"
+              ? "Skapa lag, lägg till tränare och få överblick över alla användare."
+              : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
+          </div>
         </div>
-        <div
-          style={{
-            ...heroTextStyle,
-            maxWidth: isMobile ? "100%" : heroTextStyle.maxWidth,
-            fontSize: isMobile ? "14px" : heroTextStyle.fontSize,
-          }}
-        >
-          {profile?.role === "head_admin"
-            ? "Skapa lag, lägg till tränare och få överblick över alla användare."
-            : profile?.role === "coach"
-            ? "Lägg till spelare, bygg pass, sätt indivuella mål och följ progression"
-            : "Starta rätt pass, se dagens mål och jämför med senaste träningen."}
-        </div>
-      </div>
+      )}
 
       <div
         style={{
