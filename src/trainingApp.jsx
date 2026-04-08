@@ -5633,6 +5633,9 @@ function TrainingApp() {
                   coachNavTitleStyle={coachNavTitleStyle}
                   coachNavTextStyle={coachNavTextStyle}
                   isMobile={isMobile}
+                  players={players}
+                  templatesFromDB={templatesFromDB}
+                  teamName={teamName}
                 />
               )
             )}
