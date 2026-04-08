@@ -5216,6 +5216,14 @@ function TrainingApp() {
   ]
 
   const managementTabs = profile?.role === "head_admin" ? headAdminTabs : coachTabs
+  const coachBottomTabs = [
+    { key: "home", label: "Hem", icon: "home" },
+    { key: "players", label: "Spelare", icon: "players" },
+    { key: "passBuilder", label: "Pass", icon: "pass" },
+    { key: "messages", label: "Meddelanden", icon: "messages" },
+    { key: "stats", label: "Statistik", icon: "stats" },
+  ]
+  const showCoachBottomNav = profile?.role === "coach" && isMobile
   const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
   const statisticsPlayers =
     profile?.role === "head_admin"
@@ -5237,6 +5245,15 @@ function TrainingApp() {
   const playerFirstName = profile?.full_name?.trim()?.split(" ")[0] || "spelare"
   const latestAssignedSession = assignedCompletedSessions[0] || null
   const latestOwnRunningSession = ownRunningSessions[0] || null
+  const navigateCoachSection = (tabKey) => {
+    setCoachView(tabKey)
+    if (tabKey !== "players") {
+      setSelectedPlayer(null)
+    }
+    if (tabKey !== "exerciseBank") {
+      resetExerciseForm()
+    }
+  }
 
   return (
     <div
@@ -5244,7 +5261,11 @@ function TrainingApp() {
         ...pageStyle,
         position: "relative",
         padding: isMobile
-          ? "max(14px, env(safe-area-inset-top)) 12px calc(36px + env(safe-area-inset-bottom))"
+          ? `max(14px, env(safe-area-inset-top)) 12px ${
+              showCoachBottomNav
+                ? "calc(104px + env(safe-area-inset-bottom))"
+                : "calc(36px + env(safe-area-inset-bottom))"
+            }`
           : pageStyle.padding,
       }}
     >
@@ -5578,48 +5599,42 @@ function TrainingApp() {
 
       {(profile?.role === "coach" || profile?.role === "head_admin") && (
         <>
-          <div
-            style={{
-              ...coachTabsWrapStyle,
-              flexWrap: isMobile ? "nowrap" : coachTabsWrapStyle.flexWrap,
-              overflowX: isMobile ? "auto" : "visible",
-              paddingBottom: isMobile ? "6px" : 0,
-              marginInline: isMobile ? "-2px" : 0,
-              WebkitOverflowScrolling: "touch",
-              scrollSnapType: isMobile ? "x proximity" : "none",
-              position: isMobile ? "sticky" : "static",
-              top: isMobile ? "max(8px, env(safe-area-inset-top))" : "auto",
-              zIndex: isMobile ? 5 : "auto",
-              paddingTop: isMobile ? "4px" : 0,
-              backdropFilter: isMobile ? "blur(14px)" : "none",
-            }}
-          >
-            {managementTabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => {
-                  setCoachView(tab.key)
-                  if (tab.key !== "players") {
-                    setSelectedPlayer(null)
-                  }
-                  if (tab.key !== "exerciseBank") {
-                    resetExerciseForm()
-                  }
-                }}
-                style={{
-                  ...coachTabButtonStyle,
-                  flex: isMobile ? "0 0 auto" : undefined,
-                  whiteSpace: "nowrap",
-                  minHeight: isMobile ? "44px" : undefined,
-                  scrollSnapAlign: isMobile ? "start" : "none",
-                  ...(coachView === tab.key ? activeCoachTabButtonStyle : {}),
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {(!showCoachBottomNav || profile?.role === "head_admin") && (
+            <div
+              style={{
+                ...coachTabsWrapStyle,
+                flexWrap: isMobile ? "nowrap" : coachTabsWrapStyle.flexWrap,
+                overflowX: isMobile ? "auto" : "visible",
+                paddingBottom: isMobile ? "6px" : 0,
+                marginInline: isMobile ? "-2px" : 0,
+                WebkitOverflowScrolling: "touch",
+                scrollSnapType: isMobile ? "x proximity" : "none",
+                position: isMobile ? "sticky" : "static",
+                top: isMobile ? "max(8px, env(safe-area-inset-top))" : "auto",
+                zIndex: isMobile ? 5 : "auto",
+                paddingTop: isMobile ? "4px" : 0,
+                backdropFilter: isMobile ? "blur(14px)" : "none",
+              }}
+            >
+              {managementTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => navigateCoachSection(tab.key)}
+                  style={{
+                    ...coachTabButtonStyle,
+                    flex: isMobile ? "0 0 auto" : undefined,
+                    whiteSpace: "nowrap",
+                    minHeight: isMobile ? "44px" : undefined,
+                    scrollSnapAlign: isMobile ? "start" : "none",
+                    ...(coachView === tab.key ? activeCoachTabButtonStyle : {}),
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div
             style={{
@@ -5980,6 +5995,38 @@ function TrainingApp() {
               />
             )}
           </div>
+
+          {showCoachBottomNav && (
+            <div style={coachBottomNavWrapStyle}>
+              <div style={coachBottomNavStyle}>
+                {coachBottomTabs.map((tab) => {
+                  const isActive = coachView === tab.key
+
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => navigateCoachSection(tab.key)}
+                      style={{
+                        ...coachBottomNavButtonStyle,
+                        color: isActive ? "#dc2626" : "#6b7280",
+                      }}
+                    >
+                      <span
+                        style={{
+                          ...coachBottomNavIconWrapStyle,
+                          backgroundColor: isActive ? "#fff1f1" : "transparent",
+                        }}
+                      >
+                        {renderCoachBottomNavIcon(tab.icon, isActive)}
+                      </span>
+                      <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -8434,6 +8481,122 @@ const playerHistoryActionRowStyle = (isMobile) => ({
 const playerHistoryEmptyStyle = {
   fontSize: "14px",
   color: "#6b7280",
+}
+
+const renderCoachBottomNavIcon = (icon, isActive) => {
+  const commonProps = {
+    width: 20,
+    height: 20,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: { display: "block" },
+  }
+
+  switch (icon) {
+    case "home":
+      return (
+        <svg {...commonProps}>
+          <path d="M3 10.5 12 3l9 7.5" />
+          <path d="M5 9.5V21h14V9.5" />
+          <path d="M10 21v-6h4v6" />
+        </svg>
+      )
+    case "players":
+      return (
+        <svg {...commonProps}>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      )
+    case "pass":
+      return (
+        <svg {...commonProps}>
+          <rect x="3" y="4" width="18" height="18" rx="3" />
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+        </svg>
+      )
+    case "messages":
+      return (
+        <svg {...commonProps}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      )
+    case "stats":
+      return (
+        <svg {...commonProps}>
+          <path d="M4 19h16" />
+          <path d="M7 16V9" />
+          <path d="M12 16V5" />
+          <path d="M17 16v-4" />
+        </svg>
+      )
+    default:
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="8" />
+        </svg>
+      )
+  }
+}
+
+const coachBottomNavWrapStyle = {
+  position: "fixed",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 30,
+  padding: "0 12px calc(10px + env(safe-area-inset-bottom))",
+  pointerEvents: "none",
+}
+
+const coachBottomNavStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+  gap: "6px",
+  padding: "10px 8px 8px",
+  borderTop: "1px solid rgba(15, 23, 42, 0.08)",
+  borderRadius: "22px 22px 0 0",
+  background: "rgba(255, 255, 255, 0.96)",
+  backdropFilter: "blur(18px)",
+  boxShadow: "0 -10px 30px rgba(15, 23, 42, 0.08)",
+  pointerEvents: "auto",
+}
+
+const coachBottomNavButtonStyle = {
+  border: "none",
+  background: "transparent",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "4px",
+  minHeight: "56px",
+  padding: "4px 2px",
+  cursor: "pointer",
+  font: "inherit",
+}
+
+const coachBottomNavIconWrapStyle = {
+  width: "34px",
+  height: "34px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const coachBottomNavLabelStyle = {
+  fontSize: "11px",
+  fontWeight: "800",
+  lineHeight: 1.1,
+  textAlign: "center",
 }
 
 export default TrainingApp
