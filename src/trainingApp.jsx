@@ -164,6 +164,44 @@ const buildExerciseGoalPrefill = (historyEntry) => ({
   comment: historyEntry?.comment || "",
 })
 
+const buildPlayerExerciseProgress = (rows, exercises) =>
+  summarizeHistoryRowsByExercise(rows || [])
+    .map((exerciseHistory) => {
+      const matchedExercise = findExerciseByLoggedName(exercises, exerciseHistory.exercise_name)
+      const entriesAscending = exerciseHistory.entries
+        .slice()
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+      const weightEntries = entriesAscending.filter((entry) => entry.top_weight != null)
+      const latestEntry = exerciseHistory.entries[0] || null
+      const bestWeightEntry =
+        weightEntries.reduce((bestEntry, currentEntry) => {
+          if (!bestEntry) return currentEntry
+          return currentEntry.top_weight > bestEntry.top_weight ? currentEntry : bestEntry
+        }, null) || null
+
+      return {
+        exercise_id: matchedExercise?.id || exerciseHistory.exercise_name,
+        exercise_name: exerciseHistory.exercise_name,
+        exercise_display_name: matchedExercise ? getExerciseDisplayName(matchedExercise) : exerciseHistory.exercise_name,
+        latest_entry: latestEntry,
+        best_weight_entry: bestWeightEntry,
+        entry_count: exerciseHistory.entries.length,
+        weight_entries: weightEntries.map((entry) => ({
+          created_at: entry.created_at,
+          top_weight: entry.top_weight,
+          top_reps: entry.top_reps,
+          pass_name: entry.pass_name || null,
+        })),
+      }
+    })
+    .filter((entry) => entry.entry_count > 0)
+    .sort((a, b) => {
+      const aDate = new Date(a.latest_entry?.created_at || 0).getTime()
+      const bDate = new Date(b.latest_entry?.created_at || 0).getTime()
+      return bDate - aDate
+    })
+
 const findExerciseByLoggedName = (exercises, exerciseName) => {
   const trimmedName = String(exerciseName || "").trim()
   if (!trimmedName) return null
@@ -402,6 +440,9 @@ function TrainingApp() {
   const [coachView, setCoachView] = useState("home")
   const [playerView, setPlayerView] = useState("overview")
   const [playerOverviewPanel, setPlayerOverviewPanel] = useState(null)
+  const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
+  const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
+  const [selectedPlayerStatsExerciseId, setSelectedPlayerStatsExerciseId] = useState("")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [globalView, setGlobalView] = useState(getInitialGlobalView)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -530,11 +571,14 @@ function TrainingApp() {
   useEffect(() => {
     if (!user || profile?.role !== "player") {
       setCompletedWorkoutSessions([])
+      setPlayerExerciseProgress([])
+      setSelectedPlayerStatsExerciseId("")
       return
     }
 
     loadCompletedWorkoutSessions(user.id)
-  }, [user, profile?.role])
+    loadPlayerExerciseProgress(user.id)
+  }, [user, profile?.role, exercisesFromDB])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -2340,6 +2384,41 @@ function TrainingApp() {
       }, {})
     )
     setIsLoadingCompletedWorkoutSessions(false)
+  }
+
+  const loadPlayerExerciseProgress = async (userId) => {
+    if (!userId) {
+      setPlayerExerciseProgress([])
+      setSelectedPlayerStatsExerciseId("")
+      return
+    }
+
+    setIsLoadingPlayerExerciseProgress(true)
+
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select(
+        "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, exercise_comment, pass_comment, workout_kind"
+      )
+      .eq("user_id", userId)
+      .eq("is_completed", true)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setPlayerExerciseProgress([])
+      setSelectedPlayerStatsExerciseId("")
+      setIsLoadingPlayerExerciseProgress(false)
+      return
+    }
+
+    const nextProgress = buildPlayerExerciseProgress(data || [], exercisesFromDB)
+    setPlayerExerciseProgress(nextProgress)
+    setSelectedPlayerStatsExerciseId((current) => {
+      if (current && nextProgress.some((entry) => entry.exercise_id === current)) return current
+      return nextProgress[0]?.exercise_id || ""
+    })
+    setIsLoadingPlayerExerciseProgress(false)
   }
 
   const generateSessionId = () => {
@@ -5221,6 +5300,7 @@ function TrainingApp() {
   const playerTabs = [
     { key: "overview", label: "Översikt" },
     { key: "pass", label: "Pass" },
+    { key: "stats", label: "Statistik" },
     {
       key: "messages",
       label: unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden",
@@ -5276,6 +5356,7 @@ function TrainingApp() {
   const playerBottomTabs = [
     { key: "overview", label: "Hem", icon: "home" },
     { key: "pass", label: "Pass", icon: "pass" },
+    { key: "stats", label: "Statistik", icon: "stats" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
     { key: "account", label: "Konto", icon: "account" },
   ]
@@ -5303,6 +5384,10 @@ function TrainingApp() {
   const playerFirstName = profile?.full_name?.trim()?.split(" ")[0] || "spelare"
   const latestAssignedSession = assignedCompletedSessions[0] || null
   const latestOwnRunningSession = ownRunningSessions[0] || null
+  const selectedPlayerStatsExercise =
+    playerExerciseProgress.find((entry) => entry.exercise_id === selectedPlayerStatsExerciseId) ||
+    playerExerciseProgress[0] ||
+    null
   const navigateCoachSection = (tabKey) => {
     setCoachView(tabKey)
     if (tabKey !== "players") {
@@ -6229,6 +6314,20 @@ function TrainingApp() {
 
                 <button
                   type="button"
+                  onClick={() => navigatePlayerSection("stats")}
+                  style={playerQuickActionCardStyle}
+                >
+                  <div style={playerQuickActionTopRowStyle}>
+                    <div style={playerQuickActionTitleStyle}>Statistik</div>
+                    <div style={{ ...playerQuickActionArrowStyle, color: "#1d4ed8", backgroundColor: "#eef4ff" }}>→</div>
+                  </div>
+                  <div style={playerQuickActionTextStyle}>
+                    Följ viktutveckling och se övningarna du kört.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => togglePlayerOverviewPanel("history")}
                   style={playerQuickActionCardStyle}
                 >
@@ -6291,22 +6390,15 @@ function TrainingApp() {
               </div>
 
               <div style={playerAccordionListStyle}>
-                <div style={playerOverviewPanelStyle}>
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("running")}
-                    style={playerAccordionToggleStyle}
-                  >
+                {playerOverviewPanel === "running" && (
+                  <div style={playerOverviewPanelStyle}>
                     <div>
                       <div style={playerOverviewPanelTitleStyle}>Egna löppass</div>
                       <div style={playerOverviewPanelTextStyle}>
                         Spara träning du gör själv utanför lagpassen.
                       </div>
                     </div>
-                    <div style={playerAccordionIconStyle}>{playerOverviewPanel === "running" ? "−" : "+"}</div>
-                  </button>
 
-                  {playerOverviewPanel === "running" && (
                     <div style={playerAccordionContentStyle}>
                       <div
                         style={{
@@ -6395,25 +6487,18 @@ function TrainingApp() {
                         {isSavingRunningSession ? "Sparar..." : "Spara löppass"}
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <div style={playerOverviewPanelStyle}>
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("history")}
-                    style={playerAccordionToggleStyle}
-                  >
+                {playerOverviewPanel === "history" && (
+                  <div style={playerOverviewPanelStyle}>
                     <div>
                       <div style={playerOverviewPanelTitleStyle}>Historik</div>
                       <div style={playerOverviewPanelTextStyle}>
                         Se senaste pass, löppass och enkel statistik.
                       </div>
                     </div>
-                    <div style={playerAccordionIconStyle}>{playerOverviewPanel === "history" ? "−" : "+"}</div>
-                  </button>
 
-                  {playerOverviewPanel === "history" && (
                     <div style={playerAccordionContentStyle}>
                       <div style={playerHistoryHighlightsGridStyle(isMobile)}>
                         <div style={playerHistoryHighlightCardStyle}>
@@ -6536,8 +6621,8 @@ function TrainingApp() {
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -6701,6 +6786,108 @@ function TrainingApp() {
                   >
                     Starta {selectedWorkoutData.label}
                   </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {!isWorkoutActive && playerView === "stats" && (
+            <>
+              <div style={playerPageIntroStyle}>
+                <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
+                  Din statistik
+                </h2>
+                <p style={mutedTextStyle}>
+                  Se vilka övningar du kört och följ utvecklingen över tid. Vikt visas tydligast när den finns loggad.
+                </p>
+              </div>
+
+              {isLoadingPlayerExerciseProgress ? (
+                <div style={playerStatsEmptyStyle}>Laddar statistik...</div>
+              ) : playerExerciseProgress.length === 0 ? (
+                <div style={playerStatsEmptyStyle}>Ingen statistik ännu. Logga några pass först.</div>
+              ) : (
+                <div style={playerStatsLayoutStyle(isMobile)}>
+                  <div style={playerStatsExerciseListStyle}>
+                    {playerExerciseProgress.map((entry) => {
+                      const isSelected = selectedPlayerStatsExercise?.exercise_id === entry.exercise_id
+
+                      return (
+                        <button
+                          key={entry.exercise_id}
+                          type="button"
+                          onClick={() => setSelectedPlayerStatsExerciseId(entry.exercise_id)}
+                          style={{
+                            ...playerStatsExerciseButtonStyle,
+                            borderColor: isSelected ? "#b61e24" : playerStatsExerciseButtonStyle.borderColor,
+                            backgroundColor: isSelected ? "#fff6f6" : playerStatsExerciseButtonStyle.backgroundColor,
+                          }}
+                        >
+                          <div style={playerStatsExerciseTitleStyle}>{entry.exercise_display_name}</div>
+                          <div style={playerStatsExerciseMetaStyle}>
+                            {entry.best_weight_entry?.top_weight != null
+                              ? `Bästa vikt ${entry.best_weight_entry.top_weight} kg`
+                              : `${entry.entry_count} loggade pass`}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {selectedPlayerStatsExercise && (
+                    <div style={playerStatsCardStyle}>
+                      <div style={playerStatsHeaderStyle(isMobile)}>
+                        <div>
+                          <div style={playerStatsTitleStyle}>{selectedPlayerStatsExercise.exercise_display_name}</div>
+                          <div style={playerStatsTextStyle}>
+                            {selectedPlayerStatsExercise.weight_entries.length > 0
+                              ? "Viktutveckling över tid"
+                              : "Här ser du dina senaste loggningar för övningen"}
+                          </div>
+                        </div>
+                        <div style={playerStatsSummaryPillStyle}>
+                          {selectedPlayerStatsExercise.best_weight_entry?.top_weight != null
+                            ? `${selectedPlayerStatsExercise.best_weight_entry.top_weight} kg bäst`
+                            : `${selectedPlayerStatsExercise.entry_count} pass`}
+                        </div>
+                      </div>
+
+                      {selectedPlayerStatsExercise.weight_entries.length > 0 ? (
+                        <div style={playerChartWrapStyle}>
+                          <PlayerProgressChart entries={selectedPlayerStatsExercise.weight_entries} />
+                        </div>
+                      ) : (
+                        <div style={playerStatsEmptyInlineStyle}>
+                          Ingen vikt loggad ännu för den här övningen. Fortsätt logga så visas grafen här.
+                        </div>
+                      )}
+
+                      <div style={playerStatsRecentListStyle}>
+                        {(selectedPlayerStatsExercise.weight_entries.length > 0
+                          ? selectedPlayerStatsExercise.weight_entries.slice().reverse()
+                          : [selectedPlayerStatsExercise.latest_entry].filter(Boolean)
+                        )
+                          .slice(0, 6)
+                          .map((entry) => (
+                            <div
+                              key={`${selectedPlayerStatsExercise.exercise_id}-${entry.created_at}`}
+                              style={playerStatsRecentItemStyle}
+                            >
+                              <div>
+                                <div style={playerStatsRecentDateStyle}>{formatDate(entry.created_at)}</div>
+                                <div style={playerStatsRecentMetaStyle}>
+                                  {entry.pass_name || "Pass"}
+                                  {entry.top_reps != null ? ` • ${entry.top_reps} reps` : ""}
+                                </div>
+                              </div>
+                              <div style={playerStatsRecentValueStyle}>
+                                {entry.top_weight != null ? `${entry.top_weight} kg` : "Loggat"}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -7331,6 +7518,87 @@ function TrainingApp() {
   )
 }
 
+function PlayerProgressChart({ entries }) {
+  const chartWidth = 560
+  const chartHeight = 220
+  const padding = { top: 20, right: 18, bottom: 34, left: 42 }
+  const points = (entries || []).filter((entry) => entry?.top_weight != null)
+
+  if (points.length === 0) {
+    return null
+  }
+
+  const weights = points.map((entry) => Number(entry.top_weight))
+  const minWeight = Math.min(...weights)
+  const maxWeight = Math.max(...weights)
+  const range = Math.max(maxWeight - minWeight, 2)
+
+  const chartPoints = points.map((entry, index) => {
+    const x =
+      points.length === 1
+        ? chartWidth / 2
+        : padding.left + (index / (points.length - 1)) * (chartWidth - padding.left - padding.right)
+    const y =
+      padding.top +
+      ((maxWeight - Number(entry.top_weight)) / range) * (chartHeight - padding.top - padding.bottom)
+
+    return {
+      ...entry,
+      x,
+      y,
+      label: new Date(entry.created_at).toLocaleDateString("sv-SE", { month: "numeric", day: "numeric" }),
+    }
+  })
+
+  const polylinePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(" ")
+  const axisLabels = [maxWeight, minWeight + range / 2, minWeight].map((value) => Math.round(value * 10) / 10)
+
+  return (
+    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={playerChartSvgStyle} role="img" aria-label="Graf över viktutveckling">
+      <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="20" fill="#fffdfd" />
+
+      {axisLabels.map((value, index) => {
+        const y =
+          padding.top + (index / (axisLabels.length - 1)) * (chartHeight - padding.top - padding.bottom)
+
+        return (
+          <g key={value}>
+            <line
+              x1={padding.left}
+              x2={chartWidth - padding.right}
+              y1={y}
+              y2={y}
+              stroke="#e9d7d7"
+              strokeDasharray="4 6"
+            />
+            <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280" fontWeight="700">
+              {value} kg
+            </text>
+          </g>
+        )
+      })}
+
+      <polyline
+        fill="none"
+        stroke="#b61e24"
+        strokeWidth="4"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        points={polylinePoints}
+      />
+
+      {chartPoints.map((point) => (
+        <g key={`${point.created_at}-${point.top_weight}`}>
+          <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#b61e24" strokeWidth="3" />
+          <text x={point.x} y={chartHeight - 10} textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="700">
+            {point.label}
+          </text>
+        </g>
+      ))}
+    </svg>
+  )
+}
+
 const pageStyle = {
   padding: "20px 16px 48px",
   maxWidth: "980px",
@@ -7800,18 +8068,23 @@ const exerciseCarouselViewportStyle = {
   overflowX: "auto",
   WebkitOverflowScrolling: "touch",
   scrollSnapType: "x mandatory",
+  overscrollBehaviorX: "contain",
   paddingBottom: "4px",
 }
 
 const exerciseCarouselTrackStyle = {
-  display: "flex",
+  display: "grid",
+  gridAutoFlow: "column",
+  gridAutoColumns: "100%",
   gap: "12px",
+  alignItems: "stretch",
 }
 
 const exerciseSwipeCardStyle = {
-  flex: "0 0 100%",
   width: "100%",
+  minWidth: 0,
   scrollSnapAlign: "start",
+  scrollSnapStop: "always",
   marginBottom: 0,
 }
 
@@ -8454,7 +8727,7 @@ const playerHomeIntroStyle = {
 const playerQuickActionsGridStyle = (isMobile) => ({
   display: "grid",
   gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
 })
 
 const playerQuickActionCardStyle = {
@@ -8551,33 +8824,6 @@ const playerOverviewPanelHeaderStyle = {
 const playerAccordionListStyle = {
   display: "grid",
   gap: "12px",
-}
-
-const playerAccordionToggleStyle = {
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "12px",
-  padding: 0,
-  border: "none",
-  background: "transparent",
-  textAlign: "left",
-  cursor: "pointer",
-}
-
-const playerAccordionIconStyle = {
-  width: "36px",
-  height: "36px",
-  borderRadius: "12px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
-  fontSize: "24px",
-  fontWeight: "700",
-  flexShrink: 0,
 }
 
 const playerAccordionContentStyle = {
@@ -8684,6 +8930,148 @@ const playerHistoryHighlightValueStyle = {
 
 const playerPageIntroStyle = {
   marginBottom: "4px",
+}
+
+const playerStatsLayoutStyle = (isMobile) => ({
+  display: "grid",
+  gap: "14px",
+  gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
+  width: "100%",
+})
+
+const playerStatsExerciseListStyle = {
+  display: "grid",
+  gap: "10px",
+  alignContent: "start",
+}
+
+const playerStatsExerciseButtonStyle = {
+  width: "100%",
+  padding: "14px",
+  borderRadius: "18px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const playerStatsExerciseTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const playerStatsExerciseMetaStyle = {
+  fontSize: "13px",
+  color: "#566173",
+}
+
+const playerStatsCardStyle = {
+  padding: "18px",
+  borderRadius: "22px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffdfd",
+  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.06)",
+}
+
+const playerStatsHeaderStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: isMobile ? "flex-start" : "center",
+  justifyContent: "space-between",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "10px",
+  marginBottom: "14px",
+})
+
+const playerStatsTitleStyle = {
+  fontSize: "20px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const playerStatsTextStyle = {
+  fontSize: "14px",
+  color: "#566173",
+  lineHeight: 1.5,
+}
+
+const playerStatsSummaryPillStyle = {
+  display: "inline-flex",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#b61e24",
+  fontSize: "13px",
+  fontWeight: "800",
+}
+
+const playerChartWrapStyle = {
+  width: "100%",
+  overflowX: "auto",
+  marginBottom: "14px",
+}
+
+const playerChartSvgStyle = {
+  display: "block",
+  width: "100%",
+  minWidth: "520px",
+  height: "220px",
+}
+
+const playerStatsRecentListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const playerStatsRecentItemStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "12px 14px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+}
+
+const playerStatsRecentDateStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const playerStatsRecentMetaStyle = {
+  fontSize: "13px",
+  color: "#566173",
+}
+
+const playerStatsRecentValueStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#b61e24",
+  whiteSpace: "nowrap",
+}
+
+const playerStatsEmptyStyle = {
+  padding: "18px",
+  borderRadius: "20px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffdfd",
+  color: "#566173",
+  fontSize: "14px",
+}
+
+const playerStatsEmptyInlineStyle = {
+  marginBottom: "14px",
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  color: "#566173",
+  fontSize: "14px",
 }
 
 const renderCoachBottomNavIcon = (icon, isActive) => {
