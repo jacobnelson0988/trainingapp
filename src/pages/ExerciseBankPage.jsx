@@ -155,6 +155,37 @@ const getExerciseNavigationCategory = (exercise) => {
   return "Övrigt"
 }
 
+const overviewStatsGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "16px",
+})
+
+const overviewStatCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+}
+
+const overviewStatLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const overviewStatValueStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+  fontWeight: "900",
+  color: "#111827",
+}
+
 function ExerciseBankPage({
   canManageExercises,
   canRequestExercises,
@@ -422,6 +453,23 @@ function ExerciseBankPage({
           ? "Här ser du övningarna som kan användas i pass. Om något saknas kan du skicka en request till huvudadmin."
           : "Här ser du övningarna som kan användas när du bygger pass för ditt lag."}
       </p>
+
+      <div style={overviewStatsGridStyle(isMobile)}>
+        <div style={overviewStatCardStyle}>
+          <div style={overviewStatLabelStyle}>Övningar</div>
+          <div style={{ ...overviewStatValueStyle, color: "#dc2626" }}>{exercisesFromDB.length}</div>
+        </div>
+        <div style={overviewStatCardStyle}>
+          <div style={overviewStatLabelStyle}>Kategorier</div>
+          <div style={overviewStatValueStyle}>{visibleNavigationCategories.length}</div>
+        </div>
+        {(canManageExercises || canRequestExercises) && (
+          <div style={overviewStatCardStyle}>
+            <div style={overviewStatLabelStyle}>Requests</div>
+            <div style={overviewStatValueStyle}>{exerciseRequests.length}</div>
+          </div>
+        )}
+      </div>
 
       {canManageExercises && (
         <div style={adminTabsWrapStyle}>

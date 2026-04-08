@@ -169,6 +169,7 @@ function PassBuilderPage({
   isMobile,
 }) {
   const [view, setView] = useState("overview")
+  const [activeEditSection, setActiveEditSection] = useState("content")
   const [exerciseSearchValue, setExerciseSearchValue] = useState("")
   const [selectedExerciseCategory, setSelectedExerciseCategory] = useState("alla")
   const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
@@ -200,6 +201,7 @@ function PassBuilderPage({
   const openEditView = () => {
     if (!selectedTemplateCode) return
     resetPassEditorState(selectedTemplateCode)
+    setActiveEditSection("content")
     setSelectedAlternativeExerciseByRow({})
     setExerciseSearchValue("")
     setSelectedExerciseCategory("alla")
@@ -542,6 +544,31 @@ function PassBuilderPage({
           </section>
 
           <section style={panelStyle}>
+            <div style={editSectionTabsStyle(isMobile)}>
+              {[
+                { key: "passinfo", label: "Passinfo" },
+                ...(renamePassWorkoutKind !== "running" ? [{ key: "warmup", label: "Uppvärmning" }] : []),
+                ...(renamePassWorkoutKind !== "running" ? [{ key: "add", label: "Lägg till" }] : []),
+                ...(renamePassWorkoutKind !== "running" ? [{ key: "content", label: "Innehåll" }] : []),
+              ].map((section) => (
+                <button
+                  key={section.key}
+                  type="button"
+                  onClick={() => setActiveEditSection(section.key)}
+                  style={{
+                    ...editSectionButtonStyle,
+                    ...(activeEditSection === section.key ? editSectionButtonActiveStyle : {}),
+                    width: isMobile ? "100%" : "auto",
+                  }}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {activeEditSection === "passinfo" && (
+          <section style={panelStyle}>
             <div style={sectionEyebrowStyle}>Passinfo</div>
             <div style={formStackStyle}>
               <div>
@@ -637,8 +664,9 @@ function PassBuilderPage({
               )}
             </div>
           </section>
+          )}
 
-          {renamePassWorkoutKind !== "running" && (
+          {renamePassWorkoutKind !== "running" && activeEditSection === "warmup" && (
           <section style={panelStyle}>
             <div style={sectionEyebrowStyle}>Uppvärmning</div>
             <div style={formStackStyle}>
@@ -699,7 +727,7 @@ function PassBuilderPage({
           </section>
           )}
 
-          {renamePassWorkoutKind !== "running" && (
+          {renamePassWorkoutKind !== "running" && activeEditSection === "add" && (
           <section style={panelStyle}>
             <div style={panelHeaderStyle}>
               <div>
@@ -833,7 +861,7 @@ function PassBuilderPage({
           </section>
           )}
 
-          {renamePassWorkoutKind !== "running" && (
+          {renamePassWorkoutKind !== "running" && activeEditSection === "content" && (
           <section style={panelStyle}>
             <div style={panelHeaderStyle}>
               <div>
@@ -1079,6 +1107,25 @@ function PassBuilderPage({
       </div>
 
       <div style={pageStackStyle}>
+        <section style={summaryStripStyle(isMobile)}>
+          <div style={summaryStatCardStyle}>
+            <div style={summaryStatLabelStyle}>Pass totalt</div>
+            <div style={{ ...summaryStatValueStyle, color: "#dc2626" }}>{passKeys.length}</div>
+          </div>
+          <div style={summaryStatCardStyle}>
+            <div style={summaryStatLabelStyle}>Gympass</div>
+            <div style={summaryStatValueStyle}>
+              {passKeys.filter((key) => activeWorkouts[key]?.workoutKind !== "running").length}
+            </div>
+          </div>
+          <div style={summaryStatCardStyle}>
+            <div style={summaryStatLabelStyle}>Löppass</div>
+            <div style={summaryStatValueStyle}>
+              {passKeys.filter((key) => activeWorkouts[key]?.workoutKind === "running").length}
+            </div>
+          </div>
+        </section>
+
         <section style={panelStyle}>
           <div style={panelHeaderStyle}>
             <div>
@@ -1208,6 +1255,36 @@ const overviewHeaderStyle = {
   flexWrap: "wrap",
 }
 
+const summaryStripStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+})
+
+const summaryStatCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+}
+
+const summaryStatLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const summaryStatValueStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+  fontWeight: "900",
+  color: "#111827",
+}
+
 const pageStackStyle = {
   display: "grid",
   gap: "14px",
@@ -1310,6 +1387,30 @@ const editorActionsStyle = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap",
+}
+
+const editSectionTabsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexDirection: isMobile ? "column" : "row",
+  flexWrap: "wrap",
+})
+
+const editSectionButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "999px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+  color: "#566173",
+  fontSize: "13px",
+  fontWeight: "800",
+  cursor: "pointer",
+}
+
+const editSectionButtonActiveStyle = {
+  backgroundColor: "#fff1f1",
+  borderColor: "#efc7c7",
+  color: "#991b1b",
 }
 
 const sectionEyebrowStyle = {

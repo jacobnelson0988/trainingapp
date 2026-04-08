@@ -104,11 +104,16 @@ function StatsPage({
 }) {
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
   const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(!isMobile)
   const [exerciseFilter, setExerciseFilter] = useState("all")
   const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [expandedChart, setExpandedChart] = useState(null)
+
+  useEffect(() => {
+    setFiltersOpen(!isMobile)
+  }, [isMobile])
 
   const sortedPlayers = useMemo(
     () =>
@@ -225,19 +230,44 @@ function StatsPage({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedPlayerIds(sortedPlayers.map((player) => player.id))
-            setIsPlayerMenuOpen(false)
-          }}
-          style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-          disabled={!sortedPlayers.length}
-        >
-          Välj alla
-        </button>
+        <div style={statsHeaderActionsStyle(isMobile)}>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedPlayerIds(sortedPlayers.map((player) => player.id))
+              setIsPlayerMenuOpen(false)
+            }}
+            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+            disabled={!sortedPlayers.length}
+          >
+            Välj alla
+          </button>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+          >
+            {filtersOpen ? "Dölj filter" : "Visa filter"}
+          </button>
+        </div>
       </div>
 
+      <div style={statsSummaryGridStyle(isMobile)}>
+        <div style={statsSummaryCardStyle}>
+          <div style={statsSummaryLabelStyle}>Valda spelare</div>
+          <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{selectedPlayerIds.length}</div>
+        </div>
+        <div style={statsSummaryCardStyle}>
+          <div style={statsSummaryLabelStyle}>Övningar med data</div>
+          <div style={statsSummaryValueStyle}>{exerciseOptions.length}</div>
+        </div>
+        <div style={statsSummaryCardStyle}>
+          <div style={statsSummaryLabelStyle}>Datarader</div>
+          <div style={statsSummaryValueStyle}>{filteredStatsRows.length}</div>
+        </div>
+      </div>
+
+      {filtersOpen && (
       <div style={filterGridStyle(isMobile)}>
         <div style={filterCardStyle}>
           <div style={filterTitleStyle}>Spelare</div>
@@ -346,6 +376,7 @@ function StatsPage({
           </div>
         </div>
       </div>
+      )}
 
       {isLoadingStats ? (
         <p style={mutedTextStyle}>Laddar statistik...</p>
@@ -622,6 +653,44 @@ const filterGridStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.5fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr)",
   marginBottom: "18px",
 })
+
+const statsHeaderActionsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexDirection: isMobile ? "column" : "row",
+  flexWrap: "wrap",
+})
+
+const statsSummaryGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "16px",
+})
+
+const statsSummaryCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+}
+
+const statsSummaryLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const statsSummaryValueStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+  fontWeight: "900",
+  color: "#111827",
+}
 
 const filterCardStyle = {
   padding: "16px",

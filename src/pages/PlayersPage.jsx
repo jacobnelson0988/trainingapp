@@ -47,6 +47,7 @@ function PlayersPage({
   const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
   const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
   const [bulkSelectedPlayerIds, setBulkSelectedPlayerIds] = useState([])
+  const [activeEditorSection, setActiveEditorSection] = useState("passes")
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
@@ -80,6 +81,28 @@ function PlayersPage({
     return haystack.includes(searchValue.trim().toLowerCase())
   })
 
+  const activePlayerCount = players.filter((player) => !player.is_archived).length
+  const archivedPlayerCount = players.filter((player) => player.is_archived).length
+  const historyModeCount = players.filter((player) => player.individual_goals_enabled === false).length
+
+  const renderEditorSectionButton = (key, label) => {
+    const isActive = activeEditorSection === key
+
+    return (
+      <button
+        type="button"
+        onClick={() => setActiveEditorSection(key)}
+        style={{
+          ...editorSectionButtonStyle,
+          ...(isActive ? editorSectionButtonActiveStyle : {}),
+          width: isMobile ? "100%" : "auto",
+        }}
+      >
+        {label}
+      </button>
+    )
+  }
+
   const renderPlayerEditor = (player) => (
     <div
       style={{
@@ -90,6 +113,21 @@ function PlayersPage({
         backgroundColor: "#fffdfd",
       }}
     >
+      <div style={editorSummaryCardStyle}>
+        <div>
+          <div style={editorSummaryTitleStyle}>{player.full_name}</div>
+          <div style={editorSummaryMetaStyle}>
+            @{player.username} • {player.totalPasses ?? 0} loggade pass
+            {player.lastSignInAt
+              ? ` • senast inloggad ${new Date(player.lastSignInAt).toLocaleDateString("sv-SE")}`
+              : ""}
+          </div>
+        </div>
+        <div style={editorSummaryBadgeStyle}>
+          {player.individual_goals_enabled === false ? "Historikläge" : "Individuella mål"}
+        </div>
+      </div>
+
       <div style={playerActionBarStyle(isMobile)}>
         {player.is_archived ? (
           <div style={archivedStatusBadgeStyle}>
@@ -141,8 +179,21 @@ function PlayersPage({
 
       {!player.is_archived && (
         <>
+      <div style={editorSectionTabsStyle(isMobile)}>
+        {renderEditorSectionButton("overview", "Översikt")}
+        {renderEditorSectionButton("passes", "Pass")}
+        {renderEditorSectionButton("targets", "Mål")}
+        {renderEditorSectionButton("history", "Historik")}
+      </div>
 
-      <div style={{ marginBottom: "14px" }}>
+      {activeEditorSection === "overview" && (
+      <div style={editorSectionCardStyle}>
+        <div style={sectionHeaderCompactStyle}>
+          <div style={sectionTitleCompactStyle}>Översikt</div>
+          <div style={sectionMetaCompactStyle}>Snabba ändringar för spelaren</div>
+        </div>
+
+        <div style={{ marginBottom: "14px" }}>
         <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
           Kommentar
         </div>
@@ -154,10 +205,27 @@ function PlayersPage({
           onBlur={() => handleCommentSave(player.id)}
           style={{ ...inputStyle, width: "100%" }}
         />
-      </div>
+        </div>
 
-      <div style={{ marginTop: "12px" }}>
-        <h3 style={cardTitleStyle}>Tilldelade pass</h3>
+        <div style={editorOverviewGridStyle(isMobile)}>
+          <div style={miniStatCardStyle}>
+            <div style={miniStatLabelStyle}>Senaste pass</div>
+            <div style={miniStatValueStyle}>{player.latestPass || "-"}</div>
+          </div>
+          <div style={miniStatCardStyle}>
+            <div style={miniStatLabelStyle}>Tilldelade pass</div>
+            <div style={miniStatValueStyle}>{assignedPassCodes.length}</div>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {activeEditorSection === "passes" && (
+      <div style={editorSectionCardStyle}>
+        <div style={sectionHeaderCompactStyle}>
+          <div style={sectionTitleCompactStyle}>Tilldelade pass</div>
+          <div style={sectionMetaCompactStyle}>Välj vilka pass spelaren ska se</div>
+        </div>
         <div
           style={{
             marginBottom: "12px",
@@ -231,9 +299,9 @@ function PlayersPage({
                   ? handleUnassignPassFromPlayer(passKey)
                   : handleAssignPassToPlayer(passKey)
               }
-              style={{
-                padding: "14px",
-                borderRadius: "14px",
+            style={{
+              padding: "14px",
+              borderRadius: "14px",
                 border: assignedPassSet.has(passKey) ? "2px solid #c62828" : "1px solid #e5e7eb",
                 backgroundColor: assignedPassSet.has(passKey) ? "#fff7f7" : "#ffffff",
                 color: "#111827",
@@ -267,9 +335,15 @@ function PlayersPage({
             </button>
           ))}
         </div>
+      </div>
+      )}
 
-        <h3 style={cardTitleStyle}>Individuella mål per övning</h3>
-
+      {activeEditorSection === "targets" && (
+      <div style={editorSectionCardStyle}>
+        <div style={sectionHeaderCompactStyle}>
+          <div style={sectionTitleCompactStyle}>Individuella mål per övning</div>
+          <div style={sectionMetaCompactStyle}>Visa mindre först, välj sedan pass och övning</div>
+        </div>
         {isLoadingTargets ? (
           <p style={mutedTextStyle}>Laddar individuella mål...</p>
         ) : assignedPassCodes.length === 0 ? (
@@ -474,16 +548,17 @@ function PlayersPage({
             >
               {isSavingTargets ? "Sparar..." : "Spara mål"}
             </button>
-          </div>
+      </div>
         )}
       </div>
+      )}
 
-      <div style={{ marginTop: "18px" }}>
-        <h3 style={cardTitleStyle}>Historik och personliga mål per övning</h3>
-        <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
-          Använd spelarens historik som grund och spara ett separat personligt mål per övning.
-        </p>
-
+      {activeEditorSection === "history" && (
+      <div style={editorSectionCardStyle}>
+        <div style={sectionHeaderCompactStyle}>
+          <div style={sectionTitleCompactStyle}>Historik och personliga mål</div>
+          <div style={sectionMetaCompactStyle}>Bygg mål utifrån spelarens verkliga historik</div>
+        </div>
         {player.individual_goals_enabled === false ? (
           <div style={archivedInfoCardStyle}>
             Personliga övningsmål är avstängda. Träningsrekommendationer byggs nu i stället på spelarens egen historik.
@@ -668,6 +743,7 @@ function PlayersPage({
           </div>
         )}
       </div>
+      )}
         </>
       )}
     </div>
@@ -706,6 +782,23 @@ function PlayersPage({
           </button>
         )}
       </div>
+
+      {role === "coach" && (
+        <div style={overviewStatsGridStyle(isMobile)}>
+          <div style={overviewStatCardStyle}>
+            <div style={overviewStatLabelStyle}>Aktiva spelare</div>
+            <div style={{ ...overviewStatValueStyle, color: "#dc2626" }}>{activePlayerCount}</div>
+          </div>
+          <div style={overviewStatCardStyle}>
+            <div style={overviewStatLabelStyle}>Arkiverade</div>
+            <div style={overviewStatValueStyle}>{archivedPlayerCount}</div>
+          </div>
+          <div style={overviewStatCardStyle}>
+            <div style={overviewStatLabelStyle}>Historikläge</div>
+            <div style={overviewStatValueStyle}>{historyModeCount}</div>
+          </div>
+        </div>
+      )}
 
       {role === "coach" && (
         <div
@@ -941,6 +1034,37 @@ const tableCellStyle = {
   color: "#18202b",
 }
 
+const overviewStatsGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "16px",
+})
+
+const overviewStatCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+}
+
+const overviewStatLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const overviewStatValueStyle = {
+  fontSize: "28px",
+  fontWeight: "900",
+  lineHeight: 1,
+  color: "#111827",
+}
+
 const quickActionButtonStyle = {
   padding: "10px 14px",
   borderRadius: "10px",
@@ -1060,6 +1184,114 @@ const archivedInfoCardStyle = {
   fontSize: "13px",
   lineHeight: 1.6,
   fontWeight: "700",
+}
+
+const editorSummaryCardStyle = {
+  marginBottom: "14px",
+  padding: "14px 16px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "10px",
+  flexWrap: "wrap",
+}
+
+const editorSummaryTitleStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const editorSummaryMetaStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+}
+
+const editorSummaryBadgeStyle = {
+  display: "inline-flex",
+  padding: "6px 10px",
+  borderRadius: "999px",
+  backgroundColor: "#fff7f7",
+  color: "#991b1b",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const editorSectionTabsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexDirection: isMobile ? "column" : "row",
+  flexWrap: "wrap",
+  marginBottom: "14px",
+})
+
+const editorSectionButtonStyle = {
+  padding: "10px 14px",
+  borderRadius: "999px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+  color: "#566173",
+  fontSize: "13px",
+  fontWeight: "800",
+  cursor: "pointer",
+}
+
+const editorSectionButtonActiveStyle = {
+  backgroundColor: "#fff1f1",
+  borderColor: "#efc7c7",
+  color: "#991b1b",
+}
+
+const editorSectionCardStyle = {
+  marginTop: "12px",
+}
+
+const sectionHeaderCompactStyle = {
+  marginBottom: "12px",
+}
+
+const sectionTitleCompactStyle = {
+  fontSize: "16px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const sectionMetaCompactStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+}
+
+const editorOverviewGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const miniStatCardStyle = {
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#ffffff",
+}
+
+const miniStatLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  color: "#6b7280",
+  marginBottom: "6px",
+}
+
+const miniStatValueStyle = {
+  fontSize: "16px",
+  fontWeight: "800",
+  color: "#18202b",
 }
 
 const coachChipStyle = {
