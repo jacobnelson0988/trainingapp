@@ -2915,6 +2915,46 @@ function TrainingApp() {
     await loadLatestData(user.id)
   }
 
+  const cancelWorkout = async () => {
+    if (!currentSessionId || !selectedWorkout || !user) return
+
+    const workoutLabel = activeWorkouts[selectedWorkout]?.label || "passet"
+    const shouldCancel = window.confirm(
+      `Vill du avbryta ${workoutLabel}? Eventuella påbörjade set i det här passet tas bort.`
+    )
+
+    if (!shouldCancel) return
+
+    const { error } = await supabase
+      .from("workout_logs")
+      .delete()
+      .eq("workout_session_id", currentSessionId)
+      .eq("user_id", user.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte avbryta passet")
+      return
+    }
+
+    setIsWorkoutActive(false)
+    setCurrentSessionId(null)
+    setInputs({})
+    setSelectedExerciseOptionKeys({})
+    setExerciseComments({})
+    setPassComment("")
+    setExpandedInfo({})
+    setActiveRunningInput({
+      interval_time: "",
+      intervals_count: "",
+      running_distance: "",
+      running_time: "",
+      average_pulse: "",
+    })
+    setPlayerView("pass")
+    setStatus(`${workoutLabel} avbrutet`)
+  }
+
   const handleAddSet = (exerciseIndex) => {
     if (!isWorkoutActive || !currentSessionId || !selectedWorkout) return
 
@@ -6067,6 +6107,17 @@ function TrainingApp() {
               <div style={activeWorkoutPageTextStyle}>
                 Du är nu inne i passet. Svep eller bläddra mellan övningskorten och avsluta på sista kortet.
               </div>
+              <button
+                type="button"
+                onClick={cancelWorkout}
+                style={{
+                  ...activeWorkoutCancelButtonStyle,
+                  width: isMobile ? "100%" : "auto",
+                  marginTop: "14px",
+                }}
+              >
+                Avbryt och gå tillbaka
+              </button>
             </div>
           )}
 
@@ -7314,6 +7365,17 @@ const activeWorkoutPageTextStyle = {
   fontSize: "15px",
   lineHeight: 1.6,
   color: "rgba(255,255,255,0.9)",
+}
+
+const activeWorkoutCancelButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid rgba(255,255,255,0.22)",
+  backgroundColor: "rgba(255,255,255,0.12)",
+  color: "#ffffff",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "800",
 }
 
 const activeWorkoutPageWrapStyle = {
