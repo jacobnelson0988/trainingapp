@@ -5579,7 +5579,7 @@ function TrainingApp() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={feedbackActionTitleStyle}>Hjälp oss förbättra appen</div>
+          <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
           <div style={mutedTextStyle}>
             Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
           </div>
