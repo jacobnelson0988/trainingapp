@@ -5221,6 +5221,19 @@ function TrainingApp() {
     profile?.role === "head_admin"
       ? (allUsers || []).filter((entry) => entry.role === "player")
       : (players || []).filter((entry) => entry.role === "player")
+  const coachName = profile?.full_name?.trim()?.split(" ")[0] || "tränare"
+  const activePlayerCount = (players || []).filter(
+    (entry) => entry.role === "player" && entry.is_archived !== true
+  ).length
+  const coachPassCount = templatesFromDB.length
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const activeSevenDayCount = (players || []).filter((entry) => {
+    if (!entry.lastSignInAt || entry.is_archived === true) return false
+    const lastSignInTime = new Date(entry.lastSignInAt).getTime()
+    return Number.isFinite(lastSignInTime) && lastSignInTime >= sevenDaysAgo
+  }).length
+  const totalUsersCount = allUsers.length
+  const totalTeamsCount = teams.length
 
   return (
     <div
@@ -5617,10 +5630,9 @@ function TrainingApp() {
               profile?.role === "head_admin" ? (
                 <AdminHomePage
                   setCoachView={setCoachView}
-                  mutedTextStyle={mutedTextStyle}
-                  coachNavCardStyle={coachNavCardStyle}
-                  coachNavTitleStyle={coachNavTitleStyle}
-                  coachNavTextStyle={coachNavTextStyle}
+                  totalUsers={totalUsersCount}
+                  totalTeams={totalTeamsCount}
+                  organizationLabel="Systemöversikt"
                   isMobile={isMobile}
                 />
               ) : (
@@ -5628,10 +5640,11 @@ function TrainingApp() {
                   setCoachView={setCoachView}
                   setSelectedPlayer={setSelectedPlayer}
                   resetExerciseForm={resetExerciseForm}
-                  mutedTextStyle={mutedTextStyle}
-                  coachNavCardStyle={coachNavCardStyle}
-                  coachNavTitleStyle={coachNavTitleStyle}
-                  coachNavTextStyle={coachNavTextStyle}
+                  coachName={coachName}
+                  teamName={teamName}
+                  activePlayerCount={activePlayerCount}
+                  passCount={coachPassCount}
+                  activeSevenDayCount={activeSevenDayCount}
                   isMobile={isMobile}
                 />
               )
