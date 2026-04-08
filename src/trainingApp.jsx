@@ -1437,10 +1437,11 @@ function TrainingApp() {
   const handleSendMessage = async () => {
     const trimmedSubject = messageSubject.trim()
     const trimmedBody = messageBody.trim()
+    const uniqueRecipientIds = Array.from(new Set(selectedMessageRecipientIds.filter(Boolean)))
 
     if (!user || !profile) return
 
-    if (!selectedMessageRecipientIds.length) {
+    if (!uniqueRecipientIds.length) {
       setStatus("Välj minst en mottagare")
       return
     }
@@ -1470,7 +1471,7 @@ function TrainingApp() {
 
     if (messageError || !messageRow?.id) {
       console.error(messageError)
-      setStatus("Kunde inte skicka meddelandet")
+      setStatus(`Kunde inte skicka meddelandet${messageError?.message ? `: ${messageError.message}` : ""}`)
       setIsSendingMessage(false)
       return
     }
@@ -1478,7 +1479,7 @@ function TrainingApp() {
     const { error: recipientError } = await supabase
       .from("message_recipients")
       .insert(
-        selectedMessageRecipientIds.map((recipientId) => ({
+        uniqueRecipientIds.map((recipientId) => ({
           message_id: messageRow.id,
           recipient_id: recipientId,
         }))
@@ -1487,7 +1488,7 @@ function TrainingApp() {
     if (recipientError) {
       console.error(recipientError)
       await supabase.from("messages").delete().eq("id", messageRow.id)
-      setStatus("Kunde inte skicka meddelandet")
+      setStatus(`Kunde inte skicka meddelandet${recipientError.message ? `: ${recipientError.message}` : ""}`)
       setIsSendingMessage(false)
       return
     }
