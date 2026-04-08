@@ -4572,7 +4572,7 @@ function TrainingApp() {
     setSelectedExerciseId("")
     setStatus("Övning tillagd i passet ✅")
     setIsSavingPassExercise(false)
-    return true
+    return data?.id || true
   }
 
   const handlePassExerciseDraftChange = (rowId, field, value) => {
