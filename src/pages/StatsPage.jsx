@@ -94,6 +94,34 @@ const buildProgressionSeries = (rows, playerMap) => {
     .sort((a, b) => a.exerciseName.localeCompare(b.exerciseName, "sv"))
 }
 
+const buildActivitySessions = (rows, playerMap) => {
+  const grouped = new Map()
+
+  ;(rows || []).forEach((row) => {
+    const sessionId =
+      row.workout_session_id ||
+      `${String(row.created_at || "").slice(0, 19)}:${row.user_id || ""}:${row.pass_name || ""}`
+
+    if (!grouped.has(sessionId)) {
+      const player = playerMap.get(String(row.user_id))
+      grouped.set(sessionId, {
+        sessionId,
+        playerId: String(row.user_id),
+        playerName: player?.full_name || player?.username || "Spelare",
+        passName:
+          row.workout_kind === "running" && row.running_origin !== "assigned"
+            ? "Egna löppass"
+            : row.pass_name || "Pass",
+        createdAt: row.created_at,
+      })
+    }
+  })
+
+  return Array.from(grouped.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+}
+
 function StatsPage({
   candidatePlayers,
   cardTitleStyle,
@@ -102,13 +130,17 @@ function StatsPage({
   secondaryButtonStyle,
   isMobile,
 }) {
+  const [viewMode, setViewMode] = useState("activity")
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
+  const [activityPlayerId, setActivityPlayerId] = useState("")
   const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(!isMobile)
   const [exerciseFilter, setExerciseFilter] = useState("all")
   const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
+  const [activityRows, setActivityRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false)
   const [expandedChart, setExpandedChart] = useState(null)
 
   useEffect(() => {
@@ -126,16 +158,10 @@ function StatsPage({
   )
 
   useEffect(() => {
-    if (!sortedPlayers.length) {
-      setSelectedPlayerIds([])
-      return
-    }
-
-    setSelectedPlayerIds((prev) => {
-      const validPrev = prev.filter((id) => sortedPlayers.some((player) => player.id === id))
-      if (validPrev.length > 0) return validPrev
-      return [sortedPlayers[0].id]
-    })
+    setSelectedPlayerIds((prev) => prev.filter((id) => sortedPlayers.some((player) => player.id === id)))
+    setActivityPlayerId((prev) =>
+      prev && sortedPlayers.some((player) => player.id === prev) ? prev : ""
+    )
   }, [sortedPlayers])
 
   useEffect(() => {
@@ -167,6 +193,37 @@ function StatsPage({
 
     loadStats()
   }, [selectedPlayerIds])
+
+  useEffect(() => {
+    const loadActivity = async () => {
+      if (!sortedPlayers.length) {
+        setActivityRows([])
+        return
+      }
+
+      setIsLoadingActivity(true)
+
+      const playerIds = sortedPlayers.map((player) => player.id)
+      const { data, error } = await supabase
+        .from("workout_logs")
+        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin")
+        .in("user_id", playerIds)
+        .eq("is_completed", true)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error(error)
+        setActivityRows([])
+        setIsLoadingActivity(false)
+        return
+      }
+
+      setActivityRows(data || [])
+      setIsLoadingActivity(false)
+    }
+
+    loadActivity()
+  }, [sortedPlayers])
 
   const playerMap = useMemo(
     () => new Map(sortedPlayers.map((player) => [String(player.id), player])),
@@ -211,6 +268,14 @@ function StatsPage({
     return progressionSeries.filter((entry) => entry.exerciseName === exerciseFilter)
   }, [exerciseFilter, progressionSeries])
 
+  const activitySessions = useMemo(() => {
+    const visibleRows = activityPlayerId
+      ? activityRows.filter((row) => String(row.user_id) === String(activityPlayerId))
+      : activityRows
+
+    return buildActivitySessions(visibleRows, playerMap)
+  }, [activityPlayerId, activityRows, playerMap])
+
   return (
     <>
       <div
@@ -224,13 +289,38 @@ function StatsPage({
         }}
       >
         <div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Statistik</h3>
+          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Aktivitet och statistik</h3>
           <p style={mutedTextStyle}>
-            Välj en eller flera spelare och följ viktutvecklingen över tid per övning.
+            Följ när spelare tränar och växla sedan över till viktutveckling per övning.
           </p>
         </div>
 
         <div style={statsHeaderActionsStyle(isMobile)}>
+          <button
+            type="button"
+            onClick={() => setViewMode("activity")}
+            style={{
+              ...secondaryButtonStyle,
+              width: isMobile ? "100%" : "auto",
+              backgroundColor: viewMode === "activity" ? "#111827" : "#ffffff",
+              color: viewMode === "activity" ? "#ffffff" : "#18202b",
+            }}
+          >
+            Aktivitet
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("stats")}
+            style={{
+              ...secondaryButtonStyle,
+              width: isMobile ? "100%" : "auto",
+              backgroundColor: viewMode === "stats" ? "#111827" : "#ffffff",
+              color: viewMode === "stats" ? "#ffffff" : "#18202b",
+            }}
+          >
+            Statistik
+          </button>
+          {viewMode === "stats" && (
           <button
             type="button"
             onClick={() => {
@@ -242,6 +332,19 @@ function StatsPage({
           >
             Välj alla
           </button>
+          )}
+          {viewMode === "stats" && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPlayerIds([])
+                setIsPlayerMenuOpen(false)
+              }}
+              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+            >
+              Rensa val
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setFiltersOpen((prev) => !prev)}
@@ -252,6 +355,7 @@ function StatsPage({
         </div>
       </div>
 
+      {viewMode === "stats" ? (
       <div style={statsSummaryGridStyle(isMobile)}>
         <div style={statsSummaryCardStyle}>
           <div style={statsSummaryLabelStyle}>Valda spelare</div>
@@ -266,8 +370,26 @@ function StatsPage({
           <div style={statsSummaryValueStyle}>{filteredStatsRows.length}</div>
         </div>
       </div>
+      ) : (
+      <div style={statsSummaryGridStyle(isMobile)}>
+        <div style={statsSummaryCardStyle}>
+          <div style={statsSummaryLabelStyle}>Genomförda pass</div>
+          <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{activitySessions.length}</div>
+        </div>
+        <div style={statsSummaryCardStyle}>
+          <div style={statsSummaryLabelStyle}>Spelare i filtret</div>
+          <div style={statsSummaryValueStyle}>{activityPlayerId ? 1 : sortedPlayers.length}</div>
+        </div>
+        <div style={statsSummaryCardStyle}>
+          <div style={statsSummaryLabelStyle}>Senaste aktivitet</div>
+          <div style={{ ...statsSummaryValueStyle, fontSize: "18px" }}>
+            {activitySessions[0]?.createdAt ? formatStatDate(activitySessions[0].createdAt) : "-"}
+          </div>
+        </div>
+      </div>
+      )}
 
-      {filtersOpen && (
+      {filtersOpen && viewMode === "stats" && (
       <div style={filterGridStyle(isMobile)}>
         <div style={filterCardStyle}>
           <div style={filterTitleStyle}>Spelare</div>
@@ -378,7 +500,48 @@ function StatsPage({
       </div>
       )}
 
-      {isLoadingStats ? (
+      {filtersOpen && viewMode === "activity" && (
+        <div style={filterGridStyle(isMobile)}>
+          <div style={filterCardStyle}>
+            <div style={filterTitleStyle}>Spelare</div>
+            <select
+              value={activityPlayerId}
+              onChange={(event) => setActivityPlayerId(event.target.value)}
+              style={{ ...inputStyle, width: "100%" }}
+            >
+              <option value="">Alla spelare</option>
+              {sortedPlayers.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.full_name}
+                </option>
+              ))}
+            </select>
+            <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+              Filtrera listan på en specifik spelare eller visa hela laget.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "activity" ? (
+        isLoadingActivity ? (
+          <p style={mutedTextStyle}>Laddar aktivitet...</p>
+        ) : activitySessions.length === 0 ? (
+          <p style={mutedTextStyle}>Ingen aktivitet hittades för det aktuella urvalet.</p>
+        ) : (
+          <div style={activityListStyle}>
+            {activitySessions.map((session) => (
+              <div key={session.sessionId} style={activityRowStyle(isMobile)}>
+                <div>
+                  <div style={activityPlayerNameStyle}>{session.playerName}</div>
+                  <div style={activityMetaStyle}>{session.passName}</div>
+                </div>
+                <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : isLoadingStats ? (
         <p style={mutedTextStyle}>Laddar statistik...</p>
       ) : !selectedPlayerIds.length ? (
         <p style={mutedTextStyle}>Välj minst en spelare för att visa statistik.</p>
@@ -761,6 +924,43 @@ const playerChipStyle = {
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",
+}
+
+const activityListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const activityRowStyle = (isMobile) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: isMobile ? "flex-start" : "center",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "8px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+})
+
+const activityPlayerNameStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const activityMetaStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+}
+
+const activityDateStyle = {
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#991b1b",
+  whiteSpace: "nowrap",
 }
 
 const chartGridStyle = {

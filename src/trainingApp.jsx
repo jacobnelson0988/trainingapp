@@ -202,6 +202,79 @@ const buildPlayerExerciseProgress = (rows, exercises) =>
       return bDate - aDate
     })
 
+const buildCoachPlayerCompletedSessions = (rows, exercises) => {
+  const sessionMap = new Map()
+
+  ;(rows || []).forEach((row) => {
+    const sessionId =
+      row.workout_session_id ||
+      `${String(row.created_at || "").slice(0, 19)}:${row.pass_name || ""}:${row.exercise || ""}`
+
+    if (!sessionMap.has(sessionId)) {
+      sessionMap.set(sessionId, {
+        session_id: sessionId,
+        created_at: row.created_at,
+        pass_name: row.pass_name || "Pass",
+        workout_kind: row.workout_kind || "gym",
+        running_type: row.running_type || null,
+        interval_time: row.interval_time || null,
+        intervals_count: row.intervals_count ?? null,
+        running_distance: row.running_distance ?? null,
+        running_time: row.running_time || null,
+        average_pulse: row.average_pulse ?? null,
+        exerciseMap: new Map(),
+      })
+    }
+
+    const session = sessionMap.get(sessionId)
+
+    if (row.workout_kind === "running") {
+      return
+    }
+
+    const exerciseName = String(row.exercise || "").trim()
+    if (!exerciseName) return
+
+    if (!session.exerciseMap.has(exerciseName)) {
+      const matchedExercise = findExerciseByLoggedName(exercises, exerciseName)
+
+      session.exerciseMap.set(exerciseName, {
+        name: exerciseName,
+        displayName: matchedExercise ? getExerciseDisplayName(matchedExercise) : exerciseName,
+        type: matchedExercise?.exercise_type || "reps_only",
+        sets: [],
+      })
+    }
+
+    session.exerciseMap.get(exerciseName).sets.push({
+      setNumber: row.set_number ?? null,
+      weight: row.weight,
+      reps: row.reps,
+      seconds: row.seconds,
+      comment: row.exercise_comment || row.pass_comment || "",
+    })
+  })
+
+  return Array.from(sessionMap.values())
+    .map((session) => ({
+      session_id: session.session_id,
+      created_at: session.created_at,
+      pass_name: session.pass_name,
+      workout_kind: session.workout_kind,
+      running_summary:
+        session.workout_kind === "running"
+          ? buildRunningSummary(session)
+          : null,
+      exercises: Array.from(session.exerciseMap.values()).map((exercise) => ({
+        ...exercise,
+        sets: exercise.sets
+          .slice()
+          .sort((a, b) => Number(a.setNumber || 0) - Number(b.setNumber || 0)),
+      })),
+    }))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+}
+
 const findExerciseByLoggedName = (exercises, exerciseName) => {
   const trimmedName = String(exerciseName || "").trim()
   if (!trimmedName) return null
@@ -533,6 +606,7 @@ function TrainingApp() {
   })
   const [isSavingRunningSession, setIsSavingRunningSession] = useState(false)
   const [selectedPlayerHistory, setSelectedPlayerHistory] = useState([])
+  const [selectedPlayerCompletedSessions, setSelectedPlayerCompletedSessions] = useState([])
   const [selectedPlayerExerciseGoals, setSelectedPlayerExerciseGoals] = useState({})
   const [exerciseGoalDrafts, setExerciseGoalDrafts] = useState({})
   const [isLoadingSelectedPlayerHistory, setIsLoadingSelectedPlayerHistory] = useState(false)
@@ -2217,6 +2291,7 @@ function TrainingApp() {
   const loadSelectedPlayerHistoryAndGoals = async (playerId) => {
     if (!playerId) {
       setSelectedPlayerHistory([])
+      setSelectedPlayerCompletedSessions([])
       setSelectedPlayerExerciseGoals({})
       setExerciseGoalDrafts({})
       return
@@ -2243,6 +2318,7 @@ function TrainingApp() {
     if (historyError || goalsError) {
       console.error(historyError || goalsError)
       setSelectedPlayerHistory([])
+      setSelectedPlayerCompletedSessions([])
       setSelectedPlayerExerciseGoals({})
       setExerciseGoalDrafts({})
       setIsLoadingSelectedPlayerHistory(false)
@@ -2275,6 +2351,7 @@ function TrainingApp() {
         }
       })
       .filter(Boolean)
+    const nextCompletedSessions = buildCoachPlayerCompletedSessions(historyRows || [], exercisesFromDB)
 
     const nextDrafts = nextHistory.reduce((acc, entry) => {
       const existingGoal = entry.existing_goal
@@ -2293,6 +2370,7 @@ function TrainingApp() {
     }, {})
 
     setSelectedPlayerHistory(nextHistory)
+    setSelectedPlayerCompletedSessions(nextCompletedSessions)
     setSelectedPlayerExerciseGoals(goalsByExerciseId)
     setExerciseGoalDrafts(nextDrafts)
     setIsLoadingSelectedPlayerHistory(false)
@@ -6103,6 +6181,7 @@ function TrainingApp() {
                 handleSaveTargets={handleSaveTargets}
                 isSavingTargets={isSavingTargets}
                 selectedPlayerHistory={selectedPlayerHistory}
+                selectedPlayerCompletedSessions={selectedPlayerCompletedSessions}
                 isLoadingSelectedPlayerHistory={isLoadingSelectedPlayerHistory}
                 exerciseGoalDrafts={exerciseGoalDrafts}
                 selectedPlayerExerciseGoals={selectedPlayerExerciseGoals}

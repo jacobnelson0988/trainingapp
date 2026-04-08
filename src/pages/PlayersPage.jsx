@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 function PlayersPage({
   role,
@@ -28,6 +28,7 @@ function PlayersPage({
   handleSaveTargets,
   isSavingTargets,
   selectedPlayerHistory,
+  selectedPlayerCompletedSessions,
   isLoadingSelectedPlayerHistory,
   exerciseGoalDrafts,
   selectedPlayerExerciseGoals,
@@ -44,6 +45,7 @@ function PlayersPage({
   isMobile,
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [selectedCompletedSessionId, setSelectedCompletedSessionId] = useState("")
   const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
   const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
   const [bulkSelectedPlayerIds, setBulkSelectedPlayerIds] = useState([])
@@ -84,6 +86,16 @@ function PlayersPage({
   const activePlayerCount = players.filter((player) => !player.is_archived).length
   const archivedPlayerCount = players.filter((player) => player.is_archived).length
   const historyModeCount = players.filter((player) => player.individual_goals_enabled === false).length
+
+  useEffect(() => {
+    const firstSessionId = selectedPlayerCompletedSessions?.[0]?.session_id || ""
+    setSelectedCompletedSessionId((current) => {
+      if (current && selectedPlayerCompletedSessions?.some((session) => session.session_id === current)) {
+        return current
+      }
+      return firstSessionId
+    })
+  }, [selectedPlayer?.id, selectedPlayerCompletedSessions])
 
   const renderEditorSectionButton = (key, label) => {
     const isActive = activeEditorSection === key
@@ -565,10 +577,120 @@ function PlayersPage({
           </div>
         ) : isLoadingSelectedPlayerHistory ? (
           <p style={mutedTextStyle}>Laddar historik...</p>
-        ) : selectedPlayerHistory.length === 0 ? (
-          <p style={mutedTextStyle}>Ingen historik finns ännu för spelaren.</p>
         ) : (
           <div>
+            <div style={historyViewerCardStyle}>
+              <div style={sectionHeaderCompactStyle}>
+                <div style={sectionTitleCompactStyle}>Genomförda pass</div>
+                <div style={sectionMetaCompactStyle}>Bläddra i samma kortvy som spelaren ser</div>
+              </div>
+
+              {selectedPlayerCompletedSessions.length === 0 ? (
+                <p style={mutedTextStyle}>Ingen passhistorik finns ännu för spelaren.</p>
+              ) : (
+                <>
+                  <div style={historySessionPickerStyle}>
+                    {selectedPlayerCompletedSessions.map((session) => {
+                      const isSelected = selectedCompletedSessionId === session.session_id
+
+                      return (
+                        <button
+                          key={session.session_id}
+                          type="button"
+                          onClick={() => setSelectedCompletedSessionId(session.session_id)}
+                          style={{
+                            ...historySessionButtonStyle,
+                            borderColor: isSelected ? "#c62828" : historySessionButtonStyle.borderColor,
+                            backgroundColor: isSelected ? "#fff7f7" : historySessionButtonStyle.backgroundColor,
+                          }}
+                        >
+                          <div style={historySessionButtonTitleStyle}>{session.pass_name}</div>
+                          <div style={historySessionButtonMetaStyle}>
+                            {new Date(session.created_at).toLocaleDateString("sv-SE")}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {(() => {
+                    const selectedSession =
+                      selectedPlayerCompletedSessions.find((session) => session.session_id === selectedCompletedSessionId) ||
+                      selectedPlayerCompletedSessions[0]
+
+                    if (!selectedSession) return null
+
+                    return (
+                      <div>
+                        <div style={historySessionSummaryStyle}>
+                          <div>
+                            <div style={historySessionSummaryTitleStyle}>{selectedSession.pass_name}</div>
+                            <div style={historySessionSummaryMetaStyle}>
+                              {new Date(selectedSession.created_at).toLocaleDateString("sv-SE")}
+                              {selectedSession.running_summary ? ` • ${selectedSession.running_summary}` : ""}
+                            </div>
+                          </div>
+                        </div>
+
+                        {selectedSession.workout_kind === "running" ? (
+                          <div style={historySessionRunningCardStyle}>
+                            {selectedSession.running_summary || "Löppass genomfört"}
+                          </div>
+                        ) : (
+                          <div style={historyExerciseCardsViewportStyle}>
+                            <div style={historyExerciseCardsTrackStyle}>
+                              {selectedSession.exercises.map((exercise) => (
+                                <div key={`${selectedSession.session_id}-${exercise.name}`} style={historyExerciseCardStyle}>
+                                  <div style={historyExerciseCardTitleStyle}>{exercise.displayName}</div>
+                                  <div style={historyExerciseCardSubStyle}>
+                                    {exercise.sets.length} set loggade
+                                  </div>
+
+                                  <div style={historySetListStyle}>
+                                    {exercise.sets.map((setEntry, setIndex) => (
+                                      <div
+                                        key={`${selectedSession.session_id}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                        style={historySetCardStyle}
+                                      >
+                                        <div style={historySetTitleStyle}>
+                                          Set {setEntry.setNumber || setIndex + 1}
+                                        </div>
+                                        <div style={historySetMetaGridStyle}>
+                                          <div style={historySetMetaItemStyle}>
+                                            <div style={historySetMetaLabelStyle}>Vikt</div>
+                                            <div style={historySetMetaValueStyle}>
+                                              {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                            </div>
+                                          </div>
+                                          <div style={historySetMetaItemStyle}>
+                                            <div style={historySetMetaLabelStyle}>Reps</div>
+                                            <div style={historySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                          </div>
+                                          <div style={historySetMetaItemStyle}>
+                                            <div style={historySetMetaLabelStyle}>Tid</div>
+                                            <div style={historySetMetaValueStyle}>
+                                              {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </>
+              )}
+            </div>
+
+            {selectedPlayerHistory.length === 0 ? (
+              <p style={mutedTextStyle}>Ingen övningshistorik finns ännu för spelaren.</p>
+            ) : (
             <div style={{ display: "grid", gap: "12px", marginBottom: "14px" }}>
               {selectedPlayerHistory.map((entry) => {
                 const draft = exerciseGoalDrafts[entry.exercise_id] || {}
@@ -634,14 +756,20 @@ function PlayersPage({
                         <div style={historyStatValueStyle}>
                           {entry.latest_entry?.top_weight != null
                             ? `${entry.latest_entry.top_weight} kg`
-                            : entry.latest_entry?.top_reps || entry.latest_entry?.top_seconds || "-"}
-                        </div>
-                        <div style={historyStatMetaStyle}>
-                          {entry.latest_entry?.top_reps
+                            : entry.latest_entry?.top_reps
                             ? `${entry.latest_entry.top_reps} reps`
                             : entry.latest_entry?.top_seconds
                             ? `${entry.latest_entry.top_seconds} sek`
-                            : `${entry.latest_entry?.set_count || 0} set`}
+                            : "-"}
+                        </div>
+                        <div style={historyStatMetaStyle}>
+                          {[
+                            `Set: ${entry.latest_entry?.set_count || 0}`,
+                            entry.latest_entry?.top_reps ? `Reps: ${entry.latest_entry.top_reps}` : null,
+                            entry.latest_entry?.top_seconds ? `Tid: ${entry.latest_entry.top_seconds} sek` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ")}
                         </div>
                       </div>
 
@@ -653,11 +781,15 @@ function PlayersPage({
                             : "-"}
                         </div>
                         <div style={historyStatMetaStyle}>
-                          {entry.best_weight_entry?.top_reps
-                            ? `${entry.best_weight_entry.top_reps} reps`
-                            : entry.best_weight_entry?.top_seconds
-                            ? `${entry.best_weight_entry.top_seconds} sek`
-                            : `${entry.best_weight_entry?.set_count || 0} set`}
+                          {[
+                            `Set: ${entry.best_weight_entry?.set_count || 0}`,
+                            entry.best_weight_entry?.top_reps ? `Reps: ${entry.best_weight_entry.top_reps}` : null,
+                            entry.best_weight_entry?.top_seconds
+                              ? `Tid: ${entry.best_weight_entry.top_seconds} sek`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ")}
                         </div>
                       </div>
                     </div>
@@ -720,6 +852,7 @@ function PlayersPage({
                 )
               })}
             </div>
+            )}
 
             <button
               type="button"
@@ -1340,6 +1473,152 @@ const historyStatValueStyle = {
 const historyStatMetaStyle = {
   fontSize: "13px",
   color: "#64748b",
+}
+
+const historyViewerCardStyle = {
+  marginBottom: "16px",
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#f8fbff",
+}
+
+const historySessionPickerStyle = {
+  display: "grid",
+  gap: "10px",
+  marginBottom: "14px",
+}
+
+const historySessionButtonStyle = {
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#ffffff",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const historySessionButtonTitleStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const historySessionButtonMetaStyle = {
+  fontSize: "12px",
+  color: "#64748b",
+}
+
+const historySessionSummaryStyle = {
+  marginBottom: "12px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #e2e8f0",
+}
+
+const historySessionSummaryTitleStyle = {
+  fontSize: "16px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const historySessionSummaryMetaStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+}
+
+const historySessionRunningCardStyle = {
+  padding: "14px",
+  borderRadius: "14px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  fontSize: "14px",
+  fontWeight: "700",
+}
+
+const historyExerciseCardsViewportStyle = {
+  width: "100%",
+  overflowX: "auto",
+  WebkitOverflowScrolling: "touch",
+  scrollSnapType: "x mandatory",
+}
+
+const historyExerciseCardsTrackStyle = {
+  display: "grid",
+  gridAutoFlow: "column",
+  gridAutoColumns: "100%",
+  gap: "12px",
+}
+
+const historyExerciseCardStyle = {
+  width: "100%",
+  minWidth: 0,
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#ffffff",
+  scrollSnapAlign: "start",
+}
+
+const historyExerciseCardTitleStyle = {
+  fontSize: "16px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const historyExerciseCardSubStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+  marginBottom: "10px",
+}
+
+const historySetListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const historySetCardStyle = {
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #edf2f7",
+  backgroundColor: "#f8fafc",
+}
+
+const historySetTitleStyle = {
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "8px",
+}
+
+const historySetMetaGridStyle = {
+  display: "grid",
+  gap: "8px",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+}
+
+const historySetMetaItemStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const historySetMetaLabelStyle = {
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "#64748b",
+}
+
+const historySetMetaValueStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
 }
 
 export default PlayersPage
