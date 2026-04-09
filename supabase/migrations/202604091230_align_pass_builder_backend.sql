@@ -59,6 +59,23 @@ update public.workout_template_exercises
 set target_reps_mode = 'fixed'
 where target_reps_mode is null;
 
+update public.workout_template_exercises
+set
+  target_reps_mode = 'fixed',
+  target_reps_text = case
+    when target_reps_mode = 'range'
+      and coalesce(target_reps_text, '') = ''
+      and target_reps_min is not null
+      and target_reps_max is not null
+      then target_reps_min::text || '-' || target_reps_max::text
+    when target_reps_mode = 'time'
+      and coalesce(target_reps_text, '') = ''
+      and target_reps is not null
+      then target_reps::text
+    else target_reps_text
+  end
+where target_reps_mode in ('range', 'time');
+
 alter table public.workout_template_exercises
 alter column target_reps_mode set default 'fixed';
 
