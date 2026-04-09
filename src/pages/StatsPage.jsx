@@ -658,98 +658,100 @@ function StatsPage({
               const isSelected = selectedActivitySessionId === session.sessionId
 
               return (
-              <button
-                key={session.sessionId}
-                type="button"
-                onClick={() => setSelectedActivitySessionId(session.sessionId)}
-                style={{
-                  ...activityRowStyle(isMobile),
-                  borderColor: isSelected ? "#c62828" : "#ece5e5",
-                  backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
-                  cursor: "pointer",
-                }}
-              >
-                <div>
-                  <div style={activityPlayerNameStyle}>{session.playerName}</div>
-                  <div style={activityMetaStyle}>{session.passName}</div>
-                </div>
-                <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
-              </button>
-            )})}
-
-            {(() => {
-              const selectedSession =
-                activitySessions.find((session) => session.sessionId === selectedActivitySessionId) ||
-                activitySessions[0]
-
-              if (!selectedSession) return null
-
-              return (
-                <div style={activityDetailCardStyle}>
-                  <div style={activityDetailHeaderStyle}>
+                <div key={session.sessionId} style={activityItemWrapStyle}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedActivitySessionId((current) =>
+                        current === session.sessionId ? "" : session.sessionId
+                      )
+                    }
+                    style={{
+                      ...activityRowStyle(isMobile),
+                      borderColor: isSelected ? "#c62828" : "#ece5e5",
+                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                      cursor: "pointer",
+                    }}
+                  >
                     <div>
-                      <div style={activityDetailTitleStyle}>{selectedSession.passName}</div>
-                      <div style={activityDetailMetaStyle}>
-                        {selectedSession.playerName} • {formatStatDate(selectedSession.createdAt)}
-                        {selectedSession.runningSummary ? ` • ${selectedSession.runningSummary}` : ""}
-                      </div>
+                      <div style={activityPlayerNameStyle}>{session.playerName}</div>
+                      <div style={activityMetaStyle}>{session.passName}</div>
                     </div>
-                  </div>
-
-                  {selectedSession.workoutKind === "running" ? (
-                    <div style={activityRunningCardStyle}>
-                      {selectedSession.runningSummary || "Löppass genomfört"}
+                    <div style={activityRowAsideStyle}>
+                      <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
+                      <div style={activityExpandIndicatorStyle}>{isSelected ? "−" : "+"}</div>
                     </div>
-                  ) : (
-                    <div style={activityExerciseCardsViewportStyle}>
-                      <div style={activityExerciseCardsTrackStyle}>
-                        {selectedSession.exercises.map((exercise) => (
-                          <div key={`${selectedSession.sessionId}-${exercise.name}`} style={activityExerciseCardStyle}>
-                            <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
-                            <div style={activityExerciseCardSubStyle}>{exercise.sets.length} set loggade</div>
+                  </button>
 
-                            <div style={activitySetListStyle}>
-                              {exercise.sets.map((setEntry, setIndex) => (
-                                <div
-                                  key={`${selectedSession.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
-                                  style={activitySetCardStyle}
-                                >
-                                  <div style={activitySetTitleStyle}>Set {setEntry.setNumber || setIndex + 1}</div>
-                                  <div style={activitySetMetaGridStyle}>
-                                    <div style={activitySetMetaItemStyle}>
-                                      <div style={activitySetMetaLabelStyle}>Vikt</div>
-                                      <div style={activitySetMetaValueStyle}>
-                                        {setEntry.weight ? `${setEntry.weight} kg` : "—"}
-                                      </div>
-                                    </div>
-                                    <div style={activitySetMetaItemStyle}>
-                                      <div style={activitySetMetaLabelStyle}>Reps</div>
-                                      <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
-                                    </div>
-                                    <div style={activitySetMetaItemStyle}>
-                                      <div style={activitySetMetaLabelStyle}>Tid</div>
-                                      <div style={activitySetMetaValueStyle}>
-                                        {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                  {isSelected ? (
+                    <div style={activityDetailCardStyle}>
+                      <div style={activityDetailHeaderStyle}>
+                        <div>
+                          <div style={activityDetailTitleStyle}>{session.passName}</div>
+                          <div style={activityDetailMetaStyle}>
+                            {session.playerName} • {formatStatDate(session.createdAt)}
+                            {session.runningSummary ? ` • ${session.runningSummary}` : ""}
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
 
-                  {selectedSession.passComment ? (
-                    <div style={activityPassCommentStyle}>
-                      <strong>Kommentar:</strong> {selectedSession.passComment}
+                      {session.workoutKind === "running" ? (
+                        <div style={activityRunningCardStyle}>
+                          {session.runningSummary || "Löppass genomfört"}
+                        </div>
+                      ) : (
+                        <div style={activityExerciseCardsViewportStyle}>
+                          <div style={activitySwipeHintStyle}>Svep mellan övningarna</div>
+                          <div style={activityExerciseCardsTrackStyle}>
+                            {session.exercises.map((exercise) => (
+                              <div key={`${session.sessionId}-${exercise.name}`} style={activityExerciseCardStyle}>
+                                <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
+                                <div style={activityExerciseCardSubStyle}>{exercise.sets.length} set loggade</div>
+
+                                <div style={activitySetListStyle}>
+                                  {exercise.sets.map((setEntry, setIndex) => (
+                                    <div
+                                      key={`${session.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                      style={activitySetCardStyle}
+                                    >
+                                      <div style={activitySetTitleStyle}>Set {setEntry.setNumber || setIndex + 1}</div>
+                                      <div style={activitySetMetaGridStyle}>
+                                        <div style={activitySetMetaItemStyle}>
+                                          <div style={activitySetMetaLabelStyle}>Vikt</div>
+                                          <div style={activitySetMetaValueStyle}>
+                                            {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                          </div>
+                                        </div>
+                                        <div style={activitySetMetaItemStyle}>
+                                          <div style={activitySetMetaLabelStyle}>Reps</div>
+                                          <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                        </div>
+                                        <div style={activitySetMetaItemStyle}>
+                                          <div style={activitySetMetaLabelStyle}>Tid</div>
+                                          <div style={activitySetMetaValueStyle}>
+                                            {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {session.passComment ? (
+                        <div style={activityPassCommentStyle}>
+                          <strong>Kommentar:</strong> {session.passComment}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
               )
-            })()}
+            })}
           </div>
         )
       ) : isLoadingStats ? (
@@ -1144,6 +1146,13 @@ const activityListStyle = {
   minWidth: 0,
 }
 
+const activityItemWrapStyle = {
+  display: "grid",
+  gap: "8px",
+  width: "100%",
+  minWidth: 0,
+}
+
 const activityRowStyle = (isMobile) => ({
   display: "flex",
   justifyContent: "space-between",
@@ -1171,11 +1180,34 @@ const activityMetaStyle = {
   color: "#64748b",
 }
 
+const activityRowAsideStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  width: "100%",
+}
+
 const activityDateStyle = {
   fontSize: "13px",
   fontWeight: "800",
   color: "#991b1b",
   whiteSpace: "nowrap",
+}
+
+const activityExpandIndicatorStyle = {
+  width: "28px",
+  height: "28px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #f0d3d3",
+  color: "#991b1b",
+  fontSize: "18px",
+  fontWeight: "900",
+  flexShrink: 0,
 }
 
 const activityDetailCardStyle = {
@@ -1224,6 +1256,17 @@ const activityExerciseCardsViewportStyle = {
   marginLeft: "-4px",
   marginRight: "-4px",
   paddingBottom: "4px",
+  WebkitOverflowScrolling: "touch",
+  scrollSnapType: "x mandatory",
+}
+
+const activitySwipeHintStyle = {
+  margin: "0 4px 8px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "#64748b",
 }
 
 const activityExerciseCardsTrackStyle = {
@@ -1243,6 +1286,7 @@ const activityExerciseCardStyle = {
   border: "1px solid #dbe5ef",
   backgroundColor: "#ffffff",
   overflow: "hidden",
+  scrollSnapAlign: "start",
 }
 
 const activityExerciseCardTitleStyle = {
