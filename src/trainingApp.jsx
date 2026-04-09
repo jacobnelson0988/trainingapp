@@ -4763,6 +4763,10 @@ function TrainingApp() {
       custom_guide: null,
     }
 
+    const selectedExerciseRecord = exercisesFromDB.find(
+      (exercise) => String(exercise.id) === String(selectedExerciseId)
+    )
+
     const { data, error } = await supabase
       .from("workout_template_exercises")
       .insert(insertPayload)
@@ -4778,30 +4782,38 @@ function TrainingApp() {
         target_reps_text,
         target_duration_text,
         workout_template_id,
-        exercise_id,
-        workout_templates ( code, label ),
-        exercises ( name, exercise_type, guide, description, media_url, default_reps_mode, execution_side )
+        exercise_id
       `)
       .single()
 
     if (error) {
       console.error(error)
-      const errorMessage = String(error.message || "").toLowerCase()
-      const missingExerciseColumns =
-        errorMessage.includes("description") ||
-        errorMessage.includes("media_url") ||
-        errorMessage.includes("execution_side")
-
       setStatus(
-        missingExerciseColumns
-          ? "Kunde inte lägga till övning i passet. Kör SQL-ändringarna i Supabase först för description, media_url och execution_side."
-          : `Kunde inte lägga till övning i passet${error.message ? `: ${error.message}` : ""}`
+        `Kunde inte lägga till övning i passet${error.message ? `: ${error.message}` : ""}`
       )
       setIsSavingPassExercise(false)
       return false
     }
 
-    setTemplateExercisesFromDB((prev) => [...prev, data])
+    setTemplateExercisesFromDB((prev) => [
+      ...prev,
+      {
+        ...data,
+        workout_templates: {
+          code: selectedTemplate.code,
+          label: selectedTemplate.label,
+        },
+        exercises: {
+          name: selectedExerciseRecord?.name || "",
+          exercise_type: selectedExerciseRecord?.exercise_type || "reps_only",
+          guide: selectedExerciseRecord?.guide || "",
+          description: selectedExerciseRecord?.description || "",
+          media_url: selectedExerciseRecord?.media_url || "",
+          default_reps_mode: selectedExerciseRecord?.default_reps_mode || "fixed",
+          execution_side: selectedExerciseRecord?.execution_side || "standard",
+        },
+      },
+    ])
     setSelectedExerciseId("")
     setStatus("Övning tillagd i passet ✅")
     setIsSavingPassExercise(false)
