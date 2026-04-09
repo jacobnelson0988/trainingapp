@@ -1153,6 +1153,7 @@ function PlayersPage({
       )}
     </div>
   )
+}
 
 const pageWrapStyle = {
   width: "100%",
@@ -1185,7 +1186,6 @@ const sectionLabelStyle = {
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: "#6b7280",
-}
 }
 
 const tableHeadStyle = {
