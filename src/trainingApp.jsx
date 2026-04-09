@@ -1025,8 +1025,7 @@ function TrainingApp() {
           target_duration_text,
           workout_template_id,
           exercise_id,
-          workout_templates!inner ( code, label, team_id ),
-          exercises ( name, exercise_type, guide, description, media_url, default_reps_mode, execution_side )
+          workout_templates!inner ( code, label, team_id )
         `)
         .in("workout_template_id", templatesFromDB.map((template) => template.id))
         .order("sort_order")
@@ -1098,6 +1097,9 @@ function TrainingApp() {
         .filter((row) => row.workout_templates?.code === template.code)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((row) => {
+          const matchedExercise = exercisesFromDB.find(
+            (exercise) => String(exercise.id) === String(row.exercise_id)
+          )
           const alternativeExercises = templateExerciseAlternativesFromDB
             .filter((alternative) => String(alternative.workout_template_exercise_id) === String(row.id))
             .map((alternative) => {
@@ -1133,15 +1135,15 @@ function TrainingApp() {
             id: row.id,
             exerciseId: row.exercise_id,
             sortOrder: row.sort_order,
-            name: row.exercises?.name || "",
-            displayName: getExerciseDisplayName(row.exercises),
-            type: row.exercises?.exercise_type || "reps_only",
+            name: matchedExercise?.name || "",
+            displayName: getExerciseDisplayName(matchedExercise),
+            type: matchedExercise?.exercise_type || "reps_only",
             guide: row.custom_guide || "",
             suggestedGuide,
-            description: row.exercises?.description || "",
-            mediaUrl: row.exercises?.media_url || "",
-            defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
-            executionSide: row.exercises?.execution_side || "standard",
+            description: matchedExercise?.description || "",
+            mediaUrl: matchedExercise?.media_url || "",
+            defaultRepsMode: matchedExercise?.default_reps_mode || "fixed",
+            executionSide: matchedExercise?.execution_side || "standard",
             targetSets: row.target_sets ?? null,
             targetReps: row.target_reps ?? null,
             targetRepsMin: row.target_reps_min ?? null,
