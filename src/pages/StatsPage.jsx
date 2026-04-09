@@ -27,6 +27,41 @@ const formatStatDate = (value) => {
   })
 }
 
+const formatCoachPassName = (passName, workoutKind, runningOrigin) => {
+  if (workoutKind === "running" && runningOrigin !== "assigned") {
+    return "Egna löppass"
+  }
+
+  const raw = String(passName || "").trim()
+  if (!raw) return "Pass"
+
+  const passLetterMatch = raw.match(/^pass[_\s-]*([a-z0-9]+)/i)
+  if (passLetterMatch) {
+    return `Pass ${String(passLetterMatch[1]).toUpperCase()}`
+  }
+
+  return raw.replace(/_/g, " ")
+}
+
+const buildStatsRunningSummary = (session) => {
+  if (!session) return ""
+
+  if (session.running_type === "intervals") {
+    const intervalsCount = session.intervals_count ? `${session.intervals_count} intervaller` : null
+    const intervalTime = session.interval_time ? `${session.interval_time}/intervall` : null
+    return [intervalsCount, intervalTime].filter(Boolean).join(" • ") || "Intervaller"
+  }
+
+  const distance =
+    session.running_distance != null && session.running_distance !== ""
+      ? `${session.running_distance} km`
+      : null
+  const runningTime = session.running_time || null
+  const averagePulse = session.average_pulse ? `${session.average_pulse} bpm` : null
+
+  return [distance, runningTime, averagePulse].filter(Boolean).join(" • ") || "Distans"
+}
+
 const buildProgressionSeries = (rows, playerMap) => {
   const grouped = new Map()
 
@@ -108,18 +143,73 @@ const buildActivitySessions = (rows, playerMap) => {
         sessionId,
         playerId: String(row.user_id),
         playerName: player?.full_name || player?.username || "Spelare",
-        passName:
-          row.workout_kind === "running" && row.running_origin !== "assigned"
-            ? "Egna löppass"
-            : row.pass_name || "Pass",
+        passName: formatCoachPassName(row.pass_name, row.workout_kind, row.running_origin),
+        rawPassName: row.pass_name || "Pass",
         createdAt: row.created_at,
+        workoutKind: row.workout_kind || "gym",
+        runningOrigin: row.running_origin || null,
+        runningSummary: "",
+        passComment: row.pass_comment || "",
+        running_type: row.running_type || null,
+        interval_time: row.interval_time || null,
+        intervals_count: row.intervals_count ?? null,
+        running_distance: row.running_distance ?? null,
+        running_time: row.running_time || null,
+        average_pulse: row.average_pulse ?? null,
+        exerciseMap: new Map(),
       })
     }
+
+    const session = grouped.get(sessionId)
+    if (!session.passComment && row.pass_comment) {
+      session.passComment = row.pass_comment
+    }
+
+    if (session.workoutKind === "running") {
+      session.runningSummary = buildStatsRunningSummary({
+        running_type: session.running_type,
+        interval_time: session.interval_time,
+        intervals_count: session.intervals_count,
+        running_distance: session.running_distance,
+        running_time: session.running_time,
+        average_pulse: session.average_pulse,
+      })
+      return
+    }
+
+    const exerciseName = String(row.exercise || "").trim()
+    if (!exerciseName) return
+
+    if (!session.exerciseMap.has(exerciseName)) {
+      session.exerciseMap.set(exerciseName, {
+        name: exerciseName,
+        displayName: exerciseName,
+        sets: [],
+      })
+    }
+
+    session.exerciseMap.get(exerciseName).sets.push({
+      setNumber: row.set_number,
+      weight: row.weight,
+      reps: row.reps,
+      seconds: row.seconds,
+      exerciseComment: row.exercise_comment || "",
+    })
   })
 
-  return Array.from(grouped.values()).sort(
+  return Array.from(grouped.values())
+    .map((session) => ({
+      ...session,
+      exercises: Array.from(session.exerciseMap.values()).map((exercise) => ({
+        ...exercise,
+        sets: exercise.sets
+          .slice()
+          .sort((a, b) => Number(a.setNumber || 0) - Number(b.setNumber || 0)),
+      })),
+    }))
+    .sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
+    )
 }
 
 function StatsPage({
@@ -142,6 +232,7 @@ function StatsPage({
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingActivity, setIsLoadingActivity] = useState(false)
   const [expandedChart, setExpandedChart] = useState(null)
+  const [selectedActivitySessionId, setSelectedActivitySessionId] = useState("")
 
   useEffect(() => {
     setFiltersOpen(!isMobile)
@@ -206,7 +297,7 @@ function StatsPage({
       const playerIds = sortedPlayers.map((player) => player.id)
       const { data, error } = await supabase
         .from("workout_logs")
-        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin")
+        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin, exercise, set_number, weight, reps, seconds, exercise_comment, pass_comment, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse")
         .in("user_id", playerIds)
         .eq("is_completed", true)
         .order("created_at", { ascending: false })
@@ -275,6 +366,16 @@ function StatsPage({
 
     return buildActivitySessions(visibleRows, playerMap)
   }, [activityPlayerId, activityRows, playerMap])
+
+  useEffect(() => {
+    setSelectedActivitySessionId((current) => {
+      if (current && activitySessions.some((session) => session.sessionId === current)) {
+        return current
+      }
+
+      return activitySessions[0]?.sessionId || ""
+    })
+  }, [activitySessions])
 
   return (
     <>
@@ -530,15 +631,102 @@ function StatsPage({
           <p style={mutedTextStyle}>Ingen aktivitet hittades för det aktuella urvalet.</p>
         ) : (
           <div style={activityListStyle}>
-            {activitySessions.map((session) => (
-              <div key={session.sessionId} style={activityRowStyle(isMobile)}>
+            {activitySessions.map((session) => {
+              const isSelected = selectedActivitySessionId === session.sessionId
+
+              return (
+              <button
+                key={session.sessionId}
+                type="button"
+                onClick={() => setSelectedActivitySessionId(session.sessionId)}
+                style={{
+                  ...activityRowStyle(isMobile),
+                  borderColor: isSelected ? "#c62828" : "#ece5e5",
+                  backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
                 <div>
                   <div style={activityPlayerNameStyle}>{session.playerName}</div>
                   <div style={activityMetaStyle}>{session.passName}</div>
                 </div>
                 <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
-              </div>
-            ))}
+              </button>
+            )})}
+
+            {(() => {
+              const selectedSession =
+                activitySessions.find((session) => session.sessionId === selectedActivitySessionId) ||
+                activitySessions[0]
+
+              if (!selectedSession) return null
+
+              return (
+                <div style={activityDetailCardStyle}>
+                  <div style={activityDetailHeaderStyle}>
+                    <div>
+                      <div style={activityDetailTitleStyle}>{selectedSession.passName}</div>
+                      <div style={activityDetailMetaStyle}>
+                        {selectedSession.playerName} • {formatStatDate(selectedSession.createdAt)}
+                        {selectedSession.runningSummary ? ` • ${selectedSession.runningSummary}` : ""}
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedSession.workoutKind === "running" ? (
+                    <div style={activityRunningCardStyle}>
+                      {selectedSession.runningSummary || "Löppass genomfört"}
+                    </div>
+                  ) : (
+                    <div style={activityExerciseCardsViewportStyle}>
+                      <div style={activityExerciseCardsTrackStyle}>
+                        {selectedSession.exercises.map((exercise) => (
+                          <div key={`${selectedSession.sessionId}-${exercise.name}`} style={activityExerciseCardStyle}>
+                            <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
+                            <div style={activityExerciseCardSubStyle}>{exercise.sets.length} set loggade</div>
+
+                            <div style={activitySetListStyle}>
+                              {exercise.sets.map((setEntry, setIndex) => (
+                                <div
+                                  key={`${selectedSession.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                  style={activitySetCardStyle}
+                                >
+                                  <div style={activitySetTitleStyle}>Set {setEntry.setNumber || setIndex + 1}</div>
+                                  <div style={activitySetMetaGridStyle}>
+                                    <div style={activitySetMetaItemStyle}>
+                                      <div style={activitySetMetaLabelStyle}>Vikt</div>
+                                      <div style={activitySetMetaValueStyle}>
+                                        {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                      </div>
+                                    </div>
+                                    <div style={activitySetMetaItemStyle}>
+                                      <div style={activitySetMetaLabelStyle}>Reps</div>
+                                      <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                    </div>
+                                    <div style={activitySetMetaItemStyle}>
+                                      <div style={activitySetMetaLabelStyle}>Tid</div>
+                                      <div style={activitySetMetaValueStyle}>
+                                        {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSession.passComment ? (
+                    <div style={activityPassCommentStyle}>
+                      <strong>Kommentar:</strong> {selectedSession.passComment}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })()}
           </div>
         )
       ) : isLoadingStats ? (
@@ -961,6 +1149,136 @@ const activityDateStyle = {
   fontWeight: "800",
   color: "#991b1b",
   whiteSpace: "nowrap",
+}
+
+const activityDetailCardStyle = {
+  padding: "16px",
+  borderRadius: "22px",
+  border: "1px solid #f1d7d7",
+  backgroundColor: "#fffdfd",
+  boxShadow: "0 14px 30px rgba(24, 32, 43, 0.05)",
+}
+
+const activityDetailHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+  marginBottom: "12px",
+}
+
+const activityDetailTitleStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const activityDetailMetaStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+  lineHeight: 1.5,
+}
+
+const activityRunningCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  fontSize: "14px",
+  fontWeight: "700",
+}
+
+const activityExerciseCardsViewportStyle = {
+  overflowX: "auto",
+  marginLeft: "-4px",
+  marginRight: "-4px",
+  paddingBottom: "4px",
+}
+
+const activityExerciseCardsTrackStyle = {
+  display: "flex",
+  gap: "12px",
+  padding: "4px",
+}
+
+const activityExerciseCardStyle = {
+  minWidth: "260px",
+  maxWidth: "320px",
+  flex: "0 0 85%",
+  padding: "16px",
+  borderRadius: "20px",
+  border: "1px solid #dbe5ef",
+  backgroundColor: "#ffffff",
+}
+
+const activityExerciseCardTitleStyle = {
+  fontSize: "17px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const activityExerciseCardSubStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+  marginBottom: "12px",
+}
+
+const activitySetListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const activitySetCardStyle = {
+  padding: "12px",
+  borderRadius: "16px",
+  backgroundColor: "#f8fafc",
+  border: "1px solid #e2e8f0",
+}
+
+const activitySetTitleStyle = {
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#18202b",
+  marginBottom: "8px",
+}
+
+const activitySetMetaGridStyle = {
+  display: "grid",
+  gap: "8px",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+}
+
+const activitySetMetaItemStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const activitySetMetaLabelStyle = {
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "#64748b",
+}
+
+const activitySetMetaValueStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const activityPassCommentStyle = {
+  marginTop: "12px",
+  padding: "12px 14px",
+  borderRadius: "16px",
+  backgroundColor: "#fff7f7",
+  border: "1px solid #f3d0d0",
+  color: "#374151",
+  fontSize: "14px",
+  lineHeight: 1.6,
 }
 
 const chartGridStyle = {
