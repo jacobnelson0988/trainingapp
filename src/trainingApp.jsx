@@ -164,6 +164,79 @@ const buildExerciseGoalPrefill = (historyEntry) => ({
   comment: historyEntry?.comment || "",
 })
 
+const parseRepTargetInput = (value, mode = "fixed") => {
+  const rawValue = String(value ?? "").trim()
+
+  if (mode === "max") {
+    return {
+      target_reps: null,
+      target_reps_min: null,
+      target_reps_max: null,
+      target_reps_text: null,
+      target_reps_mode: "max",
+    }
+  }
+
+  if (!rawValue) {
+    return {
+      target_reps: null,
+      target_reps_min: null,
+      target_reps_max: null,
+      target_reps_text: null,
+      target_reps_mode: "fixed",
+    }
+  }
+
+  const normalized = rawValue.replace(/\s+/g, "")
+  const rangeMatch = normalized.match(/^(\d+)-(\d+)$/)
+
+  if (rangeMatch) {
+    const minValue = Number(rangeMatch[1])
+    const maxValue = Number(rangeMatch[2])
+
+    if (Number.isFinite(minValue) && Number.isFinite(maxValue) && minValue <= maxValue) {
+      return {
+        target_reps: null,
+        target_reps_min: minValue,
+        target_reps_max: maxValue,
+        target_reps_text: `${minValue}-${maxValue}`,
+        target_reps_mode: "fixed",
+      }
+    }
+  }
+
+  const numericValue = Number(rawValue)
+
+  if (Number.isFinite(numericValue)) {
+    return {
+      target_reps: numericValue,
+      target_reps_min: null,
+      target_reps_max: null,
+      target_reps_text: null,
+      target_reps_mode: "fixed",
+    }
+  }
+
+  return {
+    target_reps: null,
+    target_reps_min: null,
+    target_reps_max: null,
+    target_reps_text: rawValue,
+    target_reps_mode: "fixed",
+  }
+}
+
+const formatRepTargetValue = (target) => {
+  if (!target) return "-"
+  if (target.target_reps_mode === "max") return "max"
+  if (target.target_reps_text) return target.target_reps_text
+  if (target.target_reps_min != null && target.target_reps_max != null) {
+    return `${target.target_reps_min}-${target.target_reps_max}`
+  }
+  if (target.target_reps != null) return String(target.target_reps)
+  return "-"
+}
+
 const buildPlayerExerciseProgress = (rows, exercises) =>
   summarizeHistoryRowsByExercise(rows || [])
     .map((exerciseHistory) => {
@@ -4782,18 +4855,13 @@ function TrainingApp() {
       nextRunningTime !== (selectedTemplate.running_time || "")
     const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
       const nextGuide = draft.guide?.trim() || ""
+      const repTargetPayload = parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
 
       return {
         id: rowId,
         custom_guide: nextGuide || null,
         target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
-        target_reps:
-          draft.targetRepsMode === "max"
-            ? null
-            : draft.targetReps === ""
-            ? null
-            : Number(draft.targetReps),
-        target_reps_mode: draft.targetRepsMode || "fixed",
+        ...repTargetPayload,
       }
     })
 
@@ -4956,15 +5024,15 @@ function TrainingApp() {
                 ? null
                 : Number(draft.targetSets)
               : row.target_sets,
-          target_reps:
-            draft.targetRepsMode === "max"
-              ? null
-              : draft.targetReps !== undefined
-              ? draft.targetReps === ""
-                ? null
-                : Number(draft.targetReps)
-              : row.target_reps,
-          target_reps_mode: draft.targetRepsMode || row.target_reps_mode || "fixed",
+          ...(draft.targetReps !== undefined || draft.targetRepsMode !== undefined
+            ? parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
+            : {
+                target_reps: row.target_reps,
+                target_reps_min: row.target_reps_min,
+                target_reps_max: row.target_reps_max,
+                target_reps_text: row.target_reps_text,
+                target_reps_mode: row.target_reps_mode || "fixed",
+              }),
         }
       })
     )
@@ -7399,9 +7467,7 @@ function TrainingApp() {
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Reps</span>
                           <span style={targetValueStyle}>
-                            {currentTarget.target_reps_mode === "max"
-                              ? "max"
-                              : currentTarget.target_reps ?? "-"}
+                            {formatRepTargetValue(currentTarget)}
                           </span>
                         </div>
                       )}

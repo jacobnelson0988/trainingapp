@@ -91,6 +91,17 @@ const buildRunningWorkoutSummary = (workoutKind, runningType, runningConfig) => 
   return [distance, time].filter(Boolean).join(" • ") || "Distans"
 }
 
+const getDraftTargetRepsValue = (exercise, passExerciseDrafts) => {
+  const draft = passExerciseDrafts?.[exercise.id]
+  if (draft?.targetReps !== undefined) return draft.targetReps
+  if (exercise.targetRepsText) return exercise.targetRepsText
+  if (exercise.targetRepsMin != null && exercise.targetRepsMax != null) {
+    return `${exercise.targetRepsMin}-${exercise.targetRepsMax}`
+  }
+  if (exercise.targetReps != null) return String(exercise.targetReps)
+  return ""
+}
+
 function PassBuilderPage({
   activeWorkouts,
   selectedTemplateCode,
@@ -908,7 +919,7 @@ function PassBuilderPage({
                   const draft = {
                     guide: exercise.guide || "",
                     targetSets: exercise.targetSets ?? "",
-                    targetReps: exercise.targetReps ?? "",
+                    targetReps: getDraftTargetRepsValue(exercise, passExerciseDrafts),
                     targetRepsMode: exercise.targetRepsMode || "fixed",
                     ...(passExerciseDrafts?.[exercise.id] || {}),
                   }
@@ -1027,7 +1038,7 @@ function PassBuilderPage({
                               <div>
                                 <div style={fieldLabelStyle}>Reps</div>
                                 <input
-                                  type="number"
+                                  type="text"
                                   value={draft.targetReps}
                                   disabled={draft.targetRepsMode === "max"}
                                   onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
