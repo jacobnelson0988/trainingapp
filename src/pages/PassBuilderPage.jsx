@@ -211,8 +211,10 @@ function PassBuilderPage({
   isMobile,
 }) {
   const [view, setView] = useState("overview")
-  const [activeEditSection, setActiveEditSection] = useState("content")
-  const [expandedExerciseId, setExpandedExerciseId] = useState(null)
+  const [activeEditSection, setActiveEditSection] = useState("exercises")
+  const [editingExerciseId, setEditingExerciseId] = useState(null)
+  const [showExercisePicker, setShowExercisePicker] = useState(false)
+  const [expandedAlternativesId, setExpandedAlternativesId] = useState(null)
   const [exerciseSearchValue, setExerciseSearchValue] = useState("")
   const [selectedExerciseCategory, setSelectedExerciseCategory] = useState("alla")
   const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
@@ -227,16 +229,13 @@ function PassBuilderPage({
   }, [currentWorkout, view])
 
   useEffect(() => {
-    if (view !== "edit" || activeEditSection !== "content") return
+    if (view !== "edit" || activeEditSection !== "exercises") return
 
-    const firstExerciseId = currentWorkout?.exercises?.[0]?.id || null
-
-    setExpandedExerciseId((current) => {
-      if (!firstExerciseId) return null
-      const stillExists = (currentWorkout?.exercises || []).some(
-        (exercise) => String(exercise.id) === String(current)
-      )
-      return stillExists ? current : firstExerciseId
+    setEditingExerciseId((current) => {
+      const exercises = currentWorkout?.exercises || []
+      if (exercises.length === 0) return null
+      const stillExists = exercises.some((e) => String(e.id) === String(current))
+      return stillExists ? current : (exercises[0]?.id || null)
     })
   }, [activeEditSection, currentWorkout, view])
 
@@ -258,8 +257,10 @@ function PassBuilderPage({
   const openEditView = () => {
     if (!selectedTemplateCode) return
     resetPassEditorState(selectedTemplateCode)
-    setActiveEditSection("content")
-    setExpandedExerciseId(currentWorkout?.exercises?.[0]?.id || null)
+    setActiveEditSection("exercises")
+    setEditingExerciseId(currentWorkout?.exercises?.[0]?.id || null)
+    setShowExercisePicker(false)
+    setExpandedAlternativesId(null)
     setSelectedAlternativeExerciseByRow({})
     setExerciseSearchValue("")
     setSelectedExerciseCategory("alla")
@@ -272,7 +273,9 @@ function PassBuilderPage({
     setSelectedAlternativeExerciseByRow({})
     setExerciseSearchValue("")
     setSelectedExerciseCategory("alla")
-    setExpandedExerciseId(null)
+    setEditingExerciseId(null)
+    setShowExercisePicker(false)
+    setExpandedAlternativesId(null)
     setView("overview")
   }
 
@@ -323,8 +326,9 @@ function PassBuilderPage({
     const addedRowId = await handleAddExerciseToPass()
 
     if (addedRowId && addedRowId !== true) {
-      setActiveEditSection("content")
-      setExpandedExerciseId(addedRowId)
+      setShowExercisePicker(false)
+      setEditingExerciseId(addedRowId)
+      setExpandedAlternativesId(null)
     }
   }
 
@@ -616,8 +620,7 @@ function PassBuilderPage({
               {[
                 { key: "passinfo", label: "Passinfo" },
                 ...(renamePassWorkoutKind !== "running" ? [{ key: "warmup", label: "Uppvärmning" }] : []),
-                ...(renamePassWorkoutKind !== "running" ? [{ key: "add", label: "Lägg till" }] : []),
-                ...(renamePassWorkoutKind !== "running" ? [{ key: "content", label: "Innehåll" }] : []),
+                ...(renamePassWorkoutKind !== "running" ? [{ key: "exercises", label: "Övningar" }] : []),
               ].map((section) => (
                 <button
                   key={section.key}
@@ -795,117 +798,86 @@ function PassBuilderPage({
           </section>
           )}
 
-          {renamePassWorkoutKind !== "running" && activeEditSection === "add" && (
+          {renamePassWorkoutKind !== "running" && activeEditSection === "exercises" && (
           <section style={panelStyle}>
             <div style={panelHeaderStyle}>
               <div>
                 <div style={sectionEyebrowStyle}>Övningar</div>
-                <div style={sectionTitleStyle}>Lägg till övning i passet</div>
+                <div style={sectionTitleStyle}>Hantera övningarna i passet</div>
               </div>
               <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>
             </div>
 
-            <div style={addExercisePanelStyle}>
-              <input
-                type="text"
-                placeholder="Sök övning i hela banken"
-                value={exerciseSearchValue}
-                onChange={(e) => setExerciseSearchValue(e.target.value)}
-                style={{ ...inputStyle, width: "100%" }}
-              />
+            <div style={exercisesMasterDetailStyle(isMobile)}>
 
-              {isShowingExerciseCategoryOverview ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gap: "10px",
-                    gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                  }}
-                >
-                  {visibleExerciseCategories.map((category) => (
-                    <button
-                      key={category.label}
-                      type="button"
-                      onClick={() => {
-                        setSelectedExerciseCategory(category.label)
-                        setSelectedExerciseId("")
-                      }}
-                      style={exercisePickerCategoryCardStyle}
-                    >
-                      <div>
-                        <div style={exercisePickerCategoryTitleStyle}>{category.label}</div>
-                        <div style={exercisePickerCategoryHintStyle}>Visa övningar i kategorin</div>
-                      </div>
-                      <div style={summaryBadgeStyle}>{category.count}</div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: "10px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: isMobile ? "stretch" : "center",
-                      flexDirection: isMobile ? "column" : "row",
-                      gap: "10px",
-                    }}
-                  >
-                    <div style={{ fontSize: "13px", color: "#64748b" }}>
-                      {hasActiveExerciseSearch
-                        ? `Sökresultat i hela banken (${visibleExercisesForPicker.length})`
-                        : `${selectedExerciseCategory} (${visibleExercisesForPicker.length})`}
-                    </div>
-
-                    {!hasActiveExerciseSearch && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedExerciseCategory("alla")
-                          setSelectedExerciseId("")
-                        }}
-                        style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                      >
-                        Tillbaka till kategorier
-                      </button>
-                    )}
-                  </div>
-
-                  {visibleExercisesForPicker.length === 0 ? (
-                    <div style={exercisePickerEmptyStyle}>
-                      {hasActiveExerciseSearch
-                        ? "Ingen övning matchar din sökning."
-                        : "Inga övningar finns i den här kategorin."}
+              {/* LEFT PANEL: Compact exercise list */}
+              {(!isMobile || (!editingExerciseId && !showExercisePicker)) && (
+                <div style={exercisesListPanelStyle(isMobile)}>
+                  {exerciseCount === 0 ? (
+                    <div style={emptyStateStyle}>
+                      <div style={emptyStateTitleStyle}>Passet är tomt</div>
+                      <div style={mutedTextStyle}>Lägg till en övning för att komma igång.</div>
                     </div>
                   ) : (
-                    <div style={{ display: "grid", gap: "8px" }}>
-                      {visibleExercisesForPicker.map((exercise) => {
-                        const isSelected = String(selectedExerciseId) === String(exercise.id)
+                    <div style={exerciseCompactListStyle}>
+                      {(currentWorkout.exercises || []).map((exercise, index) => {
+                        const draft = {
+                          targetSets: exercise.targetSets ?? "",
+                          targetReps: getDraftTargetRepsValue(exercise, passExerciseDrafts),
+                          targetRepsMode: exercise.targetRepsMode || "fixed",
+                          ...(passExerciseDrafts?.[exercise.id] || {}),
+                        }
+                        const isSelected = String(editingExerciseId) === String(exercise.id)
 
                         return (
-                          <button
-                            key={exercise.id}
-                            type="button"
-                            onClick={() => setSelectedExerciseId(String(exercise.id))}
+                          <div
+                            key={`${exercise.name}-${index}`}
                             style={{
-                              ...exercisePickerRowStyle,
-                              border: isSelected ? "2px solid #c62828" : "1px solid #ece5e5",
-                              backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                              ...exerciseCompactRowStyle,
+                              backgroundColor: isSelected ? "#fff1f1" : "#ffffff",
+                              border: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb",
                             }}
                           >
-                            <div>
-                              <div style={exercisePickerRowTitleStyle}>{getExerciseDisplayName(exercise)}</div>
-                              <div style={exercisePickerRowMetaStyle}>
-                                {getExerciseNavigationCategory(exercise)}
-                                {Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0
-                                  ? ` • ${exercise.muscle_groups.join(", ")}`
-                                  : ""}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingExerciseId(exercise.id)
+                                setShowExercisePicker(false)
+                                setExpandedAlternativesId(null)
+                              }}
+                              style={exerciseCompactRowButtonStyle}
+                            >
+                              <div style={exerciseCompactIndexStyle}>{index + 1}</div>
+                              <div style={exerciseCompactInfoStyle}>
+                                <div style={exerciseCompactNameStyle}>{getExerciseDisplayName(exercise)}</div>
+                                <div style={exerciseCompactMetaStyle}>
+                                  {draft.targetSets || "–"} set •{" "}
+                                  {draft.targetRepsMode === "max" ? "MAX" : draft.targetReps || "–"}{" "}
+                                  {getExerciseMeasurementShortLabel(exercise.type)}
+                                </div>
                               </div>
+                            </button>
+                            <div style={exerciseCompactActionsStyle}>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveExerciseInPass(exercise.id, "up")}
+                                style={exerciseIconButtonStyle}
+                                title="Flytta upp"
+                              >↑</button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveExerciseInPass(exercise.id, "down")}
+                                style={exerciseIconButtonStyle}
+                                title="Flytta ner"
+                              >↓</button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExerciseFromPass(exercise.id)}
+                                style={{ ...exerciseIconButtonStyle, color: "#b91c1c" }}
+                                title="Ta bort"
+                              >✕</button>
                             </div>
-                            <div style={exercisePickerRowSelectStyle}>
-                              {isSelected ? "Vald" : "Välj"}
-                            </div>
-                          </button>
+                          </div>
                         )
                       })}
                     </div>
@@ -913,208 +885,292 @@ function PassBuilderPage({
 
                   <button
                     type="button"
-                    onClick={handleAddExerciseAndOpen}
-                    disabled={isSavingPassExercise || !selectedTemplateCode || !selectedExerciseId}
-                    style={{
-                      ...buttonStyle,
-                      width: isMobile ? "100%" : "auto",
-                      opacity: isSavingPassExercise || !selectedTemplateCode || !selectedExerciseId ? 0.7 : 1,
+                    onClick={() => {
+                      setShowExercisePicker(true)
+                      setEditingExerciseId(null)
+                      setExerciseSearchValue("")
+                      setSelectedExerciseCategory("alla")
+                      setSelectedExerciseId("")
                     }}
+                    style={{ ...buttonStyle, width: "100%" }}
                   >
-                    {isSavingPassExercise ? "Lägger till..." : "Lägg till vald övning"}
+                    + Lägg till övning
                   </button>
                 </div>
               )}
-            </div>
-          </section>
-          )}
 
-          {renamePassWorkoutKind !== "running" && activeEditSection === "content" && (
-          <section style={panelStyle}>
-            <div style={panelHeaderStyle}>
-              <div>
-                <div style={sectionEyebrowStyle}>Innehåll</div>
-                <div style={sectionTitleStyle}>Redigera övningarna i passet</div>
-              </div>
-              <div style={summaryBadgeStyle}>{exerciseCount} övningar</div>
-            </div>
+              {/* RIGHT PANEL: Picker or Editor */}
+              {(!isMobile || editingExerciseId || showExercisePicker) && (
+                <div style={exercisesEditorPanelStyle(isMobile)}>
 
-            {exerciseCount === 0 ? (
-              <div style={emptyStateStyle}>
-                <div style={emptyStateTitleStyle}>Passet är tomt just nu</div>
-                <div style={mutedTextStyle}>Lägg till den första övningen ovan för att komma igång.</div>
-              </div>
-            ) : (
-              <div style={exerciseListStyle}>
-                {(currentWorkout.exercises || []).map((exercise, index) => {
-                  const draft = {
-                    guide: exercise.guide || "",
-                    targetSets: exercise.targetSets ?? "",
-                    targetReps: getDraftTargetRepsValue(exercise, passExerciseDrafts),
-                    targetRepsMode: exercise.targetRepsMode || "fixed",
-                    ...(passExerciseDrafts?.[exercise.id] || {}),
-                  }
-                  const selectedAlternativeId = selectedAlternativeExerciseByRow[exercise.id] || ""
-                  const availableAlternativeExercises = (exercisesFromDB || []).filter(
-                    (candidate) =>
-                      String(candidate.id) !== String(exercise.exerciseId) &&
-                      !(exercise.alternativeExercises || []).some(
-                        (alternative) => String(alternative.exerciseId) === String(candidate.id)
-                      )
-                  )
-                  const isExpanded = String(expandedExerciseId) === String(exercise.id)
+                  {isMobile && (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingExerciseId(null); setShowExercisePicker(false) }}
+                      style={{ ...secondaryButtonStyle, marginBottom: "14px" }}
+                    >
+                      ← Tillbaka till listan
+                    </button>
+                  )}
 
-                  return (
-                    <div key={`${exercise.name}-${index}`} style={exerciseEditorCardStyle}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedExerciseId((current) =>
-                            String(current) === String(exercise.id) ? null : exercise.id
-                          )
-                        }
-                        style={exerciseAccordionButtonStyle}
-                      >
-                        <div>
-                          <div style={exerciseOrderStyle}>Övning {index + 1}</div>
-                          <div style={exerciseNameStyle}>{getExerciseDisplayName(exercise)}</div>
-                        </div>
-                        <div style={exerciseAccordionMetaStyle}>
-                          <div style={exerciseAccordionSummaryStyle}>
-                            {draft.targetSets || "–"} set •{" "}
-                            {draft.targetRepsMode === "max"
-                              ? "MAX"
-                              : draft.targetReps || "–"}{" "}
-                            {getExerciseMeasurementShortLabel(exercise.type)}
-                          </div>
-                          <div style={exerciseAccordionChevronStyle}>{isExpanded ? "−" : "+"}</div>
-                        </div>
-                      </button>
+                  {showExercisePicker ? (
+                    <div style={{ display: "grid", gap: "12px" }}>
+                      <div style={sectionTitleStyle}>Lägg till övning</div>
 
-                      {isExpanded && (
-                        <>
-                          <div style={exerciseEditorHeaderStyle}>
-                            <div style={exerciseButtonRowStyle}>
-                              <button
-                                type="button"
-                                onClick={() => handleMoveExerciseInPass(exercise.id, "up")}
-                                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                              >
-                                Flytta upp
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleMoveExerciseInPass(exercise.id, "down")}
-                                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                              >
-                                Flytta ner
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveExerciseFromPass(exercise.id)}
-                                style={{
-                                  ...secondaryButtonStyle,
-                                  color: "#b91c1c",
-                                  borderColor: "#fecaca",
-                                  width: isMobile ? "100%" : "auto",
-                                }}
-                              >
-                                Ta bort
-                              </button>
-                            </div>
-                          </div>
+                      <input
+                        type="text"
+                        placeholder="Sök övning i hela banken"
+                        value={exerciseSearchValue}
+                        onChange={(e) => setExerciseSearchValue(e.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
 
-                          <div style={hintBoxStyle}>
-                            Lämna instruktionen tom om övningen ska använda standardtexten från övningsbanken.
-                          </div>
-
-                          {!draft.guide.trim() && exercise.suggestedGuide && (
-                            <div style={suggestionBoxStyle}>
-                              <div style={suggestionTextStyle}>
-                                Tidigare instruktion i ditt lag: {exercise.suggestedGuide}
+                      {isShowingExerciseCategoryOverview ? (
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: "10px",
+                            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                          }}
+                        >
+                          {visibleExerciseCategories.map((category) => (
+                            <button
+                              key={category.label}
+                              type="button"
+                              onClick={() => {
+                                setSelectedExerciseCategory(category.label)
+                                setSelectedExerciseId("")
+                              }}
+                              style={exercisePickerCategoryCardStyle}
+                            >
+                              <div>
+                                <div style={exercisePickerCategoryTitleStyle}>{category.label}</div>
+                                <div style={exercisePickerCategoryHintStyle}>Visa övningar i kategorin</div>
                               </div>
+                              <div style={summaryBadgeStyle}>{category.count}</div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: "grid", gap: "10px" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: isMobile ? "stretch" : "center",
+                              flexDirection: isMobile ? "column" : "row",
+                              gap: "10px",
+                            }}
+                          >
+                            <div style={{ fontSize: "13px", color: "#64748b" }}>
+                              {hasActiveExerciseSearch
+                                ? `Sökresultat i hela banken (${visibleExercisesForPicker.length})`
+                                : `${selectedExerciseCategory} (${visibleExercisesForPicker.length})`}
+                            </div>
+
+                            {!hasActiveExerciseSearch && (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  handlePassExerciseDraftChange(exercise.id, "guide", exercise.suggestedGuide)
-                                }
+                                onClick={() => {
+                                  setSelectedExerciseCategory("alla")
+                                  setSelectedExerciseId("")
+                                }}
                                 style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
                               >
-                                Använd förslag
+                                Tillbaka till kategorier
                               </button>
+                            )}
+                          </div>
+
+                          {visibleExercisesForPicker.length === 0 ? (
+                            <div style={exercisePickerEmptyStyle}>
+                              {hasActiveExerciseSearch
+                                ? "Ingen övning matchar din sökning."
+                                : "Inga övningar finns i den här kategorin."}
+                            </div>
+                          ) : (
+                            <div style={{ display: "grid", gap: "8px" }}>
+                              {visibleExercisesForPicker.map((exercise) => {
+                                const isSelected = String(selectedExerciseId) === String(exercise.id)
+
+                                return (
+                                  <button
+                                    key={exercise.id}
+                                    type="button"
+                                    onClick={() => setSelectedExerciseId(String(exercise.id))}
+                                    style={{
+                                      ...exercisePickerRowStyle,
+                                      border: isSelected ? "2px solid #c62828" : "1px solid #ece5e5",
+                                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                                    }}
+                                  >
+                                    <div>
+                                      <div style={exercisePickerRowTitleStyle}>{getExerciseDisplayName(exercise)}</div>
+                                      <div style={exercisePickerRowMetaStyle}>
+                                        {getExerciseNavigationCategory(exercise)}
+                                        {Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0
+                                          ? ` • ${exercise.muscle_groups.join(", ")}`
+                                          : ""}
+                                      </div>
+                                    </div>
+                                    <div style={exercisePickerRowSelectStyle}>
+                                      {isSelected ? "Vald" : "Välj"}
+                                    </div>
+                                  </button>
+                                )
+                              })}
                             </div>
                           )}
 
-                          <div style={formStackStyle}>
-                            <div>
-                              <div style={fieldLabelStyle}>Instruktion i just det här passet</div>
-                              <textarea
-                                rows={3}
-                                value={draft.guide}
-                                onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
-                                style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "84px" }}
-                              />
+                          <button
+                            type="button"
+                            onClick={handleAddExerciseAndOpen}
+                            disabled={isSavingPassExercise || !selectedTemplateCode || !selectedExerciseId}
+                            style={{
+                              ...buttonStyle,
+                              width: "100%",
+                              opacity: isSavingPassExercise || !selectedTemplateCode || !selectedExerciseId ? 0.7 : 1,
+                            }}
+                          >
+                            {isSavingPassExercise ? "Lägger till..." : "Lägg till vald övning"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : editingExerciseId ? (() => {
+                    const exercise = (currentWorkout?.exercises || []).find(
+                      (e) => String(e.id) === String(editingExerciseId)
+                    )
+                    if (!exercise) return null
+
+                    const draft = {
+                      guide: exercise.guide || "",
+                      targetSets: exercise.targetSets ?? "",
+                      targetReps: getDraftTargetRepsValue(exercise, passExerciseDrafts),
+                      targetRepsMode: exercise.targetRepsMode || "fixed",
+                      ...(passExerciseDrafts?.[exercise.id] || {}),
+                    }
+                    const selectedAlternativeId = selectedAlternativeExerciseByRow[exercise.id] || ""
+                    const availableAlternativeExercises = (exercisesFromDB || []).filter(
+                      (candidate) =>
+                        String(candidate.id) !== String(exercise.exerciseId) &&
+                        !(exercise.alternativeExercises || []).some(
+                          (alternative) => String(alternative.exerciseId) === String(candidate.id)
+                        )
+                    )
+                    const isAlternativesExpanded = String(expandedAlternativesId) === String(exercise.id)
+
+                    return (
+                      <div style={formStackStyle}>
+                        <div style={exerciseEditorTitleStyle}>
+                          {getExerciseDisplayName(exercise)}
+                        </div>
+
+                        {!draft.guide.trim() && exercise.suggestedGuide && (
+                          <div style={suggestionBoxStyle}>
+                            <div style={suggestionTextStyle}>
+                              Tidigare instruktion i ditt lag: {exercise.suggestedGuide}
                             </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handlePassExerciseDraftChange(exercise.id, "guide", exercise.suggestedGuide)
+                              }
+                              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                            >
+                              Använd förslag
+                            </button>
+                          </div>
+                        )}
 
-                            <div style={{ ...targetGridStyle, gridTemplateColumns: isMobile ? "1fr" : "92px 92px auto" }}>
-                              <div>
-                                <div style={fieldLabelStyle}>Set</div>
-                                <input
-                                  type="number"
-                                  value={draft.targetSets}
-                                  onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
-                                  style={{ ...inputStyle, width: "100%" }}
-                                />
-                              </div>
+                        <div>
+                          <div style={fieldLabelStyle}>
+                            Instruktion{" "}
+                            <span style={fieldHintInlineStyle}>(lämna tom för standardtext från övningsbanken)</span>
+                          </div>
+                          <textarea
+                            rows={3}
+                            value={draft.guide}
+                            onChange={(e) => handlePassExerciseDraftChange(exercise.id, "guide", e.target.value)}
+                            style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "84px" }}
+                          />
+                        </div>
 
-                              <div>
-                                <div style={fieldLabelStyle}>
-                                  {getExerciseMeasurementLabelWithSide(exercise.type, exercise.executionSide)}
-                                </div>
-                                <input
-                                  type="text"
-                                  value={draft.targetReps}
-                                  disabled={draft.targetRepsMode === "max"}
-                                  onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
-                                  style={{
-                                    ...inputStyle,
-                                    width: "100%",
-                                    opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
-                                  }}
-                                />
-                                {exercise.executionSide && exercise.executionSide !== "standard" && (
-                                  <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
-                                    {getExerciseExecutionHint(exercise.type, exercise.executionSide)}
-                                  </div>
-                                )}
-                              </div>
+                        <div style={{ ...targetGridStyle, gridTemplateColumns: isMobile ? "1fr" : "92px 92px auto" }}>
+                          <div>
+                            <div style={fieldLabelStyle}>Set</div>
+                            <input
+                              type="number"
+                              value={draft.targetSets}
+                              onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
+                              style={{ ...inputStyle, width: "100%" }}
+                            />
+                          </div>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handlePassExerciseDraftChange(
-                                    exercise.id,
-                                    "targetRepsMode",
-                                    draft.targetRepsMode === "max" ? "fixed" : "max"
-                                  )
-                                }
-                                style={{
-                                  ...secondaryButtonStyle,
-                                  width: isMobile ? "100%" : "auto",
-                                  backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "#ffffff",
-                                  color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
-                                }}
-                              >
-                                {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
-                              </button>
+                          <div>
+                            <div style={fieldLabelStyle}>
+                              {getExerciseMeasurementLabelWithSide(exercise.type, exercise.executionSide)}
                             </div>
+                            <input
+                              type="text"
+                              value={draft.targetReps}
+                              disabled={draft.targetRepsMode === "max"}
+                              onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
+                              style={{
+                                ...inputStyle,
+                                width: "100%",
+                                opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
+                              }}
+                            />
+                            {exercise.executionSide && exercise.executionSide !== "standard" && (
+                              <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
+                                {getExerciseExecutionHint(exercise.type, exercise.executionSide)}
+                              </div>
+                            )}
+                          </div>
 
-                            <div style={alternativeBlockStyle}>
-                              <div style={alternativeBlockHeaderStyle}>
-                                <div style={alternativeBlockTitleStyle}>Alternativa övningar</div>
-                                <div style={alternativeBlockHintStyle}>
-                                  Lägg till alternativ som spelaren kan välja mellan i passet.
-                                </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handlePassExerciseDraftChange(
+                                exercise.id,
+                                "targetRepsMode",
+                                draft.targetRepsMode === "max" ? "fixed" : "max"
+                              )
+                            }
+                            style={{
+                              ...secondaryButtonStyle,
+                              width: isMobile ? "100%" : "auto",
+                              backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "#ffffff",
+                              color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
+                            }}
+                          >
+                            {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
+                          </button>
+                        </div>
+
+                        <div style={alternativeBlockStyle}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedAlternativesId((current) =>
+                                String(current) === String(exercise.id) ? null : exercise.id
+                              )
+                            }
+                            style={alternativesAccordionButtonStyle}
+                          >
+                            <div style={alternativeBlockTitleStyle}>
+                              Alternativa övningar ({(exercise.alternativeExercises || []).length})
+                            </div>
+                            <div style={alternativesAccordionChevronStyle}>
+                              {isAlternativesExpanded ? "−" : "+"}
+                            </div>
+                          </button>
+
+                          {isAlternativesExpanded && (
+                            <>
+                              <div style={alternativeBlockHintStyle}>
+                                Lägg till alternativ som spelaren kan välja mellan i passet.
                               </div>
 
                               {(exercise.alternativeExercises || []).length > 0 ? (
@@ -1168,22 +1224,27 @@ function PassBuilderPage({
                                     ...secondaryButtonStyle,
                                     width: isMobile ? "100%" : "auto",
                                     opacity: isSavingPassExercise || !selectedAlternativeId ? 0.7 : 1,
-                                    cursor:
-                                      isSavingPassExercise || !selectedAlternativeId ? "default" : "pointer",
+                                    cursor: isSavingPassExercise || !selectedAlternativeId ? "default" : "pointer",
                                   }}
                                 >
                                   {isSavingPassExercise ? "Sparar..." : "Lägg till alternativ"}
                                 </button>
                               </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })() : (
+                    <div style={exercisesEditorEmptyStyle}>
+                      <div style={exercisesEditorEmptyTextStyle}>
+                        Välj en övning i listan för att redigera, eller lägg till en ny övning.
+                      </div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </section>
           )}
         </div>
@@ -1887,6 +1948,165 @@ const textareaStyle = {
   resize: "vertical",
   minHeight: "104px",
   fontFamily: "inherit",
+}
+
+const exercisesMasterDetailStyle = (isMobile) => ({
+  display: "grid",
+  gridTemplateColumns: isMobile ? "1fr" : "260px 1fr",
+  border: "1px solid #e5e7eb",
+  borderRadius: "16px",
+  overflow: "hidden",
+})
+
+const exercisesListPanelStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  padding: "14px",
+  borderRight: isMobile ? "none" : "1px solid #e5e7eb",
+  borderBottom: isMobile ? "1px solid #e5e7eb" : "none",
+  backgroundColor: "#fafafa",
+  alignContent: "start",
+})
+
+const exercisesEditorPanelStyle = (isMobile) => ({
+  padding: isMobile ? "14px" : "20px",
+  backgroundColor: "#ffffff",
+  minWidth: 0,
+})
+
+const exerciseCompactListStyle = {
+  display: "grid",
+  gap: "6px",
+}
+
+const exerciseCompactRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  borderRadius: "12px",
+  overflow: "hidden",
+}
+
+const exerciseCompactRowButtonStyle = {
+  flex: 1,
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  padding: "10px",
+  border: "none",
+  background: "transparent",
+  textAlign: "left",
+  cursor: "pointer",
+  minWidth: 0,
+}
+
+const exerciseCompactIndexStyle = {
+  width: "22px",
+  height: "22px",
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "11px",
+  fontWeight: "800",
+}
+
+const exerciseCompactInfoStyle = {
+  minWidth: 0,
+}
+
+const exerciseCompactNameStyle = {
+  fontSize: "13px",
+  fontWeight: "800",
+  color: "#18202b",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+}
+
+const exerciseCompactMetaStyle = {
+  fontSize: "11px",
+  color: "#6b7280",
+  marginTop: "2px",
+}
+
+const exerciseCompactActionsStyle = {
+  display: "flex",
+  gap: "2px",
+  padding: "0 6px",
+  flexShrink: 0,
+}
+
+const exerciseIconButtonStyle = {
+  width: "28px",
+  height: "28px",
+  borderRadius: "8px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#ffffff",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "13px",
+  cursor: "pointer",
+  color: "#374151",
+}
+
+const exerciseEditorTitleStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
+  paddingBottom: "12px",
+  borderBottom: "1px solid #e5e7eb",
+  marginBottom: "2px",
+}
+
+const fieldHintInlineStyle = {
+  fontSize: "11px",
+  fontWeight: "600",
+  color: "#9ca3af",
+}
+
+const alternativesAccordionButtonStyle = {
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  textAlign: "left",
+}
+
+const alternativesAccordionChevronStyle = {
+  width: "24px",
+  height: "24px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "8px",
+  backgroundColor: "#e2e8f0",
+  color: "#64748b",
+  fontSize: "16px",
+  fontWeight: "700",
+  flexShrink: 0,
+}
+
+const exercisesEditorEmptyStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "32px 16px",
+  minHeight: "200px",
+}
+
+const exercisesEditorEmptyTextStyle = {
+  fontSize: "14px",
+  color: "#9ca3af",
+  textAlign: "center",
+  lineHeight: 1.6,
 }
 
 export default PassBuilderPage
