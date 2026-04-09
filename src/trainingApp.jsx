@@ -290,6 +290,58 @@ const parseRepTargetInput = (value, mode = "fixed") => {
   }
 }
 
+const buildExistingPassExerciseRepPayload = (row) => ({
+  target_reps: row?.target_reps ?? null,
+  target_reps_min: row?.target_reps_min ?? null,
+  target_reps_max: row?.target_reps_max ?? null,
+  target_reps_text: row?.target_reps_text ?? null,
+  target_reps_mode: row?.target_reps_mode || "fixed",
+})
+
+const buildPassExerciseUpdateFromDraft = (row, draft = {}) => {
+  if (!row) return null
+
+  const hasGuideChange = draft.guide !== undefined
+  const hasTargetSetsChange = draft.targetSets !== undefined
+  const hasRepChange = draft.targetReps !== undefined || draft.targetRepsMode !== undefined
+
+  if (!hasGuideChange && !hasTargetSetsChange && !hasRepChange) {
+    return null
+  }
+
+  const nextGuide = hasGuideChange ? draft.guide?.trim() || "" : row.custom_guide || ""
+  const repTargetPayload = hasRepChange
+    ? parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
+    : buildExistingPassExerciseRepPayload(row)
+
+  return {
+    id: row.id,
+    custom_guide: nextGuide || null,
+    target_sets: hasTargetSetsChange
+      ? draft.targetSets === ""
+        ? null
+        : Number(draft.targetSets)
+      : row.target_sets,
+    ...repTargetPayload,
+  }
+}
+
+const mergePassExerciseRowWithDraft = (row, draft = {}) => {
+  const update = buildPassExerciseUpdateFromDraft(row, draft)
+  if (!update) return row
+
+  return {
+    ...row,
+    custom_guide: update.custom_guide,
+    target_sets: update.target_sets,
+    target_reps: update.target_reps,
+    target_reps_min: update.target_reps_min,
+    target_reps_max: update.target_reps_max,
+    target_reps_text: update.target_reps_text,
+    target_reps_mode: update.target_reps_mode,
+  }
+}
+
 const formatRepTargetValue = (target) => {
   if (!target) return "-"
   if (target.target_reps_mode === "max") return "max"
@@ -4989,35 +5041,8 @@ function TrainingApp() {
       nextRunningTime !== (selectedTemplate.running_time || "")
     const updates = Object.entries(passExerciseDrafts).flatMap(([rowId, draft]) => {
       const existingRow = templateExercisesFromDB.find((row) => String(row.id) === String(rowId))
-      if (!existingRow) return []
-
-      const hasGuideChange = draft.guide !== undefined
-      const hasTargetSetsChange = draft.targetSets !== undefined
-      const hasRepChange = draft.targetReps !== undefined || draft.targetRepsMode !== undefined
-
-      if (!hasGuideChange && !hasTargetSetsChange && !hasRepChange) return []
-
-      const nextGuide = hasGuideChange ? draft.guide?.trim() || "" : existingRow.custom_guide || ""
-      const repTargetPayload = hasRepChange
-        ? parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
-        : {
-            target_reps: existingRow.target_reps,
-            target_reps_min: existingRow.target_reps_min,
-            target_reps_max: existingRow.target_reps_max,
-            target_reps_text: existingRow.target_reps_text,
-            target_reps_mode: existingRow.target_reps_mode || "fixed",
-          }
-
-      return [{
-        id: rowId,
-        custom_guide: nextGuide || null,
-        target_sets: hasTargetSetsChange
-          ? draft.targetSets === ""
-            ? null
-            : Number(draft.targetSets)
-          : existingRow.target_sets,
-        ...repTargetPayload,
-      }]
+      const update = buildPassExerciseUpdateFromDraft(existingRow, draft)
+      return update ? [update] : []
     })
 
     if (
@@ -5164,31 +5189,7 @@ function TrainingApp() {
 
         if (!draft) return row
 
-        const nextGuide = draft.guide?.trim() || ""
-        const nextCustomGuide = nextGuide || null
-
-        return {
-          ...row,
-          custom_guide:
-            draft.guide !== undefined
-              ? nextCustomGuide
-              : row.custom_guide,
-          target_sets:
-            draft.targetSets !== undefined
-              ? draft.targetSets === ""
-                ? null
-                : Number(draft.targetSets)
-              : row.target_sets,
-          ...(draft.targetReps !== undefined || draft.targetRepsMode !== undefined
-            ? parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
-            : {
-                target_reps: row.target_reps,
-                target_reps_min: row.target_reps_min,
-                target_reps_max: row.target_reps_max,
-                target_reps_text: row.target_reps_text,
-                target_reps_mode: row.target_reps_mode || "fixed",
-              }),
-        }
+        return mergePassExerciseRowWithDraft(row, draft)
       })
     )
 
