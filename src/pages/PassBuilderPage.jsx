@@ -254,8 +254,9 @@ function PassBuilderPage({
     setEditingExerciseId((current) => {
       const exercises = currentWorkout?.exercises || []
       if (exercises.length === 0) return null
+      if (!current) return null
       const stillExists = exercises.some((e) => String(e.id) === String(current))
-      return stillExists ? current : (exercises[0]?.id || null)
+      return stillExists ? current : null
     })
   }, [activeEditSection, currentWorkout, view])
 
@@ -279,7 +280,7 @@ function PassBuilderPage({
     if (!selectedTemplateCode) return
     resetPassEditorState(selectedTemplateCode)
     setActiveEditSection("exercises")
-    setEditingExerciseId(currentWorkout?.exercises?.[0]?.id || null)
+    setEditingExerciseId(null)
     setShowExercisePicker(false)
     setExpandedAlternativesId(null)
     setSelectedAlternativeExerciseByRow({})
