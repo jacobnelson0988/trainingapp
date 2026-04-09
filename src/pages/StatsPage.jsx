@@ -1253,11 +1253,11 @@ const activityExerciseCardsViewportStyle = {
   width: "100%",
   maxWidth: "100%",
   overflowX: "auto",
-  marginLeft: "-4px",
-  marginRight: "-4px",
+  overflowY: "hidden",
   paddingBottom: "4px",
   WebkitOverflowScrolling: "touch",
   scrollSnapType: "x mandatory",
+  scrollBehavior: "smooth",
 }
 
 const activitySwipeHintStyle = {
@@ -1270,17 +1270,18 @@ const activitySwipeHintStyle = {
 }
 
 const activityExerciseCardsTrackStyle = {
-  display: "grid",
-  gridAutoFlow: "column",
-  gridAutoColumns: "minmax(0, 100%)",
+  display: "flex",
+  alignItems: "stretch",
   gap: "12px",
-  padding: "4px",
+  width: "100%",
 }
 
 const activityExerciseCardStyle = {
+  flex: "0 0 100%",
   width: "100%",
-  minWidth: 0,
+  minWidth: "100%",
   maxWidth: "100%",
+  boxSizing: "border-box",
   padding: "16px",
   borderRadius: "20px",
   border: "1px solid #dbe5ef",
