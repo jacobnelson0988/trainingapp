@@ -678,8 +678,11 @@ function TrainingApp() {
   }, [profile])
 
   useEffect(() => {
-    if (profile?.role === "coach") {
+    if (profile?.role === "coach" || profile?.role === "player") {
       loadTeams()
+    }
+
+    if (profile?.role === "coach") {
       setSelectedTeamId(profile.team_id || "")
     }
 
