@@ -1,9 +1,9 @@
 # Feedback
 
-Automatiskt exporterad lista över feedback som inte är klarmarkerad i Supabase.
+Automatiskt exporterad lista över öppna feedbackposter i Supabase.
 
-Senast uppdaterad: 9 apr. 2026 23:21
-Antal poster: 6
+Senast uppdaterad: 9 apr. 2026 23:29
+Antal poster: 5
 
 ---
 
@@ -12,7 +12,8 @@ Antal poster: 6
 - Status: Öppen
 - Roll: Tränare
 - Lag: Gustavsberg P2012-2013
-- Datum: 9 apr. 2026 17:44
+- Skapad: 9 apr. 2026 17:44
+- Status uppdaterad: -
 - Username: jac.nel2
 - ID: 1bd5b377-3ff6-40d9-99f4-af1b111035fd
 
@@ -26,7 +27,8 @@ Spelare ska kunna begära ändring av målvikt för övningar.
 - Status: Öppen
 - Roll: Tränare
 - Lag: Gustavsberg P2012-2013
-- Datum: 9 apr. 2026 16:58
+- Skapad: 9 apr. 2026 16:58
+- Status uppdaterad: -
 - Username: jac.nel2
 - ID: 4d84a399-8893-4573-9ac8-9712eacb81c6
 
@@ -39,7 +41,8 @@ Som tränare ska man kunna tilldela pass till alla spelare direkt från pass-sid
 - Status: Öppen
 - Roll: Tränare
 - Lag: Gustavsberg P2012-2013
-- Datum: 7 apr. 2026 20:13
+- Skapad: 7 apr. 2026 20:13
+- Status uppdaterad: -
 - Username: jac.nel2
 - ID: da2605c9-8748-4431-94d2-30fef5c96bde
 
@@ -52,7 +55,8 @@ Jag vill ha en "aktivitets sida" för tränare, där ska det vara en enkel lista
 - Status: Öppen
 - Roll: Tränare
 - Lag: Gustavsberg P2012-2013
-- Datum: 7 apr. 2026 20:04
+- Skapad: 7 apr. 2026 20:04
+- Status uppdaterad: -
 - Username: jac.nel2
 - ID: b0e12140-4359-47cb-bf5e-15795fa333aa
 
@@ -65,23 +69,11 @@ När man som tränare kollar på historik från en spelares pass så ser man bar
 - Status: Öppen
 - Roll: Tränare
 - Lag: Gustavsberg P2012-2013
-- Datum: 7 apr. 2026 17:12
+- Skapad: 7 apr. 2026 17:12
+- Status uppdaterad: -
 - Username: jac.nel2
 - ID: 21dadd01-b905-43fc-9c52-32d3c9d1b920
 
 ### Feedback
 
 I statistik fliken i tränarvyn ska spelarna ligga i en drop-down meny. Det gör flödet bättre.
-
-## 6. Johannes Kokko
-
-- Status: Kommer inte göras
-- Roll: Spelare
-- Lag: Gustavsberg P2012-2013
-- Datum: 7 apr. 2026 11:58
-- Username: joh.kok1
-- ID: fa116ae9-4c0a-417c-9a9c-ea7b5f9e30fd
-
-### Feedback
-
-Vore bra om man kanske kunde lägga till set med egna övningar också som tillägg. Dessutom vore det bra med någon sida där man kan lägga upp en planering för när och vilket pass man ska köra
