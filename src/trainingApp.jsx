@@ -4331,13 +4331,12 @@ function TrainingApp() {
     await loadPlayerTargets(selectedPlayer.id)
   }
 
-  const handleAssignPassToPlayer = async (passName) => {
-    if (!selectedPlayer) return
-
+  const buildPassAssignmentRowsForPlayer = (playerId, passName) => {
     const exercises = activeWorkouts[passName]?.exercises || []
-    const rows = [
+
+    return [
       {
-        player_id: selectedPlayer.id,
+        player_id: playerId,
         pass_name: passName,
         exercise_name: PASS_ASSIGNMENT_EXERCISE_NAME,
         target_sets: null,
@@ -4347,7 +4346,7 @@ function TrainingApp() {
         target_comment: null,
       },
       ...exercises.map((exercise) => ({
-        player_id: selectedPlayer.id,
+        player_id: playerId,
         pass_name: passName,
         exercise_name: exercise.name,
         target_sets: null,
@@ -4357,6 +4356,12 @@ function TrainingApp() {
         target_comment: null,
       })),
     ]
+  }
+
+  const handleAssignPassToPlayer = async (passName) => {
+    if (!selectedPlayer) return
+
+    const rows = buildPassAssignmentRowsForPlayer(selectedPlayer.id, passName)
 
     setIsUpdatingPassAssignments(true)
 
@@ -4374,6 +4379,44 @@ function TrainingApp() {
     setStatus(`${activeWorkouts[passName]?.label || passName} tilldelat ✅`)
     await loadPlayerTargets(selectedPlayer.id)
     setIsUpdatingPassAssignments(false)
+  }
+
+  const handleAssignPassToPlayers = async (passName, playerIds, options = {}) => {
+    const validPlayerIds = Array.from(new Set((playerIds || []).filter(Boolean)))
+
+    if (!passName || validPlayerIds.length === 0) {
+      setStatus("Välj minst en spelare att tilldela passet till")
+      return false
+    }
+
+    const rows = validPlayerIds.flatMap((playerId) => buildPassAssignmentRowsForPlayer(playerId, passName))
+
+    setIsUpdatingPassAssignments(true)
+
+    const { error } = await supabase
+      .from("player_exercise_targets")
+      .upsert(rows, { onConflict: "player_id,pass_name,exercise_name" })
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte tilldela pass")
+      setIsUpdatingPassAssignments(false)
+      return false
+    }
+
+    const passLabel = activeWorkouts[passName]?.label || passName
+    const successMessage = options.allPlayers
+      ? `${passLabel} tilldelat till alla spelare ✅`
+      : `${passLabel} tilldelat till ${validPlayerIds.length} spelare ✅`
+
+    setStatus(successMessage)
+
+    if (selectedPlayer && validPlayerIds.includes(selectedPlayer.id)) {
+      await loadPlayerTargets(selectedPlayer.id)
+    }
+
+    setIsUpdatingPassAssignments(false)
+    return true
   }
 
   const handleUnassignPassFromPlayer = async (passName) => {
@@ -6209,6 +6252,7 @@ function TrainingApp() {
             {coachView === "passBuilder" && (
               <PassBuilderPage
                 activeWorkouts={activeWorkouts}
+                players={players}
                 selectedTemplateCode={selectedTemplateCode}
                 setSelectedTemplateCode={setSelectedTemplateCode}
                 newPassName={newPassName}
@@ -6276,6 +6320,7 @@ function TrainingApp() {
                 handleRemoveExerciseFromPass={handleRemoveExerciseFromPass}
                 handleMoveExerciseInPass={handleMoveExerciseInPass}
                 handleDeletePass={handleDeleteSelectedPass}
+                handleAssignPassToPlayers={handleAssignPassToPlayers}
                 resetPassEditorState={resetPassEditorState}
                 cardTitleStyle={cardTitleStyle}
                 secondaryButtonStyle={secondaryButtonStyle}

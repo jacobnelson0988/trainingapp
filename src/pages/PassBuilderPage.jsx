@@ -135,6 +135,7 @@ const getExerciseExecutionHint = (exerciseType, executionSide) => {
 
 function PassBuilderPage({
   activeWorkouts,
+  players,
   selectedTemplateCode,
   setSelectedTemplateCode,
   newPassName,
@@ -202,6 +203,7 @@ function PassBuilderPage({
   handleRemoveExerciseFromPass,
   handleMoveExerciseInPass,
   handleDeletePass,
+  handleAssignPassToPlayers,
   resetPassEditorState,
   cardTitleStyle,
   secondaryButtonStyle,
@@ -220,15 +222,31 @@ function PassBuilderPage({
   const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
   const [selectedCreateWarmupTemplateId, setSelectedCreateWarmupTemplateId] = useState("")
   const [selectedEditWarmupTemplateId, setSelectedEditWarmupTemplateId] = useState("")
+  const [isAssignMenuOpen, setIsAssignMenuOpen] = useState(false)
+  const [selectedAssignPlayerIds, setSelectedAssignPlayerIds] = useState([])
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
   const exerciseCount = currentWorkout?.exercises?.length || 0
+  const assignablePlayers = useMemo(
+    () =>
+      (players || [])
+        .filter((player) => player?.role === "player" && !player?.is_archived)
+        .sort((a, b) =>
+          String(a?.full_name || a?.username || "").localeCompare(String(b?.full_name || b?.username || ""), "sv")
+        ),
+    [players]
+  )
 
   useEffect(() => {
     if (view === "edit" && !currentWorkout) {
       setView("overview")
     }
   }, [currentWorkout, view])
+
+  useEffect(() => {
+    setIsAssignMenuOpen(false)
+    setSelectedAssignPlayerIds([])
+  }, [selectedTemplateCode])
 
   useEffect(() => {
     if (view !== "edit" || activeEditSection !== "exercises") return
@@ -335,6 +353,33 @@ function PassBuilderPage({
       setShowExercisePicker(false)
       setEditingExerciseId(addedRowId)
       setExpandedAlternativesId(null)
+    }
+  }
+
+  const toggleAssignPlayer = (playerId) => {
+    setSelectedAssignPlayerIds((current) =>
+      current.includes(playerId) ? current.filter((id) => id !== playerId) : [...current, playerId]
+    )
+  }
+
+  const handleAssignSelectedPlayers = async () => {
+    const didAssign = await handleAssignPassToPlayers(selectedTemplateCode, selectedAssignPlayerIds)
+
+    if (didAssign) {
+      setIsAssignMenuOpen(false)
+      setSelectedAssignPlayerIds([])
+    }
+  }
+
+  const handleAssignAllPlayers = async () => {
+    const allPlayerIds = assignablePlayers.map((player) => player.id)
+    const didAssign = await handleAssignPassToPlayers(selectedTemplateCode, allPlayerIds, {
+      allPlayers: true,
+    })
+
+    if (didAssign) {
+      setIsAssignMenuOpen(false)
+      setSelectedAssignPlayerIds([])
     }
   }
 
@@ -1368,9 +1413,22 @@ function PassBuilderPage({
                 <div style={sectionEyebrowStyle}>Valt pass</div>
                 <div style={sectionTitleStyle}>{currentWorkout.label}</div>
               </div>
-              <button type="button" onClick={openEditView} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
-                Redigera pass
-              </button>
+              <div style={selectedPassActionsStyle(isMobile)}>
+                <button
+                  type="button"
+                  onClick={() => setIsAssignMenuOpen((current) => !current)}
+                  style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                >
+                  {isAssignMenuOpen ? "Stäng tilldelning" : "Tilldela pass"}
+                </button>
+                <button
+                  type="button"
+                  onClick={openEditView}
+                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                >
+                  Redigera pass
+                </button>
+              </div>
             </div>
 
             <div style={selectedPassInfoStyle}>
@@ -1415,6 +1473,75 @@ function PassBuilderPage({
                   <div style={selectedPassEmptyStyle}>Inga övningar tillagda ännu.</div>
                 )}
               </div>
+
+              {isAssignMenuOpen ? (
+                <div style={assignmentPanelStyle}>
+                  <div style={assignmentPanelHeaderStyle(isMobile)}>
+                    <div>
+                      <div style={selectedPassMetricLabelStyle}>Tilldela till spelare</div>
+                      <div style={assignmentHelperTextStyle}>
+                        Välj alla direkt eller markera enskilda spelare i listan.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAssignAllPlayers}
+                      style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                      disabled={assignablePlayers.length === 0}
+                    >
+                      Tilldela alla
+                    </button>
+                  </div>
+
+                  {assignablePlayers.length === 0 ? (
+                    <div style={selectedPassEmptyStyle}>Det finns inga aktiva spelare att tilldela passet till.</div>
+                  ) : (
+                    <>
+                      <div style={assignmentPickerStyle}>
+                        {assignablePlayers.map((player) => {
+                          const isChecked = selectedAssignPlayerIds.includes(player.id)
+
+                          return (
+                            <label
+                              key={player.id}
+                              style={{
+                                ...assignmentPlayerRowStyle,
+                                borderColor: isChecked ? "#c62828" : "#e5e7eb",
+                                backgroundColor: isChecked ? "#fff7f7" : "#ffffff",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleAssignPlayer(player.id)}
+                              />
+                              <span style={assignmentPlayerNameStyle}>
+                                {player.full_name || player.username}
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
+
+                      <div style={assignmentFooterStyle(isMobile)}>
+                        <div style={assignmentHelperTextStyle}>
+                          {selectedAssignPlayerIds.length === 0
+                            ? "Inga spelare valda ännu."
+                            : `${selectedAssignPlayerIds.length} spelare markerade.`}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAssignSelectedPlayers}
+                          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                          disabled={selectedAssignPlayerIds.length === 0}
+                        >
+                          Tilldela markerade
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : null}
             </div>
           </section>
         )}
@@ -1698,6 +1825,14 @@ const selectedPassInfoStyle = {
   gap: "12px",
 }
 
+const selectedPassActionsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  width: isMobile ? "100%" : "auto",
+  flexDirection: isMobile ? "column" : "row",
+})
+
 const selectedPassMetricStyle = {
   padding: "14px",
   borderRadius: "16px",
@@ -1732,6 +1867,63 @@ const selectedPassExerciseListCardStyle = {
   border: "1px solid #f0e5e5",
   backgroundColor: "#fffdfd",
 }
+
+const assignmentPanelStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #f0dada",
+  backgroundColor: "#fffafa",
+  display: "grid",
+  gap: "12px",
+}
+
+const assignmentPanelHeaderStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "10px",
+  flexWrap: "wrap",
+  flexDirection: isMobile ? "column" : "row",
+})
+
+const assignmentHelperTextStyle = {
+  fontSize: "13px",
+  color: "#6b7280",
+  lineHeight: 1.5,
+}
+
+const assignmentPickerStyle = {
+  display: "grid",
+  gap: "8px",
+  maxHeight: "260px",
+  overflowY: "auto",
+  paddingRight: "2px",
+}
+
+const assignmentPlayerRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid #e5e7eb",
+  cursor: "pointer",
+}
+
+const assignmentPlayerNameStyle = {
+  fontSize: "14px",
+  fontWeight: "700",
+  color: "#18202b",
+}
+
+const assignmentFooterStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: isMobile ? "stretch" : "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  flexWrap: "wrap",
+  flexDirection: isMobile ? "column" : "row",
+})
 
 const selectedPassExerciseListStyle = {
   display: "grid",
