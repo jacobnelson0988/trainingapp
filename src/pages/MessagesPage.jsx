@@ -79,6 +79,7 @@ function MessagesPage({
 
   const activeThread = threads.find((thread) => thread.key === selectedThreadKey) || null
   const selectedRecipients = recipients.filter((recipient) => selectedRecipientIds.includes(recipient.id))
+  const totalUnreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount || 0), 0)
 
   useEffect(() => {
     if (view !== "thread") return
@@ -124,7 +125,32 @@ function MessagesPage({
   }
 
   return (
-    <div style={wrapStyle}>
+    <div style={pageWrapStyle}>
+      <div style={introCardStyle}>
+        <div style={introEyebrowStyle}>Tränarvy</div>
+        <div style={introTitleStyle}>Meddelanden</div>
+        <div style={introTextStyle}>
+          Samla all kommunikation i ett tydligt flöde. Samma lugna kort, samma spacing och bättre läsbarhet på mobil.
+        </div>
+
+        <div style={introStatsGridStyle(isMobile)}>
+          <div style={introStatCardStyle}>
+            <div style={introStatLabelStyle}>Trådar</div>
+            <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{threads.length}</div>
+          </div>
+          <div style={introStatCardStyle}>
+            <div style={introStatLabelStyle}>Olästa</div>
+            <div style={introStatValueStyle}>{totalUnreadCount}</div>
+          </div>
+          <div style={introStatCardStyle}>
+            <div style={introStatLabelStyle}>Mottagare</div>
+            <div style={introStatValueStyle}>{recipients.length}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={sectionLabelStyle}>Kommunikation</div>
+      <div style={wrapStyle}>
       {view === "inbox" && (
         <>
           <div style={headerStyle(isMobile)}>
@@ -149,7 +175,7 @@ function MessagesPage({
                     key={thread.key}
                     type="button"
                     onClick={() => openThread(thread)}
-                    style={inboxRowStyle}
+                    style={inboxRowStyle(isMobile)}
                   >
                     <div style={inboxSenderStyle}>{thread.senderName}</div>
                     <div style={inboxSubjectStyle}>{thread.subject || "(Utan ämne)"}</div>
@@ -322,6 +348,7 @@ function MessagesPage({
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }
@@ -354,9 +381,87 @@ function formatMessageDate(value) {
   })
 }
 
+const pageWrapStyle = {
+  width: "100%",
+  minWidth: 0,
+  overflowX: "hidden",
+}
+
 const wrapStyle = {
   display: "grid",
   gap: "16px",
+  width: "100%",
+  minWidth: 0,
+}
+
+const introCardStyle = {
+  marginBottom: "18px",
+  padding: "20px",
+  borderRadius: "24px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
+  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+}
+
+const introEyebrowStyle = {
+  marginBottom: "8px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const introTitleStyle = {
+  marginBottom: "6px",
+  fontSize: "24px",
+  fontWeight: "900",
+  color: "#111827",
+}
+
+const introTextStyle = {
+  marginBottom: "16px",
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#6b7280",
+}
+
+const sectionLabelStyle = {
+  marginBottom: "10px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const introStatsGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+})
+
+const introStatCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#ffffff",
+}
+
+const introStatLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const introStatValueStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+  fontWeight: "900",
+  color: "#111827",
 }
 
 const headerStyle = (isMobile) => ({
@@ -370,15 +475,18 @@ const cardStyle = {
   borderRadius: "20px",
   border: "1px solid #f0dcdc",
   backgroundColor: "#fffdfd",
+  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
+  minWidth: 0,
+  overflow: "hidden",
 }
 
 const inboxListStyle = {
   display: "grid",
 }
 
-const inboxRowStyle = {
+const inboxRowStyle = (isMobile) => ({
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1.3fr) auto",
+  gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "minmax(0, 1.1fr) minmax(0, 1.3fr) auto",
   gap: "12px",
   alignItems: "center",
   padding: "10px 0",
@@ -389,7 +497,8 @@ const inboxRowStyle = {
   borderTop: "none",
   textAlign: "left",
   cursor: "pointer",
-}
+  minWidth: 0,
+})
 
 const inboxSenderStyle = {
   fontSize: "14px",
@@ -412,6 +521,7 @@ const inboxMetaStyle = {
   display: "flex",
   alignItems: "center",
   gap: "8px",
+  flexWrap: "wrap",
   fontSize: "12px",
   color: "#6b7280",
   fontWeight: "700",
@@ -527,6 +637,7 @@ const chatListStyle = {
   display: "grid",
   gap: "10px",
   marginBottom: "14px",
+  minWidth: 0,
 }
 
 const chatRowStyle = {
@@ -538,6 +649,8 @@ const chatBubbleStyle = {
   padding: "12px 14px",
   borderRadius: "18px",
   border: "1px solid #efe2e2",
+  minWidth: 0,
+  overflowWrap: "anywhere",
 }
 
 const ownBubbleStyle = {

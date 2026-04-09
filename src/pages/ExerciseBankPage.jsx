@@ -452,17 +452,19 @@ function ExerciseBankPage({
   }, [editingExerciseId])
 
   return (
-    <>
-      <h3 style={cardTitleStyle}>Övningsbank</h3>
-      <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-        {canManageExercises
-          ? "Hantera övningar för hela föreningen och gå till Requests för att behandla förslag från tränare."
-          : canRequestExercises
-          ? "Här ser du övningarna som kan användas i pass. Om något saknas kan du skicka en request till huvudadmin."
-          : "Här ser du övningarna som kan användas när du bygger pass för ditt lag."}
-      </p>
+    <div style={pageWrapStyle}>
+      <div style={introCardStyle}>
+        <div style={introEyebrowStyle}>Tränarvy</div>
+        <div style={introTitleStyle}>Övningsbank</div>
+        <div style={introTextStyle}>
+          {canManageExercises
+            ? "Hantera övningar för hela föreningen i samma tydliga, kompakta stil som startsidan."
+            : canRequestExercises
+            ? "Här ser du övningarna som kan användas i pass och kan snabbt skicka requests när något saknas."
+            : "Här ser du övningarna som kan användas när du bygger pass för ditt lag."}
+        </div>
 
-      <div style={overviewStatsGridStyle(isMobile)}>
+        <div style={overviewStatsGridStyle(isMobile)}>
         <div style={overviewStatCardStyle}>
           <div style={overviewStatLabelStyle}>Övningar</div>
           <div style={{ ...overviewStatValueStyle, color: "#dc2626" }}>{exercisesFromDB.length}</div>
@@ -478,6 +480,10 @@ function ExerciseBankPage({
           </div>
         )}
       </div>
+
+      </div>
+
+      <div style={sectionLabelStyle}>Övningar och requests</div>
 
       {canManageExercises && (
         <div style={adminTabsWrapStyle}>
@@ -1711,8 +1717,55 @@ function ExerciseBankPage({
           )}
         </>
       )}
-    </>
+    </div>
   )
+}
+
+const pageWrapStyle = {
+  width: "100%",
+  minWidth: 0,
+  overflowX: "hidden",
+}
+
+const introCardStyle = {
+  marginBottom: "18px",
+  padding: "20px",
+  borderRadius: "24px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
+  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+}
+
+const introEyebrowStyle = {
+  marginBottom: "8px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const introTitleStyle = {
+  marginBottom: "6px",
+  fontSize: "24px",
+  fontWeight: "900",
+  color: "#111827",
+}
+
+const introTextStyle = {
+  marginBottom: "16px",
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#6b7280",
+}
+
+const sectionLabelStyle = {
+  marginBottom: "10px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
 }
 
 function getRoleLabel(role) {

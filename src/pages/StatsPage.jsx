@@ -378,7 +378,32 @@ function StatsPage({
   }, [activitySessions])
 
   return (
-    <>
+    <div style={pageWrapStyle}>
+      <div style={introCardStyle}>
+        <div style={introEyebrowStyle}>Tränarvy</div>
+        <div style={introTitleStyle}>Aktivitet och statistik</div>
+        <div style={introTextStyle}>
+          Följ när spelarna tränar, öppna genomförda pass och växla sedan över till utveckling per övning i samma lugna, kompakta flöde.
+        </div>
+
+        <div style={introStatsGridStyle(isMobile)}>
+          <div style={introStatCardStyle}>
+            <div style={introStatLabelStyle}>Spelare</div>
+            <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{sortedPlayers.length}</div>
+          </div>
+          <div style={introStatCardStyle}>
+            <div style={introStatLabelStyle}>Aktivitet</div>
+            <div style={introStatValueStyle}>{activitySessions.length}</div>
+          </div>
+          <div style={introStatCardStyle}>
+            <div style={introStatLabelStyle}>Övningar</div>
+            <div style={introStatValueStyle}>{exerciseOptions.length}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={sectionLabelStyle}>Uppföljning</div>
+
       <div
         style={{
           marginBottom: "16px",
@@ -390,10 +415,8 @@ function StatsPage({
         }}
       >
         <div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Aktivitet och statistik</h3>
-          <p style={mutedTextStyle}>
-            Följ när spelare tränar och växla sedan över till viktutveckling per övning.
-          </p>
+          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Välj vy</h3>
+          <p style={mutedTextStyle}>Byt mellan aktivitet och statistik utan att lämna sidan.</p>
         </div>
 
         <div style={statsHeaderActionsStyle(isMobile)}>
@@ -761,7 +784,7 @@ function StatsPage({
           onClose={() => setExpandedChart(null)}
         />
       ) : null}
-    </>
+    </div>
   )
 }
 
@@ -1117,6 +1140,8 @@ const playerChipStyle = {
 const activityListStyle = {
   display: "grid",
   gap: "10px",
+  width: "100%",
+  minWidth: 0,
 }
 
 const activityRowStyle = (isMobile) => ({
@@ -1130,6 +1155,8 @@ const activityRowStyle = (isMobile) => ({
   border: "1px solid #e2e8f0",
   backgroundColor: "#ffffff",
   boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  width: "100%",
+  minWidth: 0,
 })
 
 const activityPlayerNameStyle = {
@@ -1191,6 +1218,8 @@ const activityRunningCardStyle = {
 }
 
 const activityExerciseCardsViewportStyle = {
+  width: "100%",
+  maxWidth: "100%",
   overflowX: "auto",
   marginLeft: "-4px",
   marginRight: "-4px",
@@ -1198,19 +1227,22 @@ const activityExerciseCardsViewportStyle = {
 }
 
 const activityExerciseCardsTrackStyle = {
-  display: "flex",
+  display: "grid",
+  gridAutoFlow: "column",
+  gridAutoColumns: "minmax(0, 100%)",
   gap: "12px",
   padding: "4px",
 }
 
 const activityExerciseCardStyle = {
-  minWidth: "260px",
-  maxWidth: "320px",
-  flex: "0 0 85%",
+  width: "100%",
+  minWidth: 0,
+  maxWidth: "100%",
   padding: "16px",
   borderRadius: "20px",
   border: "1px solid #dbe5ef",
   backgroundColor: "#ffffff",
+  overflow: "hidden",
 }
 
 const activityExerciseCardTitleStyle = {
@@ -1446,3 +1478,78 @@ const closeButtonStyle = {
 }
 
 export default StatsPage
+const pageWrapStyle = {
+  width: "100%",
+  minWidth: 0,
+  overflowX: "hidden",
+}
+
+const introCardStyle = {
+  marginBottom: "18px",
+  padding: "20px",
+  borderRadius: "24px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
+  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+}
+
+const introEyebrowStyle = {
+  marginBottom: "8px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const introTitleStyle = {
+  marginBottom: "6px",
+  fontSize: "24px",
+  fontWeight: "900",
+  color: "#111827",
+}
+
+const introTextStyle = {
+  marginBottom: "16px",
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#6b7280",
+}
+
+const sectionLabelStyle = {
+  marginBottom: "10px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const introStatsGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+})
+
+const introStatCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  backgroundColor: "#ffffff",
+}
+
+const introStatLabelStyle = {
+  marginBottom: "6px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const introStatValueStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+  fontWeight: "900",
+  color: "#111827",
+}

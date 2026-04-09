@@ -883,8 +883,9 @@ function PlayersPage({
   )
 
   return (
-    <>
-      <div
+    <div style={pageWrapStyle}>
+      <div style={introCardStyle}>
+        <div
         style={{
           marginBottom: "14px",
           display: "flex",
@@ -895,10 +896,11 @@ function PlayersPage({
         }}
       >
         <div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>
-            {role === "coach" ? "Användare i laget" : "Mina spelare"}
+          <div style={introEyebrowStyle}>Tränarvy</div>
+          <h3 style={{ ...cardTitleStyle, marginBottom: "4px", fontSize: "24px" }}>
+            {role === "coach" ? "Spelare" : "Mina spelare"}
           </h3>
-          <p style={mutedTextStyle}>
+          <p style={{ ...mutedTextStyle, margin: 0 }}>
             {role === "coach"
               ? "Se lagets spelare och ledare. Spelare kan öppnas för pass och individuella mål."
               : "Sök fram spelare snabbt och redigera direkt under vald rad eller kort."}
@@ -932,6 +934,9 @@ function PlayersPage({
           </div>
         </div>
       )}
+      </div>
+
+      <div style={sectionLabelStyle}>Lag och spelare</div>
 
       {role === "coach" && (
         <div
@@ -1146,8 +1151,41 @@ function PlayersPage({
           </table>
         </div>
       )}
-    </>
+    </div>
   )
+
+const pageWrapStyle = {
+  width: "100%",
+  minWidth: 0,
+  overflowX: "hidden",
+}
+
+const introCardStyle = {
+  marginBottom: "18px",
+  padding: "20px",
+  borderRadius: "24px",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
+  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+}
+
+const introEyebrowStyle = {
+  marginBottom: "8px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const sectionLabelStyle = {
+  marginBottom: "10px",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
 }
 
 const tableHeadStyle = {
