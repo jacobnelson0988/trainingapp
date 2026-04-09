@@ -102,6 +102,37 @@ const getDraftTargetRepsValue = (exercise, passExerciseDrafts) => {
   return ""
 }
 
+const getExerciseMeasurementLabel = (exerciseType) =>
+  exerciseType === "seconds_only" ? "Sekunder" : "Reps"
+
+const getExerciseMeasurementShortLabel = (exerciseType) =>
+  exerciseType === "seconds_only" ? "sek" : "reps"
+
+const getExercisePerSideSuffix = (executionSide) => {
+  if (executionSide === "single_leg") return "per ben"
+  if (executionSide === "single_arm") return "per hand"
+  return ""
+}
+
+const getExerciseMeasurementLabelWithSide = (exerciseType, executionSide) => {
+  const suffix = getExercisePerSideSuffix(executionSide)
+  return suffix ? `${getExerciseMeasurementLabel(exerciseType)} (${suffix})` : getExerciseMeasurementLabel(exerciseType)
+}
+
+const getExerciseExecutionHint = (exerciseType, executionSide) => {
+  const unitLabel = exerciseType === "seconds_only" ? "sekunder" : "reps"
+
+  if (executionSide === "single_leg") {
+    return `Värdet gäller per ben. 10 betyder 10 ${unitLabel} vänster + 10 ${unitLabel} höger.`
+  }
+
+  if (executionSide === "single_arm") {
+    return `Värdet gäller per hand. 10 betyder 10 ${unitLabel} vänster + 10 ${unitLabel} höger.`
+  }
+
+  return ""
+}
+
 function PassBuilderPage({
   activeWorkouts,
   selectedTemplateCode,
@@ -953,7 +984,8 @@ function PassBuilderPage({
                             {draft.targetSets || "–"} set •{" "}
                             {draft.targetRepsMode === "max"
                               ? "MAX"
-                              : draft.targetReps || "–"} reps
+                              : draft.targetReps || "–"}{" "}
+                            {getExerciseMeasurementShortLabel(exercise.type)}
                           </div>
                           <div style={exerciseAccordionChevronStyle}>{isExpanded ? "−" : "+"}</div>
                         </div>
@@ -1036,7 +1068,9 @@ function PassBuilderPage({
                               </div>
 
                               <div>
-                                <div style={fieldLabelStyle}>Reps</div>
+                                <div style={fieldLabelStyle}>
+                                  {getExerciseMeasurementLabelWithSide(exercise.type, exercise.executionSide)}
+                                </div>
                                 <input
                                   type="text"
                                   value={draft.targetReps}
@@ -1048,6 +1082,11 @@ function PassBuilderPage({
                                     opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
                                   }}
                                 />
+                                {exercise.executionSide && exercise.executionSide !== "standard" && (
+                                  <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
+                                    {getExerciseExecutionHint(exercise.type, exercise.executionSide)}
+                                  </div>
+                                )}
                               </div>
 
                               <button

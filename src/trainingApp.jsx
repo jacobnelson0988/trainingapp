@@ -49,6 +49,70 @@ const parseLoggedNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+const normalizeExerciseExecutionSide = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+
+  if (["single_leg", "enbens", "ett_ben", "per_ben", "unilateral_leg"].includes(normalized)) {
+    return "single_leg"
+  }
+
+  if (["single_arm", "enhands", "enhand", "en_arm", "ett_arm", "per_arm", "per_hand", "unilateral_arm"].includes(normalized)) {
+    return "single_arm"
+  }
+
+  return "standard"
+}
+
+const getExerciseMeasurementLabel = (exerciseType) =>
+  exerciseType === "seconds_only" ? "Sekunder" : "Reps"
+
+const getExerciseMeasurementShortLabel = (exerciseType) =>
+  exerciseType === "seconds_only" ? "sek" : "reps"
+
+const getExercisePerSideSuffix = (executionSide, exerciseType = "reps_only") => {
+  if (executionSide === "single_leg") {
+    return exerciseType === "seconds_only" ? "per ben" : "per ben"
+  }
+
+  if (executionSide === "single_arm") {
+    return exerciseType === "seconds_only" ? "per hand" : "per hand"
+  }
+
+  return ""
+}
+
+const getExerciseMeasurementLabelWithSide = (exerciseType, executionSide) => {
+  const baseLabel = getExerciseMeasurementLabel(exerciseType)
+  const suffix = getExercisePerSideSuffix(executionSide, exerciseType)
+  return suffix ? `${baseLabel} (${suffix})` : baseLabel
+}
+
+const getExerciseMeasurementPlaceholder = (exerciseType, executionSide) => {
+  const baseLabel = getExerciseMeasurementLabel(exerciseType)
+  const suffix = getExercisePerSideSuffix(executionSide, exerciseType)
+  return suffix ? `${baseLabel} ${suffix}` : baseLabel
+}
+
+const getExerciseExecutionSideHint = (executionSide, exerciseType = "reps_only") => {
+  const unitLabel = exerciseType === "seconds_only" ? "sekunder" : "reps"
+
+  if (executionSide === "single_leg") {
+    return `Värdet gäller per ben. Skriver du 10 betyder det 10 ${unitLabel} vänster + 10 ${unitLabel} höger.`
+  }
+
+  if (executionSide === "single_arm") {
+    return `Värdet gäller per hand. Skriver du 10 betyder det 10 ${unitLabel} vänster + 10 ${unitLabel} höger.`
+  }
+
+  return ""
+}
+
 const getTodayDateInputValue = () => new Date().toISOString().slice(0, 10)
 
 const combineDateWithExistingTime = (dateValue, existingTimestamp) => {
@@ -494,6 +558,7 @@ const getExerciseExecutionOptions = (exercise) => {
     description: exercise.description || "",
     mediaUrl: exercise.mediaUrl || "",
     defaultRepsMode: exercise.defaultRepsMode || "fixed",
+    executionSide: normalizeExerciseExecutionSide(exercise.executionSide),
     isBase: true,
   }
 
@@ -507,6 +572,7 @@ const getExerciseExecutionOptions = (exercise) => {
         description: alternative.description || "",
         mediaUrl: alternative.mediaUrl || "",
         defaultRepsMode: alternative.defaultRepsMode || "fixed",
+        executionSide: normalizeExerciseExecutionSide(alternative.executionSide),
         isBase: false,
       }))
     : []
@@ -643,6 +709,7 @@ function TrainingApp() {
   const [newExerciseDescription, setNewExerciseDescription] = useState("")
   const [newExerciseMediaUrl, setNewExerciseMediaUrl] = useState("")
   const [newExerciseDefaultRepsMode, setNewExerciseDefaultRepsMode] = useState("fixed")
+  const [newExerciseExecutionSide, setNewExerciseExecutionSide] = useState("standard")
   const [newExerciseMuscleGroups, setNewExerciseMuscleGroups] = useState([])
   const [newExerciseAliasesText, setNewExerciseAliasesText] = useState("")
   const [newExerciseDisplayName, setNewExerciseDisplayName] = useState("")
@@ -959,7 +1026,7 @@ function TrainingApp() {
           workout_template_id,
           exercise_id,
           workout_templates!inner ( code, label, team_id ),
-          exercises ( name, exercise_type, guide, description, media_url, default_reps_mode )
+          exercises ( name, exercise_type, guide, description, media_url, default_reps_mode, execution_side )
         `)
         .in("workout_template_id", templatesFromDB.map((template) => template.id))
         .order("sort_order")
@@ -1047,6 +1114,7 @@ function TrainingApp() {
                 description: alternativeExercise?.description || "",
                 mediaUrl: alternativeExercise?.media_url || "",
                 defaultRepsMode: alternativeExercise?.default_reps_mode || "fixed",
+                executionSide: alternativeExercise?.execution_side || "standard",
               }
             })
 
@@ -1073,6 +1141,7 @@ function TrainingApp() {
             description: row.exercises?.description || "",
             mediaUrl: row.exercises?.media_url || "",
             defaultRepsMode: row.exercises?.default_reps_mode || "fixed",
+            executionSide: row.exercises?.execution_side || "standard",
             targetSets: row.target_sets ?? null,
             targetReps: row.target_reps ?? null,
             targetRepsMin: row.target_reps_min ?? null,
@@ -3914,6 +3983,9 @@ function TrainingApp() {
         nextExerciseType === "seconds_only"
           ? "fixed"
           : normalizeExerciseImportRepsMode(exercise.default_reps_mode),
+      execution_side: normalizeExerciseExecutionSide(
+        exercise.execution_side || exercise.executionSide || exercise.unilateral_mode
+      ),
       muscle_groups: parseExerciseImportMuscleGroups(exercise.muscle_groups),
       aliases: parsedAliases,
       display_name: nextDisplayName || null,
@@ -4430,6 +4502,7 @@ function TrainingApp() {
     setNewExerciseDescription("")
     setNewExerciseMediaUrl("")
     setNewExerciseDefaultRepsMode("fixed")
+    setNewExerciseExecutionSide("standard")
     setNewExerciseMuscleGroups([])
     setNewExerciseAliasesText("")
     setNewExerciseDisplayName("")
@@ -4445,6 +4518,7 @@ function TrainingApp() {
     setNewExerciseDescription(exercise.description || "")
     setNewExerciseMediaUrl(exercise.media_url || "")
     setNewExerciseDefaultRepsMode(exercise.default_reps_mode || "fixed")
+    setNewExerciseExecutionSide(normalizeExerciseExecutionSide(exercise.execution_side))
     setNewExerciseMuscleGroups(Array.isArray(exercise.muscle_groups) ? exercise.muscle_groups : [])
     setNewExerciseAliasesText(Array.isArray(exercise.aliases) ? exercise.aliases.join(", ") : "")
     setNewExerciseDisplayName(exercise.display_name || "")
@@ -4471,6 +4545,7 @@ function TrainingApp() {
       description: newExerciseDescription,
       media_url: newExerciseMediaUrl,
       default_reps_mode: newExerciseDefaultRepsMode,
+      execution_side: newExerciseExecutionSide,
       muscle_groups: newExerciseMuscleGroups,
       aliases: newExerciseAliasesText,
       display_name: newExerciseDisplayName,
@@ -4491,12 +4566,13 @@ function TrainingApp() {
         errorMessage.includes("muscle_groups") ||
         errorMessage.includes("description") ||
         errorMessage.includes("media_url") ||
+        errorMessage.includes("execution_side") ||
         errorMessage.includes("primary_category") ||
         errorMessage.includes("navigation_category")
 
       setStatus(
         missingExerciseColumns
-          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url, primary_category och navigation_category."
+          ? "Kunde inte spara övning. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url, execution_side, primary_category och navigation_category."
           : `${editingExerciseId ? "Kunde inte uppdatera övning" : "Kunde inte spara övning"}${error.message ? `: ${error.message}` : ""}`
       )
       setIsSavingExercise(false)
@@ -4554,6 +4630,7 @@ function TrainingApp() {
           errorMessage.includes("muscle_groups") ||
           errorMessage.includes("description") ||
           errorMessage.includes("media_url") ||
+          errorMessage.includes("execution_side") ||
           errorMessage.includes("navigation_category")
         ) {
           hasMissingColumnError = true
@@ -4590,7 +4667,7 @@ function TrainingApp() {
 
     if (hasMissingColumnError) {
       setStatus(
-        "Importen stoppades delvis. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url och navigation_category."
+        "Importen stoppades delvis. Kör SQL-ändringarna i Supabase först för muscle_groups, description, media_url, execution_side och navigation_category."
       )
       return
     }
@@ -4703,7 +4780,7 @@ function TrainingApp() {
         workout_template_id,
         exercise_id,
         workout_templates ( code, label ),
-        exercises ( name, exercise_type, guide, description, media_url, default_reps_mode )
+        exercises ( name, exercise_type, guide, description, media_url, default_reps_mode, execution_side )
       `)
       .single()
 
@@ -4711,11 +4788,13 @@ function TrainingApp() {
       console.error(error)
       const errorMessage = String(error.message || "").toLowerCase()
       const missingExerciseColumns =
-        errorMessage.includes("description") || errorMessage.includes("media_url")
+        errorMessage.includes("description") ||
+        errorMessage.includes("media_url") ||
+        errorMessage.includes("execution_side")
 
       setStatus(
         missingExerciseColumns
-          ? "Kunde inte lägga till övning i passet. Kör SQL-ändringarna i Supabase först för description och media_url."
+          ? "Kunde inte lägga till övning i passet. Kör SQL-ändringarna i Supabase först för description, media_url och execution_side."
           : `Kunde inte lägga till övning i passet${error.message ? `: ${error.message}` : ""}`
       )
       setIsSavingPassExercise(false)
@@ -6015,6 +6094,8 @@ function TrainingApp() {
                 setNewExerciseMediaUrl={setNewExerciseMediaUrl}
                 newExerciseMuscleGroups={newExerciseMuscleGroups}
                 setNewExerciseMuscleGroups={setNewExerciseMuscleGroups}
+                newExerciseExecutionSide={newExerciseExecutionSide}
+                setNewExerciseExecutionSide={setNewExerciseExecutionSide}
                 newExerciseAliasesText={newExerciseAliasesText}
                 setNewExerciseAliasesText={setNewExerciseAliasesText}
                 newExerciseDisplayName={newExerciseDisplayName}
@@ -7314,6 +7395,14 @@ function TrainingApp() {
                           : "Tryck för att se beskrivning och video"
                         : "Ingen extra information tillagd ännu"}
                     </div>
+                    {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
+                      <div style={{ ...exerciseHeaderHintStyle, marginTop: "4px", color: "#991b1b" }}>
+                        {getExerciseExecutionSideHint(
+                          selectedExercise.executionSide,
+                          selectedExercise?.type || exercise.type
+                        )}
+                      </div>
+                    )}
                   </div>
                   {hasExerciseDetails && (
                     <div style={exerciseHeaderIconStyle}>{isInfoExpanded ? "−" : "+"}</div>
@@ -7456,16 +7545,28 @@ function TrainingApp() {
                         </div>
                       ) : selectedExercise?.type === "seconds_only" ? (
                         <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>Tid</span>
+                          <span style={targetLabelStyle}>
+                            {getExerciseMeasurementLabelWithSide(
+                              selectedExercise?.type || exercise.type,
+                              selectedExercise?.executionSide || "standard"
+                            )}
+                          </span>
                           <span style={targetValueStyle}>
                             {currentTarget.target_reps_mode === "max"
                               ? "max"
-                              : `${currentTarget.target_reps ?? "-"} sek`}
+                              : `${formatRepTargetValue(currentTarget)} ${getExerciseMeasurementShortLabel(
+                                  selectedExercise?.type || exercise.type
+                                )}`}
                           </span>
                         </div>
                       ) : (
                         <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>Reps</span>
+                          <span style={targetLabelStyle}>
+                            {getExerciseMeasurementLabelWithSide(
+                              selectedExercise?.type || exercise.type,
+                              selectedExercise?.executionSide || "standard"
+                            )}
+                          </span>
                           <span style={targetValueStyle}>
                             {formatRepTargetValue(currentTarget)}
                           </span>
@@ -7513,7 +7614,10 @@ function TrainingApp() {
                               style={{ ...inputStyle, ...compactSetInputStyle }}
                             />
                             <input
-                              placeholder="Reps"
+                              placeholder={getExerciseMeasurementPlaceholder(
+                                selectedExercise?.type || exercise.type,
+                                selectedExercise?.executionSide || "standard"
+                              )}
                               value={set.reps || ""}
                               onChange={(e) =>
                                 handleChange(i, j, "reps", e.target.value)
@@ -7525,7 +7629,10 @@ function TrainingApp() {
 
                         {selectedExercise?.type === "reps_only" && (
                           <input
-                            placeholder="Reps"
+                            placeholder={getExerciseMeasurementPlaceholder(
+                              selectedExercise?.type || exercise.type,
+                              selectedExercise?.executionSide || "standard"
+                            )}
                             value={set.reps || ""}
                             onChange={(e) =>
                               handleChange(i, j, "reps", e.target.value)
@@ -7536,7 +7643,10 @@ function TrainingApp() {
 
                         {selectedExercise?.type === "seconds_only" && (
                           <input
-                            placeholder="Sekunder"
+                            placeholder={getExerciseMeasurementPlaceholder(
+                              selectedExercise?.type || exercise.type,
+                              selectedExercise?.executionSide || "standard"
+                            )}
                             value={set.seconds || ""}
                             onChange={(e) =>
                               handleChange(i, j, "seconds", e.target.value)
@@ -7560,6 +7670,15 @@ function TrainingApp() {
                             Senaste vikt: {latestWorkout[selectedExercise.name].slice(-1)[0].weight} kg
                           </div>
                         )}
+
+                      {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
+                        <div style={setInputHintStyle}>
+                          {getExerciseExecutionSideHint(
+                            selectedExercise.executionSide,
+                            selectedExercise?.type || exercise.type
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
 

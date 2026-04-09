@@ -155,6 +155,12 @@ const getExerciseNavigationCategory = (exercise) => {
   return "Övrigt"
 }
 
+const getExerciseExecutionSideLabel = (executionSide) => {
+  if (executionSide === "single_leg") return "Enbens"
+  if (executionSide === "single_arm") return "Enhands"
+  return "Vanlig"
+}
+
 const overviewStatsGridStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
@@ -202,6 +208,8 @@ function ExerciseBankPage({
   setNewExerciseMediaUrl,
   newExerciseMuscleGroups,
   setNewExerciseMuscleGroups,
+  newExerciseExecutionSide,
+  setNewExerciseExecutionSide,
   newExerciseAliasesText,
   setNewExerciseAliasesText,
   newExerciseDisplayName,
@@ -1073,6 +1081,16 @@ function ExerciseBankPage({
                     ))}
                   </select>
 
+                  <select
+                    value={newExerciseExecutionSide}
+                    onChange={(e) => setNewExerciseExecutionSide(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+                  >
+                    <option value="standard">Vanlig övning</option>
+                    <option value="single_leg">Enbens</option>
+                    <option value="single_arm">Enhands</option>
+                  </select>
+
                   <div style={{ marginBottom: "10px" }}>
                     <div style={fieldLabelStyle}>Kort beskrivning</div>
                     <textarea
@@ -1363,6 +1381,7 @@ function ExerciseBankPage({
                         </span>
                         <span style={pillStyle}>{exerciseTypeLabel(exercise.exercise_type)}</span>
                         <span style={pillStyle}>{exercise.default_reps_mode === "max" ? "Max reps" : "Fast reps"}</span>
+                        <span style={pillStyle}>{getExerciseExecutionSideLabel(exercise.execution_side)}</span>
                         {(exercise.muscle_groups || []).map((group) => (
                           <span key={group} style={musclePillStyle}>{group}</span>
                         ))}
@@ -1489,6 +1508,16 @@ function ExerciseBankPage({
                             Visa under kategori: {option}
                           </option>
                         ))}
+                      </select>
+
+                      <select
+                        value={newExerciseExecutionSide}
+                        onChange={(e) => setNewExerciseExecutionSide(e.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      >
+                        <option value="standard">Vanlig övning</option>
+                        <option value="single_leg">Enbens</option>
+                        <option value="single_arm">Enhands</option>
                       </select>
 
                       <div>
