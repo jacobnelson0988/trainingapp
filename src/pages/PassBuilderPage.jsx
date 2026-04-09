@@ -218,6 +218,8 @@ function PassBuilderPage({
   const [exerciseSearchValue, setExerciseSearchValue] = useState("")
   const [selectedExerciseCategory, setSelectedExerciseCategory] = useState("alla")
   const [selectedAlternativeExerciseByRow, setSelectedAlternativeExerciseByRow] = useState({})
+  const [selectedCreateWarmupTemplateId, setSelectedCreateWarmupTemplateId] = useState("")
+  const [selectedEditWarmupTemplateId, setSelectedEditWarmupTemplateId] = useState("")
   const currentWorkout = activeWorkouts?.[selectedTemplateCode]
   const passKeys = Object.keys(activeWorkouts || {})
   const exerciseCount = currentWorkout?.exercises?.length || 0
@@ -251,6 +253,7 @@ function PassBuilderPage({
     setNewPassRunningDistance("")
     setNewPassRunningTime("")
     setNewWarmupTemplateName("")
+    setSelectedCreateWarmupTemplateId("")
     setView("create")
   }
 
@@ -262,6 +265,7 @@ function PassBuilderPage({
     setShowExercisePicker(false)
     setExpandedAlternativesId(null)
     setSelectedAlternativeExerciseByRow({})
+    setSelectedEditWarmupTemplateId("")
     setExerciseSearchValue("")
     setSelectedExerciseCategory("alla")
     setView("edit")
@@ -276,6 +280,8 @@ function PassBuilderPage({
     setEditingExerciseId(null)
     setShowExercisePicker(false)
     setExpandedAlternativesId(null)
+    setSelectedCreateWarmupTemplateId("")
+    setSelectedEditWarmupTemplateId("")
     setView("overview")
   }
 
@@ -520,18 +526,25 @@ function PassBuilderPage({
 
             <div style={subSectionStyle}>
               <div style={sectionTitleStyle}>Uppvärmningsmallar</div>
-              <div style={warmupTemplateListStyle}>
+              <select
+                value={selectedCreateWarmupTemplateId}
+                onChange={(e) => {
+                  const templateId = e.target.value
+                  setSelectedCreateWarmupTemplateId(templateId)
+                  if (templateId) {
+                    applyWarmupTemplateToCreate(templateId)
+                    setSelectedCreateWarmupTemplateId("")
+                  }
+                }}
+                style={{ ...inputStyle, width: "100%", marginBottom: "12px" }}
+              >
+                <option value="">Välj uppvärmningsmall</option>
                 {(warmupTemplates || []).map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => applyWarmupTemplateToCreate(template.id)}
-                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                  >
-                    Använd {template.name}
-                  </button>
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
                 ))}
-              </div>
+              </select>
               <div style={warmupTemplateSaveRowStyle(isMobile)}>
                 <div style={{ flex: 1 }}>
                   <div style={fieldLabelStyle}>Namn på mallen</div>
@@ -762,18 +775,25 @@ function PassBuilderPage({
                 />
               </div>
 
-              <div style={warmupTemplateListStyle}>
+              <select
+                value={selectedEditWarmupTemplateId}
+                onChange={(e) => {
+                  const templateId = e.target.value
+                  setSelectedEditWarmupTemplateId(templateId)
+                  if (templateId) {
+                    applyWarmupTemplateToEdit(templateId)
+                    setSelectedEditWarmupTemplateId("")
+                  }
+                }}
+                style={{ ...inputStyle, width: "100%", marginBottom: "12px" }}
+              >
+                <option value="">Välj uppvärmningsmall</option>
                 {(warmupTemplates || []).map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => applyWarmupTemplateToEdit(template.id)}
-                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                  >
-                    Använd {template.name}
-                  </button>
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
                 ))}
-              </div>
+              </select>
 
               <div style={warmupTemplateSaveRowStyle(isMobile)}>
                 <div style={{ flex: 1 }}>
