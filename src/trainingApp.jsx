@@ -1827,17 +1827,15 @@ function TrainingApp() {
 
     setIsSubmittingFeedback(true)
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("beta_feedback")
       .insert({
         user_id: user.id,
         team_id: profile?.team_id || null,
         body: trimmedBody,
       })
-      .select("id, user_id, team_id, body, status, status_updated_at, created_at")
-      .single()
 
-    if (error || !data) {
+    if (error) {
       console.error(error)
       setStatus("Kunde inte spara feedback")
       setIsSubmittingFeedback(false)
@@ -1845,7 +1843,7 @@ function TrainingApp() {
     }
 
     if (profile?.role === "head_admin") {
-      setFeedbackItems((prev) => [data, ...prev])
+      await loadFeedback()
     }
 
     setFeedbackText("")
