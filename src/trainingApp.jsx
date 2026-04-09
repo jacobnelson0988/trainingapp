@@ -4987,16 +4987,37 @@ function TrainingApp() {
       nextRunningDistance !==
         String(selectedTemplate.running_distance != null ? selectedTemplate.running_distance : "") ||
       nextRunningTime !== (selectedTemplate.running_time || "")
-    const updates = Object.entries(passExerciseDrafts).map(([rowId, draft]) => {
-      const nextGuide = draft.guide?.trim() || ""
-      const repTargetPayload = parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
+    const updates = Object.entries(passExerciseDrafts).flatMap(([rowId, draft]) => {
+      const existingRow = templateExercisesFromDB.find((row) => String(row.id) === String(rowId))
+      if (!existingRow) return []
 
-      return {
+      const hasGuideChange = draft.guide !== undefined
+      const hasTargetSetsChange = draft.targetSets !== undefined
+      const hasRepChange = draft.targetReps !== undefined || draft.targetRepsMode !== undefined
+
+      if (!hasGuideChange && !hasTargetSetsChange && !hasRepChange) return []
+
+      const nextGuide = hasGuideChange ? draft.guide?.trim() || "" : existingRow.custom_guide || ""
+      const repTargetPayload = hasRepChange
+        ? parseRepTargetInput(draft.targetReps, draft.targetRepsMode)
+        : {
+            target_reps: existingRow.target_reps,
+            target_reps_min: existingRow.target_reps_min,
+            target_reps_max: existingRow.target_reps_max,
+            target_reps_text: existingRow.target_reps_text,
+            target_reps_mode: existingRow.target_reps_mode || "fixed",
+          }
+
+      return [{
         id: rowId,
         custom_guide: nextGuide || null,
-        target_sets: draft.targetSets === "" ? null : Number(draft.targetSets),
+        target_sets: hasTargetSetsChange
+          ? draft.targetSets === ""
+            ? null
+            : Number(draft.targetSets)
+          : existingRow.target_sets,
         ...repTargetPayload,
-      }
+      }]
     })
 
     if (
