@@ -133,6 +133,32 @@ const getExerciseExecutionHint = (exerciseType, executionSide) => {
   return ""
 }
 
+const REP_RANGE_BUCKETS = [
+  { key: "1_3", label: "1-3 reps", min: 1, max: 3 },
+  { key: "4_5", label: "4-5 reps", min: 4, max: 5 },
+  { key: "6_10", label: "6-10 reps", min: 6, max: 10 },
+  { key: "11_15", label: "11-15 reps", min: 11, max: 15 },
+  { key: "16_20", label: "16-20 reps", min: 16, max: 20 },
+]
+
+const getRepRangeHintBucket = (rawValue) => {
+  const value = String(rawValue || "").trim()
+  if (!value) return null
+
+  const compact = value.replace(/\s+/g, "")
+  const rangeMatch = compact.match(/^(\d+)-(\d+)$/)
+  const numericValue = rangeMatch ? Number(rangeMatch[2]) : Number(compact)
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return null
+
+  return (
+    REP_RANGE_BUCKETS.find((bucket) => numericValue >= bucket.min && numericValue <= bucket.max) ||
+    (numericValue < REP_RANGE_BUCKETS[0].min
+      ? REP_RANGE_BUCKETS[0]
+      : REP_RANGE_BUCKETS[REP_RANGE_BUCKETS.length - 1])
+  )
+}
+
 function PassBuilderPage({
   activeWorkouts,
   players,
@@ -1125,6 +1151,10 @@ function PassBuilderPage({
                         )
                     )
                     const isAlternativesExpanded = String(expandedAlternativesId) === String(exercise.id)
+                    const repRangeHintBucket =
+                      draft.targetRepsMode === "max" || exercise.type === "seconds_only"
+                        ? null
+                        : getRepRangeHintBucket(draft.targetReps)
 
                     return (
                       <div style={formStackStyle}>
@@ -1191,6 +1221,12 @@ function PassBuilderPage({
                             {exercise.executionSide && exercise.executionSide !== "standard" && (
                               <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
                                 {getExerciseExecutionHint(exercise.type, exercise.executionSide)}
+                              </div>
+                            )}
+                            {repRangeHintBucket && (
+                              <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
+                                Tolkas som standardintervall {repRangeHintBucket.label} för målvikt och framtida
+                                rekommendationer.
                               </div>
                             )}
                           </div>
