@@ -344,6 +344,20 @@ const getResolvedExerciseTargetWeight = ({
 const getRepRangeLabelByKey = (repRangeKey) =>
   REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeKey)?.label || repRangeKey || "-"
 
+const formatLoggedPassName = (passName, options = {}) => {
+  const { workoutKind = "gym", runningOrigin = null } = options
+
+  if (workoutKind === "running" && runningOrigin !== "assigned") {
+    return "Egna löppass"
+  }
+
+  const raw = String(passName || "").trim()
+  if (!raw) return "Pass"
+
+  const withoutTechnicalSuffix = raw.replace(/_[a-f0-9]{8}$/i, "")
+  return withoutTechnicalSuffix.replace(/_/g, " ")
+}
+
 const parseRepTargetInput = (value, mode = "fixed") => {
   const rawValue = String(value ?? "").trim()
 
@@ -559,7 +573,10 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
       sessionMap.set(sessionId, {
         session_id: sessionId,
         created_at: row.created_at,
-        pass_name: row.pass_name || "Pass",
+        pass_name: formatLoggedPassName(row.pass_name, {
+          workoutKind: row.workout_kind,
+          runningOrigin: row.running_origin,
+        }),
         workout_kind: row.workout_kind || "gym",
         running_type: row.running_type || null,
         interval_time: row.interval_time || null,
@@ -1602,7 +1619,9 @@ function TrainingApp() {
     ;(logData || []).forEach((log) => {
       if (!statsByUser[log.user_id]) {
         statsByUser[log.user_id] = {
-          latestPass: log.pass_name || "-",
+          latestPass: formatLoggedPassName(log.pass_name, {
+            workoutKind: log.workout_kind,
+          }),
           sessionIds: new Set(),
         }
       }
@@ -3018,7 +3037,10 @@ function TrainingApp() {
         groupedSessions.set(sessionId, {
           session_id: sessionId,
           created_at: row.created_at,
-          pass_name: row.pass_name || "Pass",
+          pass_name: formatLoggedPassName(row.pass_name, {
+            workoutKind: row.workout_kind,
+            runningOrigin: row.running_origin,
+          }),
           workout_kind: row.workout_kind || "gym",
           running_type: row.running_type || null,
           interval_time: row.interval_time || null,
@@ -3052,9 +3074,10 @@ function TrainingApp() {
               ? buildRunningSummary(session)
               : exerciseNames.slice(0, 3).join(", "),
           session_label:
-            session.workout_kind === "running" && session.running_origin !== "assigned"
-              ? "Egna löppass"
-              : session.pass_name || "Pass",
+            formatLoggedPassName(session.pass_name, {
+              workoutKind: session.workout_kind,
+              runningOrigin: session.running_origin,
+            }),
         }
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

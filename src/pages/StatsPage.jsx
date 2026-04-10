@@ -35,12 +35,15 @@ const formatCoachPassName = (passName, workoutKind, runningOrigin) => {
   const raw = String(passName || "").trim()
   if (!raw) return "Pass"
 
-  const passLetterMatch = raw.match(/^pass[_\s-]*([a-z0-9]+)/i)
+  const withoutTechnicalSuffix = raw.replace(/_[a-f0-9]{8}$/i, "")
+  const cleaned = withoutTechnicalSuffix.replace(/_/g, " ")
+
+  const passLetterMatch = cleaned.match(/^pass[\s-]*([a-z0-9]+)/i)
   if (passLetterMatch) {
     return `Pass ${String(passLetterMatch[1]).toUpperCase()}`
   }
 
-  return raw.replace(/_/g, " ")
+  return cleaned
 }
 
 const buildStatsRunningSummary = (session) => {
