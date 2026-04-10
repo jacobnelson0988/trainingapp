@@ -7143,7 +7143,12 @@ function TrainingApp() {
                   </button>
                 </div>
 
-                <div style={playerQuickActionBlockStyle}>
+                <div
+                  style={{
+                    ...playerQuickActionBlockStyle,
+                    ...(playerOverviewPanel === "history" ? { gridColumn: "1 / -1" } : {}),
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => togglePlayerOverviewPanel("history")}
@@ -7295,7 +7300,12 @@ function TrainingApp() {
                   )}
                 </div>
 
-                <div style={playerQuickActionBlockStyle}>
+                <div
+                  style={{
+                    ...playerQuickActionBlockStyle,
+                    ...(playerOverviewPanel === "running" ? { gridColumn: "1 / -1" } : {}),
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => togglePlayerOverviewPanel("running")}
