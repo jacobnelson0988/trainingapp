@@ -411,6 +411,17 @@ const buildExistingPassExerciseRepPayload = (row) => ({
   target_reps_mode: row?.target_reps_mode || "fixed",
 })
 
+const getRepTargetInputValue = (target) => {
+  if (!target) return ""
+  if (target.target_reps_mode === "max") return ""
+  if (target.target_reps_text) return target.target_reps_text
+  if (target.target_reps_min != null && target.target_reps_max != null) {
+    return `${target.target_reps_min}-${target.target_reps_max}`
+  }
+  if (target.target_reps != null) return String(target.target_reps)
+  return ""
+}
+
 const buildPassExerciseUpdateFromDraft = (row, draft = {}) => {
   if (!row) return null
 
@@ -464,6 +475,35 @@ const formatRepTargetValue = (target) => {
   }
   if (target.target_reps != null) return String(target.target_reps)
   return "-"
+}
+
+const buildDefaultPassExerciseTarget = (exercise) => ({
+  target_sets: exercise?.targetSets ?? null,
+  target_reps: exercise?.targetReps ?? null,
+  target_reps_min: exercise?.targetRepsMin ?? null,
+  target_reps_max: exercise?.targetRepsMax ?? null,
+  target_reps_text: exercise?.targetRepsText || null,
+  target_reps_mode: exercise?.targetRepsMode || exercise?.defaultRepsMode || "fixed",
+  target_weight: null,
+  target_comment: null,
+})
+
+const mergeExerciseTargetWithPassDefaults = (exercise, overrideTarget) => {
+  const defaultTarget = buildDefaultPassExerciseTarget(exercise)
+  if (!overrideTarget) return defaultTarget
+
+  return {
+    ...defaultTarget,
+    ...overrideTarget,
+    target_sets: overrideTarget.target_sets ?? defaultTarget.target_sets,
+    target_reps: overrideTarget.target_reps ?? defaultTarget.target_reps,
+    target_reps_min: overrideTarget.target_reps_min ?? defaultTarget.target_reps_min,
+    target_reps_max: overrideTarget.target_reps_max ?? defaultTarget.target_reps_max,
+    target_reps_text: overrideTarget.target_reps_text ?? defaultTarget.target_reps_text,
+    target_reps_mode: overrideTarget.target_reps_mode || defaultTarget.target_reps_mode,
+    target_weight: overrideTarget.target_weight ?? defaultTarget.target_weight,
+    target_comment: overrideTarget.target_comment ?? defaultTarget.target_comment,
+  }
 }
 
 const buildPlayerExerciseProgress = (rows, exercises) =>
@@ -1351,9 +1391,11 @@ function TrainingApp() {
   }, [exercisesFromDB, templatesFromDB, templateExerciseAlternativesFromDB, templateExercisesFromDB])
 
   const fetchTargetsByPassForUser = async (userId) => {
-    const { data, error } = await supabase
+  const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select("pass_name, exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
+      .select(
+        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_weight, target_comment"
+      )
       .eq("player_id", userId)
 
     if (error) {
@@ -1379,6 +1421,9 @@ function TrainingApp() {
       targetsByPass[row.pass_name][row.exercise_name] = {
         target_sets: row.target_sets,
         target_reps: row.target_reps,
+        target_reps_min: row.target_reps_min ?? null,
+        target_reps_max: row.target_reps_max ?? null,
+        target_reps_text: row.target_reps_text || null,
         target_reps_mode: row.target_reps_mode || "fixed",
         target_weight: row.target_weight,
         target_comment: row.target_comment,
@@ -2574,7 +2619,9 @@ function TrainingApp() {
 
     const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select("pass_name, exercise_name, target_sets, target_reps, target_reps_mode, target_weight, target_comment")
+      .select(
+        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_weight, target_comment"
+      )
       .eq("player_id", playerId)
 
     if (error) {
@@ -2603,7 +2650,7 @@ function TrainingApp() {
 
       draftMap[row.pass_name][row.exercise_name] = {
         target_sets: row.target_sets ?? "",
-        target_reps: row.target_reps ?? "",
+        target_reps: getRepTargetInputValue(row),
         target_reps_mode: row.target_reps_mode || "fixed",
         target_weight: row.target_weight ?? "",
         target_comment: row.target_comment ?? "",
@@ -4585,19 +4632,14 @@ function TrainingApp() {
 
       return exercises.map((exercise) => {
         const draft = targetDrafts[passName]?.[exercise.name] || {}
+        const repTargetPayload = parseRepTargetInput(draft.target_reps, draft.target_reps_mode)
 
         return {
           player_id: selectedPlayer.id,
           pass_name: passName,
           exercise_name: exercise.name,
           target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
-          target_reps:
-            draft.target_reps_mode === "max"
-              ? null
-              : draft.target_reps === ""
-              ? null
-              : Number(draft.target_reps),
-          target_reps_mode: draft.target_reps_mode || "fixed",
+          ...repTargetPayload,
           target_weight: draft.target_weight === "" ? null : Number(draft.target_weight),
           target_comment: draft.target_comment || null,
         }
@@ -4636,6 +4678,9 @@ function TrainingApp() {
         exercise_name: PASS_ASSIGNMENT_EXERCISE_NAME,
         target_sets: null,
         target_reps: null,
+        target_reps_min: null,
+        target_reps_max: null,
+        target_reps_text: null,
         target_reps_mode: "fixed",
         target_weight: null,
         target_comment: null,
@@ -4646,6 +4691,9 @@ function TrainingApp() {
         exercise_name: exercise.name,
         target_sets: null,
         target_reps: null,
+        target_reps_min: null,
+        target_reps_max: null,
+        target_reps_text: null,
         target_reps_mode: exercise.defaultRepsMode || "fixed",
         target_weight: null,
         target_comment: null,
@@ -4748,37 +4796,32 @@ function TrainingApp() {
           exercise_name: PASS_ASSIGNMENT_EXERCISE_NAME,
           target_sets: null,
           target_reps: null,
+          target_reps_min: null,
+          target_reps_max: null,
+          target_reps_text: null,
           target_reps_mode: "fixed",
           target_weight: null,
           target_comment: null,
         },
-        ...(workout.exercises || []).map((exercise) => ({
-          player_id: selectedPlayer.id,
-          pass_name: passName,
-          exercise_name: exercise.name,
-          target_sets:
-            targetDrafts[passName]?.[exercise.name]?.target_sets === "" ||
-            targetDrafts[passName]?.[exercise.name]?.target_sets == null
-              ? null
-              : Number(targetDrafts[passName][exercise.name].target_sets),
-          target_reps:
-            targetDrafts[passName]?.[exercise.name]?.target_reps_mode === "max"
-              ? null
-              : targetDrafts[passName]?.[exercise.name]?.target_reps === "" ||
-                targetDrafts[passName]?.[exercise.name]?.target_reps == null
-              ? null
-              : Number(targetDrafts[passName][exercise.name].target_reps),
-          target_reps_mode:
-            targetDrafts[passName]?.[exercise.name]?.target_reps_mode ||
-            exercise.defaultRepsMode ||
-            "fixed",
-          target_weight:
-            targetDrafts[passName]?.[exercise.name]?.target_weight === "" ||
-            targetDrafts[passName]?.[exercise.name]?.target_weight == null
-              ? null
-              : Number(targetDrafts[passName][exercise.name].target_weight),
-          target_comment: targetDrafts[passName]?.[exercise.name]?.target_comment || null,
-        })),
+        ...(workout.exercises || []).map((exercise) => {
+          const draft = targetDrafts[passName]?.[exercise.name] || {}
+          const repTargetPayload = parseRepTargetInput(
+            draft.target_reps,
+            draft.target_reps_mode || exercise.defaultRepsMode || "fixed"
+          )
+
+          return {
+            player_id: selectedPlayer.id,
+            pass_name: passName,
+            exercise_name: exercise.name,
+            target_sets:
+              draft.target_sets === "" || draft.target_sets == null ? null : Number(draft.target_sets),
+            ...repTargetPayload,
+            target_weight:
+              draft.target_weight === "" || draft.target_weight == null ? null : Number(draft.target_weight),
+            target_comment: draft.target_comment || null,
+          }
+        }),
       ]
     )
 
@@ -7671,7 +7714,10 @@ function TrainingApp() {
             const latestExerciseSets = selectedExercise ? latestWorkout[selectedExercise.name] || [] : []
             const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
             const latestExerciseDate = latestExerciseSets[0]?.created_at
-            const currentTarget = currentWorkoutTargets[exercise.name]
+            const currentTarget = mergeExerciseTargetWithPassDefaults(
+              exercise,
+              currentWorkoutTargets[exercise.name]
+            )
             const resolvedCurrentTargetWeight = getResolvedExerciseTargetWeight({
               exerciseId: selectedExercise?.exerciseId || exercise.exerciseId,
               repTarget: currentTarget,

@@ -487,8 +487,8 @@ function PlayersPage({
                             }}
                           >
                             <input
-                              type="number"
-                              placeholder="Reps"
+                              type="text"
+                              placeholder="Reps eller range"
                               disabled={draft.target_reps_mode === "max"}
                               value={draft.target_reps ?? ""}
                               onChange={(e) =>
@@ -532,6 +532,12 @@ function PlayersPage({
                               />
                             )}
                           </div>
+
+                          {draft.target_reps_mode !== "max" && (
+                            <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>
+                              Skriv till exempel <strong>8</strong> eller <strong>6-10</strong>.
+                            </div>
+                          )}
 
                           <input
                             type="text"
