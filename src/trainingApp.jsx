@@ -7111,301 +7111,307 @@ function TrainingApp() {
               </div>
 
               <div style={playerQuickActionsGridStyle(isMobile)}>
-                <button
-                  type="button"
-                  onClick={() => navigatePlayerSection("pass")}
-                  style={playerQuickActionCardStyle}
-                >
-                  <div style={playerQuickActionTopRowStyle}>
-                    <div style={playerQuickActionTitleStyle}>Dina pass</div>
-                    <div style={{ ...playerQuickActionArrowStyle, color: "#b61e24", backgroundColor: "#fff1f1" }}>→</div>
-                  </div>
-                  <div style={playerQuickActionTextStyle}>
-                    Välj rätt pass och kom igång snabbt.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigatePlayerSection("stats")}
-                  style={playerQuickActionCardStyle}
-                >
-                  <div style={playerQuickActionTopRowStyle}>
-                    <div style={playerQuickActionTitleStyle}>Statistik</div>
-                    <div style={{ ...playerQuickActionArrowStyle, color: "#1d4ed8", backgroundColor: "#eef4ff" }}>→</div>
-                  </div>
-                  <div style={playerQuickActionTextStyle}>
-                    Följ viktutveckling och se övningarna du kört.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => togglePlayerOverviewPanel("history")}
-                  style={playerQuickActionCardStyle}
-                >
-                  <div style={playerQuickActionTopRowStyle}>
-                    <div style={playerQuickActionTitleStyle}>Historik</div>
-                    <div style={{ ...playerQuickActionArrowStyle, color: "#0f766e", backgroundColor: "#ecfeff" }}>
-                      {playerOverviewPanel === "history" ? "−" : "+"}
+                <div style={playerQuickActionBlockStyle}>
+                  <button
+                    type="button"
+                    onClick={() => navigatePlayerSection("pass")}
+                    style={playerQuickActionCardStyle}
+                  >
+                    <div style={playerQuickActionTopRowStyle}>
+                      <div style={playerQuickActionTitleStyle}>Dina pass</div>
+                      <div style={{ ...playerQuickActionArrowStyle, color: "#b61e24", backgroundColor: "#fff1f1" }}>→</div>
                     </div>
-                  </div>
-                  <div style={playerQuickActionTextStyle}>
-                    Se senaste pass och enkel utveckling.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => togglePlayerOverviewPanel("running")}
-                  style={playerQuickActionCardStyle}
-                >
-                  <div style={playerQuickActionTopRowStyle}>
-                    <div style={playerQuickActionTitleStyle}>Egna löppass</div>
-                    <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
-                      {playerOverviewPanel === "running" ? "−" : "+"}
+                    <div style={playerQuickActionTextStyle}>
+                      Välj rätt pass och kom igång snabbt.
                     </div>
-                  </div>
-                  <div style={playerQuickActionTextStyle}>
-                    Logga träning du gör utanför lagpassen.
-                  </div>
-                </button>
-              </div>
+                  </button>
+                </div>
 
-              <div style={playerAccordionListStyle}>
-                {playerOverviewPanel === "running" && (
-                  <div style={playerOverviewPanelStyle}>
-                    <div>
-                      <div style={playerOverviewPanelTitleStyle}>Egna löppass</div>
-                      <div style={playerOverviewPanelTextStyle}>
-                        Spara träning du gör själv utanför lagpassen.
+                <div style={playerQuickActionBlockStyle}>
+                  <button
+                    type="button"
+                    onClick={() => navigatePlayerSection("stats")}
+                    style={playerQuickActionCardStyle}
+                  >
+                    <div style={playerQuickActionTopRowStyle}>
+                      <div style={playerQuickActionTitleStyle}>Statistik</div>
+                      <div style={{ ...playerQuickActionArrowStyle, color: "#1d4ed8", backgroundColor: "#eef4ff" }}>→</div>
+                    </div>
+                    <div style={playerQuickActionTextStyle}>
+                      Följ viktutveckling och se övningarna du kört.
+                    </div>
+                  </button>
+                </div>
+
+                <div style={playerQuickActionBlockStyle}>
+                  <button
+                    type="button"
+                    onClick={() => togglePlayerOverviewPanel("history")}
+                    style={playerQuickActionCardStyle}
+                  >
+                    <div style={playerQuickActionTopRowStyle}>
+                      <div style={playerQuickActionTitleStyle}>Historik</div>
+                      <div style={{ ...playerQuickActionArrowStyle, color: "#0f766e", backgroundColor: "#ecfeff" }}>
+                        {playerOverviewPanel === "history" ? "−" : "+"}
                       </div>
                     </div>
+                    <div style={playerQuickActionTextStyle}>
+                      Se senaste pass och enkel utveckling.
+                    </div>
+                  </button>
 
-                    <div style={playerAccordionContentStyle}>
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: "10px",
-                          gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                        }}
-                      >
-                        <input
-                          type="date"
-                          value={runningDraft.log_date}
-                          onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                        />
-                        <select
-                          value={runningDraft.running_type}
-                          onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                        >
-                          <option value="distance">Distans</option>
-                          <option value="intervals">Intervaller</option>
-                        </select>
+                  {playerOverviewPanel === "history" && (
+                    <div style={playerOverviewPanelStyle}>
+                      <div>
+                        <div style={playerOverviewPanelTitleStyle}>Historik</div>
+                        <div style={playerOverviewPanelTextStyle}>
+                          Se senaste pass, löppass och enkel statistik.
+                        </div>
+                      </div>
 
-                        {runningDraft.running_type === "intervals" ? (
-                          <>
-                            <input
-                              type="text"
-                              placeholder="Tid/intervall, t.ex. 45 sek"
-                              value={runningDraft.interval_time}
-                              onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            />
-                            <input
-                              type="number"
-                              placeholder="Antal intervaller"
-                              value={runningDraft.intervals_count}
-                              onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            />
-                          </>
+                      <div style={playerAccordionContentStyle}>
+                        <div style={playerHistoryHighlightsGridStyle(isMobile)}>
+                          <div style={playerHistoryHighlightCardStyle}>
+                            <div style={playerHistoryHighlightLabelStyle}>Senaste pass</div>
+                            <div style={playerHistoryHighlightValueStyle}>
+                              {latestAssignedSession ? formatDaysSince(latestAssignedSession.created_at) : "Inte loggat än"}
+                            </div>
+                          </div>
+                          <div style={playerHistoryHighlightCardStyle}>
+                            <div style={playerHistoryHighlightLabelStyle}>Senaste löppass</div>
+                            <div style={playerHistoryHighlightValueStyle}>
+                              {latestOwnRunningSession ? formatDaysSince(latestOwnRunningSession.created_at) : "Inte loggat än"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {isLoadingCompletedWorkoutSessions ? (
+                          <div style={playerHistoryEmptyStyle}>Laddar historik...</div>
+                        ) : completedWorkoutSessions.length === 0 ? (
+                          <div style={playerHistoryEmptyStyle}>Ingen träningshistorik ännu.</div>
                         ) : (
-                          <>
-                            <input
-                              type="text"
-                              placeholder="Distans i km"
-                              value={runningDraft.running_distance}
-                              onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            />
-                            <input
-                              type="text"
-                              placeholder="Tid, t.ex. 24:30"
-                              value={runningDraft.running_time}
-                              onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            />
-                            <input
-                              type="number"
-                              placeholder="Snittpuls"
-                              value={runningDraft.average_pulse}
-                              onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
-                              style={{
-                                ...inputStyle,
-                                width: "100%",
-                                backgroundColor: "#ffffff",
-                                color: "#111827",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            />
-                          </>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleSaveRunningSession}
-                        disabled={isSavingRunningSession}
-                        style={{
-                          ...buttonStyle,
-                          width: isMobile ? "100%" : "auto",
-                          marginTop: "12px",
-                          opacity: isSavingRunningSession ? 0.7 : 1,
-                          cursor: isSavingRunningSession ? "default" : "pointer",
-                        }}
-                      >
-                        {isSavingRunningSession ? "Sparar..." : "Spara löppass"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {playerOverviewPanel === "history" && (
-                  <div style={playerOverviewPanelStyle}>
-                    <div>
-                      <div style={playerOverviewPanelTitleStyle}>Historik</div>
-                      <div style={playerOverviewPanelTextStyle}>
-                        Se senaste pass, löppass och enkel statistik.
-                      </div>
-                    </div>
-
-                    <div style={playerAccordionContentStyle}>
-                      <div style={playerHistoryHighlightsGridStyle(isMobile)}>
-                        <div style={playerHistoryHighlightCardStyle}>
-                          <div style={playerHistoryHighlightLabelStyle}>Senaste pass</div>
-                          <div style={playerHistoryHighlightValueStyle}>
-                            {latestAssignedSession ? formatDaysSince(latestAssignedSession.created_at) : "Inte loggat än"}
-                          </div>
-                        </div>
-                        <div style={playerHistoryHighlightCardStyle}>
-                          <div style={playerHistoryHighlightLabelStyle}>Senaste löppass</div>
-                          <div style={playerHistoryHighlightValueStyle}>
-                            {latestOwnRunningSession ? formatDaysSince(latestOwnRunningSession.created_at) : "Inte loggat än"}
-                          </div>
-                        </div>
-                      </div>
-
-                      {isLoadingCompletedWorkoutSessions ? (
-                        <div style={playerHistoryEmptyStyle}>Laddar historik...</div>
-                      ) : completedWorkoutSessions.length === 0 ? (
-                        <div style={playerHistoryEmptyStyle}>Ingen träningshistorik ännu.</div>
-                      ) : (
-                        <div style={{ display: "grid", gap: "16px" }}>
-                          <div>
-                            <div style={playerHistorySectionLabelStyle}>Tilldelade pass och coachpass</div>
-                            <div style={{ display: "grid", gap: "10px" }}>
-                              {assignedCompletedSessions.slice(0, 4).map((session) => (
-                                <div key={session.session_id} style={playerHistoryItemStyle}>
-                                  <div style={playerHistoryItemHeaderStyle(isMobile)}>
-                                    <div>
-                                      <div style={playerHistoryItemTitleStyle}>{session.session_label}</div>
-                                      <div style={playerHistoryItemMetaStyle}>
-                                        {session.workout_kind === "running"
-                                          ? buildRunningSummary(session)
-                                          : session.summary || `${session.exercise_count} övningar`}
+                          <div style={{ display: "grid", gap: "16px" }}>
+                            <div>
+                              <div style={playerHistorySectionLabelStyle}>Tilldelade pass och coachpass</div>
+                              <div style={{ display: "grid", gap: "10px" }}>
+                                {assignedCompletedSessions.slice(0, 4).map((session) => (
+                                  <div key={session.session_id} style={playerHistoryItemStyle}>
+                                    <div style={playerHistoryItemHeaderStyle(isMobile)}>
+                                      <div>
+                                        <div style={playerHistoryItemTitleStyle}>{session.session_label}</div>
+                                        <div style={playerHistoryItemMetaStyle}>
+                                          {session.workout_kind === "running"
+                                            ? buildRunningSummary(session)
+                                            : session.summary || `${session.exercise_count} övningar`}
+                                        </div>
+                                      </div>
+                                      <div style={playerHistoryDateStyle}>
+                                        {new Date(session.created_at).toLocaleDateString("sv-SE")}
                                       </div>
                                     </div>
-                                    <div style={playerHistoryDateStyle}>
-                                      {new Date(session.created_at).toLocaleDateString("sv-SE")}
+
+                                    <div style={playerHistoryActionRowStyle(isMobile)}>
+                                      <input
+                                        type="date"
+                                        value={workoutDateDrafts[session.session_id] || ""}
+                                        onChange={(event) =>
+                                          handleWorkoutDateDraftChange(session.session_id, event.target.value)
+                                        }
+                                        style={{ ...inputStyle, width: "100%" }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSaveWorkoutDate(session)}
+                                        disabled={savingWorkoutDateSessionId === session.session_id}
+                                        style={{
+                                          ...secondaryButtonStyle,
+                                          width: isMobile ? "100%" : "auto",
+                                          opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
+                                          cursor:
+                                            savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
+                                        }}
+                                      >
+                                        {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
+                                      </button>
                                     </div>
                                   </div>
+                                ))}
+                                {assignedCompletedSessions.length === 0 && (
+                                  <div style={playerHistoryEmptyStyle}>Inga tilldelade pass loggade ännu.</div>
+                                )}
+                              </div>
+                            </div>
 
-                                  <div style={playerHistoryActionRowStyle(isMobile)}>
-                                    <input
-                                      type="date"
-                                      value={workoutDateDrafts[session.session_id] || ""}
-                                      onChange={(event) =>
-                                        handleWorkoutDateDraftChange(session.session_id, event.target.value)
-                                      }
-                                      style={{ ...inputStyle, width: "100%" }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveWorkoutDate(session)}
-                                      disabled={savingWorkoutDateSessionId === session.session_id}
-                                      style={{
-                                        ...secondaryButtonStyle,
-                                        width: isMobile ? "100%" : "auto",
-                                        opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
-                                        cursor:
-                                          savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
-                                      }}
-                                    >
-                                      {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
-                                    </button>
+                            <div>
+                              <div style={playerHistorySectionLabelStyle}>Egna löppass</div>
+                              <div style={{ display: "grid", gap: "10px" }}>
+                                {ownRunningSessions.slice(0, 4).map((session) => (
+                                  <div key={session.session_id} style={playerHistoryItemStyle}>
+                                    <div style={playerHistoryItemHeaderStyle(isMobile)}>
+                                      <div>
+                                        <div style={playerHistoryItemTitleStyle}>{session.session_label}</div>
+                                        <div style={playerHistoryItemMetaStyle}>{buildRunningSummary(session)}</div>
+                                      </div>
+                                      <div style={playerHistoryDateStyle}>
+                                        {new Date(session.created_at).toLocaleDateString("sv-SE")}
+                                      </div>
+                                    </div>
+
+                                    <div style={playerHistoryActionRowStyle(isMobile)}>
+                                      <input
+                                        type="date"
+                                        value={workoutDateDrafts[session.session_id] || ""}
+                                        onChange={(event) =>
+                                          handleWorkoutDateDraftChange(session.session_id, event.target.value)
+                                        }
+                                        style={{ ...inputStyle, width: "100%" }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSaveWorkoutDate(session)}
+                                        disabled={savingWorkoutDateSessionId === session.session_id}
+                                        style={{
+                                          ...secondaryButtonStyle,
+                                          width: isMobile ? "100%" : "auto",
+                                          opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
+                                          cursor:
+                                            savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
+                                        }}
+                                      >
+                                        {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                              {assignedCompletedSessions.length === 0 && (
-                                <div style={playerHistoryEmptyStyle}>Inga tilldelade pass loggade ännu.</div>
-                              )}
+                                ))}
+                                {ownRunningSessions.length === 0 && (
+                                  <div style={playerHistoryEmptyStyle}>Inga egna löppass loggade ännu.</div>
+                                )}
+                              </div>
                             </div>
                           </div>
-
-                          <div>
-                            <div style={playerHistorySectionLabelStyle}>Egna löppass</div>
-                            <div style={{ display: "grid", gap: "10px" }}>
-                              {ownRunningSessions.slice(0, 4).map((session) => (
-                                <div key={session.session_id} style={playerHistoryItemStyle}>
-                                  <div style={playerHistoryItemHeaderStyle(isMobile)}>
-                                    <div>
-                                      <div style={playerHistoryItemTitleStyle}>{session.session_label}</div>
-                                      <div style={playerHistoryItemMetaStyle}>{buildRunningSummary(session)}</div>
-                                    </div>
-                                    <div style={playerHistoryDateStyle}>
-                                      {new Date(session.created_at).toLocaleDateString("sv-SE")}
-                                    </div>
-                                  </div>
-
-                                  <div style={playerHistoryActionRowStyle(isMobile)}>
-                                    <input
-                                      type="date"
-                                      value={workoutDateDrafts[session.session_id] || ""}
-                                      onChange={(event) =>
-                                        handleWorkoutDateDraftChange(session.session_id, event.target.value)
-                                      }
-                                      style={{ ...inputStyle, width: "100%" }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveWorkoutDate(session)}
-                                      disabled={savingWorkoutDateSessionId === session.session_id}
-                                      style={{
-                                        ...secondaryButtonStyle,
-                                        width: isMobile ? "100%" : "auto",
-                                        opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
-                                        cursor:
-                                          savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
-                                      }}
-                                    >
-                                      {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                              {ownRunningSessions.length === 0 && (
-                                <div style={playerHistoryEmptyStyle}>Inga egna löppass loggade ännu.</div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <div style={playerQuickActionBlockStyle}>
+                  <button
+                    type="button"
+                    onClick={() => togglePlayerOverviewPanel("running")}
+                    style={playerQuickActionCardStyle}
+                  >
+                    <div style={playerQuickActionTopRowStyle}>
+                      <div style={playerQuickActionTitleStyle}>Egna löppass</div>
+                      <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
+                        {playerOverviewPanel === "running" ? "−" : "+"}
+                      </div>
+                    </div>
+                    <div style={playerQuickActionTextStyle}>
+                      Logga träning du gör utanför lagpassen.
+                    </div>
+                  </button>
+
+                  {playerOverviewPanel === "running" && (
+                    <div style={playerOverviewPanelStyle}>
+                      <div>
+                        <div style={playerOverviewPanelTitleStyle}>Egna löppass</div>
+                        <div style={playerOverviewPanelTextStyle}>
+                          Spara träning du gör själv utanför lagpassen.
+                        </div>
+                      </div>
+
+                      <div style={playerAccordionContentStyle}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: "10px",
+                            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                          }}
+                        >
+                          <input
+                            type="date"
+                            value={runningDraft.log_date}
+                            onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
+                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                          />
+                          <select
+                            value={runningDraft.running_type}
+                            onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
+                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                          >
+                            <option value="distance">Distans</option>
+                            <option value="intervals">Intervaller</option>
+                          </select>
+
+                          {runningDraft.running_type === "intervals" ? (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Tid/intervall, t.ex. 45 sek"
+                                value={runningDraft.interval_time}
+                                onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
+                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                              />
+                              <input
+                                type="number"
+                                placeholder="Antal intervaller"
+                                value={runningDraft.intervals_count}
+                                onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
+                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Distans i km"
+                                value={runningDraft.running_distance}
+                                onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
+                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                              />
+                              <input
+                                type="text"
+                                placeholder="Tid, t.ex. 24:30"
+                                value={runningDraft.running_time}
+                                onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                              />
+                              <input
+                                type="number"
+                                placeholder="Snittpuls"
+                                value={runningDraft.average_pulse}
+                                onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
+                                style={{
+                                  ...inputStyle,
+                                  width: "100%",
+                                  backgroundColor: "#ffffff",
+                                  color: "#111827",
+                                  gridColumn: isMobile ? "auto" : "span 2",
+                                }}
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleSaveRunningSession}
+                          disabled={isSavingRunningSession}
+                          style={{
+                            ...buttonStyle,
+                            width: isMobile ? "100%" : "auto",
+                            marginTop: "12px",
+                            opacity: isSavingRunningSession ? 0.7 : 1,
+                            cursor: isSavingRunningSession ? "default" : "pointer",
+                          }}
+                        >
+                          {isSavingRunningSession ? "Sparar..." : "Spara löppass"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -9845,9 +9851,10 @@ const playerOverviewPanelHeaderStyle = {
   marginBottom: "14px",
 }
 
-const playerAccordionListStyle = {
+const playerQuickActionBlockStyle = {
   display: "grid",
   gap: "12px",
+  minWidth: 0,
 }
 
 const playerAccordionContentStyle = {
