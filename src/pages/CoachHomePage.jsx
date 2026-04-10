@@ -7,6 +7,7 @@ function CoachHomePage({
   activePlayerCount,
   passCount,
   activeSevenDayCount,
+  openTargetChangeRequestCount,
   isMobile,
 }) {
   const cards = [
@@ -16,6 +17,7 @@ function CoachHomePage({
       text: "Hantera lag, mål och håll koll på senaste aktivitet.",
       accent: "#dc2626",
       background: "#fff1f1",
+      badge: openTargetChangeRequestCount > 0 ? String(openTargetChangeRequestCount) : "",
       onClick: () => {
         setCoachView("players")
         setSelectedPlayer(null)
@@ -105,9 +107,17 @@ function CoachHomePage({
           <button key={card.key} type="button" onClick={card.onClick} style={navCardStyle}>
             <div style={coachNavTopRowStyle}>
               <div style={navTitleStyle}>{card.title}</div>
-              <div style={{ ...coachNavArrowStyle, color: card.accent, backgroundColor: card.background }}>→</div>
+              <div style={coachNavMetaRowStyle}>
+                {card.badge ? <div style={navBadgeStyle}>{card.badge}</div> : null}
+                <div style={{ ...coachNavArrowStyle, color: card.accent, backgroundColor: card.background }}>→</div>
+              </div>
             </div>
             <div style={navTextStyle}>{card.text}</div>
+            {card.key === "players" && openTargetChangeRequestCount > 0 ? (
+              <div style={navAlertTextStyle}>
+                {openTargetChangeRequestCount} öppen{openTargetChangeRequestCount === 1 ? "" : "a"} målrequest
+              </div>
+            ) : null}
           </button>
         ))}
       </div>
@@ -247,6 +257,33 @@ const coachNavTopRowStyle = {
   alignItems: "flex-start",
   justifyContent: "space-between",
   gap: "10px",
+}
+
+const coachNavMetaRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+}
+
+const navBadgeStyle = {
+  minWidth: "24px",
+  height: "24px",
+  padding: "0 7px",
+  borderRadius: "999px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#dc2626",
+  color: "#ffffff",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const navAlertTextStyle = {
+  marginTop: "10px",
+  fontSize: "12px",
+  fontWeight: "700",
+  color: "#b91c1c",
 }
 
 const coachNavArrowStyle = {

@@ -38,6 +38,12 @@ function PlayersPage({
   selectedPlayerHistory,
   selectedPlayerCompletedSessions,
   isLoadingSelectedPlayerHistory,
+  targetChangeRequests,
+  isLoadingTargetChangeRequests,
+  targetChangeRequestReviewDrafts,
+  updatingTargetChangeRequestId,
+  handleSetTargetChangeReviewDraft,
+  handleReviewTargetChangeRequest,
   exerciseGoalDrafts,
   selectedPlayerExerciseGoals,
   handleExerciseGoalDraftChange,
@@ -994,6 +1000,164 @@ function PlayersPage({
             <div style={overviewStatLabelStyle}>Historikläge</div>
             <div style={overviewStatValueStyle}>{historyModeCount}</div>
           </div>
+        </div>
+      )}
+
+      {role === "coach" && (
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "14px",
+            borderRadius: "16px",
+            border: "1px solid #f0dada",
+            backgroundColor: "#fff7f7",
+          }}
+        >
+          <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "8px" }}>Öppna målrequests</div>
+          {isLoadingTargetChangeRequests ? (
+            <p style={mutedTextStyle}>Laddar requests...</p>
+          ) : targetChangeRequests.length === 0 ? (
+            <p style={{ ...mutedTextStyle, margin: 0 }}>Inga öppna requests just nu.</p>
+          ) : (
+            <div style={{ display: "grid", gap: "10px" }}>
+              {targetChangeRequests.map((request) => {
+                const reviewWeight = targetChangeRequestReviewDrafts[request.id] ?? ""
+                const linkedPlayer = players.find((player) => player.id === request.player_id) || null
+                const isUpdating = updatingTargetChangeRequestId === request.id
+
+                return (
+                  <div
+                    key={request.id}
+                    style={{
+                      padding: "12px",
+                      borderRadius: "14px",
+                      border: "1px solid #f0dada",
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                        alignItems: isMobile ? "flex-start" : "center",
+                        flexDirection: isMobile ? "column" : "row",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                          {request.player_name} • {request.exercise_name}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                          {request.request_type === "increase"
+                            ? "Vill höja målvikt"
+                            : request.request_type === "decrease"
+                            ? "Vill sänka målvikt"
+                            : "Vill att målvikt ses över"}
+                          {` • ${repRangeOptions.find((option) => option.key === request.rep_range_key)?.label || request.rep_range_key}`}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => linkedPlayer && setSelectedPlayer(linkedPlayer)}
+                        style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto" }}
+                      >
+                        Öppna spelare
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "8px",
+                        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div style={historyStatCardStyle}>
+                        <div style={historyStatLabelStyle}>Nuvarande mål</div>
+                        <div style={historyStatValueStyle}>
+                          {request.current_target_weight != null ? `${request.current_target_weight} kg` : "-"}
+                        </div>
+                      </div>
+                      <div style={historyStatCardStyle}>
+                        <div style={historyStatLabelStyle}>Senaste logg</div>
+                        <div style={historyStatValueStyle}>
+                          {request.latest_logged_weight != null ? `${request.latest_logged_weight} kg` : "-"}
+                        </div>
+                        <div style={historyStatMetaStyle}>{request.latest_logged_reps_text || ""}</div>
+                      </div>
+                      <div style={historyStatCardStyle}>
+                        <div style={historyStatLabelStyle}>Skickad</div>
+                        <div style={historyStatValueStyle}>
+                          {new Date(request.created_at).toLocaleDateString("sv-SE")}
+                        </div>
+                      </div>
+                    </div>
+
+                    {request.comment ? (
+                      <div
+                        style={{
+                          marginBottom: "10px",
+                          fontSize: "13px",
+                          color: "#334155",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <strong>Kommentar:</strong> {request.comment}
+                      </div>
+                    ) : null}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <input
+                        type="number"
+                        placeholder="Ny målvikt"
+                        value={reviewWeight}
+                        onChange={(e) => handleSetTargetChangeReviewDraft(request.id, e.target.value)}
+                        style={{ ...inputStyle, width: isMobile ? "100%" : "140px" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleReviewTargetChangeRequest(request, "approved")}
+                        disabled={isUpdating}
+                        style={{
+                          ...quickActionButtonStyle,
+                          width: isMobile ? "100%" : "auto",
+                          opacity: isUpdating ? 0.7 : 1,
+                        }}
+                      >
+                        {isUpdating ? "Sparar..." : "Godkänn"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReviewTargetChangeRequest(request, "rejected")}
+                        disabled={isUpdating}
+                        style={{
+                          ...quickActionButtonStyle,
+                          width: isMobile ? "100%" : "auto",
+                          backgroundColor: "#ffffff",
+                          color: "#991b1b",
+                          border: "1px solid #efc7c7",
+                          opacity: isUpdating ? 0.7 : 1,
+                        }}
+                      >
+                        Avslå
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
       </div>

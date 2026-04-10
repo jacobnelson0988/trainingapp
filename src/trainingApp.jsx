@@ -341,6 +341,9 @@ const getResolvedExerciseTargetWeight = ({
   return fallbackWeight
 }
 
+const getRepRangeLabelByKey = (repRangeKey) =>
+  REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeKey)?.label || repRangeKey || "-"
+
 const parseRepTargetInput = (value, mode = "fixed") => {
   const rawValue = String(value ?? "").trim()
 
@@ -958,6 +961,12 @@ function TrainingApp() {
   const [isLoadingSelectedPlayerHistory, setIsLoadingSelectedPlayerHistory] = useState(false)
   const [isSavingExerciseGoals, setIsSavingExerciseGoals] = useState(false)
   const [updatingGoalAvailabilityIds, setUpdatingGoalAvailabilityIds] = useState([])
+  const [targetChangeRequests, setTargetChangeRequests] = useState([])
+  const [isLoadingTargetChangeRequests, setIsLoadingTargetChangeRequests] = useState(false)
+  const [updatingTargetChangeRequestId, setUpdatingTargetChangeRequestId] = useState(null)
+  const [targetChangeRequestReviewDrafts, setTargetChangeRequestReviewDrafts] = useState({})
+  const [activeTargetChangeRequestDraft, setActiveTargetChangeRequestDraft] = useState(null)
+  const [isSubmittingTargetChangeRequest, setIsSubmittingTargetChangeRequest] = useState(false)
   const [activeRunningInput, setActiveRunningInput] = useState({
     interval_time: "",
     intervals_count: "",
@@ -1042,6 +1051,7 @@ function TrainingApp() {
       setMessageRecipients([])
       setMessages([])
       setFeedbackItems([])
+      setTargetChangeRequests([])
       return
     }
 
@@ -1054,6 +1064,13 @@ function TrainingApp() {
     } else {
       setFeedbackItems([])
       setExerciseRequests([])
+    }
+
+    if (profile.role === "coach" || profile.role === "head_admin") {
+      loadTargetChangeRequests()
+    } else {
+      setTargetChangeRequests([])
+      setTargetChangeRequestReviewDrafts({})
     }
   }, [user, profile])
 
@@ -2044,6 +2061,48 @@ function TrainingApp() {
     setIsLoadingExerciseRequests(false)
   }
 
+  const loadTargetChangeRequests = async () => {
+    if (!profile || (profile.role !== "coach" && profile.role !== "head_admin")) {
+      setTargetChangeRequests([])
+      setTargetChangeRequestReviewDrafts({})
+      return
+    }
+
+    setIsLoadingTargetChangeRequests(true)
+
+    let query = supabase
+      .from("player_target_change_requests")
+      .select("*")
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+
+    if (profile.role === "coach") {
+      query = query.eq("team_id", profile.team_id || "")
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error(error)
+      setTargetChangeRequests([])
+      setTargetChangeRequestReviewDrafts({})
+      setIsLoadingTargetChangeRequests(false)
+      return
+    }
+
+    const rows = data || []
+    setTargetChangeRequests(rows)
+    setTargetChangeRequestReviewDrafts((prev) =>
+      rows.reduce((acc, request) => {
+        acc[request.id] =
+          prev[request.id] ??
+          (request.current_target_weight != null ? String(request.current_target_weight) : "")
+        return acc
+      }, {})
+    )
+    setIsLoadingTargetChangeRequests(false)
+  }
+
   const handleSubmitFeedback = async () => {
     const trimmedBody = feedbackText.trim()
 
@@ -2077,6 +2136,136 @@ function TrainingApp() {
     setIsFeedbackOpen(false)
     setStatus("Feedback sparad ✅")
     setIsSubmittingFeedback(false)
+  }
+
+  const handleSubmitTargetChangeRequest = async () => {
+    if (!user || !profile || !activeTargetChangeRequestDraft) return false
+
+    const trimmedComment = String(activeTargetChangeRequestDraft.comment || "").trim()
+
+    setIsSubmittingTargetChangeRequest(true)
+
+    const payload = {
+      player_id: user.id,
+      player_name: profile.full_name || profile.username || "Spelare",
+      team_id: profile.team_id || null,
+      exercise_id: activeTargetChangeRequestDraft.exercise_id,
+      exercise_name: activeTargetChangeRequestDraft.exercise_name,
+      rep_range_key: activeTargetChangeRequestDraft.rep_range_key,
+      request_type: activeTargetChangeRequestDraft.request_type,
+      current_target_weight: activeTargetChangeRequestDraft.current_target_weight,
+      latest_logged_weight: activeTargetChangeRequestDraft.latest_logged_weight,
+      latest_logged_reps_text: activeTargetChangeRequestDraft.latest_logged_reps_text || null,
+      comment: trimmedComment || null,
+    }
+
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from("player_target_change_requests")
+      .select("id")
+      .eq("player_id", user.id)
+      .eq("exercise_id", activeTargetChangeRequestDraft.exercise_id)
+      .eq("rep_range_key", activeTargetChangeRequestDraft.rep_range_key)
+      .eq("status", "open")
+      .maybeSingle()
+
+    if (existingRequestError) {
+      console.error(existingRequestError)
+      setStatus("Kunde inte kontrollera tidigare begäran")
+      setIsSubmittingTargetChangeRequest(false)
+      return false
+    }
+
+    const { error } = existingRequest
+      ? await supabase
+          .from("player_target_change_requests")
+          .update(payload)
+          .eq("id", existingRequest.id)
+      : await supabase.from("player_target_change_requests").insert(payload)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte skicka begäran om målviktsändring")
+      setIsSubmittingTargetChangeRequest(false)
+      return false
+    }
+
+    setStatus("Begäran skickad till tränaren ✅")
+    setActiveTargetChangeRequestDraft(null)
+    setIsSubmittingTargetChangeRequest(false)
+    return true
+  }
+
+  const handleSetTargetChangeReviewDraft = (requestId, value) => {
+    setTargetChangeRequestReviewDrafts((prev) => ({
+      ...prev,
+      [requestId]: value,
+    }))
+  }
+
+  const handleReviewTargetChangeRequest = async (request, nextStatus) => {
+    if (!request?.id || !user?.id) return false
+
+    setUpdatingTargetChangeRequestId(request.id)
+
+    if (nextStatus === "approved") {
+      const nextWeight = Number.parseFloat(
+        String(targetChangeRequestReviewDrafts[request.id] ?? "").replace(",", ".")
+      )
+
+      if (!Number.isFinite(nextWeight) || nextWeight <= 0) {
+        setStatus("Ange en giltig ny målvikt innan du godkänner")
+        setUpdatingTargetChangeRequestId(null)
+        return false
+      }
+
+      const { error: targetError } = await supabase
+        .from("player_exercise_rep_targets")
+        .upsert(
+          {
+            player_id: request.player_id,
+            exercise_id: request.exercise_id,
+            rep_range_key: request.rep_range_key,
+            target_weight: nextWeight,
+            updated_by: user.id,
+            source: "manual_override",
+          },
+          { onConflict: "player_id,exercise_id,rep_range_key" }
+        )
+
+      if (targetError) {
+        console.error(targetError)
+        setStatus("Kunde inte uppdatera målvikten")
+        setUpdatingTargetChangeRequestId(null)
+        return false
+      }
+    }
+
+    const resolvedTargetWeight =
+      nextStatus === "approved"
+        ? Number.parseFloat(String(targetChangeRequestReviewDrafts[request.id] ?? "").replace(",", "."))
+        : null
+
+    const { error } = await supabase
+      .from("player_target_change_requests")
+      .update({
+        status: nextStatus,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user.id,
+        resolved_target_weight: Number.isFinite(resolvedTargetWeight) ? resolvedTargetWeight : null,
+      })
+      .eq("id", request.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera begäran")
+      setUpdatingTargetChangeRequestId(null)
+      return false
+    }
+
+    setStatus(nextStatus === "approved" ? "Begäran godkänd och målvikt uppdaterad ✅" : "Begäran avslagen")
+    setUpdatingTargetChangeRequestId(null)
+    await loadTargetChangeRequests()
+    return true
   }
 
   const handleSubmitExerciseRequest = async (requestDraft) => {
@@ -6379,6 +6568,7 @@ function TrainingApp() {
                   activePlayerCount={activePlayerCount}
                   passCount={coachPassCount}
                   activeSevenDayCount={activeSevenDayCount}
+                  openTargetChangeRequestCount={targetChangeRequests.length}
                   isMobile={isMobile}
                 />
               )
@@ -6700,6 +6890,12 @@ function TrainingApp() {
                 selectedPlayerHistory={selectedPlayerHistory}
                 selectedPlayerCompletedSessions={selectedPlayerCompletedSessions}
                 isLoadingSelectedPlayerHistory={isLoadingSelectedPlayerHistory}
+                targetChangeRequests={targetChangeRequests}
+                isLoadingTargetChangeRequests={isLoadingTargetChangeRequests}
+                targetChangeRequestReviewDrafts={targetChangeRequestReviewDrafts}
+                updatingTargetChangeRequestId={updatingTargetChangeRequestId}
+                handleSetTargetChangeReviewDraft={handleSetTargetChangeReviewDraft}
+                handleReviewTargetChangeRequest={handleReviewTargetChangeRequest}
                 exerciseGoalDrafts={exerciseGoalDrafts}
                 selectedPlayerExerciseGoals={selectedPlayerExerciseGoals}
                 handleExerciseGoalDraftChange={handleExerciseGoalDraftChange}
@@ -7724,6 +7920,12 @@ function TrainingApp() {
               repTargetsByExercise: playerExerciseRepTargets,
               fallbackWeight: currentTarget?.target_weight ?? null,
             })
+            const currentRepRangeBucket = getRepRangeBucketForTarget(currentTarget)
+            const targetRequestComposerKey = `${selectedExercise?.exerciseId || exercise.exerciseId}:${
+              currentRepRangeBucket?.key || "none"
+            }`
+            const isTargetRequestComposerOpen =
+              activeTargetChangeRequestDraft?.composer_key === targetRequestComposerKey
             const hasExerciseDetails = !!(
               selectedExercise?.description ||
               exercise.guide ||
@@ -7962,6 +8164,195 @@ function TrainingApp() {
                           <strong>Kommentar:</strong> {currentTarget.target_comment}
                         </div>
                       )}
+
+                      {selectedExercise?.type === "weight_reps" &&
+                        resolvedCurrentTargetWeight != null &&
+                        currentRepRangeBucket &&
+                        profile?.individual_goals_enabled !== false && (
+                          <div style={{ marginTop: "10px" }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isTargetRequestComposerOpen) {
+                                  setActiveTargetChangeRequestDraft(null)
+                                  return
+                                }
+
+                                setActiveTargetChangeRequestDraft({
+                                  composer_key: targetRequestComposerKey,
+                                  exercise_id: selectedExercise?.exerciseId || exercise.exerciseId,
+                                  exercise_name:
+                                    selectedExercise?.displayName ||
+                                    selectedExercise?.name ||
+                                    exercise.displayName ||
+                                    exercise.name,
+                                  rep_range_key: currentRepRangeBucket.key,
+                                  request_type: "increase",
+                                  comment: "",
+                                  current_target_weight: resolvedCurrentTargetWeight,
+                                  latest_logged_weight: latestExerciseTopSet?.weight
+                                    ? parseLoggedNumber(latestExerciseTopSet.weight)
+                                    : null,
+                                  latest_logged_reps_text:
+                                    latestExerciseTopSet?.reps != null && latestExerciseTopSet?.reps !== ""
+                                      ? `${latestExerciseTopSet.reps} reps`
+                                      : latestExerciseTopSet?.seconds
+                                      ? `${latestExerciseTopSet.seconds} sek`
+                                      : null,
+                                })
+                              }}
+                              style={{ ...secondaryButtonStyle, width: "100%" }}
+                            >
+                              {isTargetRequestComposerOpen ? "Stäng begäran" : "Begär ändring av målvikt"}
+                            </button>
+
+                            {isTargetRequestComposerOpen && (
+                              <div
+                                style={{
+                                  marginTop: "10px",
+                                  padding: "12px",
+                                  borderRadius: "14px",
+                                  border: "1px solid #e5e7eb",
+                                  backgroundColor: "#ffffff",
+                                }}
+                              >
+                                <div style={{ ...targetSectionLabelStyle, marginBottom: "8px" }}>
+                                  Skicka till tränaren
+                                </div>
+                                <div style={{ ...mutedTextStyle, marginBottom: "10px", fontSize: "13px" }}>
+                                  För {getRepRangeLabelByKey(currentRepRangeBucket.key)} • nuvarande mål{" "}
+                                  {resolvedCurrentTargetWeight} kg
+                                </div>
+
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gap: "8px",
+                                    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                                    marginBottom: "10px",
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveTargetChangeRequestDraft((prev) => ({
+                                        ...prev,
+                                        request_type: "increase",
+                                      }))
+                                    }
+                                    style={{
+                                      ...secondaryButtonStyle,
+                                      width: "100%",
+                                      backgroundColor:
+                                        activeTargetChangeRequestDraft?.request_type === "increase"
+                                          ? "#fff1f1"
+                                          : "#ffffff",
+                                      borderColor:
+                                        activeTargetChangeRequestDraft?.request_type === "increase"
+                                          ? "#dc2626"
+                                          : "#d1d5db",
+                                      color:
+                                        activeTargetChangeRequestDraft?.request_type === "increase"
+                                          ? "#b91c1c"
+                                          : "#18202b",
+                                    }}
+                                  >
+                                    Höj
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveTargetChangeRequestDraft((prev) => ({
+                                        ...prev,
+                                        request_type: "decrease",
+                                      }))
+                                    }
+                                    style={{
+                                      ...secondaryButtonStyle,
+                                      width: "100%",
+                                      backgroundColor:
+                                        activeTargetChangeRequestDraft?.request_type === "decrease"
+                                          ? "#fff1f1"
+                                          : "#ffffff",
+                                      borderColor:
+                                        activeTargetChangeRequestDraft?.request_type === "decrease"
+                                          ? "#dc2626"
+                                          : "#d1d5db",
+                                      color:
+                                        activeTargetChangeRequestDraft?.request_type === "decrease"
+                                          ? "#b91c1c"
+                                          : "#18202b",
+                                    }}
+                                  >
+                                    Sänk
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveTargetChangeRequestDraft((prev) => ({
+                                        ...prev,
+                                        request_type: "review",
+                                      }))
+                                    }
+                                    style={{
+                                      ...secondaryButtonStyle,
+                                      width: "100%",
+                                      backgroundColor:
+                                        activeTargetChangeRequestDraft?.request_type === "review"
+                                          ? "#fff1f1"
+                                          : "#ffffff",
+                                      borderColor:
+                                        activeTargetChangeRequestDraft?.request_type === "review"
+                                          ? "#dc2626"
+                                          : "#d1d5db",
+                                      color:
+                                        activeTargetChangeRequestDraft?.request_type === "review"
+                                          ? "#b91c1c"
+                                          : "#18202b",
+                                    }}
+                                  >
+                                    Se över
+                                  </button>
+                                </div>
+
+                                <textarea
+                                  rows={3}
+                                  value={activeTargetChangeRequestDraft?.comment || ""}
+                                  onChange={(event) =>
+                                    setActiveTargetChangeRequestDraft((prev) => ({
+                                      ...prev,
+                                      comment: event.target.value,
+                                    }))
+                                  }
+                                  placeholder="Skriv kort varför du vill ändra målvikten"
+                                  style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "10px" }}
+                                />
+
+                                <div style={feedbackComposerActionsStyle}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveTargetChangeRequestDraft(null)}
+                                    style={secondaryButtonStyle}
+                                  >
+                                    Avbryt
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleSubmitTargetChangeRequest}
+                                    disabled={isSubmittingTargetChangeRequest}
+                                    style={{
+                                      ...buttonStyle,
+                                      opacity: isSubmittingTargetChangeRequest ? 0.7 : 1,
+                                      cursor: isSubmittingTargetChangeRequest ? "default" : "pointer",
+                                    }}
+                                  >
+                                    {isSubmittingTargetChangeRequest ? "Skickar..." : "Skicka begäran"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                     </>
                   </div>
                 )}
