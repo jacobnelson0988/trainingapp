@@ -8623,11 +8623,15 @@ function PlayerProgressChart({ entries }) {
 }
 
 const pageStyle = {
-  padding: "20px 16px 48px",
+  width: "100%",
   maxWidth: "980px",
+  minWidth: 0,
+  padding: "20px 16px 48px",
+  boxSizing: "border-box",
   margin: "0 auto",
   minHeight: "100vh",
   fontFamily: "Roboto, sans-serif",
+  overflowX: "hidden",
 }
 
 const appTitleStyle = {
@@ -8937,6 +8941,8 @@ const activeCoachTabButtonStyle = {
 }
 
 const workoutActionSectionStyle = {
+  width: "100%",
+  minWidth: 0,
   marginBottom: "24px",
   display: "flex",
   flexDirection: "column",
@@ -8952,6 +8958,9 @@ const sectionTitleStyle = {
 }
 
 const cardStyle = {
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box",
   marginBottom: "20px",
   padding: "20px",
   border: "1px solid #f0dcdc",
@@ -10024,14 +10033,15 @@ const playerStatsSummaryPillStyle = {
 
 const playerChartWrapStyle = {
   width: "100%",
-  overflowX: "auto",
+  maxWidth: "100%",
+  overflowX: "hidden",
   marginBottom: "14px",
 }
 
 const playerChartSvgStyle = {
   display: "block",
   width: "100%",
-  minWidth: "520px",
+  maxWidth: "100%",
   height: "220px",
 }
 

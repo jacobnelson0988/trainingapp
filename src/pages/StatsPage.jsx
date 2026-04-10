@@ -1367,6 +1367,10 @@ const chartGridStyle = {
 }
 
 const chartCardStyle = {
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box",
+  overflow: "hidden",
   padding: "18px",
   borderRadius: "22px",
   border: "1px solid #dbe5ef",
@@ -1491,7 +1495,9 @@ const chartModalBackdropStyle = {
 const chartModalCardStyle = {
   width: "min(1200px, 100%)",
   maxHeight: "90vh",
-  overflow: "auto",
+  overflowY: "auto",
+  overflowX: "hidden",
+  boxSizing: "border-box",
   borderRadius: "28px",
   backgroundColor: "#ffffff",
   border: "1px solid rgba(226, 232, 240, 0.9)",
@@ -1530,6 +1536,7 @@ const pageWrapStyle = {
   width: "100%",
   minWidth: 0,
   overflowX: "hidden",
+  boxSizing: "border-box",
 }
 
 const introCardStyle = {
