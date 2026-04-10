@@ -7671,7 +7671,10 @@ function TrainingApp() {
                               <div>
                                 <div style={playerStatsRecentDateStyle}>{formatDate(entry.created_at)}</div>
                                 <div style={playerStatsRecentMetaStyle}>
-                                  {entry.pass_name || "Pass"}
+                                  {formatLoggedPassName(entry.pass_name, {
+                                    workoutKind: entry.workout_kind,
+                                    runningOrigin: entry.running_origin,
+                                  }) || "Pass"}
                                   {entry.top_reps != null ? ` • ${entry.top_reps} reps` : ""}
                                 </div>
                               </div>
