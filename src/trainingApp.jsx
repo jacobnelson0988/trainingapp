@@ -7143,12 +7143,7 @@ function TrainingApp() {
                   </button>
                 </div>
 
-                <div
-                  style={{
-                    ...playerQuickActionBlockStyle,
-                    ...(playerOverviewPanel === "history" ? { gridColumn: "1 / -1" } : {}),
-                  }}
-                >
+                <div style={playerQuickActionBlockStyle}>
                   <button
                     type="button"
                     onClick={() => togglePlayerOverviewPanel("history")}
@@ -7165,7 +7160,29 @@ function TrainingApp() {
                     </div>
                   </button>
 
-                  {playerOverviewPanel === "history" && (
+                </div>
+
+                <div style={playerQuickActionBlockStyle}>
+                  <button
+                    type="button"
+                    onClick={() => togglePlayerOverviewPanel("running")}
+                    style={playerQuickActionCardStyle}
+                  >
+                    <div style={playerQuickActionTopRowStyle}>
+                      <div style={playerQuickActionTitleStyle}>Egna löppass</div>
+                      <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
+                        {playerOverviewPanel === "running" ? "−" : "+"}
+                      </div>
+                    </div>
+                    <div style={playerQuickActionTextStyle}>
+                      Logga träning du gör utanför lagpassen.
+                    </div>
+                  </button>
+
+                </div>
+
+                {playerOverviewPanel === "history" && (
+                  <div style={playerOverviewPanelRowStyle}>
                     <div style={playerOverviewPanelStyle}>
                       <div>
                         <div style={playerOverviewPanelTitleStyle}>Historik</div>
@@ -7297,32 +7314,11 @@ function TrainingApp() {
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <div
-                  style={{
-                    ...playerQuickActionBlockStyle,
-                    ...(playerOverviewPanel === "running" ? { gridColumn: "1 / -1" } : {}),
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("running")}
-                    style={playerQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Egna löppass</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
-                        {playerOverviewPanel === "running" ? "−" : "+"}
-                      </div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Logga träning du gör utanför lagpassen.
-                    </div>
-                  </button>
-
-                  {playerOverviewPanel === "running" && (
+                {playerOverviewPanel === "running" && (
+                  <div style={playerOverviewPanelRowStyle}>
                     <div style={playerOverviewPanelStyle}>
                       <div>
                         <div style={playerOverviewPanelTitleStyle}>Egna löppass</div>
@@ -7420,8 +7416,8 @@ function TrainingApp() {
                         </button>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -9864,6 +9860,11 @@ const playerOverviewPanelHeaderStyle = {
 const playerQuickActionBlockStyle = {
   display: "grid",
   gap: "12px",
+  minWidth: 0,
+}
+
+const playerOverviewPanelRowStyle = {
+  gridColumn: "1 / -1",
   minWidth: 0,
 }
 
