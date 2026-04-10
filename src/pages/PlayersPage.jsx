@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react"
 
+const repRangeOptions = [
+  { key: "1_3", label: "1-3 reps" },
+  { key: "4_5", label: "4-5 reps" },
+  { key: "6_10", label: "6-10 reps" },
+  { key: "11_15", label: "11-15 reps" },
+  { key: "16_20", label: "16-20 reps" },
+]
+
 function PlayersPage({
   role,
   setCoachView,
@@ -33,6 +41,7 @@ function PlayersPage({
   exerciseGoalDrafts,
   selectedPlayerExerciseGoals,
   handleExerciseGoalDraftChange,
+  handleExerciseGoalRepRangeWeightDraftChange,
   handlePrefillExerciseGoalFromHistory,
   handleSaveExerciseGoals,
   isSavingExerciseGoals,
@@ -798,7 +807,7 @@ function PlayersPage({
                       style={{
                         display: "grid",
                         gap: "8px",
-                        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
                         marginBottom: "8px",
                       }}
                     >
@@ -820,15 +829,62 @@ function PlayersPage({
                         }
                         style={{ ...inputStyle, width: "100%" }}
                       />
-                      <input
-                        type="number"
-                        placeholder="Mål vikt"
-                        value={draft.target_weight ?? ""}
-                        onChange={(e) =>
-                          handleExerciseGoalDraftChange(entry.exercise_id, "target_weight", e.target.value)
-                        }
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
+                    </div>
+
+                    <div style={{ marginBottom: "10px" }}>
+                      <div
+                        style={{
+                          marginBottom: "8px",
+                          fontSize: "13px",
+                          fontWeight: "800",
+                          color: "#18202b",
+                        }}
+                      >
+                        Målvikter per repsintervall
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: "8px",
+                          gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))",
+                        }}
+                      >
+                        {repRangeOptions.map((option) => (
+                          <div
+                            key={`${entry.exercise_id}-${option.key}`}
+                            style={{
+                              padding: "10px",
+                              borderRadius: "12px",
+                              border: "1px solid #e2e8f0",
+                              backgroundColor: "#f8fafc",
+                            }}
+                          >
+                            <div
+                              style={{
+                                marginBottom: "6px",
+                                fontSize: "12px",
+                                fontWeight: "800",
+                                color: "#64748b",
+                              }}
+                            >
+                              {option.label}
+                            </div>
+                            <input
+                              type="number"
+                              placeholder="kg"
+                              value={draft.rep_range_weights?.[option.key] ?? ""}
+                              onChange={(e) =>
+                                handleExerciseGoalRepRangeWeightDraftChange(
+                                  entry.exercise_id,
+                                  option.key,
+                                  e.target.value
+                                )
+                              }
+                              style={{ ...inputStyle, width: "100%" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <input

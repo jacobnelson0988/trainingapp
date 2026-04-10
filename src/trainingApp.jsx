@@ -228,6 +228,119 @@ const buildExerciseGoalPrefill = (historyEntry) => ({
   comment: historyEntry?.comment || "",
 })
 
+const REP_RANGE_BUCKETS = [
+  { key: "1_3", label: "1-3", min: 1, max: 3 },
+  { key: "4_5", label: "4-5", min: 4, max: 5 },
+  { key: "6_10", label: "6-10", min: 6, max: 10 },
+  { key: "11_15", label: "11-15", min: 11, max: 15 },
+  { key: "16_20", label: "16-20", min: 16, max: 20 },
+]
+
+const createEmptyRepRangeWeights = () =>
+  REP_RANGE_BUCKETS.reduce((acc, bucket) => {
+    acc[bucket.key] = ""
+    return acc
+  }, {})
+
+const normalizeRepRangeWeights = (weights) => ({
+  ...createEmptyRepRangeWeights(),
+  ...Object.entries(weights || {}).reduce((acc, [key, value]) => {
+    acc[key] = value == null ? "" : String(value)
+    return acc
+  }, {}),
+})
+
+const getRepRangeBucketForReps = (repsValue) => {
+  const reps = Number(repsValue)
+  if (!Number.isFinite(reps) || reps <= 0) return null
+
+  return (
+    REP_RANGE_BUCKETS.find((bucket) => reps >= bucket.min && reps <= bucket.max) ||
+    (reps < REP_RANGE_BUCKETS[0].min
+      ? REP_RANGE_BUCKETS[0]
+      : REP_RANGE_BUCKETS[REP_RANGE_BUCKETS.length - 1])
+  )
+}
+
+const parseRepTargetRangeBounds = (target) => {
+  if (!target) return null
+
+  if (target.target_reps_min != null || target.target_reps_max != null) {
+    return {
+      min: target.target_reps_min != null ? Number(target.target_reps_min) : null,
+      max: target.target_reps_max != null ? Number(target.target_reps_max) : null,
+    }
+  }
+
+  if (target.target_reps != null && Number.isFinite(Number(target.target_reps))) {
+    const value = Number(target.target_reps)
+    return { min: value, max: value }
+  }
+
+  const rawText = String(target.target_reps_text || "").trim()
+  const rangeMatch = rawText.replace(/\s+/g, "").match(/^(\d+)-(\d+)$/)
+  if (rangeMatch) {
+    return {
+      min: Number(rangeMatch[1]),
+      max: Number(rangeMatch[2]),
+    }
+  }
+
+  if (rawText && Number.isFinite(Number(rawText))) {
+    const value = Number(rawText)
+    return { min: value, max: value }
+  }
+
+  return null
+}
+
+const getRepRangeBucketForTarget = (target) => {
+  if (!target || target.target_reps_mode === "max") return null
+
+  const bounds = parseRepTargetRangeBounds(target)
+  if (!bounds) return null
+
+  const representativeValue =
+    bounds.max != null
+      ? bounds.max
+      : bounds.min != null
+      ? bounds.min
+      : null
+
+  return representativeValue != null ? getRepRangeBucketForReps(representativeValue) : null
+}
+
+const buildRepRangeWeightsByExercise = (rows) =>
+  (rows || []).reduce((acc, row) => {
+    if (!row.exercise_id || !row.rep_range_key) return acc
+
+    if (!acc[row.exercise_id]) {
+      acc[row.exercise_id] = createEmptyRepRangeWeights()
+    }
+
+    acc[row.exercise_id][row.rep_range_key] =
+      row.target_weight == null ? "" : String(row.target_weight)
+
+    return acc
+  }, {})
+
+const getResolvedExerciseTargetWeight = ({
+  exerciseId,
+  repTarget,
+  repTargetsByExercise,
+  fallbackWeight = null,
+}) => {
+  const bucket = getRepRangeBucketForTarget(repTarget)
+  const bucketWeight = bucket ? repTargetsByExercise?.[exerciseId]?.[bucket.key] : null
+
+  if (bucketWeight !== undefined && bucketWeight !== null && bucketWeight !== "") {
+    const numericValue = Number(bucketWeight)
+    return Number.isFinite(numericValue) ? numericValue : bucketWeight
+  }
+
+  return fallbackWeight
+}
+
 const parseRepTargetInput = (value, mode = "fixed") => {
   const rawValue = String(value ?? "").trim()
 
@@ -714,6 +827,7 @@ function TrainingApp() {
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
   const [isUpdatingPassAssignments, setIsUpdatingPassAssignments] = useState(false)
   const [assignedWorkoutCodes, setAssignedWorkoutCodes] = useState([])
+  const [playerExerciseRepTargets, setPlayerExerciseRepTargets] = useState({})
   const [selectedTemplateCode, setSelectedTemplateCode] = useState("")
   const [newPassName, setNewPassName] = useState("")
   const [newPassInfo, setNewPassInfo] = useState("")
@@ -1276,6 +1390,22 @@ function TrainingApp() {
       targetsByPass,
       assignedPasses: Array.from(nextAssignedPasses),
     }
+  }
+
+  const loadExerciseRepTargetsForPlayer = async (playerId) => {
+    if (!playerId) return {}
+
+    const { data, error } = await supabase
+      .from("player_exercise_rep_targets")
+      .select("exercise_id, rep_range_key, target_weight")
+      .eq("player_id", playerId)
+
+    if (error) {
+      console.error(error)
+      return {}
+    }
+
+    return buildRepRangeWeightsByExercise(data || [])
   }
 
   const loadCurrentUserTargets = async (userId, passName) => {
@@ -2496,7 +2626,11 @@ function TrainingApp() {
 
     setIsLoadingSelectedPlayerHistory(true)
 
-    const [{ data: historyRows, error: historyError }, { data: goalRows, error: goalsError }] =
+    const [
+      { data: historyRows, error: historyError },
+      { data: goalRows, error: goalsError },
+      { data: repTargetRows, error: repTargetsError },
+    ] =
       await Promise.all([
         supabase
           .from("workout_logs")
@@ -2510,10 +2644,14 @@ function TrainingApp() {
           .from("player_exercise_goals")
           .select("exercise_id, target_sets, target_reps, target_weight, comment")
           .eq("player_id", playerId),
+        supabase
+          .from("player_exercise_rep_targets")
+          .select("exercise_id, rep_range_key, target_weight")
+          .eq("player_id", playerId),
       ])
 
-    if (historyError || goalsError) {
-      console.error(historyError || goalsError)
+    if (historyError || goalsError || repTargetsError) {
+      console.error(historyError || goalsError || repTargetsError)
       setSelectedPlayerHistory([])
       setSelectedPlayerCompletedSessions([])
       setSelectedPlayerExerciseGoals({})
@@ -2522,8 +2660,13 @@ function TrainingApp() {
       return
     }
 
+    const repRangeWeightsByExerciseId = buildRepRangeWeightsByExercise(repTargetRows || [])
+
     const goalsByExerciseId = (goalRows || []).reduce((acc, row) => {
-      acc[row.exercise_id] = row
+      acc[row.exercise_id] = {
+        ...row,
+        rep_range_weights: normalizeRepRangeWeights(repRangeWeightsByExerciseId[row.exercise_id]),
+      }
       return acc
     }, {})
 
@@ -2535,7 +2678,18 @@ function TrainingApp() {
         const latestEntry = exerciseHistory.entries[0] || null
         const bestWeightEntry =
           exerciseHistory.entries.find((entry) => entry.top_weight != null) || latestEntry || null
-        const existingGoal = goalsByExerciseId[matchedExercise.id] || null
+        const existingGoal =
+          goalsByExerciseId[matchedExercise.id] ||
+          (repRangeWeightsByExerciseId[matchedExercise.id]
+            ? {
+                exercise_id: matchedExercise.id,
+                target_sets: null,
+                target_reps: null,
+                target_weight: null,
+                comment: null,
+                rep_range_weights: normalizeRepRangeWeights(repRangeWeightsByExerciseId[matchedExercise.id]),
+              }
+            : null)
 
         return {
           exercise_id: matchedExercise.id,
@@ -2560,8 +2714,12 @@ function TrainingApp() {
             target_reps: existingGoal.target_reps ?? "",
             target_weight: existingGoal.target_weight ?? "",
             comment: existingGoal.comment ?? "",
+            rep_range_weights: normalizeRepRangeWeights(existingGoal.rep_range_weights),
           }
-        : prefill
+        : {
+            ...prefill,
+            rep_range_weights: createEmptyRepRangeWeights(),
+          }
 
       return acc
     }, {})
@@ -2572,6 +2730,20 @@ function TrainingApp() {
     setExerciseGoalDrafts(nextDrafts)
     setIsLoadingSelectedPlayerHistory(false)
   }
+
+  useEffect(() => {
+    const loadCurrentPlayerRepTargets = async () => {
+      if (!user?.id || profile?.role !== "player") {
+        setPlayerExerciseRepTargets({})
+        return
+      }
+
+      const nextTargets = await loadExerciseRepTargetsForPlayer(user.id)
+      setPlayerExerciseRepTargets(nextTargets)
+    }
+
+    loadCurrentPlayerRepTargets()
+  }, [user?.id, profile?.role])
 
   const loadCompletedWorkoutSessions = async (userId) => {
     if (!userId) {
@@ -3676,48 +3848,76 @@ function TrainingApp() {
     }))
   }
 
+  const handleExerciseGoalRepRangeWeightDraftChange = (exerciseId, repRangeKey, value) => {
+    setExerciseGoalDrafts((prev) => ({
+      ...prev,
+      [exerciseId]: {
+        ...(prev[exerciseId] || {}),
+        rep_range_weights: {
+          ...normalizeRepRangeWeights(prev[exerciseId]?.rep_range_weights),
+          [repRangeKey]: value,
+        },
+      },
+    }))
+  }
+
   const handlePrefillExerciseGoalFromHistory = (exerciseId) => {
     const historyItem = selectedPlayerHistory.find((entry) => entry.exercise_id === exerciseId)
     if (!historyItem) return
 
+    const sourceEntry = historyItem.best_weight_entry || historyItem.latest_entry
+    const repRangeBucket = getRepRangeBucketForReps(sourceEntry?.top_reps)
+
     setExerciseGoalDrafts((prev) => ({
       ...prev,
-      [exerciseId]: buildExerciseGoalPrefill(historyItem.best_weight_entry || historyItem.latest_entry),
+      [exerciseId]: {
+        ...buildExerciseGoalPrefill(sourceEntry),
+        rep_range_weights: repRangeBucket
+          ? {
+              ...normalizeRepRangeWeights(prev[exerciseId]?.rep_range_weights),
+              [repRangeBucket.key]:
+                sourceEntry?.top_weight != null ? String(sourceEntry.top_weight) : "",
+            }
+          : normalizeRepRangeWeights(prev[exerciseId]?.rep_range_weights),
+      },
     }))
   }
 
   const handleSaveExerciseGoals = async () => {
     if (!selectedPlayer) return
 
+    const hasRepRangeWeightValue = (draft) =>
+      Object.values(normalizeRepRangeWeights(draft.rep_range_weights)).some(
+        (value) => value !== "" && value != null
+      )
+
     const rows = Object.entries(exerciseGoalDrafts)
+      .filter(([_, draft]) => {
+        const hasBaseGoalValue =
+          (draft.target_sets !== "" && draft.target_sets != null) ||
+          (draft.target_reps !== "" && draft.target_reps != null) ||
+          Boolean(String(draft.comment || "").trim())
+
+        return hasBaseGoalValue || hasRepRangeWeightValue(draft)
+      })
       .map(([exerciseId, draft]) => ({
         player_id: selectedPlayer.id,
         exercise_id: exerciseId,
         target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
         target_reps: draft.target_reps === "" ? null : Number(draft.target_reps),
-        target_weight:
-          draft.target_weight === "" || draft.target_weight == null
-            ? null
-            : Number(draft.target_weight),
+        target_weight: null,
         comment: String(draft.comment || "").trim() || null,
       }))
-      .filter(
-        (row) =>
-          row.target_sets != null ||
-          row.target_reps != null ||
-          row.target_weight != null ||
-          row.comment
-      )
 
     setIsSavingExerciseGoals(true)
 
     const deleteExerciseIds = Object.entries(exerciseGoalDrafts)
       .filter(([_, draft]) => {
         const hasValue =
-          draft.target_sets !== "" ||
-          draft.target_reps !== "" ||
-          draft.target_weight !== "" ||
-          String(draft.comment || "").trim()
+          (draft.target_sets !== "" && draft.target_sets != null) ||
+          (draft.target_reps !== "" && draft.target_reps != null) ||
+          Boolean(String(draft.comment || "").trim()) ||
+          hasRepRangeWeightValue(draft)
         return !hasValue
       })
       .map(([exerciseId]) => exerciseId)
@@ -3745,6 +3945,49 @@ function TrainingApp() {
       if (error) {
         console.error(error)
         setStatus("Kunde inte spara personliga övningsmål")
+        setIsSavingExerciseGoals(false)
+        return
+      }
+    }
+
+    const draftedExerciseIds = Object.keys(exerciseGoalDrafts)
+
+    if (draftedExerciseIds.length > 0) {
+      const { error: deleteRepTargetsError } = await supabase
+        .from("player_exercise_rep_targets")
+        .delete()
+        .eq("player_id", selectedPlayer.id)
+        .in("exercise_id", draftedExerciseIds)
+
+      if (deleteRepTargetsError) {
+        console.error(deleteRepTargetsError)
+        setStatus("Kunde inte uppdatera målvikter per repsintervall")
+        setIsSavingExerciseGoals(false)
+        return
+      }
+    }
+
+    const repRangeRows = Object.entries(exerciseGoalDrafts).flatMap(([exerciseId, draft]) =>
+      Object.entries(normalizeRepRangeWeights(draft.rep_range_weights))
+        .filter(([_, value]) => value !== "" && value != null)
+        .map(([repRangeKey, value]) => ({
+          player_id: selectedPlayer.id,
+          exercise_id: exerciseId,
+          rep_range_key: repRangeKey,
+          target_weight: Number(value),
+          updated_by: user?.id || null,
+          source: "coach",
+        }))
+    )
+
+    if (repRangeRows.length > 0) {
+      const { error: repRangeError } = await supabase
+        .from("player_exercise_rep_targets")
+        .upsert(repRangeRows, { onConflict: "player_id,exercise_id,rep_range_key" })
+
+      if (repRangeError) {
+        console.error(repRangeError)
+        setStatus("Kunde inte spara målvikter per repsintervall")
         setIsSavingExerciseGoals(false)
         return
       }
@@ -6417,6 +6660,7 @@ function TrainingApp() {
                 exerciseGoalDrafts={exerciseGoalDrafts}
                 selectedPlayerExerciseGoals={selectedPlayerExerciseGoals}
                 handleExerciseGoalDraftChange={handleExerciseGoalDraftChange}
+                handleExerciseGoalRepRangeWeightDraftChange={handleExerciseGoalRepRangeWeightDraftChange}
                 handlePrefillExerciseGoalFromHistory={handlePrefillExerciseGoalFromHistory}
                 handleSaveExerciseGoals={handleSaveExerciseGoals}
                 isSavingExerciseGoals={isSavingExerciseGoals}
@@ -7428,6 +7672,12 @@ function TrainingApp() {
             const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
             const latestExerciseDate = latestExerciseSets[0]?.created_at
             const currentTarget = currentWorkoutTargets[exercise.name]
+            const resolvedCurrentTargetWeight = getResolvedExerciseTargetWeight({
+              exerciseId: selectedExercise?.exerciseId || exercise.exerciseId,
+              repTarget: currentTarget,
+              repTargetsByExercise: playerExerciseRepTargets,
+              fallbackWeight: currentTarget?.target_weight ?? null,
+            })
             const hasExerciseDetails = !!(
               selectedExercise?.description ||
               exercise.guide ||
@@ -7572,7 +7822,7 @@ function TrainingApp() {
                 {!isLoadingPlayerTargets &&
                   ((currentTarget &&
                     (currentTarget.target_reps != null ||
-                      currentTarget.target_weight != null ||
+                      resolvedCurrentTargetWeight != null ||
                       String(currentTarget.target_comment || "").trim() ||
                       currentTarget.target_reps_mode === "max")) ||
                     (profile?.individual_goals_enabled === false && latestExerciseTopSet)) && (
@@ -7652,11 +7902,11 @@ function TrainingApp() {
                         </div>
                       )}
 
-                      {selectedExercise?.type === "weight_reps" && currentTarget.target_weight != null && (
+                      {selectedExercise?.type === "weight_reps" && resolvedCurrentTargetWeight != null && (
                         <div style={targetRowStyle}>
                           <span style={targetLabelStyle}>Vikt</span>
                           <span style={targetValueStyle}>
-                            {currentTarget.target_weight} kg
+                            {resolvedCurrentTargetWeight} kg
                           </span>
                         </div>
                       )}
