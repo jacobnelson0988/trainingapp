@@ -7122,7 +7122,7 @@ function TrainingApp() {
                       <div style={{ ...playerQuickActionArrowStyle, color: "#b61e24", backgroundColor: "#fff1f1" }}>→</div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Välj rätt pass och kom igång snabbt.
+                      Välj ett av dina pass
                     </div>
                   </button>
                 </div>
@@ -7138,7 +7138,7 @@ function TrainingApp() {
                       <div style={{ ...playerQuickActionArrowStyle, color: "#1d4ed8", backgroundColor: "#eef4ff" }}>→</div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Följ viktutveckling och se övningarna du kört.
+                      Följ din utveckling i olika övningar
                     </div>
                   </button>
                 </div>
@@ -7151,14 +7151,14 @@ function TrainingApp() {
                   >
                     <div style={playerQuickActionTopRowStyle}>
                       <div style={playerQuickActionTitleStyle}>Historik</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#0f766e", backgroundColor: "#ecfeff" }}>
-                        {playerOverviewPanel === "history" ? "−" : "+"}
-                      </div>
+                    <div style={{ ...playerQuickActionArrowStyle, color: "#0f766e", backgroundColor: "#ecfeff" }}>
+                      {playerOverviewPanel === "history" ? "−" : "+"}
                     </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Se senaste pass och enkel utveckling.
-                    </div>
-                  </button>
+                  </div>
+                  <div style={playerQuickActionTextStyle}>
+                    Se de senaste genomförda passen
+                  </div>
+                </button>
 
                 </div>
 
@@ -7169,13 +7169,13 @@ function TrainingApp() {
                     style={playerQuickActionCardStyle}
                   >
                     <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Egna löppass</div>
+                      <div style={playerQuickActionTitleStyle}>Eget löppass</div>
                       <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
                         {playerOverviewPanel === "running" ? "−" : "+"}
                       </div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Logga träning du gör utanför lagpassen.
+                      Registrera löppass du genomfört
                     </div>
                   </button>
 
@@ -7321,7 +7321,7 @@ function TrainingApp() {
                   <div style={playerOverviewPanelRowStyle}>
                     <div style={playerOverviewPanelStyle}>
                       <div>
-                        <div style={playerOverviewPanelTitleStyle}>Egna löppass</div>
+                        <div style={playerOverviewPanelTitleStyle}>Eget löppass</div>
                         <div style={playerOverviewPanelTextStyle}>
                           Spara träning du gör själv utanför lagpassen.
                         </div>
