@@ -231,7 +231,8 @@ Om stabiliseringen går bra:
 1. förbättra jämförelse över tid i statistik
 2. förenkla import och undvik dubletter
 3. börja specificera programmotor tydligare
-4. bryt ut och planera den deterministiska rekommendationsmotorn som nästa större system
+4. utvärdera nuvarande rep range utifrån spelarnas historik och samtal med andra tränare om vilka intervall de faktiskt använder i sina pass
+5. bryt ut och planera den deterministiska rekommendationsmotorn som nästa större system
 
 ---
 

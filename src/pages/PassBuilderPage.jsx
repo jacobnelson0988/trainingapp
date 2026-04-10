@@ -141,6 +141,8 @@ const REP_RANGE_BUCKETS = [
   { key: "16_20", label: "16-20 reps", min: 16, max: 20 },
 ]
 
+const getRepRangeValue = (bucket) => `${bucket.min}-${bucket.max}`
+
 const getRepRangeHintBucket = (rawValue) => {
   const value = String(rawValue || "").trim()
   if (!value) return null
@@ -157,6 +159,14 @@ const getRepRangeHintBucket = (rawValue) => {
       ? REP_RANGE_BUCKETS[0]
       : REP_RANGE_BUCKETS[REP_RANGE_BUCKETS.length - 1])
   )
+}
+
+const getSelectedStandardRepRangeValue = (rawValue) => {
+  const value = String(rawValue || "").trim().replace(/\s+/g, "")
+  if (!value) return ""
+
+  const exactBucket = REP_RANGE_BUCKETS.find((bucket) => value === getRepRangeValue(bucket))
+  return exactBucket ? exactBucket.key : ""
 }
 
 function PassBuilderPage({
@@ -1155,6 +1165,10 @@ function PassBuilderPage({
                       draft.targetRepsMode === "max" || exercise.type === "seconds_only"
                         ? null
                         : getRepRangeHintBucket(draft.targetReps)
+                    const selectedStandardRepRange =
+                      draft.targetRepsMode === "max" || exercise.type === "seconds_only"
+                        ? ""
+                        : getSelectedStandardRepRangeValue(draft.targetReps)
 
                     return (
                       <div style={formStackStyle}>
@@ -1227,6 +1241,37 @@ function PassBuilderPage({
                               <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
                                 Tolkas som standardintervall {repRangeHintBucket.label} för målvikt och framtida
                                 rekommendationer.
+                              </div>
+                            )}
+                            {exercise.type !== "seconds_only" && (
+                              <div style={{ marginTop: "8px" }}>
+                                <div style={{ ...fieldLabelStyle, marginBottom: "4px" }}>Snabbval rep-range</div>
+                                <select
+                                  value={selectedStandardRepRange}
+                                  disabled={draft.targetRepsMode === "max"}
+                                  onChange={(e) => {
+                                    const nextBucket = REP_RANGE_BUCKETS.find(
+                                      (bucket) => bucket.key === e.target.value
+                                    )
+                                    handlePassExerciseDraftChange(
+                                      exercise.id,
+                                      "targetReps",
+                                      nextBucket ? getRepRangeValue(nextBucket) : ""
+                                    )
+                                  }}
+                                  style={{
+                                    ...inputStyle,
+                                    width: "100%",
+                                    opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
+                                  }}
+                                >
+                                  <option value="">Skriv fritt eller välj standardintervall</option>
+                                  {REP_RANGE_BUCKETS.map((bucket) => (
+                                    <option key={bucket.key} value={bucket.key}>
+                                      {bucket.label}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
                             )}
                           </div>
