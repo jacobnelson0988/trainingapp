@@ -7087,12 +7087,9 @@ function TrainingApp() {
           {!isWorkoutActive && playerView === "overview" && (
             <div style={{ display: "grid", gap: "16px" }}>
               <div style={playerHomeHeaderStyle}>
-                <div>
-                  <div style={playerHomeHeaderTitleStyle}>Hej, {playerFirstName}</div>
+                <div style={playerHomeHeaderInlineStyle}>
+                  <div style={playerHomeHeaderTitleStyle}>{playerFirstName}</div>
                   <div style={playerHomeHeaderTextStyle}>{teamName}</div>
-                </div>
-                <div style={playerHomeAvatarStyle}>
-                  {playerFirstName.slice(0, 2).toUpperCase()}
                 </div>
               </div>
 
@@ -7173,36 +7170,6 @@ function TrainingApp() {
                     Logga träning du gör utanför lagpassen.
                   </div>
                 </button>
-              </div>
-
-              <div style={playerSummaryGridStyle(isMobile)}>
-                <div style={playerSummaryCardStyle}>
-                  <div style={playerSummaryLabelStyle}>Senaste coachpass</div>
-                  <div style={playerSummaryTitleStyle}>
-                    {latestAssignedSession ? latestAssignedSession.session_label : "Inget pass loggat ännu"}
-                  </div>
-                  <div style={playerSummaryMetaStyle}>
-                    {latestAssignedSession
-                      ? `${formatDate(latestAssignedSession.created_at)} • ${
-                          latestAssignedSession.workout_kind === "running"
-                            ? buildRunningSummary(latestAssignedSession)
-                            : latestAssignedSession.summary || `${latestAssignedSession.exercise_count} övningar`
-                        }`
-                      : "När du loggar ditt första pass visas det här."}
-                  </div>
-                </div>
-
-                <div style={playerSummaryCardStyle}>
-                  <div style={playerSummaryLabelStyle}>Senaste egna löppass</div>
-                  <div style={playerSummaryTitleStyle}>
-                    {latestOwnRunningSession ? latestOwnRunningSession.session_label : "Inget löppass loggat ännu"}
-                  </div>
-                  <div style={playerSummaryMetaStyle}>
-                    {latestOwnRunningSession
-                      ? `${formatDate(latestOwnRunningSession.created_at)} • ${buildRunningSummary(latestOwnRunningSession)}`
-                      : "Logga ett löppass nedan så syns det här."}
-                  </div>
-                </div>
               </div>
 
               <div style={playerAccordionListStyle}>
@@ -9710,10 +9677,18 @@ const playerHomeHeroCardStyle = {
 
 const playerHomeHeaderStyle = {
   display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "12px",
+  alignItems: "baseline",
+  justifyContent: "flex-start",
+  gap: "10px",
   padding: "2px 2px 0",
+  flexWrap: "wrap",
+}
+
+const playerHomeHeaderInlineStyle = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "10px",
+  flexWrap: "wrap",
 }
 
 const playerHomeHeaderTitleStyle = {
@@ -9723,24 +9698,8 @@ const playerHomeHeaderTitleStyle = {
 }
 
 const playerHomeHeaderTextStyle = {
-  marginTop: "4px",
   fontSize: "14px",
   color: "#6b7280",
-}
-
-const playerHomeAvatarStyle = {
-  width: "42px",
-  height: "42px",
-  borderRadius: "14px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#fff1f1",
-  border: "1px solid rgba(220, 38, 38, 0.15)",
-  color: "#dc2626",
-  fontSize: "13px",
-  fontWeight: "900",
-  flexShrink: 0,
 }
 
 const playerHomeStatsGridStyle = (isMobile) => ({
