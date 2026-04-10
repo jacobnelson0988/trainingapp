@@ -8,6 +8,18 @@ const repRangeOptions = [
   { key: "16_20", label: "16-20 reps" },
 ]
 
+const formatDisplayPassName = (passName, workoutKind, runningOrigin) => {
+  if (workoutKind === "running" && runningOrigin !== "assigned") {
+    return "Egna löppass"
+  }
+
+  const raw = String(passName || "").trim()
+  if (!raw) return "Pass"
+
+  const withoutTechnicalSuffix = raw.replace(/_[a-f0-9]{8}$/i, "")
+  return withoutTechnicalSuffix.replace(/_/g, " ")
+}
+
 function PlayersPage({
   role,
   setCoachView,
@@ -625,7 +637,13 @@ function PlayersPage({
                             backgroundColor: isSelected ? "#fff7f7" : historySessionButtonStyle.backgroundColor,
                           }}
                         >
-                          <div style={historySessionButtonTitleStyle}>{session.pass_name}</div>
+                          <div style={historySessionButtonTitleStyle}>
+                            {formatDisplayPassName(
+                              session.pass_name,
+                              session.workout_kind,
+                              session.running_origin
+                            )}
+                          </div>
                           <div style={historySessionButtonMetaStyle}>
                             {new Date(session.created_at).toLocaleDateString("sv-SE")}
                           </div>
@@ -645,7 +663,13 @@ function PlayersPage({
                       <div>
                         <div style={historySessionSummaryStyle}>
                           <div>
-                            <div style={historySessionSummaryTitleStyle}>{selectedSession.pass_name}</div>
+                            <div style={historySessionSummaryTitleStyle}>
+                              {formatDisplayPassName(
+                                selectedSession.pass_name,
+                                selectedSession.workout_kind,
+                                selectedSession.running_origin
+                              )}
+                            </div>
                             <div style={historySessionSummaryMetaStyle}>
                               {new Date(selectedSession.created_at).toLocaleDateString("sv-SE")}
                               {selectedSession.running_summary ? ` • ${selectedSession.running_summary}` : ""}
