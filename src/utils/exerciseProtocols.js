@@ -22,7 +22,7 @@ const THROWING_PROGRAMS = {
 
 const buildProtocolStep = (step) => ({
   ...step,
-  summary: `${step.targetValue} skott @ ${step.intensityPercent} %`,
+  summary: `${step.targetValue} skott på ${step.intensityPercent} % av maxhastighet`,
 })
 
 const getExerciseNamesForProtocolDetection = (exercise) =>
