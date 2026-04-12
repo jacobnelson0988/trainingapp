@@ -74,6 +74,95 @@ const getExerciseNavigationCategory = (exercise) => {
   return "Övrigt"
 }
 
+const parseHrgAlias = (alias) => {
+  const match = String(alias || "")
+    .trim()
+    .match(/^(Axelkontroll|Knäkontroll)\s+([1-6])([A-E])$/i)
+
+  if (!match) return null
+
+  const program = match[1][0].toUpperCase() + match[1].slice(1).toLowerCase()
+  const blockNumber = Number(match[2])
+  const letter = match[3].toUpperCase()
+
+  return {
+    program,
+    blockNumber,
+    letter,
+    position: `${blockNumber}${letter}`,
+  }
+}
+
+const getExerciseHrgEntries = (exercise) => {
+  const seen = new Set()
+
+  return (Array.isArray(exercise?.aliases) ? exercise.aliases : [])
+    .map((alias) => parseHrgAlias(alias))
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = `${entry.program}:${entry.position}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
+const buildHrgProgramSummaries = (exercises) => {
+  const programMap = new Map()
+
+  ;(exercises || []).forEach((exercise) => {
+    getExerciseHrgEntries(exercise).forEach((entry) => {
+      const programBlocks = programMap.get(entry.program) || new Map()
+      const block = programBlocks.get(entry.blockNumber) || {
+        blockNumber: entry.blockNumber,
+        positions: {},
+      }
+
+      if (!block.positions[entry.letter]) {
+        block.positions[entry.letter] = exercise
+      }
+
+      programBlocks.set(entry.blockNumber, block)
+      programMap.set(entry.program, programBlocks)
+    })
+  })
+
+  return Array.from(programMap.entries())
+    .map(([program, blocks]) => {
+      const normalizedBlocks = Array.from(blocks.values())
+        .sort((a, b) => a.blockNumber - b.blockNumber)
+        .map((block) => {
+          const baseExercise = block.positions.A || null
+          const alternativeExercises = ["B", "C", "D", "E"]
+            .map((letter) => block.positions[letter])
+            .filter(Boolean)
+            .filter(
+              (exercise, index, list) =>
+                list.findIndex((candidate) => String(candidate.id) === String(exercise.id)) === index
+            )
+
+          return {
+            blockNumber: block.blockNumber,
+            baseExercise,
+            alternativeExercises,
+          }
+        })
+        .filter((block) => block.baseExercise)
+
+      return {
+        program,
+        blocks: normalizedBlocks,
+        baseCount: normalizedBlocks.length,
+        alternativeCount: normalizedBlocks.reduce(
+          (total, block) => total + block.alternativeExercises.length,
+          0
+        ),
+      }
+    })
+    .filter((program) => program.blocks.length > 0)
+    .sort((a, b) => a.program.localeCompare(b.program, "sv"))
+}
+
 const buildRunningWorkoutSummary = (workoutKind, runningType, runningConfig) => {
   if (workoutKind !== "running") return ""
 
@@ -89,6 +178,12 @@ const buildRunningWorkoutSummary = (workoutKind, runningType, runningConfig) => 
       : null
   const time = runningConfig?.running_time || null
   return [distance, time].filter(Boolean).join(" • ") || "Distans"
+}
+
+const getWorkoutKindLabel = (workoutKind) => {
+  if (workoutKind === "running") return "Löppass"
+  if (workoutKind === "prehab") return "Skadeförebyggande"
+  return "Gympass"
 }
 
 const getDraftTargetRepsValue = (exercise, passExerciseDrafts) => {
@@ -230,6 +325,7 @@ function PassBuilderPage({
   selectedExerciseId,
   setSelectedExerciseId,
   handleAddExerciseToPass,
+  handleAddHrgProgramToPass,
   handleAddAlternativeExerciseToPassExercise,
   handleRemoveAlternativeExerciseFromPassExercise,
   isSavingPassExercise,
@@ -393,6 +489,17 @@ function PassBuilderPage({
     }
   }
 
+  const handleQuickAddHrgProgram = async (programName) => {
+    const focusedRowId = await handleAddHrgProgramToPass(programName)
+
+    if (focusedRowId && focusedRowId !== true) {
+      setShowExercisePicker(false)
+      setEditingExerciseId(focusedRowId)
+      setExpandedAlternativesId(null)
+      setSelectedExerciseId("")
+    }
+  }
+
   const toggleAssignPlayer = (playerId) => {
     setSelectedAssignPlayerIds((current) =>
       current.includes(playerId) ? current.filter((id) => id !== playerId) : [...current, playerId]
@@ -469,6 +576,10 @@ function PassBuilderPage({
   const hasActiveExerciseSearch = Boolean(exerciseSearchValue.trim())
   const isShowingExerciseCategoryOverview =
     !hasActiveExerciseSearch && selectedExerciseCategory === "alla"
+  const availableHrgPrograms = useMemo(
+    () => buildHrgProgramSummaries(exercisesFromDB),
+    [exercisesFromDB]
+  )
 
   if (view === "create") {
     return (
@@ -518,6 +629,7 @@ function PassBuilderPage({
                   style={{ ...inputStyle, width: "100%" }}
                 >
                   <option value="gym">Gympass</option>
+                  <option value="prehab">Skadeförebyggande</option>
                   <option value="running">Löppass</option>
                 </select>
               </div>
@@ -765,6 +877,7 @@ function PassBuilderPage({
                   style={{ ...inputStyle, width: "100%" }}
                 >
                   <option value="gym">Gympass</option>
+                  <option value="prehab">Skadeförebyggande</option>
                   <option value="running">Löppass</option>
                 </select>
               </div>
@@ -1018,6 +1131,38 @@ function PassBuilderPage({
                   {showExercisePicker ? (
                     <div style={{ display: "grid", gap: "12px" }}>
                       <div style={sectionTitleStyle}>Lägg till övning</div>
+
+                      {availableHrgPrograms.length > 0 && (
+                        <div style={hrgQuickAddCardStyle}>
+                          <div style={hrgQuickAddHeaderStyle}>
+                            <div style={fieldLabelStyle}>Snabbval HRG</div>
+                            <div style={hrgQuickAddHintStyle}>
+                              Lägger in A-övningarna som huvudövningar och B-E som alternativ.
+                            </div>
+                          </div>
+
+                          <div style={hrgQuickAddGridStyle(isMobile)}>
+                            {availableHrgPrograms.map((program) => (
+                              <button
+                                key={program.program}
+                                type="button"
+                                onClick={() => handleQuickAddHrgProgram(program.program)}
+                                disabled={isSavingPassExercise || !selectedTemplateCode}
+                                style={{
+                                  ...hrgQuickAddButtonStyle,
+                                  opacity:
+                                    isSavingPassExercise || !selectedTemplateCode ? 0.7 : 1,
+                                }}
+                              >
+                                <div style={hrgQuickAddTitleStyle}>{program.program}</div>
+                                <div style={hrgQuickAddMetaStyle}>
+                                  {program.baseCount} block • {program.alternativeCount} alternativ
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <input
                         type="text"
@@ -1423,7 +1568,13 @@ function PassBuilderPage({
           <div style={summaryStatCardStyle}>
             <div style={summaryStatLabelStyle}>Gympass</div>
             <div style={summaryStatValueStyle}>
-              {passKeys.filter((key) => activeWorkouts[key]?.workoutKind !== "running").length}
+              {passKeys.filter((key) => (activeWorkouts[key]?.workoutKind || "gym") === "gym").length}
+            </div>
+          </div>
+          <div style={summaryStatCardStyle}>
+            <div style={summaryStatLabelStyle}>Skadeförebyggande</div>
+            <div style={summaryStatValueStyle}>
+              {passKeys.filter((key) => activeWorkouts[key]?.workoutKind === "prehab").length}
             </div>
           </div>
           <div style={summaryStatCardStyle}>
@@ -1470,7 +1621,7 @@ function PassBuilderPage({
                             workout.runningType,
                             workout.runningConfig
                           )}`
-                        : `${(workout.exercises || []).length} övningar`}
+                        : `${getWorkoutKindLabel(workout.workoutKind)} • ${(workout.exercises || []).length} övningar`}
                     </div>
                     <div
                       style={{
@@ -1514,6 +1665,11 @@ function PassBuilderPage({
             </div>
 
             <div style={selectedPassInfoStyle}>
+              <div style={selectedPassMetricStyle}>
+                <div style={selectedPassMetricLabelStyle}>Kategori</div>
+                <div style={selectedPassMetricValueStyle}>{getWorkoutKindLabel(currentWorkout.workoutKind)}</div>
+              </div>
+
               <div style={selectedPassMetricStyle}>
                 <div style={selectedPassMetricLabelStyle}>
                   {currentWorkout.workoutKind === "running" ? "Typ" : "Övningar"}
@@ -1754,6 +1910,54 @@ const exercisePickerRowSelectStyle = {
   fontWeight: "700",
   color: "#991b1b",
   whiteSpace: "nowrap",
+}
+
+const hrgQuickAddCardStyle = {
+  padding: "14px 16px",
+  borderRadius: "16px",
+  border: "1px solid rgba(198, 40, 40, 0.12)",
+  backgroundColor: "#fff7f7",
+  display: "grid",
+  gap: "12px",
+}
+
+const hrgQuickAddHeaderStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const hrgQuickAddHintStyle = {
+  fontSize: "12px",
+  color: "#7f1d1d",
+}
+
+const hrgQuickAddGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const hrgQuickAddButtonStyle = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "14px",
+  border: "1px solid rgba(198, 40, 40, 0.16)",
+  backgroundColor: "#ffffff",
+  display: "grid",
+  gap: "4px",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const hrgQuickAddTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const hrgQuickAddMetaStyle = {
+  fontSize: "12px",
+  color: "#64748b",
 }
 
 const panelHeaderStyle = {

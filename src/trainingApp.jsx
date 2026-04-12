@@ -41,6 +41,80 @@ const parseExerciseAliases = (value) => {
 const getExerciseDisplayName = (exercise) =>
   exercise?.display_name || exercise?.displayName || exercise?.name || ""
 
+const parseHrgAlias = (alias) => {
+  const match = String(alias || "")
+    .trim()
+    .match(/^(Axelkontroll|Knäkontroll)\s+([1-6])([A-E])$/i)
+
+  if (!match) return null
+
+  const program = match[1][0].toUpperCase() + match[1].slice(1).toLowerCase()
+  const blockNumber = Number(match[2])
+  const letter = match[3].toUpperCase()
+
+  return {
+    program,
+    blockNumber,
+    letter,
+    position: `${blockNumber}${letter}`,
+  }
+}
+
+const getExerciseHrgEntries = (exercise) => {
+  const parsed = (Array.isArray(exercise?.aliases) ? exercise.aliases : [])
+    .map((alias) => parseHrgAlias(alias))
+    .filter(Boolean)
+
+  const seen = new Set()
+  return parsed.filter((entry) => {
+    const key = `${entry.program}:${entry.position}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+const buildHrgProgramBlocks = (exercises, programName) => {
+  const blockMap = new Map()
+
+  ;(exercises || []).forEach((exercise) => {
+    getExerciseHrgEntries(exercise)
+      .filter((entry) => entry.program === programName)
+      .forEach((entry) => {
+        const currentBlock = blockMap.get(entry.blockNumber) || {
+          blockNumber: entry.blockNumber,
+          positions: {},
+        }
+
+        if (!currentBlock.positions[entry.letter]) {
+          currentBlock.positions[entry.letter] = exercise
+        }
+
+        blockMap.set(entry.blockNumber, currentBlock)
+      })
+  })
+
+  return Array.from(blockMap.values())
+    .sort((a, b) => a.blockNumber - b.blockNumber)
+    .map((block) => {
+      const baseExercise = block.positions.A || null
+      const alternativeExercises = ["B", "C", "D", "E"]
+        .map((letter) => block.positions[letter])
+        .filter(Boolean)
+        .filter(
+          (exercise, index, list) =>
+            list.findIndex((candidate) => String(candidate.id) === String(exercise.id)) === index
+        )
+
+      return {
+        blockNumber: block.blockNumber,
+        baseExercise,
+        alternativeExercises,
+      }
+    })
+    .filter((block) => block.baseExercise)
+}
+
 const parseLoggedNumber = (value) => {
   const normalized = String(value ?? "")
     .trim()
@@ -5505,6 +5579,186 @@ function TrainingApp() {
     return true
   }
 
+  const handleAddHrgProgramToPass = async (programName) => {
+    setStatus("")
+
+    const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
+
+    if (!selectedTemplate) {
+      setStatus("Välj först ett pass")
+      return false
+    }
+
+    const programBlocks = buildHrgProgramBlocks(exercisesFromDB, programName)
+
+    if (programBlocks.length === 0) {
+      setStatus(`Kunde inte hitta ${programName} i övningsbanken`)
+      return false
+    }
+
+    const existingRowsForTemplate = templateExercisesFromDB
+      .filter((row) => row.workout_templates?.code === selectedTemplateCode)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+
+    const templateRowIds = new Set(existingRowsForTemplate.map((row) => String(row.id)))
+    const existingAlternativeRows = templateExerciseAlternativesFromDB.filter((row) =>
+      templateRowIds.has(String(row.workout_template_exercise_id))
+    )
+
+    const existingRowByExerciseId = new Map(
+      existingRowsForTemplate.map((row) => [String(row.exercise_id), row])
+    )
+    const existingMainExerciseIds = new Set(existingRowsForTemplate.map((row) => String(row.exercise_id)))
+    const existingAlternativeKeys = new Set(
+      existingAlternativeRows.map(
+        (row) => `${row.workout_template_exercise_id}:${row.alternative_exercise_id}`
+      )
+    )
+    const existingAlternativeExerciseIds = new Set(
+      existingAlternativeRows.map((row) => String(row.alternative_exercise_id))
+    )
+
+    let nextSortOrder =
+      existingRowsForTemplate.length > 0
+        ? Math.max(...existingRowsForTemplate.map((row) => row.sort_order || 0)) + 1
+        : 1
+
+    let addedBaseCount = 0
+    let addedAlternativeCount = 0
+    let focusedRowId = null
+    const newTemplateRows = []
+    const newAlternativeRows = []
+
+    setIsSavingPassExercise(true)
+
+    try {
+      for (const block of programBlocks) {
+        const baseExercise = block.baseExercise
+        const baseExerciseId = String(baseExercise.id)
+        let baseRow = existingRowByExerciseId.get(baseExerciseId)
+
+        if (!baseRow) {
+          const { data, error } = await supabase
+            .from("workout_template_exercises")
+            .insert({
+              workout_template_id: selectedTemplate.id,
+              exercise_id: baseExercise.id,
+              sort_order: nextSortOrder,
+              custom_guide: null,
+            })
+            .select(`
+              id,
+              sort_order,
+              custom_guide,
+              target_sets,
+              target_reps,
+              target_reps_min,
+              target_reps_max,
+              target_reps_mode,
+              target_reps_text,
+              target_duration_text,
+              workout_template_id,
+              exercise_id
+            `)
+            .single()
+
+          if (error) {
+            throw new Error(
+              `Kunde inte lägga till ${getExerciseDisplayName(baseExercise)} i passet${
+                error.message ? `: ${error.message}` : ""
+              }`
+            )
+          }
+
+          baseRow = {
+            ...data,
+            workout_templates: {
+              code: selectedTemplate.code,
+              label: selectedTemplate.label,
+            },
+            exercises: {
+              name: baseExercise.name || "",
+              exercise_type: baseExercise.exercise_type || "reps_only",
+              guide: baseExercise.guide || "",
+              description: baseExercise.description || "",
+              media_url: baseExercise.media_url || "",
+              default_reps_mode: baseExercise.default_reps_mode || "fixed",
+              execution_side: baseExercise.execution_side || "standard",
+            },
+          }
+
+          newTemplateRows.push(baseRow)
+          existingRowByExerciseId.set(baseExerciseId, baseRow)
+          existingMainExerciseIds.add(baseExerciseId)
+          nextSortOrder += 1
+          addedBaseCount += 1
+        }
+
+        if (!focusedRowId) {
+          focusedRowId = baseRow.id
+        }
+
+        for (const alternativeExercise of block.alternativeExercises) {
+          const alternativeExerciseId = String(alternativeExercise.id)
+
+          if (alternativeExerciseId === baseExerciseId) continue
+          if (existingMainExerciseIds.has(alternativeExerciseId)) continue
+          if (existingAlternativeExerciseIds.has(alternativeExerciseId)) continue
+
+          const alternativeKey = `${baseRow.id}:${alternativeExercise.id}`
+          if (existingAlternativeKeys.has(alternativeKey)) continue
+
+          const { data, error } = await supabase
+            .from("workout_template_exercise_alternatives")
+            .insert({
+              workout_template_exercise_id: baseRow.id,
+              alternative_exercise_id: alternativeExercise.id,
+            })
+            .select("id, workout_template_exercise_id, alternative_exercise_id")
+            .single()
+
+          if (error) {
+            throw new Error(
+              `Kunde inte lägga till alternativet ${getExerciseDisplayName(alternativeExercise)}${
+                error.message ? `: ${error.message}` : ""
+              }`
+            )
+          }
+
+          newAlternativeRows.push(data)
+          existingAlternativeKeys.add(alternativeKey)
+          existingAlternativeExerciseIds.add(alternativeExerciseId)
+          addedAlternativeCount += 1
+        }
+      }
+
+      if (newTemplateRows.length > 0) {
+        setTemplateExercisesFromDB((prev) => [...prev, ...newTemplateRows])
+      }
+
+      if (newAlternativeRows.length > 0) {
+        setTemplateExerciseAlternativesFromDB((prev) => [...prev, ...newAlternativeRows])
+      }
+
+      if (addedBaseCount === 0 && addedAlternativeCount === 0) {
+        setStatus(`${programName} finns redan i passet`)
+        return focusedRowId || true
+      }
+
+      setStatus(
+        `${programName} tillagt ✅ ${addedBaseCount} huvudövningar och ${addedAlternativeCount} alternativ`
+      )
+
+      return focusedRowId || true
+    } catch (error) {
+      console.error(error)
+      setStatus(error.message || `Kunde inte lägga till ${programName}`)
+      return false
+    } finally {
+      setIsSavingPassExercise(false)
+    }
+  }
+
   const handleSavePassExercises = async () => {
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
     if (!selectedTemplate) {
@@ -6832,6 +7086,7 @@ function TrainingApp() {
                 selectedExerciseId={selectedExerciseId}
                 setSelectedExerciseId={setSelectedExerciseId}
                 handleAddExerciseToPass={handleAddExerciseToPass}
+                handleAddHrgProgramToPass={handleAddHrgProgramToPass}
                 handleAddAlternativeExerciseToPassExercise={handleAddAlternativeExerciseToPassExercise}
                 handleRemoveAlternativeExerciseFromPassExercise={handleRemoveAlternativeExerciseFromPassExercise}
                 isSavingPassExercise={isSavingPassExercise}
