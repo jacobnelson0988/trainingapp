@@ -11,6 +11,61 @@ const normalizeExerciseSearchValue = (value) =>
 const getExerciseDisplayName = (exercise) =>
   exercise?.display_name || exercise?.displayName || exercise?.name || ""
 
+const normalizeExerciseText = (value) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+const getExerciseTextSections = (exercise) => {
+  const description = String(exercise?.description || "").trim()
+  const guide = String(exercise?.guide || "").trim()
+  const normalizedDescription = normalizeExerciseText(description)
+  const normalizedGuide = normalizeExerciseText(guide)
+
+  if (description && guide && normalizedDescription === normalizedGuide) {
+    return {
+      primaryLabel: "Beskrivning",
+      primaryText: description,
+      secondaryLabel: "",
+      secondaryText: "",
+    }
+  }
+
+  if (description && guide) {
+    return {
+      primaryLabel: "Beskrivning",
+      primaryText: description,
+      secondaryLabel: "Utförande",
+      secondaryText: guide,
+    }
+  }
+
+  if (description) {
+    return {
+      primaryLabel: "Beskrivning",
+      primaryText: description,
+      secondaryLabel: "",
+      secondaryText: "",
+    }
+  }
+
+  if (guide) {
+    return {
+      primaryLabel: "Utförande",
+      primaryText: guide,
+      secondaryLabel: "",
+      secondaryText: "",
+    }
+  }
+
+  return {
+    primaryLabel: "",
+    primaryText: "",
+    secondaryLabel: "",
+    secondaryText: "",
+  }
+}
+
 const muscleGroupOptions = [
   "Helkropp",
   "Ben",
@@ -1337,10 +1392,11 @@ function ExerciseBankPage({
               const aliases = Array.isArray(exercise.aliases) ? exercise.aliases : []
               const hasMedia = Boolean(String(exercise.media_url || "").trim())
               const isVideoMedia = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(exercise.media_url || ""))
+              const exerciseTextSections = getExerciseTextSections(exercise)
               const hasExpandedInfo = Boolean(
                 aliases.length ||
-                String(exercise.guide || "").trim() ||
-                String(exercise.description || "").trim() ||
+                exerciseTextSections.primaryText ||
+                exerciseTextSections.secondaryText ||
                 hasMedia
               )
 
@@ -1393,9 +1449,9 @@ function ExerciseBankPage({
                         ))}
                       </div>
 
-                      {exercise.description && (
+                      {!isExpanded && exerciseTextSections.primaryText && (
                         <div style={{ fontSize: "13px", color: "#374151", lineHeight: 1.6 }}>
-                          {exercise.description}
+                          {exerciseTextSections.primaryText}
                         </div>
                       )}
                     </div>
@@ -1644,24 +1700,24 @@ function ExerciseBankPage({
                             </div>
                           )}
 
-                          {String(exercise.guide || "").trim() && (
+                          {exerciseTextSections.primaryText && (
                             <div style={{ display: "grid", gap: "4px" }}>
                               <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                                Utförande
+                                {exerciseTextSections.primaryLabel}
                               </div>
                               <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
-                                {exercise.guide}
+                                {exerciseTextSections.primaryText}
                               </div>
                             </div>
                           )}
 
-                          {String(exercise.description || "").trim() && (
+                          {exerciseTextSections.secondaryText && (
                             <div style={{ display: "grid", gap: "4px" }}>
                               <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                                Beskrivning
+                                {exerciseTextSections.secondaryLabel}
                               </div>
                               <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
-                                {exercise.description}
+                                {exerciseTextSections.secondaryText}
                               </div>
                             </div>
                           )}

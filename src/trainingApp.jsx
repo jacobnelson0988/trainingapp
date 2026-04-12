@@ -41,6 +41,61 @@ const parseExerciseAliases = (value) => {
 const getExerciseDisplayName = (exercise) =>
   exercise?.display_name || exercise?.displayName || exercise?.name || ""
 
+const normalizeExerciseText = (value) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+const getExerciseTextSections = ({ description, guide }) => {
+  const trimmedDescription = String(description || "").trim()
+  const trimmedGuide = String(guide || "").trim()
+  const normalizedDescription = normalizeExerciseText(trimmedDescription)
+  const normalizedGuide = normalizeExerciseText(trimmedGuide)
+
+  if (trimmedDescription && trimmedGuide && normalizedDescription === normalizedGuide) {
+    return {
+      primaryLabel: "Beskrivning",
+      primaryText: trimmedDescription,
+      secondaryLabel: "",
+      secondaryText: "",
+    }
+  }
+
+  if (trimmedDescription && trimmedGuide) {
+    return {
+      primaryLabel: "Beskrivning",
+      primaryText: trimmedDescription,
+      secondaryLabel: "Så gör du",
+      secondaryText: trimmedGuide,
+    }
+  }
+
+  if (trimmedDescription) {
+    return {
+      primaryLabel: "Beskrivning",
+      primaryText: trimmedDescription,
+      secondaryLabel: "",
+      secondaryText: "",
+    }
+  }
+
+  if (trimmedGuide) {
+    return {
+      primaryLabel: "Så gör du",
+      primaryText: trimmedGuide,
+      secondaryLabel: "",
+      secondaryText: "",
+    }
+  }
+
+  return {
+    primaryLabel: "",
+    primaryText: "",
+    secondaryLabel: "",
+    secondaryText: "",
+  }
+}
+
 const parseHrgAlias = (alias) => {
   const match = String(alias || "")
     .trim()
@@ -8186,9 +8241,13 @@ function TrainingApp() {
             }`
             const isTargetRequestComposerOpen =
               activeTargetChangeRequestDraft?.composer_key === targetRequestComposerKey
+            const exerciseTextSections = getExerciseTextSections({
+              description: selectedExercise?.description,
+              guide: exercise.guide,
+            })
             const hasExerciseDetails = !!(
-              selectedExercise?.description ||
-              exercise.guide ||
+              exerciseTextSections.primaryText ||
+              exerciseTextSections.secondaryText ||
               selectedExercise?.mediaUrl
             )
 
@@ -8254,14 +8313,17 @@ function TrainingApp() {
                       </div>
                     )}
 
-                    {selectedExercise?.description && (
-                      <p style={exerciseDescriptionStyle}>{selectedExercise.description}</p>
+                    {exerciseTextSections.primaryText && (
+                      <div>
+                        <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
+                        <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
+                      </div>
                     )}
 
-                    {exercise.guide && (
-                      <div style={{ marginTop: selectedExercise?.description ? "10px" : 0 }}>
-                        <div style={exerciseDetailsLabelStyle}>Så gör du</div>
-                        <p style={guideStyle}>{exercise.guide}</p>
+                    {exerciseTextSections.secondaryText && (
+                      <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
+                        <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
+                        <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
                       </div>
                     )}
 
@@ -8269,7 +8331,8 @@ function TrainingApp() {
                       <div
                         style={{
                           ...exerciseMediaWrapStyle,
-                          marginTop: selectedExercise.description || exercise.guide ? "12px" : 0,
+                          marginTop:
+                            exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
                         }}
                       >
                         <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
