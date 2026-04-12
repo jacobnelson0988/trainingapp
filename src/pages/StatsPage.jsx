@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../supabase"
+import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
 
 const LINE_COLORS = ["#c62828", "#1d4ed8", "#0f766e", "#7c3aed", "#ea580c", "#0891b2"]
 const PERIOD_OPTIONS = [
@@ -187,6 +188,7 @@ const buildActivitySessions = (rows, playerMap) => {
       session.exerciseMap.set(exerciseName, {
         name: exerciseName,
         displayName: exerciseName,
+        protocolConfig: getExerciseProtocolConfig({ name: exerciseName }),
         sets: [],
       })
     }
@@ -709,35 +711,60 @@ function StatsPage({
                             {session.exercises.map((exercise) => (
                               <div key={`${session.sessionId}-${exercise.name}`} style={activityExerciseCardStyle}>
                                 <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
-                                <div style={activityExerciseCardSubStyle}>{exercise.sets.length} set loggade</div>
+                                <div style={activityExerciseCardSubStyle}>
+                                  {exercise.protocolConfig ? `${exercise.sets.length} block klara` : `${exercise.sets.length} set loggade`}
+                                </div>
 
                                 <div style={activitySetListStyle}>
-                                  {exercise.sets.map((setEntry, setIndex) => (
-                                    <div
-                                      key={`${session.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
-                                      style={activitySetCardStyle}
-                                    >
-                                      <div style={activitySetTitleStyle}>Set {setEntry.setNumber || setIndex + 1}</div>
-                                      <div style={activitySetMetaGridStyle}>
-                                        <div style={activitySetMetaItemStyle}>
-                                          <div style={activitySetMetaLabelStyle}>Vikt</div>
-                                          <div style={activitySetMetaValueStyle}>
-                                            {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                  {exercise.sets.map((setEntry, setIndex) => {
+                                    const protocolStep = exercise.protocolConfig
+                                      ? getExerciseProtocolStep(exercise, setEntry.setNumber || setIndex + 1)
+                                      : null
+
+                                    return (
+                                      <div
+                                        key={`${session.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                        style={activitySetCardStyle}
+                                      >
+                                        <div style={activitySetTitleStyle}>
+                                          {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
+                                        </div>
+
+                                        {protocolStep ? (
+                                          <div style={{ display: "grid", gap: "6px" }}>
+                                            <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                                              {protocolStep.summary}
+                                            </div>
+                                            <div style={activitySetMetaValueStyle}>Klart</div>
+                                            {setEntry.exerciseComment ? (
+                                              <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                                                Kommentar: {setEntry.exerciseComment}
+                                              </div>
+                                            ) : null}
                                           </div>
-                                        </div>
-                                        <div style={activitySetMetaItemStyle}>
-                                          <div style={activitySetMetaLabelStyle}>Reps</div>
-                                          <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
-                                        </div>
-                                        <div style={activitySetMetaItemStyle}>
-                                          <div style={activitySetMetaLabelStyle}>Tid</div>
-                                          <div style={activitySetMetaValueStyle}>
-                                            {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                        ) : (
+                                          <div style={activitySetMetaGridStyle}>
+                                            <div style={activitySetMetaItemStyle}>
+                                              <div style={activitySetMetaLabelStyle}>Vikt</div>
+                                              <div style={activitySetMetaValueStyle}>
+                                                {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                              </div>
+                                            </div>
+                                            <div style={activitySetMetaItemStyle}>
+                                              <div style={activitySetMetaLabelStyle}>Reps</div>
+                                              <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                            </div>
+                                            <div style={activitySetMetaItemStyle}>
+                                              <div style={activitySetMetaLabelStyle}>Tid</div>
+                                              <div style={activitySetMetaValueStyle}>
+                                                {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                              </div>
+                                            </div>
                                           </div>
-                                        </div>
+                                        )}
                                       </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               </div>
                             ))}

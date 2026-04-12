@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { getProtocolTypeLabel } from "../utils/exerciseProtocols"
 
 const normalizeExerciseSearchValue = (value) =>
   String(value || "")
@@ -1441,7 +1442,7 @@ function ExerciseBankPage({
                         <span style={categoryPillStyle}>
                           {getExercisePrimaryCategoryLabel(deriveExercisePrimaryCategory(exercise))}
                         </span>
-                        <span style={pillStyle}>{exerciseTypeLabel(exercise.exercise_type)}</span>
+                        <span style={pillStyle}>{getProtocolTypeLabel(exercise) || exerciseTypeLabel(exercise.exercise_type)}</span>
                         <span style={pillStyle}>{exercise.default_reps_mode === "max" ? "Max reps" : "Fast reps"}</span>
                         <span style={pillStyle}>{getExerciseExecutionSideLabel(exercise.execution_side)}</span>
                         {(exercise.muscle_groups || []).map((group) => (

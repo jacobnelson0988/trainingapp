@@ -12,6 +12,11 @@ import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
 import StatsPage from "./pages/StatsPage"
+import {
+  getExerciseProtocolConfig,
+  getExerciseProtocolStep,
+  isProtocolExercise,
+} from "./utils/exerciseProtocols"
 
 const PASS_ASSIGNMENT_EXERCISE_NAME = "__PASS_ASSIGNMENT__"
 
@@ -240,6 +245,24 @@ const getExerciseExecutionSideHint = (executionSide, exerciseType = "reps_only")
   }
 
   return ""
+}
+
+const buildProtocolInputRows = (exercise, workoutSessionId, exerciseIndex) => {
+  const protocolConfig = getExerciseProtocolConfig(exercise)
+  if (!protocolConfig) return []
+
+  return protocolConfig.steps.map((step, stepIndex) => ({
+    weight: "",
+    reps: "",
+    seconds: "",
+    client_set_id: `protocol-${exerciseIndex}-${stepIndex}-${Date.now()}`,
+    workout_session_id: workoutSessionId,
+    protocolStepLabel: step.label,
+    protocolTargetValue: step.targetValue,
+    protocolTargetUnit: step.targetUnit,
+    protocolIntensityPercent: step.intensityPercent,
+    protocolCompleted: false,
+  }))
 }
 
 const getTodayDateInputValue = () => new Date().toISOString().slice(0, 10)
@@ -728,11 +751,13 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
 
     if (!session.exerciseMap.has(exerciseName)) {
       const matchedExercise = findExerciseByLoggedName(exercises, exerciseName)
+      const protocolConfig = getExerciseProtocolConfig(matchedExercise || { name: exerciseName })
 
       session.exerciseMap.set(exerciseName, {
         name: exerciseName,
         displayName: matchedExercise ? getExerciseDisplayName(matchedExercise) : exerciseName,
         type: matchedExercise?.exercise_type || "reps_only",
+        protocolConfig,
         sets: [],
       })
     }
@@ -3681,18 +3706,24 @@ function TrainingApp() {
     const defaultExerciseComments = {}
     const defaultExerciseOptionKeys = {}
     workout.exercises.forEach((exercise, index) => {
+      const protocolInputs = isProtocolExercise(exercise)
+        ? buildProtocolInputRows(exercise, newSessionId, index)
+        : null
       const targetSetCount = Math.max(
         1,
         Number(workoutTargets[exercise.name]?.target_sets ?? exercise.targetSets) || 1
       )
       defaultExerciseOptionKeys[index] = getExerciseExecutionOptions(exercise)[0]?.optionKey || ""
-      defaultInputs[index] = Array.from({ length: targetSetCount }, (_, setIndex) => ({
-        weight: "",
-        reps: "",
-        seconds: "",
-        client_set_id: generateSetId(index, setIndex),
-        workout_session_id: newSessionId,
-      }))
+      defaultInputs[index] =
+        protocolInputs && protocolInputs.length > 0
+          ? protocolInputs
+          : Array.from({ length: targetSetCount }, (_, setIndex) => ({
+              weight: "",
+              reps: "",
+              seconds: "",
+              client_set_id: generateSetId(index, setIndex),
+              workout_session_id: newSessionId,
+            }))
       defaultExerciseComments[index] = ""
     })
 
@@ -3769,7 +3800,10 @@ function TrainingApp() {
           exercise,
           selectedExerciseOptionKeys[exerciseIndex]
         )
-        const firstSet = inputs[exerciseIndex]?.[0]
+        const exerciseInputs = inputs[exerciseIndex] || []
+        const firstSet = isProtocolExercise(selectedExercise || exercise)
+          ? exerciseInputs.find((set) => set?.protocolCompleted) || null
+          : exerciseInputs[0]
 
         if (!firstSet) return null
         if (!String(exerciseComments[exerciseIndex] || "").trim()) return null
@@ -3874,6 +3908,9 @@ function TrainingApp() {
   const handleAddSet = (exerciseIndex) => {
     if (!isWorkoutActive || !currentSessionId || !selectedWorkout) return
 
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    if (isProtocolExercise(exercise)) return
+
     const current = inputs[exerciseIndex] || []
 
     setInputs({
@@ -3892,6 +3929,9 @@ function TrainingApp() {
   }
 
   const handleRemoveSet = (exerciseIndex, setIndex) => {
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    if (isProtocolExercise(exercise)) return
+
     const current = inputs[exerciseIndex] || []
     const updated = current.filter((_, index) => index !== setIndex)
 
@@ -3932,6 +3972,79 @@ function TrainingApp() {
     }
   }
 
+  const deleteLoggedSet = async (clientSetId) => {
+    if (!clientSetId) return
+
+    const { error } = await supabase
+      .from("workout_logs")
+      .delete()
+      .eq("client_set_id", clientSetId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera protokollet")
+      return false
+    }
+
+    return true
+  }
+
+  const handleProtocolStepToggle = async (exerciseIndex, stepIndex) => {
+    if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !user) return
+
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    const selectedExercise = exercise
+      ? getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
+      : null
+    const protocolConfig = getExerciseProtocolConfig(selectedExercise || exercise)
+
+    if (!exercise || !selectedExercise || !protocolConfig) return
+
+    const current = inputs[exerciseIndex] || []
+    const targetStep = protocolConfig.steps[stepIndex]
+    const targetSet = current[stepIndex]
+
+    if (!targetStep || !targetSet) return
+
+    const isCompleted = Boolean(targetSet.protocolCompleted)
+    const nextRows = current.slice()
+
+    if (isCompleted) {
+      const deleted = await deleteLoggedSet(targetSet.client_set_id)
+      if (!deleted) return
+
+      nextRows[stepIndex] = {
+        ...targetSet,
+        reps: "",
+        seconds: "",
+        protocolCompleted: false,
+      }
+
+      setInputs((prev) => ({
+        ...prev,
+        [exerciseIndex]: nextRows,
+      }))
+      setStatus("Block borttaget")
+      return
+    }
+
+    const nextSet = {
+      ...targetSet,
+      reps: targetStep.targetUnit === "shots" ? String(targetStep.targetValue) : targetSet.reps || "",
+      seconds: targetStep.targetUnit === "seconds" ? String(targetStep.targetValue) : targetSet.seconds || "",
+      protocolCompleted: true,
+      workout_session_id: currentSessionId,
+    }
+
+    nextRows[stepIndex] = nextSet
+    setInputs((prev) => ({
+      ...prev,
+      [exerciseIndex]: nextRows,
+    }))
+
+    await saveSet(exerciseIndex, selectedExercise, stepIndex, nextSet)
+  }
+
   const handleChange = async (exerciseIndex, setIndex, field, value) => {
     if (!isWorkoutActive || !currentSessionId || !selectedWorkout) return
 
@@ -3942,6 +4055,8 @@ function TrainingApp() {
       exercise,
       selectedExerciseOptionKeys[exerciseIndex]
     )
+
+    if (isProtocolExercise(selectedExercise || exercise)) return
 
     updated[setIndex] = {
       ...updated[setIndex],
@@ -3983,7 +4098,10 @@ function TrainingApp() {
     const selectedExercise = exercise
       ? getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
       : null
-    const firstSet = inputs[exerciseIndex]?.[0]
+    const exerciseInputs = inputs[exerciseIndex] || []
+    const firstSet = isProtocolExercise(selectedExercise || exercise)
+      ? exerciseInputs.find((set) => set?.protocolCompleted) || null
+      : exerciseInputs[0]
 
     if (!exercise || !selectedExercise || !firstSet) return
 
@@ -8219,6 +8337,8 @@ function TrainingApp() {
               exercise,
               selectedExerciseOptionKeys[i]
             )
+            const protocolConfig = getExerciseProtocolConfig(selectedExercise || exercise)
+            const isProtocol = Boolean(protocolConfig)
             const totalExercises = activeWorkoutExerciseCount
             const infoKey = `${exercise.name}-${selectedExercise?.name || exercise.name}`
             const isInfoExpanded = !!expandedInfo[infoKey]
@@ -8291,7 +8411,9 @@ function TrainingApp() {
                           : "Tryck för att se beskrivning och video"
                         : "Ingen extra information tillagd ännu"}
                     </div>
-                    {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
+                    {!isProtocol &&
+                      selectedExercise?.executionSide &&
+                      selectedExercise.executionSide !== "standard" && (
                       <div style={{ ...exerciseHeaderHintStyle, marginTop: "4px", color: "#991b1b" }}>
                         {getExerciseExecutionSideHint(
                           selectedExercise.executionSide,
@@ -8390,7 +8512,8 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {!isLoadingPlayerTargets &&
+                {!isProtocol &&
+                  !isLoadingPlayerTargets &&
                   ((currentTarget &&
                     (currentTarget.target_reps != null ||
                       resolvedCurrentTargetWeight != null ||
@@ -8680,7 +8803,68 @@ function TrainingApp() {
                   </div>
                 )}
 
+                {isWorkoutActive && isProtocol && (
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <div
+                      style={{
+                        padding: "14px",
+                        borderRadius: "16px",
+                        border: "1px solid #e5e7eb",
+                        backgroundColor: "#fffaf5",
+                      }}
+                    >
+                      <div style={{ ...exerciseCommentTitleStyle, marginBottom: "6px" }}>Kastprotokoll</div>
+                      <div style={mutedTextStyle}>
+                        Genomför blocken i ordning och markera varje block som klart när det är gjort.
+                      </div>
+                    </div>
+
+                    {(inputs[i] || []).map((set, j) => {
+                      const protocolStep =
+                        protocolConfig?.steps?.[j] || getExerciseProtocolStep(selectedExercise || exercise, j + 1)
+                      const isCompleted = Boolean(set.protocolCompleted || set.reps || set.seconds || set.weight)
+
+                      return (
+                        <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                          <div style={setLabelStyle}>{protocolStep?.label || `Block ${j + 1}`}</div>
+                          <div
+                            style={{
+                              fontSize: "22px",
+                              fontWeight: "800",
+                              color: "#18202b",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {protocolStep?.summary || "Följ instruktionen för blocket"}
+                          </div>
+                          <div style={setInputHintStyle}>
+                            {protocolStep?.intensityPercent != null
+                              ? `${protocolStep.targetValue} skott på ${protocolStep.intensityPercent} % av maxhastighet`
+                              : "Markera blocket när det är klart"}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleProtocolStepToggle(i, j)}
+                            style={{
+                              ...secondaryButtonStyle,
+                              width: isMobile ? "100%" : "auto",
+                              marginTop: "12px",
+                              backgroundColor: isCompleted ? "#ecfdf3" : "#ffffff",
+                              borderColor: isCompleted ? "#16a34a" : "#d1d5db",
+                              color: isCompleted ? "#166534" : "#18202b",
+                            }}
+                          >
+                            {isCompleted ? "Klart, tryck för att ångra" : "Markera block som klart"}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
                 {isWorkoutActive &&
+                  !isProtocol &&
                   (inputs[i] || []).map((set, j) => (
                     <div key={set.client_set_id || j} style={activeSetCardStyle}>
                       <div style={setLabelStyle}>Set {j + 1}</div>
@@ -8785,7 +8969,7 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {isWorkoutActive && (
+                {isWorkoutActive && !isProtocol && (
                   <button
                     onClick={() => handleAddSet(i)}
                     style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}

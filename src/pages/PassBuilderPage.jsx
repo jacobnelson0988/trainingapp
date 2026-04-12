@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { getExerciseProtocolConfig, isProtocolExercise } from "../utils/exerciseProtocols"
 
 const exerciseNavigationCategoryOrder = [
   "Axlar",
@@ -1306,12 +1307,14 @@ function PassBuilderPage({
                         )
                     )
                     const isAlternativesExpanded = String(expandedAlternativesId) === String(exercise.id)
+                    const protocolConfig = getExerciseProtocolConfig(exercise)
+                    const isProtocol = isProtocolExercise(exercise)
                     const repRangeHintBucket =
-                      draft.targetRepsMode === "max" || exercise.type === "seconds_only"
+                      draft.targetRepsMode === "max" || exercise.type === "seconds_only" || isProtocol
                         ? null
                         : getRepRangeHintBucket(draft.targetReps)
                     const selectedStandardRepRange =
-                      draft.targetRepsMode === "max" || exercise.type === "seconds_only"
+                      draft.targetRepsMode === "max" || exercise.type === "seconds_only" || isProtocol
                         ? ""
                         : getSelectedStandardRepRangeValue(draft.targetReps)
 
@@ -1351,95 +1354,131 @@ function PassBuilderPage({
                           />
                         </div>
 
-                        <div style={{ ...targetGridStyle, gridTemplateColumns: isMobile ? "1fr" : "92px 92px auto" }}>
-                          <div>
-                            <div style={fieldLabelStyle}>Set</div>
-                            <input
-                              type="number"
-                              value={draft.targetSets}
-                              onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
-                              style={{ ...inputStyle, width: "100%" }}
-                            />
-                          </div>
-
-                          <div>
-                            <div style={fieldLabelStyle}>
-                              {getExerciseMeasurementLabelWithSide(exercise.type, exercise.executionSide)}
-                            </div>
-                            <input
-                              type="text"
-                              value={draft.targetReps}
-                              disabled={draft.targetRepsMode === "max"}
-                              onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
-                              style={{
-                                ...inputStyle,
-                                width: "100%",
-                                opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
-                              }}
-                            />
-                            {exercise.executionSide && exercise.executionSide !== "standard" && (
-                              <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
-                                {getExerciseExecutionHint(exercise.type, exercise.executionSide)}
-                              </div>
-                            )}
-                            {repRangeHintBucket && (
-                              <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
-                                Tolkas som standardintervall {repRangeHintBucket.label} för målvikt och framtida
-                                rekommendationer.
-                              </div>
-                            )}
-                            {exercise.type !== "seconds_only" && (
-                              <div style={{ marginTop: "8px" }}>
-                                <div style={{ ...fieldLabelStyle, marginBottom: "4px" }}>Snabbval rep-range</div>
-                                <select
-                                  value={selectedStandardRepRange}
-                                  disabled={draft.targetRepsMode === "max"}
-                                  onChange={(e) => {
-                                    const nextBucket = REP_RANGE_BUCKETS.find(
-                                      (bucket) => bucket.key === e.target.value
-                                    )
-                                    handlePassExerciseDraftChange(
-                                      exercise.id,
-                                      "targetReps",
-                                      nextBucket ? getRepRangeValue(nextBucket) : ""
-                                    )
-                                  }}
-                                  style={{
-                                    ...inputStyle,
-                                    width: "100%",
-                                    opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
-                                  }}
-                                >
-                                  <option value="">Skriv fritt eller välj standardintervall</option>
-                                  {REP_RANGE_BUCKETS.map((bucket) => (
-                                    <option key={bucket.key} value={bucket.key}>
-                                      {bucket.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handlePassExerciseDraftChange(
-                                exercise.id,
-                                "targetRepsMode",
-                                draft.targetRepsMode === "max" ? "fixed" : "max"
-                              )
-                            }
+                        {isProtocol ? (
+                          <div
                             style={{
-                              ...secondaryButtonStyle,
-                              width: isMobile ? "100%" : "auto",
-                              backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "#ffffff",
-                              color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
+                              padding: "14px",
+                              borderRadius: "16px",
+                              border: "1px solid #f1d3d3",
+                              backgroundColor: "#fff7f7",
+                              display: "grid",
+                              gap: "10px",
                             }}
                           >
-                            {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
-                          </button>
-                        </div>
+                            <div style={{ ...fieldLabelStyle, marginBottom: 0 }}>Fast protokoll</div>
+                            <div style={{ ...mutedTextStyle, fontSize: "13px" }}>
+                              Den här övningen använder fasta block i spelarläget och styrs inte av vanliga set och reps.
+                            </div>
+                            <div style={{ display: "grid", gap: "8px" }}>
+                              {(protocolConfig?.steps || []).map((step) => (
+                                <div
+                                  key={`${exercise.id}-${step.order}`}
+                                  style={{
+                                    padding: "10px 12px",
+                                    borderRadius: "12px",
+                                    border: "1px solid #eadfdf",
+                                    backgroundColor: "#ffffff",
+                                    fontSize: "14px",
+                                    color: "#18202b",
+                                    fontWeight: "700",
+                                  }}
+                                >
+                                  {step.summary}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ ...targetGridStyle, gridTemplateColumns: isMobile ? "1fr" : "92px 92px auto" }}>
+                            <div>
+                              <div style={fieldLabelStyle}>Set</div>
+                              <input
+                                type="number"
+                                value={draft.targetSets}
+                                onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetSets", e.target.value)}
+                                style={{ ...inputStyle, width: "100%" }}
+                              />
+                            </div>
+
+                            <div>
+                              <div style={fieldLabelStyle}>
+                                {getExerciseMeasurementLabelWithSide(exercise.type, exercise.executionSide)}
+                              </div>
+                              <input
+                                type="text"
+                                value={draft.targetReps}
+                                disabled={draft.targetRepsMode === "max"}
+                                onChange={(e) => handlePassExerciseDraftChange(exercise.id, "targetReps", e.target.value)}
+                                style={{
+                                  ...inputStyle,
+                                  width: "100%",
+                                  opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
+                                }}
+                              />
+                              {exercise.executionSide && exercise.executionSide !== "standard" && (
+                                <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
+                                  {getExerciseExecutionHint(exercise.type, exercise.executionSide)}
+                                </div>
+                              )}
+                              {repRangeHintBucket && (
+                                <div style={{ ...mutedTextStyle, marginTop: "6px", fontSize: "12px" }}>
+                                  Tolkas som standardintervall {repRangeHintBucket.label} för målvikt och framtida
+                                  rekommendationer.
+                                </div>
+                              )}
+                              {exercise.type !== "seconds_only" && (
+                                <div style={{ marginTop: "8px" }}>
+                                  <div style={{ ...fieldLabelStyle, marginBottom: "4px" }}>Snabbval rep-range</div>
+                                  <select
+                                    value={selectedStandardRepRange}
+                                    disabled={draft.targetRepsMode === "max"}
+                                    onChange={(e) => {
+                                      const nextBucket = REP_RANGE_BUCKETS.find(
+                                        (bucket) => bucket.key === e.target.value
+                                      )
+                                      handlePassExerciseDraftChange(
+                                        exercise.id,
+                                        "targetReps",
+                                        nextBucket ? getRepRangeValue(nextBucket) : ""
+                                      )
+                                    }}
+                                    style={{
+                                      ...inputStyle,
+                                      width: "100%",
+                                      opacity: draft.targetRepsMode === "max" ? 0.5 : 1,
+                                    }}
+                                  >
+                                    <option value="">Skriv fritt eller välj standardintervall</option>
+                                    {REP_RANGE_BUCKETS.map((bucket) => (
+                                      <option key={bucket.key} value={bucket.key}>
+                                        {bucket.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handlePassExerciseDraftChange(
+                                  exercise.id,
+                                  "targetRepsMode",
+                                  draft.targetRepsMode === "max" ? "fixed" : "max"
+                                )
+                              }
+                              style={{
+                                ...secondaryButtonStyle,
+                                width: isMobile ? "100%" : "auto",
+                                backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "#ffffff",
+                                color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
+                              }}
+                            >
+                              {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
+                            </button>
+                          </div>
+                        )}
 
                         <div style={alternativeBlockStyle}>
                           <button

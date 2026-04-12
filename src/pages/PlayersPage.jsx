@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
 
 const repRangeOptions = [
   { key: "1_3", label: "1-3 reps" },
@@ -682,49 +683,75 @@ function PlayersPage({
                             {selectedSession.running_summary || "Löppass genomfört"}
                           </div>
                         ) : (
-                          <div style={historyExerciseCardsViewportStyle}>
-                            <div style={historyExerciseCardsTrackStyle}>
-                              {selectedSession.exercises.map((exercise) => (
-                                <div key={`${selectedSession.session_id}-${exercise.name}`} style={historyExerciseCardStyle}>
-                                  <div style={historyExerciseCardTitleStyle}>{exercise.displayName}</div>
-                                  <div style={historyExerciseCardSubStyle}>
-                                    {exercise.sets.length} set loggade
-                                  </div>
+                            <div style={historyExerciseCardsViewportStyle}>
+                              <div style={historyExerciseCardsTrackStyle}>
+                                {selectedSession.exercises.map((exercise) => {
+                                  const protocolConfig =
+                                    exercise.protocolConfig || getExerciseProtocolConfig(exercise)
 
-                                  <div style={historySetListStyle}>
-                                    {exercise.sets.map((setEntry, setIndex) => (
-                                      <div
-                                        key={`${selectedSession.session_id}-${exercise.name}-${setEntry.setNumber || setIndex}`}
-                                        style={historySetCardStyle}
-                                      >
-                                        <div style={historySetTitleStyle}>
-                                          Set {setEntry.setNumber || setIndex + 1}
-                                        </div>
-                                        <div style={historySetMetaGridStyle}>
-                                          <div style={historySetMetaItemStyle}>
-                                            <div style={historySetMetaLabelStyle}>Vikt</div>
-                                            <div style={historySetMetaValueStyle}>
-                                              {setEntry.weight ? `${setEntry.weight} kg` : "—"}
-                                            </div>
-                                          </div>
-                                          <div style={historySetMetaItemStyle}>
-                                            <div style={historySetMetaLabelStyle}>Reps</div>
-                                            <div style={historySetMetaValueStyle}>{setEntry.reps || "—"}</div>
-                                          </div>
-                                          <div style={historySetMetaItemStyle}>
-                                            <div style={historySetMetaLabelStyle}>Tid</div>
-                                            <div style={historySetMetaValueStyle}>
-                                              {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
-                                            </div>
-                                          </div>
-                                        </div>
+                                  return (
+                                    <div key={`${selectedSession.session_id}-${exercise.name}`} style={historyExerciseCardStyle}>
+                                      <div style={historyExerciseCardTitleStyle}>{exercise.displayName}</div>
+                                      <div style={historyExerciseCardSubStyle}>
+                                        {protocolConfig ? `${exercise.sets.length} block klara` : `${exercise.sets.length} set loggade`}
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
+
+                                      <div style={historySetListStyle}>
+                                        {exercise.sets.map((setEntry, setIndex) => {
+                                          const protocolStep = protocolConfig
+                                            ? getExerciseProtocolStep(exercise, setEntry.setNumber || setIndex + 1)
+                                            : null
+
+                                          return (
+                                            <div
+                                              key={`${selectedSession.session_id}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                              style={historySetCardStyle}
+                                            >
+                                              <div style={historySetTitleStyle}>
+                                                {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
+                                              </div>
+
+                                              {protocolStep ? (
+                                                <div style={{ display: "grid", gap: "6px" }}>
+                                                  <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                                                    {protocolStep.summary}
+                                                  </div>
+                                                  <div style={historySetMetaValueStyle}>Klart</div>
+                                                  {setEntry.comment && (
+                                                    <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                                                      Kommentar: {setEntry.comment}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                <div style={historySetMetaGridStyle}>
+                                                  <div style={historySetMetaItemStyle}>
+                                                    <div style={historySetMetaLabelStyle}>Vikt</div>
+                                                    <div style={historySetMetaValueStyle}>
+                                                      {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                                    </div>
+                                                  </div>
+                                                  <div style={historySetMetaItemStyle}>
+                                                    <div style={historySetMetaLabelStyle}>Reps</div>
+                                                    <div style={historySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                                  </div>
+                                                  <div style={historySetMetaItemStyle}>
+                                                    <div style={historySetMetaLabelStyle}>Tid</div>
+                                                    <div style={historySetMetaValueStyle}>
+                                                      {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
                             </div>
-                          </div>
                         )}
                       </div>
                     )
