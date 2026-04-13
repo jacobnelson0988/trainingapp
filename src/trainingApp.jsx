@@ -297,6 +297,45 @@ const buildRunningSummary = (session) => {
   return [distance, runningTime, averagePulse].filter(Boolean).join(" • ") || "Distans"
 }
 
+const getWorkoutKindLabel = (workoutKind) => {
+  if (workoutKind === "running") return "Löppass"
+  if (workoutKind === "prehab") return "Skadeförebyggande"
+  return "Gympass"
+}
+
+const getPlayerWorkoutKindTheme = (workoutKind) => {
+  if (workoutKind === "running") {
+    return {
+      title: "Löppass",
+      description: "Distans och intervaller du kan köra när du vill.",
+      badgeBackground: "#eef4ff",
+      badgeColor: "#1d4ed8",
+      sectionBackground: "#f8fbff",
+      sectionBorder: "#dbe7ff",
+    }
+  }
+
+  if (workoutKind === "prehab") {
+    return {
+      title: "Skadeförebyggande",
+      description: "Pass för kontroll, stabilitet och hållbarhet över tid.",
+      badgeBackground: "#ecfdf5",
+      badgeColor: "#0f766e",
+      sectionBackground: "#f7fffb",
+      sectionBorder: "#d4f5e5",
+    }
+  }
+
+  return {
+    title: "Gympass",
+    description: "Styrkepass med övningar, målvikter och progression.",
+    badgeBackground: "#fff1f1",
+    badgeColor: "#b61e24",
+    sectionBackground: "#fffdfd",
+    sectionBorder: "#f0dcdc",
+  }
+}
+
 const summarizeHistoryRowsByExercise = (rows) => {
   const grouped = new Map()
 
@@ -1297,14 +1336,30 @@ function TrainingApp() {
       return
     }
 
-    if (!selectedWorkout || !assignedWorkoutCodes.includes(selectedWorkout)) {
-      setSelectedWorkout(assignedWorkoutCodes[0])
+    if (selectedWorkout && !assignedWorkoutCodes.includes(selectedWorkout)) {
+      setSelectedWorkout(null)
     }
   }, [assignedWorkoutCodes, profile?.role, selectedWorkout])
 
   useEffect(() => {
     setActiveExerciseIndex(0)
   }, [selectedWorkout, isWorkoutActive])
+
+  useEffect(() => {
+    if (!isWorkoutActive) return
+
+    const resetScrollPosition = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+      exerciseCarouselRef.current?.scrollTo?.({ left: 0, top: 0, behavior: "auto" })
+      setActiveExerciseIndex(0)
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resetScrollPosition)
+    })
+
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [isWorkoutActive, selectedWorkout])
 
   useEffect(() => {
     if (!selectedTemplateCode || !templatesFromDB.length) return
@@ -6493,13 +6548,21 @@ function TrainingApp() {
 
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
-  const selectedWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
-  const selectedWorkoutIsRunning = selectedWorkoutData?.workoutKind === "running"
-  const selectedWorkoutPreviewExercises = (selectedWorkoutData?.exercises || []).slice(0, 3)
-  const selectedWorkoutRemainingExerciseCount = Math.max(
-    (selectedWorkoutData?.exercises || []).length - selectedWorkoutPreviewExercises.length,
-    0
-  )
+  const groupedVisibleWorkoutEntries = ["gym", "prehab", "running"]
+    .map((workoutKind) => {
+      const entries = sortedVisibleWorkoutEntries.filter(
+        ([, workout]) => (workout?.workoutKind || "gym") === workoutKind
+      )
+
+      if (entries.length === 0) return null
+
+      return {
+        workoutKind,
+        entries,
+        theme: getPlayerWorkoutKindTheme(workoutKind),
+      }
+    })
+    .filter(Boolean)
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmup = {
@@ -7867,148 +7930,205 @@ function TrainingApp() {
                 </p>
               ) : (
                 <div style={pickerGridStyle}>
-                  {sortedVisibleWorkoutEntries.map(([key, workout], index) => {
-                    const isSelected = selectedWorkout === key
-                    const passStatus = getPassStatus(latestPassDates[key])
-                    const isRecommended = index === 0 && Object.keys(visibleWorkouts).length > 1
-
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => {
-                          setSelectedWorkout(key)
-                        }}
-                        style={{
-                          ...pickerButtonStyle,
-                          border: isSelected ? "2px solid #c62828" : pickerButtonStyle.border,
-                          background: isSelected
-                            ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
-                            : pickerButtonStyle.background,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            marginBottom: "10px",
-                            padding: "6px 10px",
-                            borderRadius: "999px",
-                            backgroundColor: passStatus.backgroundColor,
-                            color: passStatus.color,
-                            fontSize: "12px",
-                            fontWeight: "800",
-                          }}
-                        >
-                          {passStatus.label}
-                        </div>
-                        {isRecommended && (
+                  {groupedVisibleWorkoutEntries.map((group) => (
+                    <section
+                      key={group.workoutKind}
+                      style={{
+                        ...passCategorySectionStyle,
+                        backgroundColor: group.theme.sectionBackground,
+                        borderColor: group.theme.sectionBorder,
+                      }}
+                    >
+                      <div style={passCategoryHeaderStyle(isMobile)}>
+                        <div>
                           <div
                             style={{
-                              display: "inline-flex",
-                              marginLeft: "8px",
-                              marginBottom: "10px",
-                              padding: "6px 10px",
-                              borderRadius: "999px",
-                              backgroundColor: "#18202b",
-                              color: "#ffffff",
-                              fontSize: "12px",
-                              fontWeight: "800",
+                              ...passCategoryBadgeStyle,
+                              backgroundColor: group.theme.badgeBackground,
+                              color: group.theme.badgeColor,
                             }}
                           >
-                            Rekommenderat nu
+                            {group.theme.title}
                           </div>
-                        )}
-                        <div style={pickerTitleStyle}>{workout.label}</div>
-                        <div style={pickerSubtitleStyle}>
-                          Senast kört: {formatDate(latestPassDates[key])}
+                          <div style={passCategoryTitleStyle}>{group.theme.title}</div>
+                          <div style={passCategoryTextStyle}>{group.theme.description}</div>
                         </div>
-                        <div style={{ ...pickerSubtitleStyle, marginTop: "4px" }}>
-                          {formatDaysSince(latestPassDates[key])}
-                        </div>
-                        <div style={{ ...pickerSubtitleStyle, marginTop: "8px", color: "#18202b", fontWeight: "700" }}>
-                          {workout.workoutKind === "running"
-                            ? `Löppass • ${buildRunningSummary({
-                                running_type: workout.runningType,
-                                interval_time: workout.runningConfig?.interval_time,
-                                intervals_count: workout.runningConfig?.intervals_count,
-                                running_distance: workout.runningConfig?.running_distance,
-                                running_time: workout.runningConfig?.running_time,
-                              })}`
-                            : `${workout.exercises.length} övningar`}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {selectedWorkoutData && (
-                <div
-                  style={{
-                    ...passPreviewCardStyle,
-                    marginTop: "8px",
-                    padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
-                  }}
-                >
-                  <div style={passPreviewEyebrowStyle}>Valt pass</div>
-                  <div style={{ ...passPreviewTitleStyle, fontSize: isMobile ? "20px" : passPreviewTitleStyle.fontSize }}>
-                    {selectedWorkoutData.label}
-                  </div>
-                  <div style={{ ...mutedTextStyle, marginBottom: "12px" }}>
-                    Senast kört: {formatDate(latestPassDates[selectedWorkout])} • {formatDaysSince(latestPassDates[selectedWorkout])}
-                  </div>
-
-                  <div style={passPreviewContentCardStyle}>
-                    {selectedWorkoutData.info && (
-                      <div style={{ marginBottom: "14px" }}>
-                        <div style={passPreviewStatLabelStyle}>Info om passet</div>
-                        <div style={passPreviewInfoTextStyle}>{selectedWorkoutData.info}</div>
-                      </div>
-                    )}
-
-                    <div style={passPreviewStatLabelStyle}>
-                      {selectedWorkoutIsRunning ? "Löppass" : "Övningar"}
-                    </div>
-                    <div style={passPreviewExerciseCountStyle}>
-                      {selectedWorkoutIsRunning
-                        ? buildRunningSummary({
-                            running_type: selectedWorkoutData.runningType,
-                            interval_time: selectedWorkoutData.runningConfig?.interval_time,
-                            intervals_count: selectedWorkoutData.runningConfig?.intervals_count,
-                            running_distance: selectedWorkoutData.runningConfig?.running_distance,
-                            running_time: selectedWorkoutData.runningConfig?.running_time,
-                          })
-                        : `${selectedWorkoutData.exercises.length} st`}
-                    </div>
-
-                    {!selectedWorkoutIsRunning && selectedWorkoutPreviewExercises.length > 0 && (
-                      <div style={passPreviewListWrapStyle}>
-                        <div style={passPreviewListStyle}>
-                          {selectedWorkoutPreviewExercises.map((exercise) => (
-                            <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                              {exercise.displayName || exercise.name}
-                            </div>
-                          ))}
-                          {selectedWorkoutRemainingExerciseCount > 0 && (
-                            <div style={passPreviewListMoreStyle}>
-                              +{selectedWorkoutRemainingExerciseCount} till
-                            </div>
-                          )}
+                        <div style={passCategoryCountStyle}>
+                          {group.entries.length} {group.entries.length === 1 ? "pass" : "pass"}
                         </div>
                       </div>
-                    )}
 
-                    {!selectedWorkoutIsRunning && selectedWorkoutData.exercises.length === 0 && (
-                      <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
-                    )}
-                  </div>
+                      <div style={passCategoryListStyle}>
+                        {group.entries.map(([key, workout], index) => {
+                          const isSelected = selectedWorkout === key
+                          const passStatus = getPassStatus(latestPassDates[key])
+                          const isRecommended = index === 0 && group.entries.length > 1
 
-                  <button
-                    onClick={() => startWorkout(selectedWorkout)}
-                    style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                  >
-                    Starta {selectedWorkoutData.label}
-                  </button>
+                          return (
+                            <div key={key} style={passPickerItemStyle}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedWorkout((current) => (current === key ? null : key))
+                                }}
+                                aria-pressed={isSelected}
+                                style={{
+                                  ...pickerButtonStyle,
+                                  border: isSelected ? "2px solid #c62828" : pickerButtonStyle.border,
+                                  background: isSelected
+                                    ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
+                                    : pickerButtonStyle.background,
+                                }}
+                              >
+                                <div style={pickerHeaderRowStyle}>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={pickerPillRowStyle}>
+                                      <div
+                                        style={{
+                                          ...pickerStatusPillStyle,
+                                          backgroundColor: passStatus.backgroundColor,
+                                          color: passStatus.color,
+                                        }}
+                                      >
+                                        {passStatus.label}
+                                      </div>
+                                      <div
+                                        style={{
+                                          ...pickerStatusPillStyle,
+                                          backgroundColor: group.theme.badgeBackground,
+                                          color: group.theme.badgeColor,
+                                        }}
+                                      >
+                                        {getWorkoutKindLabel(workout.workoutKind)}
+                                      </div>
+                                      {isRecommended && (
+                                        <div
+                                          style={{
+                                            ...pickerStatusPillStyle,
+                                            backgroundColor: "#18202b",
+                                            color: "#ffffff",
+                                          }}
+                                        >
+                                          Rekommenderat nu
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div style={pickerTitleStyle}>{workout.label}</div>
+                                  </div>
+                                  <div style={pickerExpandIconStyle(isSelected)}>{isSelected ? "−" : "+"}</div>
+                                </div>
+
+                                <div style={pickerMetaGridStyle(isMobile)}>
+                                  <div style={pickerMetaCardStyle}>
+                                    <div style={pickerMetaLabelStyle}>Senast</div>
+                                    <div style={pickerMetaValueStyle}>{formatDate(latestPassDates[key])}</div>
+                                  </div>
+                                  <div style={pickerMetaCardStyle}>
+                                    <div style={pickerMetaLabelStyle}>När</div>
+                                    <div style={pickerMetaValueStyle}>{formatDaysSince(latestPassDates[key])}</div>
+                                  </div>
+                                  <div style={pickerMetaCardStyle}>
+                                    <div style={pickerMetaLabelStyle}>
+                                      {workout.workoutKind === "running" ? "Upplägg" : "Övningar"}
+                                    </div>
+                                    <div style={pickerMetaValueStyle}>
+                                      {workout.workoutKind === "running"
+                                        ? buildRunningSummary({
+                                            running_type: workout.runningType,
+                                            interval_time: workout.runningConfig?.interval_time,
+                                            intervals_count: workout.runningConfig?.intervals_count,
+                                            running_distance: workout.runningConfig?.running_distance,
+                                            running_time: workout.runningConfig?.running_time,
+                                          })
+                                        : `${workout.exercises.length} st`}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div style={pickerActionHintStyle}>
+                                  {isSelected ? "Tryck igen för att stänga" : "Tryck för att visa passet"}
+                                </div>
+                              </button>
+
+                              {isSelected && (
+                                <div
+                                  style={{
+                                    ...passPreviewCardStyle,
+                                    padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
+                                  }}
+                                >
+                                  <div style={passPreviewEyebrowStyle}>Valt pass</div>
+                                  <div
+                                    style={{
+                                      ...passPreviewTitleStyle,
+                                      fontSize: isMobile ? "20px" : passPreviewTitleStyle.fontSize,
+                                    }}
+                                  >
+                                    {workout.label}
+                                  </div>
+                                  <div style={{ ...mutedTextStyle, marginBottom: "12px" }}>
+                                    Senast kört: {formatDate(latestPassDates[key])} • {formatDaysSince(latestPassDates[key])}
+                                  </div>
+
+                                  <div style={passPreviewContentCardStyle}>
+                                    {workout.info && (
+                                      <div style={{ marginBottom: "14px" }}>
+                                        <div style={passPreviewStatLabelStyle}>Info om passet</div>
+                                        <div style={passPreviewInfoTextStyle}>{workout.info}</div>
+                                      </div>
+                                    )}
+
+                                    <div style={passPreviewStatLabelStyle}>
+                                      {workout.workoutKind === "running" ? "Löppass" : "Övningar"}
+                                    </div>
+                                    <div style={passPreviewExerciseCountStyle}>
+                                      {workout.workoutKind === "running"
+                                        ? buildRunningSummary({
+                                            running_type: workout.runningType,
+                                            interval_time: workout.runningConfig?.interval_time,
+                                            intervals_count: workout.runningConfig?.intervals_count,
+                                            running_distance: workout.runningConfig?.running_distance,
+                                            running_time: workout.runningConfig?.running_time,
+                                          })
+                                        : `${workout.exercises.length} st`}
+                                    </div>
+
+                                    {workout.workoutKind !== "running" && workout.exercises.slice(0, 3).length > 0 && (
+                                      <div style={passPreviewListWrapStyle}>
+                                        <div style={passPreviewListStyle}>
+                                          {workout.exercises.slice(0, 3).map((exercise) => (
+                                            <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
+                                              {exercise.displayName || exercise.name}
+                                            </div>
+                                          ))}
+                                          {Math.max(workout.exercises.length - 3, 0) > 0 && (
+                                            <div style={passPreviewListMoreStyle}>
+                                              +{Math.max(workout.exercises.length - 3, 0)} till
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {workout.workoutKind !== "running" && workout.exercises.length === 0 && (
+                                      <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    onClick={() => startWorkout(key)}
+                                    style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                                  >
+                                    Starta pass
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               )}
             </>
@@ -9941,7 +10061,72 @@ const pickerGridStyle = {
   width: "100%",
 }
 
+const passCategorySectionStyle = {
+  padding: "14px",
+  borderRadius: "24px",
+  border: "1px solid #f0dcdc",
+  display: "grid",
+  gap: "12px",
+}
+
+const passCategoryHeaderStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: isMobile ? "flex-start" : "center",
+  justifyContent: "space-between",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "10px",
+})
+
+const passCategoryBadgeStyle = {
+  display: "inline-flex",
+  marginBottom: "8px",
+  padding: "6px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const passCategoryTitleStyle = {
+  fontSize: "20px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const passCategoryTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.5,
+  color: "#566173",
+}
+
+const passCategoryCountStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "10px 12px",
+  borderRadius: "16px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#ffffff",
+  color: "#18202b",
+  fontSize: "13px",
+  fontWeight: "800",
+  whiteSpace: "nowrap",
+}
+
+const passCategoryListStyle = {
+  display: "grid",
+  gap: "12px",
+}
+
+const passPickerItemStyle = {
+  display: "grid",
+  gap: "10px",
+  width: "100%",
+  minWidth: 0,
+}
+
 const pickerButtonStyle = {
+  width: "100%",
   padding: "18px",
   borderRadius: "18px",
   border: "1px solid #dfe7ef",
@@ -9952,20 +10137,91 @@ const pickerButtonStyle = {
   boxShadow: "0 14px 28px rgba(24, 32, 43, 0.06)",
 }
 
+const pickerHeaderRowStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginBottom: "12px",
+}
+
+const pickerPillRowStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginBottom: "10px",
+}
+
+const pickerStatusPillStyle = {
+  display: "inline-flex",
+  padding: "6px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: "800",
+}
+
+const pickerExpandIconStyle = (isSelected) => ({
+  width: "34px",
+  height: "34px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  border: "1px solid #ece5e5",
+  backgroundColor: isSelected ? "#fff1f1" : "#ffffff",
+  color: isSelected ? "#b61e24" : "#6b7280",
+  fontSize: "22px",
+  fontWeight: "800",
+  flexShrink: 0,
+})
+
 const pickerTitleStyle = {
   fontWeight: "900",
   fontSize: "18px",
   color: "#18202b",
 }
 
-const pickerSubtitleStyle = {
+const pickerMetaGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "8px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+})
+
+const pickerMetaCardStyle = {
+  minWidth: 0,
+  padding: "10px 12px",
+  borderRadius: "14px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #e5e7eb",
+}
+
+const pickerMetaLabelStyle = {
+  marginBottom: "4px",
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "#6b7280",
+}
+
+const pickerMetaValueStyle = {
   fontSize: "13px",
+  lineHeight: 1.4,
+  fontWeight: "800",
+  color: "#18202b",
+  overflowWrap: "anywhere",
+}
+
+const pickerActionHintStyle = {
+  marginTop: "10px",
+  fontSize: "13px",
+  fontWeight: "700",
   color: "#566173",
-  marginTop: "4px",
 }
 
 const passPreviewCardStyle = {
   width: "100%",
+  marginTop: 0,
   padding: "22px",
   borderRadius: "24px",
   border: "1px solid #dfe7ef",
