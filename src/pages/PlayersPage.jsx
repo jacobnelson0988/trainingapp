@@ -78,6 +78,7 @@ function PlayersPage({
   const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
   const [bulkSelectedPlayerIds, setBulkSelectedPlayerIds] = useState([])
   const [activeEditorSection, setActiveEditorSection] = useState("passes")
+  const [activeUtilityPanel, setActiveUtilityPanel] = useState("")
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
@@ -114,6 +115,7 @@ function PlayersPage({
   const activePlayerCount = players.filter((player) => !player.is_archived).length
   const archivedPlayerCount = players.filter((player) => player.is_archived).length
   const historyModeCount = players.filter((player) => player.individual_goals_enabled === false).length
+  const openRequestCount = targetChangeRequests.length
 
   useEffect(() => {
     const firstSessionId = selectedPlayerCompletedSessions?.[0]?.session_id || ""
@@ -124,6 +126,12 @@ function PlayersPage({
       return firstSessionId
     })
   }, [selectedPlayer?.id, selectedPlayerCompletedSessions])
+
+  useEffect(() => {
+    if (activeUtilityPanel === "requests" && openRequestCount === 0) {
+      setActiveUtilityPanel("")
+    }
+  }, [activeUtilityPanel, openRequestCount])
 
   const renderEditorSectionButton = (key, label) => {
     const isActive = activeEditorSection === key
@@ -1007,26 +1015,14 @@ function PlayersPage({
 
   return (
     <div style={pageWrapStyle}>
-      <div style={introCardStyle}>
-        <div
-        style={{
-          marginBottom: "14px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: isMobile ? "stretch" : "center",
-          gap: "12px",
-          flexDirection: isMobile ? "column" : "row",
-        }}
-      >
-        <div>
-          <div style={introEyebrowStyle}>Tränarvy</div>
+      <div style={pageHeaderStyle}>
+        <div style={pageHeaderCopyStyle}>
+          <div style={pageEyebrowStyle}>Tränarvy</div>
           <h3 style={{ ...cardTitleStyle, marginBottom: "4px", fontSize: "24px" }}>
             {role === "coach" ? "Spelare" : "Mina spelare"}
           </h3>
           <p style={{ ...mutedTextStyle, margin: 0 }}>
-            {role === "coach"
-              ? "Se lagets spelare och ledare. Spelare kan öppnas för pass och individuella mål."
-              : "Sök fram spelare snabbt och redigera direkt under vald rad eller kort."}
+            Öppna en spelare direkt i listan och jobba vidare i samma flöde utan onödig scroll.
           </p>
         </div>
 
@@ -1041,34 +1037,83 @@ function PlayersPage({
         )}
       </div>
 
-      {role === "coach" && (
-        <div style={overviewStatsGridStyle(isMobile)}>
-          <div style={overviewStatCardStyle}>
-            <div style={overviewStatLabelStyle}>Aktiva spelare</div>
-            <div style={{ ...overviewStatValueStyle, color: "#dc2626" }}>{activePlayerCount}</div>
-          </div>
-          <div style={overviewStatCardStyle}>
-            <div style={overviewStatLabelStyle}>Arkiverade</div>
-            <div style={overviewStatValueStyle}>{archivedPlayerCount}</div>
-          </div>
-          <div style={overviewStatCardStyle}>
-            <div style={overviewStatLabelStyle}>Historikläge</div>
-            <div style={overviewStatValueStyle}>{historyModeCount}</div>
-          </div>
+      <div style={coachSummaryGridStyle(isMobile)}>
+        <div style={coachSummaryCardStyle}>
+          <div style={coachSummaryLabelStyle}>Aktiva</div>
+          <div style={{ ...coachSummaryValueStyle, color: "#c62828" }}>{activePlayerCount}</div>
         </div>
-      )}
+        <div style={coachSummaryCardStyle}>
+          <div style={coachSummaryLabelStyle}>Arkiverade</div>
+          <div style={coachSummaryValueStyle}>{archivedPlayerCount}</div>
+        </div>
+        <div style={coachSummaryCardStyle}>
+          <div style={coachSummaryLabelStyle}>Historikläge</div>
+          <div style={coachSummaryValueStyle}>{historyModeCount}</div>
+        </div>
+      </div>
 
-      {role === "coach" && (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "14px",
-            borderRadius: "16px",
-            border: "1px solid #f0dada",
-            backgroundColor: "#fff7f7",
-          }}
-        >
-          <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "8px" }}>Öppna målrequests</div>
+      <div style={utilityGridStyle(isMobile)}>
+        {role === "coach" && (
+          <button
+            type="button"
+            onClick={() => setActiveUtilityPanel((current) => (current === "requests" ? "" : "requests"))}
+            style={{
+              ...utilityButtonStyle,
+              ...(activeUtilityPanel === "requests" ? utilityButtonActiveStyle : {}),
+            }}
+          >
+            <div style={utilityButtonTopStyle}>
+              <div style={utilityButtonTitleStyle}>Målrequests</div>
+              <div style={utilityBadgeStyle(openRequestCount > 0)}>{openRequestCount}</div>
+            </div>
+            <div style={utilityButtonMetaStyle}>Öppna och svara direkt under knappen</div>
+          </button>
+        )}
+
+        {role === "coach" && (
+          <button
+            type="button"
+            onClick={() => setActiveUtilityPanel((current) => (current === "coaches" ? "" : "coaches"))}
+            style={{
+              ...utilityButtonStyle,
+              ...(activeUtilityPanel === "coaches" ? utilityButtonActiveStyle : {}),
+            }}
+          >
+            <div style={utilityButtonTopStyle}>
+              <div style={utilityButtonTitleStyle}>Lagets ledare</div>
+              <div style={utilityBadgeStyle(false)}>{teamCoaches?.length || 0}</div>
+            </div>
+            <div style={utilityButtonMetaStyle}>Visa tränare i laget inline</div>
+          </button>
+        )}
+
+        {filteredPlayers.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setActiveUtilityPanel((current) => (current === "bulk" ? "" : "bulk"))}
+            style={{
+              ...utilityButtonStyle,
+              ...(activeUtilityPanel === "bulk" ? utilityButtonActiveStyle : {}),
+            }}
+          >
+            <div style={utilityButtonTopStyle}>
+              <div style={utilityButtonTitleStyle}>Snabbval</div>
+              <div style={utilityBadgeStyle(bulkSelectedPlayerIds.length > 0)}>{bulkSelectedPlayerIds.length}</div>
+            </div>
+            <div style={utilityButtonMetaStyle}>Ändra målstyrning för flera spelare samtidigt</div>
+          </button>
+        )}
+      </div>
+
+      {activeUtilityPanel === "requests" && role === "coach" && (
+        <div style={inlineUtilityPanelStyle}>
+          <div style={inlineUtilityPanelHeaderStyle}>
+            <div>
+              <div style={inlineUtilityPanelTitleStyle}>Öppna målrequests</div>
+              <div style={inlineUtilityPanelMetaStyle}>Hantera spelarens önskemål direkt här.</div>
+            </div>
+          </div>
+
           {isLoadingTargetChangeRequests ? (
             <p style={mutedTextStyle}>Laddar requests...</p>
           ) : targetChangeRequests.length === 0 ? (
@@ -1081,30 +1126,13 @@ function PlayersPage({
                 const isUpdating = updatingTargetChangeRequestId === request.id
 
                 return (
-                  <div
-                    key={request.id}
-                    style={{
-                      padding: "12px",
-                      borderRadius: "14px",
-                      border: "1px solid #f0dada",
-                      backgroundColor: "#ffffff",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "10px",
-                        alignItems: isMobile ? "flex-start" : "center",
-                        flexDirection: isMobile ? "column" : "row",
-                        marginBottom: "8px",
-                      }}
-                    >
+                  <div key={request.id} style={inlineRequestCardStyle}>
+                    <div style={inlineRequestHeaderStyle(isMobile)}>
                       <div>
-                        <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                        <div style={inlineRequestTitleStyle}>
                           {request.player_name} • {request.exercise_name}
                         </div>
-                        <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                        <div style={inlineRequestMetaStyle}>
                           {request.request_type === "increase"
                             ? "Vill höja målvikt"
                             : request.request_type === "decrease"
@@ -1123,14 +1151,7 @@ function PlayersPage({
                       </button>
                     </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: "8px",
-                        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
-                        marginBottom: "10px",
-                      }}
-                    >
+                    <div style={inlineRequestStatsGridStyle(isMobile)}>
                       <div style={historyStatCardStyle}>
                         <div style={historyStatLabelStyle}>Nuvarande mål</div>
                         <div style={historyStatValueStyle}>
@@ -1153,26 +1174,12 @@ function PlayersPage({
                     </div>
 
                     {request.comment ? (
-                      <div
-                        style={{
-                          marginBottom: "10px",
-                          fontSize: "13px",
-                          color: "#334155",
-                          lineHeight: 1.5,
-                        }}
-                      >
+                      <div style={inlineRequestCommentStyle}>
                         <strong>Kommentar:</strong> {request.comment}
                       </div>
                     ) : null}
 
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
+                    <div style={inlineRequestActionsStyle(isMobile)}>
                       <input
                         type="number"
                         placeholder="Ny målvikt"
@@ -1215,21 +1222,16 @@ function PlayersPage({
           )}
         </div>
       )}
-      </div>
 
-      <div style={sectionLabelStyle}>Lag och spelare</div>
+      {activeUtilityPanel === "coaches" && role === "coach" && (
+        <div style={inlineUtilityPanelStyle}>
+          <div style={inlineUtilityPanelHeaderStyle}>
+            <div>
+              <div style={inlineUtilityPanelTitleStyle}>Lagets ledare</div>
+              <div style={inlineUtilityPanelMetaStyle}>Här ser du tränarna som hör till laget.</div>
+            </div>
+          </div>
 
-      {role === "coach" && (
-        <div
-          style={{
-            marginBottom: "16px",
-            padding: "14px",
-            borderRadius: "16px",
-            border: "1px solid #ece5e5",
-            backgroundColor: "#fffdfd",
-          }}
-        >
-          <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "8px" }}>Lagets ledare</div>
           {teamCoaches?.length ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {teamCoaches.map((coach) => (
@@ -1245,31 +1247,16 @@ function PlayersPage({
         </div>
       )}
 
-      <input
-        type="text"
-        placeholder={role === "coach" ? "Sök spelare" : "Sök spelare"}
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
-      />
-
-      <label style={archivedToggleWrapStyle}>
-        <input
-          type="checkbox"
-          checked={showArchivedPlayers}
-          onChange={(e) => setShowArchivedPlayers(e.target.checked)}
-        />
-        <span>Visa arkiverade</span>
-      </label>
-
-      {filteredPlayers.length > 0 && (
-        <div style={bulkActionCardStyle(isMobile)}>
-          <div>
-            <div style={bulkActionTitleStyle}>Snabbval för flera spelare</div>
-            <div style={bulkActionMetaStyle}>
-              {bulkSelectedPlayerIds.length > 0
-                ? `${bulkSelectedPlayerIds.length} spelare valda för målstyrning`
-                : "Välj spelare i listan för att ändra målstyrning samtidigt"}
+      {activeUtilityPanel === "bulk" && filteredPlayers.length > 0 && (
+        <div style={inlineUtilityPanelStyle}>
+          <div style={inlineUtilityPanelHeaderStyle}>
+            <div>
+              <div style={inlineUtilityPanelTitleStyle}>Snabbval för flera spelare</div>
+              <div style={inlineUtilityPanelMetaStyle}>
+                {bulkSelectedPlayerIds.length > 0
+                  ? `${bulkSelectedPlayerIds.length} spelare valda för målstyrning`
+                  : "Markera spelare i listan och ändra läge här."}
+              </div>
             </div>
           </div>
 
@@ -1306,13 +1293,35 @@ function PlayersPage({
         </div>
       )}
 
-      <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: "10px" }}>Spelare</div>
+      <div style={listToolbarStyle(isMobile)}>
+        <input
+          type="text"
+          placeholder="Sök spelare"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          style={{ ...inputStyle, width: "100%" }}
+        />
+
+        <label style={archivedToggleWrapStyle}>
+          <input
+            type="checkbox"
+            checked={showArchivedPlayers}
+            onChange={(e) => setShowArchivedPlayers(e.target.checked)}
+          />
+          <span>Visa arkiverade</span>
+        </label>
+      </div>
+
+      <div style={listHeaderRowStyle}>
+        <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: 0 }}>Spelare</div>
+        <div style={listHeaderMetaStyle}>{filteredPlayers.length} i listan</div>
+      </div>
 
       {isLoadingPlayers ? (
         <p style={mutedTextStyle}>Laddar spelare...</p>
       ) : filteredPlayers.length === 0 ? (
         <p style={mutedTextStyle}>Inga spelare matchar sökningen</p>
-      ) : isMobile ? (
+      ) : (
         <div style={{ display: "grid", gap: "10px" }}>
           {filteredPlayers.map((player) => (
             <div
@@ -1359,6 +1368,11 @@ function PlayersPage({
                   <span style={mobilePlayerMetaPillStyle}>
                     {player.individual_goals_enabled === false ? "Historikläge" : "Individuella mål"}
                   </span>
+                  {player.lastSignInAt ? (
+                    <span style={mobilePlayerMetaPillStyle}>
+                      Senast inloggad {new Date(player.lastSignInAt).toLocaleDateString("sv-SE")}
+                    </span>
+                  ) : null}
                   {player.is_archived && <span style={mobileArchivedPillStyle}>Arkiverad</span>}
                 </div>
                 <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "700" }}>
@@ -1369,67 +1383,6 @@ function PlayersPage({
               {selectedPlayer?.id === player.id && renderPlayerEditor(player)}
             </div>
           ))}
-        </div>
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ textAlign: "left" }}>
-                <th style={tableHeadStyle}>Val</th>
-                <th style={tableHeadStyle}>Namn</th>
-                <th style={tableHeadStyle}>Senaste pass</th>
-                <th style={tableHeadStyle}>Målstyrning</th>
-                <th style={tableHeadStyle}>Totalt antal pass</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPlayers.map((player) => {
-                const isSelected = selectedPlayer?.id === player.id
-
-                return (
-                  <>
-                    <tr
-                      key={player.id}
-                      style={{
-                        cursor: "pointer",
-                        backgroundColor: "#ffffff",
-                      }}
-                      onClick={() => setSelectedPlayer(isSelected ? null : player)}
-                    >
-                      <td style={{ ...tableCellStyle, borderTopLeftRadius: "12px", borderBottomLeftRadius: "12px", borderLeft: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
-                <input
-                  type="checkbox"
-                  checked={bulkSelectedPlayerIds.includes(player.id)}
-                  onChange={(event) => {
-                            event.stopPropagation()
-                            handleToggleBulkSelectedPlayer(player.id)
-                          }}
-                        />
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div>{player.full_name}</div>
-                        {player.is_archived && <div style={desktopArchivedMetaStyle}>Arkiverad</div>}
-                      </td>
-                      <td style={tableCellStyle}>{player.latestPass || "-"}</td>
-                      <td style={tableCellStyle}>
-                        {player.individual_goals_enabled === false ? "Historikläge" : "Individuella mål"}
-                      </td>
-                      <td style={{ ...tableCellStyle, borderTopRightRadius: "12px", borderBottomRightRadius: "12px", borderRight: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb" }}>
-                        {player.totalPasses ?? 0}
-                      </td>
-                    </tr>
-                    {isSelected && (
-                      <tr key={`${player.id}-editor`}>
-                        <td colSpan={5} style={{ padding: 0 }}>
-                          {renderPlayerEditor(player)}
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                )
-              })}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
@@ -1442,17 +1395,21 @@ const pageWrapStyle = {
   overflowX: "hidden",
 }
 
-const introCardStyle = {
-  marginBottom: "18px",
-  padding: "20px",
-  borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+const pageHeaderStyle = {
+  marginBottom: "16px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+  flexWrap: "wrap",
 }
 
-const introEyebrowStyle = {
-  marginBottom: "8px",
+const pageHeaderCopyStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const pageEyebrowStyle = {
   fontSize: "12px",
   fontWeight: "800",
   letterSpacing: "0.08em",
@@ -1460,48 +1417,22 @@ const introEyebrowStyle = {
   color: "#991b1b",
 }
 
-const sectionLabelStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#6b7280",
-}
-
-const tableHeadStyle = {
-  padding: "8px 12px",
-  color: "#6b7280",
-  fontSize: "12px",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-}
-
-const tableCellStyle = {
-  padding: "14px 12px",
-  backgroundColor: "#ffffff",
-  borderTop: "1px solid #e5e7eb",
-  borderBottom: "1px solid #e5e7eb",
-  color: "#18202b",
-}
-
-const overviewStatsGridStyle = (isMobile) => ({
+const coachSummaryGridStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
   gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
-  marginBottom: "16px",
+  marginBottom: "14px",
 })
 
-const overviewStatCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
+const coachSummaryCardStyle = {
+  padding: "13px 12px",
+  borderRadius: "16px",
   border: "1px solid rgba(15, 23, 42, 0.08)",
   backgroundColor: "#ffffff",
   boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
 }
 
-const overviewStatLabelStyle = {
+const coachSummaryLabelStyle = {
   marginBottom: "6px",
   fontSize: "11px",
   fontWeight: "800",
@@ -1510,12 +1441,142 @@ const overviewStatLabelStyle = {
   color: "#6b7280",
 }
 
-const overviewStatValueStyle = {
-  fontSize: "28px",
+const coachSummaryValueStyle = {
+  fontSize: "24px",
   fontWeight: "900",
   lineHeight: 1,
   color: "#111827",
 }
+
+const utilityGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "10px",
+})
+
+const utilityButtonStyle = {
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#ffffff",
+  textAlign: "left",
+  cursor: "pointer",
+  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+}
+
+const utilityButtonActiveStyle = {
+  borderColor: "#efc7c7",
+  backgroundColor: "#fff7f7",
+}
+
+const utilityButtonTopStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  marginBottom: "6px",
+}
+
+const utilityButtonTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const utilityButtonMetaStyle = {
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: "#6b7280",
+}
+
+const utilityBadgeStyle = (isActive) => ({
+  minWidth: "28px",
+  height: "28px",
+  padding: "0 8px",
+  borderRadius: "999px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: isActive ? "#c62828" : "#f3f4f6",
+  color: isActive ? "#ffffff" : "#4b5563",
+  fontSize: "12px",
+  fontWeight: "800",
+})
+
+const inlineUtilityPanelStyle = {
+  marginBottom: "14px",
+  padding: "14px",
+  borderRadius: "16px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffdfd",
+}
+
+const inlineUtilityPanelHeaderStyle = {
+  marginBottom: "12px",
+}
+
+const inlineUtilityPanelTitleStyle = {
+  fontSize: "16px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const inlineUtilityPanelMetaStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+}
+
+const inlineRequestCardStyle = {
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #f0dada",
+  backgroundColor: "#ffffff",
+}
+
+const inlineRequestHeaderStyle = (isMobile) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "10px",
+  alignItems: isMobile ? "flex-start" : "center",
+  flexDirection: isMobile ? "column" : "row",
+  marginBottom: "8px",
+})
+
+const inlineRequestTitleStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const inlineRequestMetaStyle = {
+  fontSize: "12px",
+  color: "#6b7280",
+  marginTop: "4px",
+}
+
+const inlineRequestStatsGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "8px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "10px",
+})
+
+const inlineRequestCommentStyle = {
+  marginBottom: "10px",
+  fontSize: "13px",
+  color: "#334155",
+  lineHeight: 1.5,
+}
+
+const inlineRequestActionsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  alignItems: "center",
+  flexDirection: isMobile ? "column" : "row",
+})
 
 const quickActionButtonStyle = {
   padding: "10px 14px",
@@ -1579,13 +1640,27 @@ const mobileArchivedPillStyle = {
   fontWeight: "800",
 }
 
-const desktopArchivedMetaStyle = {
-  marginTop: "4px",
-  fontSize: "11px",
-  fontWeight: "800",
-  color: "#991b1b",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
+const listToolbarStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
+  alignItems: "center",
+  marginBottom: "14px",
+})
+
+const listHeaderRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginBottom: "10px",
+  flexWrap: "wrap",
+}
+
+const listHeaderMetaStyle = {
+  fontSize: "13px",
+  fontWeight: "700",
+  color: "#6b7280",
 }
 
 const archivedToggleWrapStyle = {

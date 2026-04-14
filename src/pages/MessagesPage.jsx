@@ -126,30 +126,31 @@ function MessagesPage({
 
   return (
     <div style={pageWrapStyle}>
-      <div style={introCardStyle}>
-        <div style={introEyebrowStyle}>Tränarvy</div>
+      <div style={pageHeaderStyle}>
+        <div style={pageHeaderCopyStyle}>
+        <div style={pageEyebrowStyle}>Tränarvy</div>
         <div style={introTitleStyle}>Meddelanden</div>
         <div style={introTextStyle}>
-          Samla all kommunikation i ett tydligt flöde. Samma lugna kort, samma spacing och bättre läsbarhet på mobil.
+          Samla all kommunikation i ett tydligt flöde med samma kortlogik som resten av tränarvyn.
         </div>
-
-        <div style={introStatsGridStyle(isMobile)}>
-          <div style={introStatCardStyle}>
-            <div style={introStatLabelStyle}>Trådar</div>
-            <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{threads.length}</div>
-          </div>
-          <div style={introStatCardStyle}>
-            <div style={introStatLabelStyle}>Olästa</div>
-            <div style={introStatValueStyle}>{totalUnreadCount}</div>
-          </div>
-          <div style={introStatCardStyle}>
-            <div style={introStatLabelStyle}>Mottagare</div>
-            <div style={introStatValueStyle}>{recipients.length}</div>
-          </div>
         </div>
       </div>
 
-      <div style={sectionLabelStyle}>Kommunikation</div>
+      <div style={introStatsGridStyle(isMobile)}>
+        <div style={introStatCardStyle}>
+          <div style={introStatLabelStyle}>Trådar</div>
+          <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{threads.length}</div>
+        </div>
+        <div style={introStatCardStyle}>
+          <div style={introStatLabelStyle}>Olästa</div>
+          <div style={introStatValueStyle}>{totalUnreadCount}</div>
+        </div>
+        <div style={introStatCardStyle}>
+          <div style={introStatLabelStyle}>Mottagare</div>
+          <div style={introStatValueStyle}>{recipients.length}</div>
+        </div>
+      </div>
+
       <div style={wrapStyle}>
       {view === "inbox" && (
         <>
@@ -387,6 +388,15 @@ const pageWrapStyle = {
   overflowX: "hidden",
 }
 
+const pageHeaderStyle = {
+  marginBottom: "14px",
+}
+
+const pageHeaderCopyStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
 const wrapStyle = {
   display: "grid",
   gap: "16px",
@@ -394,17 +404,7 @@ const wrapStyle = {
   minWidth: 0,
 }
 
-const introCardStyle = {
-  marginBottom: "18px",
-  padding: "20px",
-  borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
-}
-
-const introEyebrowStyle = {
-  marginBottom: "8px",
+const pageEyebrowStyle = {
   fontSize: "12px",
   fontWeight: "800",
   letterSpacing: "0.08em",
@@ -413,25 +413,16 @@ const introEyebrowStyle = {
 }
 
 const introTitleStyle = {
-  marginBottom: "6px",
+  marginBottom: "2px",
   fontSize: "24px",
   fontWeight: "900",
   color: "#111827",
 }
 
 const introTextStyle = {
-  marginBottom: "16px",
+  marginBottom: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
-}
-
-const sectionLabelStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
   color: "#6b7280",
 }
 

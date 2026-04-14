@@ -17,6 +17,22 @@ Roadmapen ska ses som en produktplan, inte bara en teknisk lista över enskilda 
 
 ---
 
+## Designprincip
+
+All UX i Starkare Gurra ska följa samma grundlogik i alla roller: spelare, tränare och admin.
+
+- Kort, listposter och moduler ska öppnas inline i direkt anslutning till det användaren trycker på.
+- Expanderat innehåll ska visas i samma kort eller direkt under samma rad, inte långt längre ner på sidan.
+- Listor ska delas upp i tydliga sektioner efter typ, funktion eller träningskategori så att det snabbt går att förstå vad som hör ihop.
+- På mobil får inget innehåll kräva sidscroll. Allt ska hålla sig inom skärmens bredd.
+- Knappar, dropdowns, inputfält och expanderbara kort ska följa samma visuella logik i hela appen.
+- Valfält och skrivfält ska se olika ut, så att användaren direkt förstår vad som är ett val och vad som ska fyllas i.
+
+Kort sagt:
+Appen ska kännas kompakt, tydlig, konsekvent och direkt responsiv oavsett vilken sida eller roll man är i.
+
+---
+
 ## ROADMAP
 
 ### Fas 1 – MVP (KLAR)

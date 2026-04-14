@@ -379,39 +379,40 @@ function StatsPage({
         return current
       }
 
-      return activitySessions[0]?.sessionId || ""
+      return ""
     })
   }, [activitySessions])
 
   return (
     <div style={pageWrapStyle}>
-      <div style={introCardStyle}>
-        <div style={introEyebrowStyle}>Tränarvy</div>
+      <div style={pageHeaderStyle}>
+        <div style={pageHeaderCopyStyle}>
+        <div style={pageEyebrowStyle}>Tränarvy</div>
         <div style={introTitleStyle}>Aktivitet och statistik</div>
         <div style={introTextStyle}>
-          Följ när spelarna tränar, öppna genomförda pass och växla sedan över till utveckling per övning i samma lugna, kompakta flöde.
+          Öppna genomförda pass direkt i listan och växla sedan över till utveckling per övning i samma kompakta flöde.
         </div>
-
-        <div style={introStatsGridStyle(isMobile)}>
-          <div style={introStatCardStyle}>
-            <div style={introStatLabelStyle}>Spelare</div>
-            <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{sortedPlayers.length}</div>
-          </div>
-          <div style={introStatCardStyle}>
-            <div style={introStatLabelStyle}>Aktivitet</div>
-            <div style={introStatValueStyle}>{activitySessions.length}</div>
-          </div>
-          <div style={introStatCardStyle}>
-            <div style={introStatLabelStyle}>Övningar</div>
-            <div style={introStatValueStyle}>{exerciseOptions.length}</div>
-          </div>
         </div>
       </div>
 
-      <div style={sectionLabelStyle}>Uppföljning</div>
+      <div style={introStatsGridStyle(isMobile)}>
+        <div style={introStatCardStyle}>
+          <div style={introStatLabelStyle}>Spelare</div>
+          <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{sortedPlayers.length}</div>
+        </div>
+        <div style={introStatCardStyle}>
+          <div style={introStatLabelStyle}>Aktivitet</div>
+          <div style={introStatValueStyle}>{activitySessions.length}</div>
+        </div>
+        <div style={introStatCardStyle}>
+          <div style={introStatLabelStyle}>Övningar</div>
+          <div style={introStatValueStyle}>{exerciseOptions.length}</div>
+        </div>
+      </div>
 
       <div
         style={{
+          marginTop: "14px",
           marginBottom: "16px",
           display: "flex",
           justifyContent: "space-between",
@@ -422,7 +423,7 @@ function StatsPage({
       >
         <div>
           <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Välj vy</h3>
-          <p style={mutedTextStyle}>Byt mellan aktivitet och statistik utan att lämna sidan.</p>
+          <p style={mutedTextStyle}>Filter och detaljer öppnas i direkt anslutning till det du trycker på.</p>
         </div>
 
         <div style={statsHeaderActionsStyle(isMobile)}>
@@ -1567,17 +1568,16 @@ const pageWrapStyle = {
   boxSizing: "border-box",
 }
 
-const introCardStyle = {
-  marginBottom: "18px",
-  padding: "20px",
-  borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+const pageHeaderStyle = {
+  marginBottom: "14px",
 }
 
-const introEyebrowStyle = {
-  marginBottom: "8px",
+const pageHeaderCopyStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const pageEyebrowStyle = {
   fontSize: "12px",
   fontWeight: "800",
   letterSpacing: "0.08em",
@@ -1586,25 +1586,16 @@ const introEyebrowStyle = {
 }
 
 const introTitleStyle = {
-  marginBottom: "6px",
+  marginBottom: "2px",
   fontSize: "24px",
   fontWeight: "900",
   color: "#111827",
 }
 
 const introTextStyle = {
-  marginBottom: "16px",
+  marginBottom: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
-}
-
-const sectionLabelStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
   color: "#6b7280",
 }
 
