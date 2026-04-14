@@ -711,6 +711,10 @@ function PlayersPage({
                                                 {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
                                               </div>
 
+                                              {setEntry.setType === "warmup" && (
+                                                <div style={historySetWarmupBadgeStyle}>Uppvärmning</div>
+                                              )}
+
                                               {protocolStep ? (
                                                 <div style={{ display: "grid", gap: "6px" }}>
                                                   <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
@@ -1909,6 +1913,17 @@ const historySetTitleStyle = {
   fontWeight: "800",
   color: "#18202b",
   marginBottom: "8px",
+}
+
+const historySetWarmupBadgeStyle = {
+  display: "inline-flex",
+  marginBottom: "8px",
+  padding: "5px 8px",
+  borderRadius: "999px",
+  backgroundColor: "#fff7ed",
+  color: "#b45309",
+  fontSize: "11px",
+  fontWeight: "800",
 }
 
 const historySetMetaGridStyle = {

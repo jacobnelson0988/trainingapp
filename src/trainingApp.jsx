@@ -345,7 +345,7 @@ const summarizeHistoryRowsByExercise = (rows) => {
       `${String(row.created_at || "").slice(0, 19)}:${row.exercise || ""}:${row.pass_name || ""}`
     const exerciseName = String(row.exercise || "").trim()
 
-    if (!exerciseName || row.workout_kind === "running") return
+    if (!exerciseName || row.workout_kind === "running" || row.set_type === "warmup") return
 
     const key = `${exerciseName}__${sessionId}`
     if (!grouped.has(key)) {
@@ -806,6 +806,7 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
       weight: row.weight,
       reps: row.reps,
       seconds: row.seconds,
+      setType: row.set_type || "work",
       comment: row.exercise_comment || row.pass_comment || "",
     })
   })
@@ -1807,6 +1808,7 @@ function TrainingApp() {
       .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind")
       .eq("is_completed", true)
       .neq("workout_kind", "running")
+      .eq("set_type", "work")
       .not("workout_session_id", "is", null)
       .order("created_at", { ascending: false })
 
@@ -3099,7 +3101,7 @@ function TrainingApp() {
         supabase
           .from("workout_logs")
           .select(
-            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, exercise_comment, pass_comment, workout_kind"
+            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind"
           )
           .eq("user_id", playerId)
           .eq("is_completed", true)
@@ -3221,7 +3223,7 @@ function TrainingApp() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_session_id, created_at, pass_name, exercise, set_number, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin"
+        "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin"
       )
       .eq("user_id", userId)
       .eq("is_completed", true)
@@ -3313,7 +3315,7 @@ function TrainingApp() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, exercise_comment, pass_comment, workout_kind"
+        "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind"
       )
       .eq("user_id", userId)
       .eq("is_completed", true)
@@ -3625,6 +3627,7 @@ function TrainingApp() {
       .eq("user_id", userId)
       .eq("is_completed", true)
       .neq("workout_kind", "running")
+      .eq("set_type", "work")
       .not("workout_session_id", "is", null)
       .not("pass_name", "is", null)
       .order("created_at", { ascending: false })
@@ -3680,6 +3683,7 @@ function TrainingApp() {
       .eq("pass_name", workoutKey)
       .eq("is_completed", true)
       .neq("workout_kind", "running")
+      .eq("set_type", "work")
       .not("workout_session_id", "is", null)
       .order("created_at", { ascending: false })
 
@@ -3776,6 +3780,7 @@ function TrainingApp() {
               weight: "",
               reps: "",
               seconds: "",
+              set_type: "work",
               client_set_id: generateSetId(index, setIndex),
               workout_session_id: newSessionId,
             }))
@@ -3976,6 +3981,7 @@ function TrainingApp() {
           weight: "",
           reps: "",
           seconds: "",
+          set_type: "work",
           client_set_id: generateSetId(exerciseIndex, current.length),
           workout_session_id: currentSessionId,
         },
@@ -4011,6 +4017,7 @@ function TrainingApp() {
         workout_kind: "gym",
         exercise: selectedExercise.name,
         set_number: setIndex + 1,
+        set_type: set.set_type || "work",
         weight: set.weight || null,
         reps: set.reps || null,
         seconds: set.seconds || null,
@@ -4087,6 +4094,7 @@ function TrainingApp() {
       ...targetSet,
       reps: targetStep.targetUnit === "shots" ? String(targetStep.targetValue) : targetSet.reps || "",
       seconds: targetStep.targetUnit === "seconds" ? String(targetStep.targetValue) : targetSet.seconds || "",
+      set_type: "work",
       protocolCompleted: true,
       workout_session_id: currentSessionId,
     }
@@ -4116,6 +4124,7 @@ function TrainingApp() {
     updated[setIndex] = {
       ...updated[setIndex],
       [field]: value,
+      set_type: updated[setIndex]?.set_type || "work",
       workout_session_id: currentSessionId,
       client_set_id:
         updated[setIndex]?.client_set_id ||
@@ -4136,6 +4145,47 @@ function TrainingApp() {
 
     if (isComplete && selectedExercise) {
       await saveSet(exerciseIndex, selectedExercise, setIndex, set)
+    }
+  }
+
+  const handleToggleSetType = async (exerciseIndex, setIndex) => {
+    if (!isWorkoutActive || !currentSessionId || !selectedWorkout) return
+
+    const current = inputs[exerciseIndex] || []
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    const selectedExercise = exercise
+      ? getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
+      : null
+
+    if (!selectedExercise) return
+
+    const updated = [...current]
+    const currentSet = updated[setIndex]
+    if (!currentSet) return
+
+    const nextSet = {
+      ...currentSet,
+      set_type: currentSet.set_type === "warmup" ? "work" : "warmup",
+      workout_session_id: currentSessionId,
+      client_set_id:
+        currentSet.client_set_id ||
+        generateSetId(exerciseIndex, setIndex),
+    }
+
+    updated[setIndex] = nextSet
+
+    setInputs({
+      ...inputs,
+      [exerciseIndex]: updated,
+    })
+
+    const isComplete =
+      (selectedExercise?.type === "weight_reps" && nextSet.weight && nextSet.reps) ||
+      (selectedExercise?.type === "reps_only" && nextSet.reps) ||
+      (selectedExercise?.type === "seconds_only" && nextSet.seconds)
+
+    if (isComplete) {
+      await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
     }
   }
 
@@ -4170,6 +4220,7 @@ function TrainingApp() {
         workout_kind: "gym",
         exercise: selectedExercise.name,
         set_number: 1,
+        set_type: firstSet.set_type || "work",
         weight: firstSet.weight || null,
         reps: firstSet.reps || null,
         seconds: firstSet.seconds || null,
@@ -8987,7 +9038,27 @@ function TrainingApp() {
                   !isProtocol &&
                   (inputs[i] || []).map((set, j) => (
                     <div key={set.client_set_id || j} style={activeSetCardStyle}>
-                      <div style={setLabelStyle}>Set {j + 1}</div>
+                      <div style={setHeaderRowStyle}>
+                        <div style={setLabelStyle}>Set {j + 1}</div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSetType(i, j)}
+                          style={{
+                            ...setTypeToggleStyle,
+                            backgroundColor: set.set_type === "warmup" ? "#fff7ed" : "#eef4ff",
+                            borderColor: set.set_type === "warmup" ? "#fdba74" : "#bfdbfe",
+                            color: set.set_type === "warmup" ? "#b45309" : "#1d4ed8",
+                          }}
+                        >
+                          {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                        </button>
+                      </div>
+
+                      {set.set_type === "warmup" && (
+                        <div style={setInputHintStyle}>
+                          Det här setet sparas som uppvärmning och räknas inte in i statistik eller rekommenderade vikter.
+                        </div>
+                      )}
 
                       <div
                         style={{
@@ -9986,6 +10057,26 @@ const setLabelStyle = {
   fontWeight: "800",
   color: "#566173",
   marginBottom: "8px",
+}
+
+const setHeaderRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  marginBottom: "8px",
+}
+
+const setTypeToggleStyle = {
+  padding: "7px 10px",
+  borderRadius: "999px",
+  border: "1px solid #dbeafe",
+  backgroundColor: "#eef4ff",
+  color: "#1d4ed8",
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: "800",
+  whiteSpace: "nowrap",
 }
 
 const setInputsRowStyle = {

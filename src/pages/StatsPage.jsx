@@ -271,9 +271,10 @@ function StatsPage({
 
       const { data, error } = await supabase
         .from("workout_logs")
-        .select("user_id, exercise, weight, created_at, workout_session_id, pass_name, set_number, is_completed")
+        .select("user_id, exercise, weight, created_at, workout_session_id, pass_name, set_number, is_completed, set_type")
         .in("user_id", selectedPlayerIds)
         .not("weight", "is", null)
+        .eq("set_type", "work")
         .order("created_at", { ascending: true })
 
       if (error) {
@@ -302,7 +303,7 @@ function StatsPage({
       const playerIds = sortedPlayers.map((player) => player.id)
       const { data, error } = await supabase
         .from("workout_logs")
-        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin, exercise, set_number, weight, reps, seconds, exercise_comment, pass_comment, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse")
+        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse")
         .in("user_id", playerIds)
         .eq("is_completed", true)
         .order("created_at", { ascending: false })
