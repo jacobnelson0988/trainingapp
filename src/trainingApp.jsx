@@ -8069,31 +8069,24 @@ function TrainingApp() {
                                   <div style={pickerExpandIconStyle(isSelected)}>{isSelected ? "−" : "+"}</div>
                                 </div>
 
-                                <div style={pickerMetaGridStyle(isMobile)}>
-                                  <div style={pickerMetaCardStyle}>
-                                    <div style={pickerMetaLabelStyle}>Senast</div>
-                                    <div style={pickerMetaValueStyle}>{formatDate(latestPassDates[key])}</div>
+                                <div style={pickerSummaryRowStyle}>
+                                  <div style={pickerSummaryTextStyle}>
+                                    Senast: {formatDate(latestPassDates[key])}
                                   </div>
-                                  <div style={pickerMetaCardStyle}>
-                                    <div style={pickerMetaLabelStyle}>När</div>
-                                    <div style={pickerMetaValueStyle}>{formatDaysSince(latestPassDates[key])}</div>
-                                  </div>
-                                  <div style={pickerMetaCardStyle}>
-                                    <div style={pickerMetaLabelStyle}>
-                                      {workout.workoutKind === "running" ? "Upplägg" : "Övningar"}
-                                    </div>
-                                    <div style={pickerMetaValueStyle}>
-                                      {workout.workoutKind === "running"
-                                        ? buildRunningSummary({
-                                            running_type: workout.runningType,
-                                            interval_time: workout.runningConfig?.interval_time,
-                                            intervals_count: workout.runningConfig?.intervals_count,
-                                            running_distance: workout.runningConfig?.running_distance,
-                                            running_time: workout.runningConfig?.running_time,
-                                          })
-                                        : `${workout.exercises.length} st`}
-                                    </div>
-                                  </div>
+                                  <div style={pickerSummaryDividerStyle}>•</div>
+                                  <div style={pickerSummaryTextStyle}>{formatDaysSince(latestPassDates[key])}</div>
+                                </div>
+
+                                <div style={pickerSecondarySummaryStyle}>
+                                  {workout.workoutKind === "running"
+                                    ? buildRunningSummary({
+                                        running_type: workout.runningType,
+                                        interval_time: workout.runningConfig?.interval_time,
+                                        intervals_count: workout.runningConfig?.intervals_count,
+                                        running_distance: workout.runningConfig?.running_distance,
+                                        running_time: workout.runningConfig?.running_time,
+                                      })
+                                    : `${workout.exercises.length} övningar`}
                                 </div>
 
                                 <div style={pickerActionHintStyle}>
@@ -8116,9 +8109,6 @@ function TrainingApp() {
                                     }}
                                   >
                                     {workout.label}
-                                  </div>
-                                  <div style={{ ...mutedTextStyle, marginBottom: "12px" }}>
-                                    Senast kört: {formatDate(latestPassDates[key])} • {formatDaysSince(latestPassDates[key])}
                                   </div>
 
                                   <div style={passPreviewContentCardStyle}>
@@ -8144,19 +8134,17 @@ function TrainingApp() {
                                         : `${workout.exercises.length} st`}
                                     </div>
 
-                                    {workout.workoutKind !== "running" && workout.exercises.slice(0, 3).length > 0 && (
+                                    {workout.workoutKind !== "running" && workout.exercises.length > 0 && (
                                       <div style={passPreviewListWrapStyle}>
-                                        <div style={passPreviewListStyle}>
-                                          {workout.exercises.slice(0, 3).map((exercise) => (
+                                        <div style={passPreviewExerciseStackStyle}>
+                                          {workout.exercises.map((exercise, exerciseIndex) => (
                                             <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                                              {exercise.displayName || exercise.name}
+                                              <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
+                                              <span style={passPreviewExerciseNameStyle}>
+                                                {exercise.displayName || exercise.name}
+                                              </span>
                                             </div>
                                           ))}
-                                          {Math.max(workout.exercises.length - 3, 0) > 0 && (
-                                            <div style={passPreviewListMoreStyle}>
-                                              +{Math.max(workout.exercises.length - 3, 0)} till
-                                            </div>
-                                          )}
                                         </div>
                                       </div>
                                     )}
@@ -10211,36 +10199,36 @@ const passCategoryListStyle = {
 
 const passPickerItemStyle = {
   display: "grid",
-  gap: "10px",
+  gap: "8px",
   width: "100%",
   minWidth: 0,
 }
 
 const pickerButtonStyle = {
   width: "100%",
-  padding: "18px",
-  borderRadius: "18px",
+  padding: "14px 15px",
+  borderRadius: "16px",
   border: "1px solid #dfe7ef",
   background:
     "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,252,0.96))",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 14px 28px rgba(24, 32, 43, 0.06)",
+  boxShadow: "0 10px 22px rgba(24, 32, 43, 0.05)",
 }
 
 const pickerHeaderRowStyle = {
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: "12px",
-  marginBottom: "12px",
+  gap: "10px",
+  marginBottom: "8px",
 }
 
 const pickerPillRowStyle = {
   display: "flex",
-  gap: "8px",
+  gap: "6px",
   flexWrap: "wrap",
-  marginBottom: "10px",
+  marginBottom: "8px",
 }
 
 const pickerStatusPillStyle = {
@@ -10268,44 +10256,41 @@ const pickerExpandIconStyle = (isSelected) => ({
 
 const pickerTitleStyle = {
   fontWeight: "900",
-  fontSize: "18px",
+  fontSize: "17px",
   color: "#18202b",
 }
 
-const pickerMetaGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "8px",
-  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
-})
-
-const pickerMetaCardStyle = {
-  minWidth: 0,
-  padding: "10px 12px",
-  borderRadius: "14px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #e5e7eb",
+const pickerSummaryRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  flexWrap: "wrap",
 }
 
-const pickerMetaLabelStyle = {
-  marginBottom: "4px",
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.05em",
-  textTransform: "uppercase",
-  color: "#6b7280",
-}
-
-const pickerMetaValueStyle = {
+const pickerSummaryTextStyle = {
   fontSize: "13px",
   lineHeight: 1.4,
-  fontWeight: "800",
-  color: "#18202b",
+  fontWeight: "700",
+  color: "#566173",
   overflowWrap: "anywhere",
 }
 
-const pickerActionHintStyle = {
-  marginTop: "10px",
+const pickerSummaryDividerStyle = {
+  fontSize: "12px",
+  color: "#94a3b8",
+}
+
+const pickerSecondarySummaryStyle = {
+  marginTop: "4px",
   fontSize: "13px",
+  lineHeight: 1.5,
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const pickerActionHintStyle = {
+  marginTop: "8px",
+  fontSize: "12px",
   fontWeight: "700",
   color: "#566173",
 }
@@ -10313,11 +10298,11 @@ const pickerActionHintStyle = {
 const passPreviewCardStyle = {
   width: "100%",
   marginTop: 0,
-  padding: "22px",
-  borderRadius: "24px",
+  padding: "18px",
+  borderRadius: "20px",
   border: "1px solid #dfe7ef",
   background: "linear-gradient(180deg, rgba(255,255,255,1), rgba(247,250,252,0.98))",
-  boxShadow: "0 18px 36px rgba(24, 32, 43, 0.08)",
+  boxShadow: "0 14px 30px rgba(24, 32, 43, 0.08)",
 }
 
 const passPreviewEyebrowStyle = {
@@ -10371,30 +10356,41 @@ const passPreviewListWrapStyle = {
   marginBottom: 0,
 }
 
-const passPreviewListStyle = {
-  display: "flex",
-  flexWrap: "wrap",
+const passPreviewExerciseStackStyle = {
+  display: "grid",
   gap: "8px",
 }
 
 const passPreviewListItemStyle = {
-  display: "inline-flex",
-  padding: "8px 12px",
-  borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
+  display: "grid",
+  gridTemplateColumns: "28px minmax(0, 1fr)",
+  alignItems: "center",
+  gap: "10px",
+  padding: "9px 10px",
+  borderRadius: "14px",
+  backgroundColor: "#f8fbff",
+  border: "1px solid #dbe5ef",
+  color: "#18202b",
   fontSize: "13px",
   fontWeight: "800",
 }
 
-const passPreviewListMoreStyle = {
+const passPreviewExerciseIndexStyle = {
   display: "inline-flex",
-  padding: "8px 12px",
+  width: "28px",
+  height: "28px",
+  alignItems: "center",
+  justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#f5f6f8",
-  color: "#566173",
-  fontSize: "13px",
+  backgroundColor: "#eef4ff",
+  color: "#274690",
+  fontSize: "12px",
   fontWeight: "800",
+}
+
+const passPreviewExerciseNameStyle = {
+  minWidth: 0,
+  overflowWrap: "anywhere",
 }
 
 const passPreviewEmptyStyle = {
