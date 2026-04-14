@@ -8016,7 +8016,16 @@ function TrainingApp() {
                           const isRecommended = index === 0 && group.entries.length > 1
 
                           return (
-                            <div key={key} style={passPickerItemStyle}>
+                            <div
+                              key={key}
+                              style={{
+                                ...passPickerItemStyle,
+                                borderColor: isSelected ? "#c62828" : passPickerItemStyle.borderColor,
+                                background: isSelected
+                                  ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
+                                  : passPickerItemStyle.background,
+                              }}
+                            >
                               <button
                                 type="button"
                                 onClick={() => {
@@ -8025,10 +8034,7 @@ function TrainingApp() {
                                 aria-pressed={isSelected}
                                 style={{
                                   ...pickerButtonStyle,
-                                  border: isSelected ? "2px solid #c62828" : pickerButtonStyle.border,
-                                  background: isSelected
-                                    ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
-                                    : pickerButtonStyle.background,
+                                  marginBottom: 0,
                                 }}
                               >
                                 <div style={pickerHeaderRowStyle}>
@@ -8101,16 +8107,6 @@ function TrainingApp() {
                                     padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
                                   }}
                                 >
-                                  <div style={passPreviewEyebrowStyle}>Valt pass</div>
-                                  <div
-                                    style={{
-                                      ...passPreviewTitleStyle,
-                                      fontSize: isMobile ? "20px" : passPreviewTitleStyle.fontSize,
-                                    }}
-                                  >
-                                    {workout.label}
-                                  </div>
-
                                   <div style={passPreviewContentCardStyle}>
                                     {workout.info && (
                                       <div style={{ marginBottom: "14px" }}>
@@ -10202,18 +10198,22 @@ const passPickerItemStyle = {
   gap: "8px",
   width: "100%",
   minWidth: 0,
+  padding: "14px 15px",
+  borderRadius: "16px",
+  border: "1px solid #dfe7ef",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,252,0.96))",
+  boxShadow: "0 10px 22px rgba(24, 32, 43, 0.05)",
+  overflow: "hidden",
 }
 
 const pickerButtonStyle = {
   width: "100%",
-  padding: "14px 15px",
-  borderRadius: "16px",
-  border: "1px solid #dfe7ef",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,252,0.96))",
+  padding: 0,
+  borderRadius: 0,
+  border: "none",
+  background: "transparent",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 10px 22px rgba(24, 32, 43, 0.05)",
 }
 
 const pickerHeaderRowStyle = {
@@ -10298,32 +10298,13 @@ const pickerActionHintStyle = {
 const passPreviewCardStyle = {
   width: "100%",
   marginTop: 0,
-  padding: "18px",
-  borderRadius: "20px",
-  border: "1px solid #dfe7ef",
-  background: "linear-gradient(180deg, rgba(255,255,255,1), rgba(247,250,252,0.98))",
-  boxShadow: "0 14px 30px rgba(24, 32, 43, 0.08)",
-}
-
-const passPreviewEyebrowStyle = {
-  fontSize: "12px",
-  color: "#46607a",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-  marginBottom: "8px",
-}
-
-const passPreviewTitleStyle = {
-  fontSize: "24px",
-  color: "#18202b",
-  fontWeight: "900",
-  marginBottom: "6px",
+  padding: "14px 0 0",
+  borderTop: "1px solid #ead4d4",
 }
 
 const passPreviewContentCardStyle = {
   padding: "14px",
-  borderRadius: "18px",
+  borderRadius: "14px",
   border: "1px solid #e1e8f0",
   backgroundColor: "#ffffff",
   marginBottom: "14px",
