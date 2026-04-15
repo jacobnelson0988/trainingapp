@@ -1104,6 +1104,7 @@ function TrainingApp() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
   const [selectedPlayerAssignedPasses, setSelectedPlayerAssignedPasses] = useState([])
+  const [passAssignmentPlayerIdsByPass, setPassAssignmentPlayerIdsByPass] = useState({})
   const [isUpdatingPassAssignments, setIsUpdatingPassAssignments] = useState(false)
   const [assignedWorkoutCodes, setAssignedWorkoutCodes] = useState([])
   const [playerExerciseRepTargets, setPlayerExerciseRepTargets] = useState({})
@@ -1336,6 +1337,16 @@ function TrainingApp() {
       loadSelectedPlayerHistoryAndGoals(selectedPlayer.id)
     }
   }, [selectedPlayer, exercisesFromDB])
+
+  useEffect(() => {
+    if (profile?.role !== "coach") {
+      setPassAssignmentPlayerIdsByPass({})
+      return
+    }
+
+    const coachPlayerIds = players.filter((player) => player?.role === "player").map((player) => player.id)
+    loadPassAssignmentPlayerIdsByPass(coachPlayerIds)
+  }, [players, profile?.role])
 
   useEffect(() => {
     if (user) {
@@ -3106,6 +3117,48 @@ function TrainingApp() {
     setTargetDrafts(draftMap)
     setSelectedPlayerAssignedPasses(Array.from(assignedPasses))
     setIsLoadingTargets(false)
+  }
+
+  const loadPassAssignmentPlayerIdsByPass = async (playerIdsOverride = null) => {
+    const scopedPlayerIds = Array.from(
+      new Set(
+        (playerIdsOverride ||
+          players.filter((player) => player?.role === "player").map((player) => player.id)
+        ).filter(Boolean)
+      )
+    )
+
+    if (scopedPlayerIds.length === 0) {
+      setPassAssignmentPlayerIdsByPass({})
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("player_exercise_targets")
+      .select("player_id, pass_name")
+      .eq("exercise_name", PASS_ASSIGNMENT_EXERCISE_NAME)
+      .in("player_id", scopedPlayerIds)
+
+    if (error) {
+      console.error(error)
+      setPassAssignmentPlayerIdsByPass({})
+      return
+    }
+
+    const nextMap = {}
+
+    ;(data || []).forEach((row) => {
+      if (!row?.pass_name || !row?.player_id) return
+      if (!nextMap[row.pass_name]) {
+        nextMap[row.pass_name] = []
+      }
+
+      if (!nextMap[row.pass_name].includes(row.player_id)) {
+        nextMap[row.pass_name].push(row.player_id)
+      }
+    })
+
+    setPassAssignmentPlayerIdsByPass(nextMap)
   }
 
   const loadSelectedPlayerHistoryAndGoals = async (playerId) => {
@@ -5362,6 +5415,69 @@ function TrainingApp() {
       await loadPlayerTargets(selectedPlayer.id)
     }
 
+    await loadPassAssignmentPlayerIdsByPass(validPlayerIds)
+
+    setIsUpdatingPassAssignments(false)
+    return true
+  }
+
+  const handleSavePassAssignmentsToPlayers = async (passName, selectedPlayerIds, scopePlayerIds) => {
+    const validScopePlayerIds = Array.from(new Set((scopePlayerIds || []).filter(Boolean)))
+    const nextSelectedPlayerIds = Array.from(new Set((selectedPlayerIds || []).filter(Boolean)))
+
+    if (!passName || validScopePlayerIds.length === 0) {
+      setStatus("Det finns inga spelare att uppdatera för det här passet")
+      return false
+    }
+
+    const playerIdsToKeepAssigned = nextSelectedPlayerIds.filter((playerId) => validScopePlayerIds.includes(playerId))
+    const playerIdsToRemove = validScopePlayerIds.filter((playerId) => !playerIdsToKeepAssigned.includes(playerId))
+
+    setIsUpdatingPassAssignments(true)
+
+    if (playerIdsToRemove.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("player_exercise_targets")
+        .delete()
+        .eq("pass_name", passName)
+        .in("player_id", playerIdsToRemove)
+
+      if (deleteError) {
+        console.error(deleteError)
+        setStatus("Kunde inte uppdatera passtilldelningarna")
+        setIsUpdatingPassAssignments(false)
+        return false
+      }
+    }
+
+    if (playerIdsToKeepAssigned.length > 0) {
+      const rows = playerIdsToKeepAssigned.flatMap((playerId) => buildPassAssignmentRowsForPlayer(playerId, passName))
+
+      const { error: upsertError } = await supabase
+        .from("player_exercise_targets")
+        .upsert(rows, { onConflict: "player_id,pass_name,exercise_name" })
+
+      if (upsertError) {
+        console.error(upsertError)
+        setStatus("Kunde inte uppdatera passtilldelningarna")
+        setIsUpdatingPassAssignments(false)
+        return false
+      }
+    }
+
+    const passLabel = activeWorkouts[passName]?.label || passName
+
+    if (playerIdsToKeepAssigned.length === 0) {
+      setStatus(`${passLabel} borttaget från alla markerade spelare ✅`)
+    } else {
+      setStatus(`Tilldelningar sparade för ${passLabel} ✅`)
+    }
+
+    if (selectedPlayer && validScopePlayerIds.includes(selectedPlayer.id)) {
+      await loadPlayerTargets(selectedPlayer.id)
+    }
+
+    await loadPassAssignmentPlayerIdsByPass(validScopePlayerIds)
     setIsUpdatingPassAssignments(false)
     return true
   }
@@ -5386,6 +5502,7 @@ function TrainingApp() {
 
     setStatus(`${activeWorkouts[passName]?.label || passName} borttaget ✅`)
     await loadPlayerTargets(selectedPlayer.id)
+    await loadPassAssignmentPlayerIdsByPass()
     setIsUpdatingPassAssignments(false)
   }
 
@@ -7423,6 +7540,8 @@ function TrainingApp() {
                 handleMoveExerciseInPass={handleMoveExerciseInPass}
                 handleDeletePass={handleDeleteSelectedPass}
                 handleAssignPassToPlayers={handleAssignPassToPlayers}
+                handleSavePassAssignmentsToPlayers={handleSavePassAssignmentsToPlayers}
+                passAssignmentPlayerIdsByPass={passAssignmentPlayerIdsByPass}
                 resetPassEditorState={resetPassEditorState}
                 cardTitleStyle={cardTitleStyle}
                 secondaryButtonStyle={secondaryButtonStyle}

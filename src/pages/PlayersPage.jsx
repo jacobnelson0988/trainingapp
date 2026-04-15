@@ -1093,6 +1093,106 @@ function PlayersPage({
           <div style={utilityButtonMetaStyle}>Öppna lagets spelare direkt under knappen</div>
         </button>
 
+        {activeUtilityPanel === "players" && (
+          <div style={isMobile ? inlineUtilityPanelStyle : { ...inlineUtilityPanelStyle, gridColumn: "1 / -1" }}>
+            <div style={inlineUtilityPanelHeaderStyle}>
+              <div>
+                <div style={inlineUtilityPanelTitleStyle}>Spelare</div>
+                <div style={inlineUtilityPanelMetaStyle}>
+                  Öppna en spelare direkt i listan. Själva redigeringen ligger kvar inline i samma kort.
+                </div>
+              </div>
+            </div>
+
+            <div style={listToolbarStyle(isMobile)}>
+              <input
+                type="text"
+                placeholder="Sök spelare"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
+
+              <label style={archivedToggleWrapStyle}>
+                <input
+                  type="checkbox"
+                  checked={showArchivedPlayers}
+                  onChange={(e) => setShowArchivedPlayers(e.target.checked)}
+                />
+                <span>Visa arkiverade</span>
+              </label>
+            </div>
+
+            <div style={listHeaderRowStyle}>
+              <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: 0 }}>Spelare</div>
+              <div style={listHeaderMetaStyle}>{filteredPlayers.length} i listan</div>
+            </div>
+
+            {isLoadingPlayers ? (
+              <p style={mutedTextStyle}>Laddar spelare...</p>
+            ) : filteredPlayers.length === 0 ? (
+              <p style={mutedTextStyle}>Inga spelare matchar sökningen</p>
+            ) : (
+              <div style={{ display: "grid", gap: "10px" }}>
+                {filteredPlayers.map((player) => (
+                  <div
+                    key={player.id}
+                    style={{
+                      padding: "14px",
+                      borderRadius: "16px",
+                      border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
+                      backgroundColor: "#ffffff",
+                      boxShadow:
+                        selectedPlayer?.id === player.id
+                          ? "0 12px 24px rgba(198, 40, 40, 0.08)"
+                          : "0 8px 18px rgba(24, 32, 43, 0.04)",
+                    }}
+                  >
+                    <div style={playerCardTopRowStyle}>
+                      <label style={playerBulkSelectStyle}>
+                        <input
+                          type="checkbox"
+                          checked={bulkSelectedPlayerIds.includes(player.id)}
+                          onChange={() => handleToggleBulkSelectedPlayer(player.id)}
+                        />
+                        <span>Välj</span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
+                        style={{
+                          ...playerExpandButtonStyle,
+                          color: selectedPlayer?.id === player.id ? "#991b1b" : "#6b7280",
+                        }}
+                      >
+                        {selectedPlayer?.id === player.id ? "−" : "+"}
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
+                      style={playerCardButtonStyle}
+                    >
+                      <div style={playerCardNameStyle}>
+                        {player.full_name}
+                        {player.is_archived ? " • arkiverad" : ""}
+                      </div>
+                      <div style={playerCardMetaStyle}>
+                        @{player.username}
+                        {player.latestPass && player.latestPass !== "-" ? ` • ${player.latestPass}` : ""}
+                      </div>
+                    </button>
+
+                    {selectedPlayer?.id === player.id && renderPlayerEditor(player)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {role === "coach" && (
           <button
             type="button"
@@ -1333,109 +1433,6 @@ function PlayersPage({
         </div>
       )}
 
-      {activeUtilityPanel === "players" && (
-        <div style={inlineUtilityPanelStyle}>
-          <div style={inlineUtilityPanelHeaderStyle}>
-            <div>
-              <div style={inlineUtilityPanelTitleStyle}>Spelare</div>
-              <div style={inlineUtilityPanelMetaStyle}>
-                Öppna en spelare direkt i listan. Själva redigeringen ligger kvar inline i samma kort.
-              </div>
-            </div>
-          </div>
-
-          <div style={listToolbarStyle(isMobile)}>
-            <input
-              type="text"
-              placeholder="Sök spelare"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              style={{ ...inputStyle, width: "100%" }}
-            />
-
-            <label style={archivedToggleWrapStyle}>
-              <input
-                type="checkbox"
-                checked={showArchivedPlayers}
-                onChange={(e) => setShowArchivedPlayers(e.target.checked)}
-              />
-              <span>Visa arkiverade</span>
-            </label>
-          </div>
-
-          <div style={listHeaderRowStyle}>
-            <div style={{ ...cardTitleStyle, fontSize: "18px", marginBottom: 0 }}>Spelare</div>
-            <div style={listHeaderMetaStyle}>{filteredPlayers.length} i listan</div>
-          </div>
-
-          {isLoadingPlayers ? (
-            <p style={mutedTextStyle}>Laddar spelare...</p>
-          ) : filteredPlayers.length === 0 ? (
-            <p style={mutedTextStyle}>Inga spelare matchar sökningen</p>
-          ) : (
-            <div style={{ display: "grid", gap: "10px" }}>
-              {filteredPlayers.map((player) => (
-                <div
-                  key={player.id}
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
-                    backgroundColor: "#ffffff",
-                    boxShadow:
-                      selectedPlayer?.id === player.id
-                        ? "0 12px 24px rgba(198, 40, 40, 0.08)"
-                        : "0 8px 18px rgba(24, 32, 43, 0.04)",
-                  }}
-                >
-                  <div style={playerCardTopRowStyle}>
-                    <label style={playerBulkSelectStyle}>
-                      <input
-                        type="checkbox"
-                        checked={bulkSelectedPlayerIds.includes(player.id)}
-                        onChange={() => handleToggleBulkSelectedPlayer(player.id)}
-                      />
-                      <span>Välj</span>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
-                      style={{
-                        ...playerExpandButtonStyle,
-                        color: selectedPlayer?.id === player.id ? "#991b1b" : "#6b7280",
-                      }}
-                    >
-                      {selectedPlayer?.id === player.id ? "−" : "+"}
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
-                    style={playerCardMainButtonStyle}
-                  >
-                    <div style={{ fontSize: "16px", fontWeight: "800", color: "#111827", marginBottom: "6px" }}>
-                      {player.full_name}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "8px" }}>
-                      <span style={mobilePlayerMetaPillStyle}>Senaste pass: {player.latestPass || "-"}</span>
-                      {player.lastSignInAt ? (
-                        <span style={mobilePlayerMetaPillStyle}>
-                          Inloggad {new Date(player.lastSignInAt).toLocaleDateString("sv-SE")}
-                        </span>
-                      ) : null}
-                      {player.is_archived && <span style={mobileArchivedPillStyle}>Arkiverad</span>}
-                    </div>
-                  </button>
-
-                  {selectedPlayer?.id === player.id && renderPlayerEditor(player)}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

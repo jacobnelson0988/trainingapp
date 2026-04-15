@@ -337,6 +337,8 @@ function PassBuilderPage({
   handleMoveExerciseInPass,
   handleDeletePass,
   handleAssignPassToPlayers,
+  handleSavePassAssignmentsToPlayers,
+  passAssignmentPlayerIdsByPass,
   resetPassEditorState,
   cardTitleStyle,
   secondaryButtonStyle,
@@ -380,6 +382,11 @@ function PassBuilderPage({
     setIsAssignMenuOpen(false)
     setSelectedAssignPlayerIds([])
   }, [selectedTemplateCode])
+
+  useEffect(() => {
+    if (!isAssignMenuOpen || !selectedTemplateCode) return
+    setSelectedAssignPlayerIds(passAssignmentPlayerIdsByPass?.[selectedTemplateCode] || [])
+  }, [isAssignMenuOpen, selectedTemplateCode, passAssignmentPlayerIdsByPass])
 
   useEffect(() => {
     if (view !== "edit" || activeEditSection !== "exercises") return
@@ -507,25 +514,20 @@ function PassBuilderPage({
     )
   }
 
-  const handleAssignSelectedPlayers = async () => {
-    const didAssign = await handleAssignPassToPlayers(selectedTemplateCode, selectedAssignPlayerIds)
+  const handleSaveAssignmentSelection = async () => {
+    const didAssign = await handleSavePassAssignmentsToPlayers(
+      selectedTemplateCode,
+      selectedAssignPlayerIds,
+      assignablePlayers.map((player) => player.id)
+    )
 
     if (didAssign) {
       setIsAssignMenuOpen(false)
-      setSelectedAssignPlayerIds([])
     }
   }
 
-  const handleAssignAllPlayers = async () => {
-    const allPlayerIds = assignablePlayers.map((player) => player.id)
-    const didAssign = await handleAssignPassToPlayers(selectedTemplateCode, allPlayerIds, {
-      allPlayers: true,
-    })
-
-    if (didAssign) {
-      setIsAssignMenuOpen(false)
-      setSelectedAssignPlayerIds([])
-    }
+  const handleSelectAllPlayersForAssignment = () => {
+    setSelectedAssignPlayerIds(assignablePlayers.map((player) => player.id))
   }
 
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
@@ -581,6 +583,10 @@ function PassBuilderPage({
     () => buildHrgProgramSummaries(exercisesFromDB),
     [exercisesFromDB]
   )
+  const assignedPlayerIdsForSelectedPass = passAssignmentPlayerIdsByPass?.[selectedTemplateCode] || []
+  const hasAssignmentSelectionChanged =
+    selectedAssignPlayerIds.length !== assignedPlayerIdsForSelectedPass.length ||
+    selectedAssignPlayerIds.some((playerId) => !assignedPlayerIdsForSelectedPass.includes(playerId))
 
   if (view === "create") {
     return (
@@ -1759,16 +1765,16 @@ function PassBuilderPage({
                                 <div>
                                   <div style={selectedPassMetricLabelStyle}>Tilldela till spelare</div>
                                   <div style={assignmentHelperTextStyle}>
-                                    Välj alla direkt eller markera enskilda spelare i listan.
+                                    Markerade spelare har passet. Kryssa ur och spara för att ta bort tilldelningen.
                                   </div>
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={handleAssignAllPlayers}
+                                  onClick={handleSelectAllPlayersForAssignment}
                                   style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
                                   disabled={assignablePlayers.length === 0}
                                 >
-                                  Tilldela alla
+                                  Välj alla
                                 </button>
                               </div>
 
@@ -1810,11 +1816,11 @@ function PassBuilderPage({
                                     </div>
                                     <button
                                       type="button"
-                                      onClick={handleAssignSelectedPlayers}
+                                      onClick={handleSaveAssignmentSelection}
                                       style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                                      disabled={selectedAssignPlayerIds.length === 0}
+                                      disabled={!hasAssignmentSelectionChanged}
                                     >
-                                      Tilldela markerade
+                                      Spara
                                     </button>
                                   </div>
                                 </>
