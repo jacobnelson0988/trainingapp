@@ -1174,7 +1174,7 @@ function PlayersPage({
                     <button
                       type="button"
                       onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
-                      style={playerCardButtonStyle}
+                      style={playerCardMainButtonStyle}
                     >
                       <div style={playerCardNameStyle}>
                         {player.full_name}
