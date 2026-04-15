@@ -13,6 +13,7 @@ const FREE_ACTIVITY_LABELS = {
   running: "Löpning",
   football: "Fotboll",
   orienteering: "Orientering",
+  swimming: "Simning",
 }
 
 const formatDisplayPassName = (passName, workoutKind, runningOrigin, freeActivityType = "running") => {
