@@ -187,6 +187,8 @@ const getWorkoutKindLabel = (workoutKind) => {
   return "Gympass"
 }
 
+const getGymPassTypeLabel = (gymPassType) => (gymPassType === "shared" ? "Gemensamt gympass" : "Individuellt gympass")
+
 const getDraftTargetRepsValue = (exercise, passExerciseDrafts) => {
   const draft = passExerciseDrafts?.[exercise.id]
   if (draft?.targetReps !== undefined) return draft.targetReps
@@ -280,6 +282,8 @@ function PassBuilderPage({
   setNewPassWarmupTechnique,
   newPassWorkoutKind,
   setNewPassWorkoutKind,
+  newPassGymPassType,
+  setNewPassGymPassType,
   newPassRunningType,
   setNewPassRunningType,
   newPassRunningIntervalTime,
@@ -304,6 +308,8 @@ function PassBuilderPage({
   setRenamePassWarmupTechnique,
   renamePassWorkoutKind,
   setRenamePassWorkoutKind,
+  renamePassGymPassType,
+  setRenamePassGymPassType,
   renamePassRunningType,
   setRenamePassRunningType,
   renamePassRunningIntervalTime,
@@ -641,6 +647,20 @@ function PassBuilderPage({
                 </select>
               </div>
 
+              {newPassWorkoutKind === "gym" && (
+                <div>
+                  <div style={fieldLabelStyle}>Upplägg för gympasset</div>
+                  <select
+                    value={newPassGymPassType}
+                    onChange={(e) => setNewPassGymPassType(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    <option value="individual">Individuellt gympass</option>
+                    <option value="shared">Gemensamt gympass</option>
+                  </select>
+                </div>
+              )}
+
               {newPassWorkoutKind === "running" && (
                 <>
                   <div>
@@ -888,6 +908,20 @@ function PassBuilderPage({
                   <option value="running">Löppass</option>
                 </select>
               </div>
+
+              {renamePassWorkoutKind === "gym" && (
+                <div>
+                  <div style={fieldLabelStyle}>Upplägg för gympasset</div>
+                  <select
+                    value={renamePassGymPassType}
+                    onChange={(e) => setRenamePassGymPassType(e.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    <option value="individual">Individuellt gympass</option>
+                    <option value="shared">Gemensamt gympass</option>
+                  </select>
+                </div>
+              )}
 
               {renamePassWorkoutKind === "running" && (
                 <>
@@ -1671,7 +1705,7 @@ function PassBuilderPage({
                                   workout.runningType,
                                   workout.runningConfig
                                 )}`
-                              : `${getWorkoutKindLabel(workout.workoutKind)} • ${(workout.exercises || []).length} övningar`}
+                              : `${workout.workoutKind === "gym" ? getGymPassTypeLabel(workout.gymPassType) : getWorkoutKindLabel(workout.workoutKind)} • ${(workout.exercises || []).length} övningar`}
                           </div>
                         </div>
                         <div
@@ -1714,7 +1748,11 @@ function PassBuilderPage({
                         <div style={selectedPassInfoStyle}>
                           <div style={selectedPassMetricStyle}>
                             <div style={selectedPassMetricLabelStyle}>Kategori</div>
-                            <div style={selectedPassMetricValueStyle}>{getWorkoutKindLabel(workout.workoutKind)}</div>
+                            <div style={selectedPassMetricValueStyle}>
+                              {workout.workoutKind === "gym"
+                                ? getGymPassTypeLabel(workout.gymPassType)
+                                : getWorkoutKindLabel(workout.workoutKind)}
+                            </div>
                           </div>
 
                           <div style={selectedPassMetricStyle}>

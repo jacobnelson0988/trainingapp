@@ -318,8 +318,17 @@ const getWorkoutKindLabel = (workoutKind) => {
   return "Gympass"
 }
 
-const getPlayerWorkoutKindTheme = (workoutKind) => {
-  if (workoutKind === "running") {
+const getGymPassTypeLabel = (gymPassType) => (gymPassType === "shared" ? "Gemensamt gympass" : "Individuellt gympass")
+
+const getPlayerWorkoutGroupKey = (workout) => {
+  const workoutKind = workout?.workoutKind || "gym"
+  if (workoutKind === "running") return "running"
+  if (workoutKind === "prehab") return "prehab"
+  return workout?.gymPassType === "shared" ? "gym_shared" : "gym_individual"
+}
+
+const getPlayerWorkoutKindTheme = (groupKey) => {
+  if (groupKey === "running") {
     return {
       title: "Löppass",
       description: "Distans och intervaller du kan köra när du vill.",
@@ -330,7 +339,7 @@ const getPlayerWorkoutKindTheme = (workoutKind) => {
     }
   }
 
-  if (workoutKind === "prehab") {
+  if (groupKey === "prehab") {
     return {
       title: "Skadeförebyggande",
       description: "Pass för kontroll, stabilitet och hållbarhet över tid.",
@@ -341,13 +350,24 @@ const getPlayerWorkoutKindTheme = (workoutKind) => {
     }
   }
 
+  if (groupKey === "gym_shared") {
+    return {
+      title: "Gemensamma gympass",
+      description: "Pass som tränaren markerat som gemensamma för laget.",
+      badgeBackground: "#fff1f1",
+      badgeColor: "#b61e24",
+      sectionBackground: "#fffdfd",
+      sectionBorder: "#f0dcdc",
+    }
+  }
+
   return {
-    title: "Gympass",
-    description: "Styrkepass med övningar, målvikter och progression.",
-    badgeBackground: "#fff1f1",
-    badgeColor: "#b61e24",
-    sectionBackground: "#fffdfd",
-    sectionBorder: "#f0dcdc",
+    title: "Individuella gympass",
+    description: "Pass du kan köra när det passar, med övningar, målvikter och progression.",
+    badgeBackground: "#fef3c7",
+    badgeColor: "#92400e",
+    sectionBackground: "#fffdf7",
+    sectionBorder: "#f3e3b5",
   }
 }
 
@@ -1114,6 +1134,7 @@ function TrainingApp() {
   const [newPassWarmupCardio, setNewPassWarmupCardio] = useState("")
   const [newPassWarmupTechnique, setNewPassWarmupTechnique] = useState("")
   const [newPassWorkoutKind, setNewPassWorkoutKind] = useState("gym")
+  const [newPassGymPassType, setNewPassGymPassType] = useState("individual")
   const [newPassRunningType, setNewPassRunningType] = useState("intervals")
   const [newPassRunningIntervalTime, setNewPassRunningIntervalTime] = useState("")
   const [newPassRunningIntervalsCount, setNewPassRunningIntervalsCount] = useState("")
@@ -1126,6 +1147,7 @@ function TrainingApp() {
   const [renamePassWarmupCardio, setRenamePassWarmupCardio] = useState("")
   const [renamePassWarmupTechnique, setRenamePassWarmupTechnique] = useState("")
   const [renamePassWorkoutKind, setRenamePassWorkoutKind] = useState("gym")
+  const [renamePassGymPassType, setRenamePassGymPassType] = useState("individual")
   const [renamePassRunningType, setRenamePassRunningType] = useState("intervals")
   const [renamePassRunningIntervalTime, setRenamePassRunningIntervalTime] = useState("")
   const [renamePassRunningIntervalsCount, setRenamePassRunningIntervalsCount] = useState("")
@@ -1409,6 +1431,7 @@ function TrainingApp() {
     setRenamePassWarmupCardio(selectedTemplate?.warmup_cardio || "")
     setRenamePassWarmupTechnique(selectedTemplate?.warmup_technique || "")
     setRenamePassWorkoutKind(selectedTemplate?.workout_kind || "gym")
+    setRenamePassGymPassType(selectedTemplate?.gym_pass_type || "individual")
     setRenamePassRunningType(selectedTemplate?.running_type || "intervals")
     setRenamePassRunningIntervalTime(selectedTemplate?.running_interval_time || "")
     setRenamePassRunningIntervalsCount(
@@ -1649,6 +1672,7 @@ function TrainingApp() {
         label: template.label,
         info: template.info || "",
         workoutKind: template.workout_kind || "gym",
+        gymPassType: template.gym_pass_type || "individual",
         runningType: template.running_type || "intervals",
         runningConfig: {
           interval_time: template.running_interval_time || "",
@@ -3531,6 +3555,7 @@ function TrainingApp() {
     setRenamePassWarmupCardio(selectedTemplate?.warmup_cardio || "")
     setRenamePassWarmupTechnique(selectedTemplate?.warmup_technique || "")
     setRenamePassWorkoutKind(selectedTemplate?.workout_kind || "gym")
+    setRenamePassGymPassType(selectedTemplate?.gym_pass_type || "individual")
     setRenamePassRunningType(selectedTemplate?.running_type || "intervals")
     setRenamePassRunningIntervalTime(selectedTemplate?.running_interval_time || "")
     setRenamePassRunningIntervalsCount(
@@ -6208,6 +6233,7 @@ function TrainingApp() {
     const nextWarmupCardioValue = renamePassWarmupCardio.trim()
     const nextWarmupTechniqueValue = renamePassWarmupTechnique.trim()
     const nextWorkoutKind = renamePassWorkoutKind || "gym"
+    const nextGymPassType = renamePassGymPassType || "individual"
     const nextRunningType = renamePassRunningType || "intervals"
     const nextRunningIntervalTime = renamePassRunningIntervalTime.trim()
     const nextRunningIntervalsCount = renamePassRunningIntervalsCount.trim()
@@ -6218,6 +6244,7 @@ function TrainingApp() {
     const hasWarmupTechniqueChange =
       nextWarmupTechniqueValue !== (selectedTemplate.warmup_technique || "")
     const hasWorkoutKindChange = nextWorkoutKind !== (selectedTemplate.workout_kind || "gym")
+    const hasGymPassTypeChange = nextGymPassType !== (selectedTemplate.gym_pass_type || "individual")
     const hasRunningConfigChange =
       nextRunningType !== (selectedTemplate.running_type || "intervals") ||
       nextRunningIntervalTime !== (selectedTemplate.running_interval_time || "") ||
@@ -6238,6 +6265,7 @@ function TrainingApp() {
       !hasWarmupCardioChange &&
       !hasWarmupTechniqueChange &&
       !hasWorkoutKindChange &&
+      !hasGymPassTypeChange &&
       !hasRunningConfigChange &&
       updates.length === 0
     ) {
@@ -6254,6 +6282,7 @@ function TrainingApp() {
       hasWarmupCardioChange ||
       hasWarmupTechniqueChange ||
       hasWorkoutKindChange ||
+      hasGymPassTypeChange ||
       hasRunningConfigChange
     ) {
       let { data, error } = await supabase
@@ -6264,6 +6293,7 @@ function TrainingApp() {
           warmup_cardio: nextWarmupCardioValue || null,
           warmup_technique: nextWarmupTechniqueValue || null,
           workout_kind: nextWorkoutKind,
+          gym_pass_type: nextWorkoutKind === "gym" ? nextGymPassType : null,
           running_type: nextWorkoutKind === "running" ? nextRunningType : null,
           running_interval_time: nextWorkoutKind === "running" ? nextRunningIntervalTime || null : null,
           running_intervals_count:
@@ -6289,6 +6319,7 @@ function TrainingApp() {
             warmup_cardio: nextWarmupCardioValue || null,
             warmup_technique: nextWarmupTechniqueValue || null,
             workout_kind: nextWorkoutKind,
+            gym_pass_type: nextWorkoutKind === "gym" ? nextGymPassType : null,
             running_type: nextWorkoutKind === "running" ? nextRunningType : null,
             running_interval_time: nextWorkoutKind === "running" ? nextRunningIntervalTime || null : null,
             running_intervals_count:
@@ -6325,6 +6356,7 @@ function TrainingApp() {
             label: data.label,
             info: data.info || "",
             workoutKind: data.workout_kind || "gym",
+            gymPassType: data.gym_pass_type || "individual",
             runningType: data.running_type || "intervals",
             runningConfig: {
               interval_time: data.running_interval_time || "",
@@ -6510,6 +6542,7 @@ function TrainingApp() {
         warmup_cardio: newPassWarmupCardio.trim() || null,
         warmup_technique: newPassWarmupTechnique.trim() || null,
         workout_kind: newPassWorkoutKind || "gym",
+        gym_pass_type: (newPassWorkoutKind || "gym") === "gym" ? newPassGymPassType || "individual" : null,
         running_type: newPassWorkoutKind === "running" ? newPassRunningType : null,
         running_interval_time:
           newPassWorkoutKind === "running" ? newPassRunningIntervalTime.trim() || null : null,
@@ -6539,6 +6572,7 @@ function TrainingApp() {
           warmup_cardio: newPassWarmupCardio.trim() || null,
           warmup_technique: newPassWarmupTechnique.trim() || null,
           workout_kind: newPassWorkoutKind || "gym",
+          gym_pass_type: (newPassWorkoutKind || "gym") === "gym" ? newPassGymPassType || "individual" : null,
           running_type: newPassWorkoutKind === "running" ? newPassRunningType : null,
           running_interval_time:
             newPassWorkoutKind === "running" ? newPassRunningIntervalTime.trim() || null : null,
@@ -6570,6 +6604,7 @@ function TrainingApp() {
     setNewPassWarmupCardio("")
     setNewPassWarmupTechnique("")
     setNewPassWorkoutKind("gym")
+    setNewPassGymPassType("individual")
     setNewPassRunningType("intervals")
     setNewPassRunningIntervalTime("")
     setNewPassRunningIntervalsCount("")
@@ -6755,18 +6790,18 @@ function TrainingApp() {
 
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
-  const groupedVisibleWorkoutEntries = ["gym", "prehab", "running"]
-    .map((workoutKind) => {
+  const groupedVisibleWorkoutEntries = ["gym_shared", "gym_individual", "prehab", "running"]
+    .map((groupKey) => {
       const entries = sortedVisibleWorkoutEntries.filter(
-        ([, workout]) => (workout?.workoutKind || "gym") === workoutKind
+        ([, workout]) => getPlayerWorkoutGroupKey(workout) === groupKey
       )
 
       if (entries.length === 0) return null
 
       return {
-        workoutKind,
+        workoutKind: groupKey,
         entries,
-        theme: getPlayerWorkoutKindTheme(workoutKind),
+        theme: getPlayerWorkoutKindTheme(groupKey),
       }
     })
     .filter(Boolean)
@@ -7483,6 +7518,8 @@ function TrainingApp() {
                 setNewPassWarmupTechnique={setNewPassWarmupTechnique}
                 newPassWorkoutKind={newPassWorkoutKind}
                 setNewPassWorkoutKind={setNewPassWorkoutKind}
+                newPassGymPassType={newPassGymPassType}
+                setNewPassGymPassType={setNewPassGymPassType}
                 newPassRunningType={newPassRunningType}
                 setNewPassRunningType={setNewPassRunningType}
                 newPassRunningIntervalTime={newPassRunningIntervalTime}
@@ -7507,6 +7544,8 @@ function TrainingApp() {
                 setRenamePassWarmupTechnique={setRenamePassWarmupTechnique}
                 renamePassWorkoutKind={renamePassWorkoutKind}
                 setRenamePassWorkoutKind={setRenamePassWorkoutKind}
+                renamePassGymPassType={renamePassGymPassType}
+                setRenamePassGymPassType={setRenamePassGymPassType}
                 renamePassRunningType={renamePassRunningType}
                 setRenamePassRunningType={setRenamePassRunningType}
                 renamePassRunningIntervalTime={renamePassRunningIntervalTime}
@@ -8273,7 +8312,9 @@ function TrainingApp() {
                                           color: group.theme.badgeColor,
                                         }}
                                       >
-                                        {getWorkoutKindLabel(workout.workoutKind)}
+                                        {workout.workoutKind === "gym"
+                                          ? getGymPassTypeLabel(workout.gymPassType)
+                                          : getWorkoutKindLabel(workout.workoutKind)}
                                       </div>
                                       {isRecommended && (
                                         <div
