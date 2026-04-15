@@ -2,78 +2,77 @@
 
 Automatiskt exporterad lista över öppna feedbackposter i Supabase.
 
-Senast uppdaterad: 9 apr. 2026 23:29
+Senast uppdaterad: 15 apr. 2026 08:29
 Antal poster: 5
 
 ---
 
-## 1. Jacob Nelson
+## 1. Olle Nelson Ring
 
 - Status: Öppen
-- Roll: Tränare
+- Roll: Spelare
 - Lag: Gustavsberg P2012-2013
-- Skapad: 9 apr. 2026 17:44
+- Skapad: 14 apr. 2026 17:34
 - Status uppdaterad: -
-- Username: jac.nel2
-- ID: 1bd5b377-3ff6-40d9-99f4-af1b111035fd
+- Username: oll.rin1
+- ID: a242787a-1bfa-48ac-8269-cd49eba388db
 
 ### Feedback
 
-Målvikt ska vara övnings specifikt istället för passpecifikt men kopplade till antal reps inom intervaller. Alltså samma övning ska ha olika målvikter vid olika intervaller av repetitioner. De olika intervallerna för repetitioner ska vara 1-3, 4-5, 6-10, 11-15, 16-20. 
-Spelare ska kunna begära ändring av målvikt för övningar.
+Det borde finnas en "träningskalender" där man kan planera sina pass. Båda där tränare kan styra och där man själv som spelare kan lägga in planering.
 
-## 2. Jacob Nelson
+## 2. Olle Nelson Ring
 
 - Status: Öppen
-- Roll: Tränare
+- Roll: Spelare
 - Lag: Gustavsberg P2012-2013
-- Skapad: 9 apr. 2026 16:58
+- Skapad: 14 apr. 2026 17:24
 - Status uppdaterad: -
-- Username: jac.nel2
-- ID: 4d84a399-8893-4573-9ac8-9712eacb81c6
+- Username: oll.rin1
+- ID: a960f875-72b4-432a-9d32-463baa0b8a7b
 
 ### Feedback
 
-Som tränare ska man kunna tilldela pass till alla spelare direkt från pass-sidan. Antingen till alla eller till några, gör en drop down meny där man kan välja antingen alla med en knapp eller enstaka genom att markera.
+"gemensamma" gympass borde ha en egen kategori.
 
-## 3. Jacob Nelson
+## 3. Olle Nelson Ring
 
 - Status: Öppen
-- Roll: Tränare
+- Roll: Spelare
 - Lag: Gustavsberg P2012-2013
-- Skapad: 7 apr. 2026 20:13
+- Skapad: 10 apr. 2026 23:09
 - Status uppdaterad: -
-- Username: jac.nel2
-- ID: da2605c9-8748-4431-94d2-30fef5c96bde
+- Username: oll.rin1
+- ID: 4bd50887-3abc-48ba-a9a5-c1e0fe5aac84
 
 ### Feedback
 
-Jag vill ha en "aktivitets sida" för tränare, där ska det vara en enkel lista som loggar när spelare gör pass. Ett väldigt enkelt flöde med spelarens namn, vilket oss och datum. Sorterat på senaste datum. Man ska kunna filtrera på spelare.
+Det måste bli större skillnad på vad som är vad i appen. T.ex när man öppnar "Eget löppass" då ska man välja "distans" eller "intervaller" rutan ser då likadan ut för detta val som rutan under när man sak skriva in distansen i km. Alltså i default mode står det på rad 2 "Distans" och på rad 3 "Distans i km" och rutorna är för lika varandra. Det blir ingen bra användarupplevelse. Kan vi inte ha olika UX för "drop down" menyer och fält man ska fylla i? Det ska vara samma genom hela appen. Finns det fler specifika rutor vi borde ha? Tänk igenom och kom med förslag.
 
-## 4. Jacob Nelson
+## 4. Olle Nelson Ring
 
 - Status: Öppen
-- Roll: Tränare
+- Roll: Spelare
 - Lag: Gustavsberg P2012-2013
-- Skapad: 7 apr. 2026 20:04
+- Skapad: 10 apr. 2026 23:04
 - Status uppdaterad: -
-- Username: jac.nel2
-- ID: b0e12140-4359-47cb-bf5e-15795fa333aa
+- Username: oll.rin1
+- ID: d9ca40ba-a9f8-4eb3-a3db-4fd9027f5f79
 
 ### Feedback
 
-När man som tränare kollar på historik från en spelares pass så ser man bara siffrorna, inte vad de står för (set/reps/vikt). Det måste bli tydligare. Jag vill också att det är samma vy som för spelare (bläddra i kort) när man som tränare kollar på ett pass som en spelare har genomfört.
+Kan man göra statistiksidan mer lik "rep count" appen? Känner du till den?
 
 ## 5. Jacob Nelson
 
 - Status: Öppen
 - Roll: Tränare
 - Lag: Gustavsberg P2012-2013
-- Skapad: 7 apr. 2026 17:12
+- Skapad: 10 apr. 2026 07:26
 - Status uppdaterad: -
 - Username: jac.nel2
-- ID: 21dadd01-b905-43fc-9c52-32d3c9d1b920
+- ID: 9acf30ea-a3e6-4535-96f1-34ffd769079b
 
 ### Feedback
 
-I statistik fliken i tränarvyn ska spelarna ligga i en drop-down meny. Det gör flödet bättre.
+Tränare borde kunna skicka färdiga träningspass till andra lag. Upplägget skulle kunna vara att man har som en gemensam inspirationssida där alla tränare kan gå in. Där kan man om man vill ladda upp ett pass man tänker även skulle kunna passa andra lag. Nu kommer vi in på en intressant del för om man skulle utöka appen skulle detta troligen vara bäst som "föreninsspecifika" features. Man borde iaf kunna välja mellan att dela enbart med sin förening.

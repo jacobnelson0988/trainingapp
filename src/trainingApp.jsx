@@ -1392,8 +1392,8 @@ function TrainingApp() {
 
     const hasSelectedTemplate = templatesFromDB.some((template) => template.code === selectedTemplateCode)
 
-    if (!hasSelectedTemplate) {
-      setSelectedTemplateCode(templatesFromDB[0].code)
+    if (selectedTemplateCode && !hasSelectedTemplate) {
+      setSelectedTemplateCode("")
     }
   }, [selectedTemplateCode, templatesFromDB])
 
