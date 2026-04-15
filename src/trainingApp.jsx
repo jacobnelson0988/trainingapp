@@ -1182,7 +1182,7 @@ function TrainingApp() {
   const [savingWorkoutDateSessionId, setSavingWorkoutDateSessionId] = useState(null)
   const [runningDraft, setRunningDraft] = useState({
     log_date: getTodayDateInputValue(),
-    free_activity_type: "running",
+    free_activity_type: "",
     running_type: "distance",
     interval_time: "",
     intervals_count: "",
@@ -4355,6 +4355,10 @@ function TrainingApp() {
 
   const handleSaveRunningSession = async () => {
     if (!user) return
+    if (!runningDraft.free_activity_type) {
+      setStatus("Välj vilken aktivitet du vill registrera")
+      return
+    }
     if (!runningDraft.log_date) {
       setStatus("Välj ett giltigt datum för aktiviteten")
       return
@@ -4424,7 +4428,7 @@ function TrainingApp() {
     setRunningDraft((prev) => ({
       ...prev,
       log_date: getTodayDateInputValue(),
-      free_activity_type: "running",
+      free_activity_type: "",
       interval_time: "",
       intervals_count: "",
       running_distance: "",
@@ -7921,20 +7925,30 @@ function TrainingApp() {
                             onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
                             style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
                           >
+                            <option value="">Välj aktivitet</option>
                             {FREE_ACTIVITY_OPTIONS.map((option) => (
                               <option key={option.value} value={option.value}>
                                 {option.label}
                               </option>
                             ))}
                           </select>
-                          {runningDraft.free_activity_type === "running" ? (
+                          {!runningDraft.free_activity_type ? (
+                            <div
+                              style={{
+                                ...mutedTextStyle,
+                                gridColumn: isMobile ? "auto" : "span 2",
+                              }}
+                            >
+                              Börja med att välja aktivitet. Då visas rätt fält direkt under.
+                            </div>
+                          ) : runningDraft.free_activity_type === "running" ? (
                             <select
-                            value={runningDraft.running_type}
-                            onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
-                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                          >
-                            <option value="distance">Distans</option>
-                            <option value="intervals">Intervaller</option>
+                              value={runningDraft.running_type}
+                              onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
+                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                            >
+                              <option value="distance">Distans</option>
+                              <option value="intervals">Intervaller</option>
                             </select>
                           ) : (
                             <input
@@ -7994,7 +8008,7 @@ function TrainingApp() {
                               />
                             </>
                           ) : null}
-                          {runningDraft.free_activity_type !== "running" && (
+                          {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
                             <div
                               style={{
                                 ...mutedTextStyle,
