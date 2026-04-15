@@ -279,8 +279,23 @@ const combineDateWithExistingTime = (dateValue, existingTimestamp) => {
   return sourceDate.toISOString()
 }
 
+const FREE_ACTIVITY_OPTIONS = [
+  { value: "running", label: "Löpning" },
+  { value: "football", label: "Fotboll" },
+  { value: "orienteering", label: "Orientering" },
+]
+
+const getFreeActivityLabel = (activityType) =>
+  FREE_ACTIVITY_OPTIONS.find((option) => option.value === activityType)?.label || "Egen aktivitet"
+
 const buildRunningSummary = (session) => {
   if (!session) return ""
+
+  const freeActivityType = session.free_activity_type || "running"
+
+  if (freeActivityType !== "running") {
+    return session.running_time || "Aktivitet loggad"
+  }
 
   if (session.running_type === "intervals") {
     const intervalsCount = session.intervals_count ? `${session.intervals_count} intervaller` : null
@@ -536,13 +551,18 @@ const getRepRangeLabelByKey = (repRangeKey) =>
   REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeKey)?.label || repRangeKey || "-"
 
 const formatLoggedPassName = (passName, options = {}) => {
-  const { workoutKind = "gym", runningOrigin = null } = options
-
-  if (workoutKind === "running" && runningOrigin !== "assigned") {
-    return "Egna löppass"
-  }
+  const { workoutKind = "gym", runningOrigin = null, freeActivityType = "running" } = options
 
   const raw = String(passName || "").trim()
+  if (workoutKind === "running" && runningOrigin !== "assigned") {
+    if (raw) {
+      const withoutTechnicalSuffix = raw.replace(/_[a-f0-9]{8}$/i, "")
+      return withoutTechnicalSuffix.replace(/_/g, " ")
+    }
+
+    return getFreeActivityLabel(freeActivityType)
+  }
+
   if (!raw) return "Pass"
 
   const withoutTechnicalSuffix = raw.replace(/_[a-f0-9]{8}$/i, "")
@@ -767,6 +787,7 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
         pass_name: formatLoggedPassName(row.pass_name, {
           workoutKind: row.workout_kind,
           runningOrigin: row.running_origin,
+          freeActivityType: row.free_activity_type,
         }),
         workout_kind: row.workout_kind || "gym",
         running_type: row.running_type || null,
@@ -775,6 +796,8 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
         running_distance: row.running_distance ?? null,
         running_time: row.running_time || null,
         average_pulse: row.average_pulse ?? null,
+        running_origin: row.running_origin || null,
+        free_activity_type: row.free_activity_type || "running",
         exerciseMap: new Map(),
       })
     }
@@ -821,6 +844,8 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
         session.workout_kind === "running"
           ? buildRunningSummary(session)
           : null,
+      running_origin: session.running_origin || null,
+      free_activity_type: session.free_activity_type || "running",
       exercises: Array.from(session.exerciseMap.values()).map((exercise) => ({
         ...exercise,
         sets: exercise.sets
@@ -1157,6 +1182,7 @@ function TrainingApp() {
   const [savingWorkoutDateSessionId, setSavingWorkoutDateSessionId] = useState(null)
   const [runningDraft, setRunningDraft] = useState({
     log_date: getTodayDateInputValue(),
+    free_activity_type: "running",
     running_type: "distance",
     interval_time: "",
     intervals_count: "",
@@ -3101,7 +3127,7 @@ function TrainingApp() {
         supabase
           .from("workout_logs")
           .select(
-            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind"
+            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type"
           )
           .eq("user_id", playerId)
           .eq("is_completed", true)
@@ -3223,7 +3249,7 @@ function TrainingApp() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin"
+        "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type"
       )
       .eq("user_id", userId)
       .eq("is_completed", true)
@@ -3260,6 +3286,7 @@ function TrainingApp() {
           running_time: row.running_time || null,
           average_pulse: row.average_pulse ?? null,
           running_origin: row.running_origin || null,
+          free_activity_type: row.free_activity_type || "running",
           rows: [],
         })
       }
@@ -3288,6 +3315,7 @@ function TrainingApp() {
             formatLoggedPassName(session.pass_name, {
               workoutKind: session.workout_kind,
               runningOrigin: session.running_origin,
+              freeActivityType: session.free_activity_type,
             }),
         }
       })
@@ -4328,49 +4356,53 @@ function TrainingApp() {
   const handleSaveRunningSession = async () => {
     if (!user) return
     if (!runningDraft.log_date) {
-      setStatus("Välj ett giltigt datum för löppasset")
+      setStatus("Välj ett giltigt datum för aktiviteten")
       return
     }
 
     const createdAt = combineDateWithExistingTime(runningDraft.log_date, new Date().toISOString())
     if (!createdAt) {
-      setStatus("Välj ett giltigt datum för löppasset")
+      setStatus("Välj ett giltigt datum för aktiviteten")
       return
     }
 
     setIsSavingRunningSession(true)
 
     const workoutSessionId = generateSessionId()
+    const freeActivityType = runningDraft.free_activity_type || "running"
+    const activityLabel = getFreeActivityLabel(freeActivityType)
+    const isFreeRunning = freeActivityType === "running"
     const payload = {
       client_set_id: `running-${workoutSessionId}`,
       user_id: user.id,
       workout_session_id: workoutSessionId,
-      pass_name: "Egna löppass",
-      exercise: "Löpning",
+      pass_name: activityLabel,
+      exercise: activityLabel,
       set_number: 1,
       is_completed: true,
       created_at: createdAt,
       workout_kind: "running",
       running_origin: "free",
-      running_type: runningDraft.running_type,
+      free_activity_type: freeActivityType,
+      running_type: isFreeRunning ? runningDraft.running_type : "distance",
       interval_time:
-        runningDraft.running_type === "intervals" && String(runningDraft.interval_time || "").trim()
+        isFreeRunning && runningDraft.running_type === "intervals" && String(runningDraft.interval_time || "").trim()
           ? String(runningDraft.interval_time || "").trim()
           : null,
       intervals_count:
-        runningDraft.running_type === "intervals" && String(runningDraft.intervals_count || "").trim()
+        isFreeRunning && runningDraft.running_type === "intervals" && String(runningDraft.intervals_count || "").trim()
           ? Number(runningDraft.intervals_count)
           : null,
       running_distance:
-        runningDraft.running_type === "distance" && String(runningDraft.running_distance || "").trim()
+        isFreeRunning && runningDraft.running_type === "distance" && String(runningDraft.running_distance || "").trim()
           ? parseLoggedNumber(runningDraft.running_distance)
           : null,
       running_time:
-        runningDraft.running_type === "distance" && String(runningDraft.running_time || "").trim()
+        String(runningDraft.running_time || "").trim()
           ? String(runningDraft.running_time || "").trim()
           : null,
       average_pulse:
-        runningDraft.running_type === "distance" && String(runningDraft.average_pulse || "").trim()
+        isFreeRunning && runningDraft.running_type === "distance" && String(runningDraft.average_pulse || "").trim()
           ? Number(runningDraft.average_pulse)
           : null,
       weight: null,
@@ -4384,7 +4416,7 @@ function TrainingApp() {
 
     if (error) {
       console.error(error)
-      setStatus("Kunde inte spara löppasset")
+      setStatus("Kunde inte spara aktiviteten")
       setIsSavingRunningSession(false)
       return
     }
@@ -4392,13 +4424,14 @@ function TrainingApp() {
     setRunningDraft((prev) => ({
       ...prev,
       log_date: getTodayDateInputValue(),
+      free_activity_type: "running",
       interval_time: "",
       intervals_count: "",
       running_distance: "",
       running_time: "",
       average_pulse: "",
     }))
-    setStatus("Löppass sparat ✅")
+    setStatus(`${activityLabel} sparat ✅`)
     setIsSavingRunningSession(false)
     await loadCompletedWorkoutSessions(user.id)
     await loadLatestData(user.id)
@@ -7711,13 +7744,13 @@ function TrainingApp() {
                     style={playerQuickActionCardStyle}
                   >
                     <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Eget löppass</div>
+                      <div style={playerQuickActionTitleStyle}>Egen aktivitet</div>
                       <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
                         {playerOverviewPanel === "running" ? "−" : "+"}
                       </div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Registrera löppass du genomfört
+                      Registrera träning du gjort i andra sporter
                     </div>
                   </button>
 
@@ -7729,7 +7762,7 @@ function TrainingApp() {
                       <div>
                         <div style={playerOverviewPanelTitleStyle}>Historik</div>
                         <div style={playerOverviewPanelTextStyle}>
-                          Se senaste pass, löppass och enkel statistik.
+                          Se senaste pass, aktiviteter och enkel statistik.
                         </div>
                       </div>
 
@@ -7742,7 +7775,7 @@ function TrainingApp() {
                             </div>
                           </div>
                           <div style={playerHistoryHighlightCardStyle}>
-                            <div style={playerHistoryHighlightLabelStyle}>Senaste löppass</div>
+                            <div style={playerHistoryHighlightLabelStyle}>Senaste aktivitet</div>
                             <div style={playerHistoryHighlightValueStyle}>
                               {latestOwnRunningSession ? formatDaysSince(latestOwnRunningSession.created_at) : "Inte loggat än"}
                             </div>
@@ -7807,7 +7840,7 @@ function TrainingApp() {
                             </div>
 
                             <div>
-                              <div style={playerHistorySectionLabelStyle}>Egna löppass</div>
+                              <div style={playerHistorySectionLabelStyle}>Egna aktiviteter</div>
                               <div style={{ display: "grid", gap: "10px" }}>
                                 {ownRunningSessions.slice(0, 4).map((session) => (
                                   <div key={session.session_id} style={playerHistoryItemStyle}>
@@ -7848,7 +7881,7 @@ function TrainingApp() {
                                   </div>
                                 ))}
                                 {ownRunningSessions.length === 0 && (
-                                  <div style={playerHistoryEmptyStyle}>Inga egna löppass loggade ännu.</div>
+                                  <div style={playerHistoryEmptyStyle}>Inga egna aktiviteter loggade ännu.</div>
                                 )}
                               </div>
                             </div>
@@ -7863,9 +7896,9 @@ function TrainingApp() {
                   <div style={playerOverviewPanelRowStyle}>
                     <div style={playerOverviewPanelStyle}>
                       <div>
-                        <div style={playerOverviewPanelTitleStyle}>Eget löppass</div>
+                        <div style={playerOverviewPanelTitleStyle}>Egen aktivitet</div>
                         <div style={playerOverviewPanelTextStyle}>
-                          Spara träning du gör själv utanför lagpassen.
+                          Spara träning du gör i andra sporter utanför lagpassen.
                         </div>
                       </div>
 
@@ -7884,15 +7917,36 @@ function TrainingApp() {
                             style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
                           />
                           <select
+                            value={runningDraft.free_activity_type}
+                            onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
+                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                          >
+                            {FREE_ACTIVITY_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {runningDraft.free_activity_type === "running" ? (
+                            <select
                             value={runningDraft.running_type}
                             onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
                             style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
                           >
                             <option value="distance">Distans</option>
                             <option value="intervals">Intervaller</option>
-                          </select>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              placeholder="Tid/duration, t.ex. 75 min"
+                              value={runningDraft.running_time}
+                              onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                            />
+                          )}
 
-                          {runningDraft.running_type === "intervals" ? (
+                          {runningDraft.free_activity_type === "running" && runningDraft.running_type === "intervals" ? (
                             <>
                               <input
                                 type="text"
@@ -7909,7 +7963,7 @@ function TrainingApp() {
                                 style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
                               />
                             </>
-                          ) : (
+                          ) : runningDraft.free_activity_type === "running" ? (
                             <>
                               <input
                                 type="text"
@@ -7939,6 +7993,17 @@ function TrainingApp() {
                                 }}
                               />
                             </>
+                          ) : null}
+                          {runningDraft.free_activity_type !== "running" && (
+                            <div
+                              style={{
+                                ...mutedTextStyle,
+                                marginTop: "-2px",
+                                gridColumn: isMobile ? "auto" : "span 2",
+                              }}
+                            >
+                              Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
+                            </div>
                           )}
                         </div>
 
@@ -7954,7 +8019,7 @@ function TrainingApp() {
                             cursor: isSavingRunningSession ? "default" : "pointer",
                           }}
                         >
-                          {isSavingRunningSession ? "Sparar..." : "Spara löppass"}
+                          {isSavingRunningSession ? "Sparar..." : "Spara aktivitet"}
                         </button>
                       </div>
                     </div>

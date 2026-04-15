@@ -9,9 +9,21 @@ const repRangeOptions = [
   { key: "16_20", label: "16-20 reps" },
 ]
 
-const formatDisplayPassName = (passName, workoutKind, runningOrigin) => {
+const FREE_ACTIVITY_LABELS = {
+  running: "Löpning",
+  football: "Fotboll",
+  orienteering: "Orientering",
+}
+
+const formatDisplayPassName = (passName, workoutKind, runningOrigin, freeActivityType = "running") => {
   if (workoutKind === "running" && runningOrigin !== "assigned") {
-    return "Egna löppass"
+    const rawFreePassName = String(passName || "").trim()
+    if (rawFreePassName) {
+      const withoutTechnicalSuffix = rawFreePassName.replace(/_[a-f0-9]{8}$/i, "")
+      return withoutTechnicalSuffix.replace(/_/g, " ")
+    }
+
+    return FREE_ACTIVITY_LABELS[freeActivityType] || "Egen aktivitet"
   }
 
   const raw = String(passName || "").trim()
@@ -656,7 +668,8 @@ function PlayersPage({
                             {formatDisplayPassName(
                               session.pass_name,
                               session.workout_kind,
-                              session.running_origin
+                              session.running_origin,
+                              session.free_activity_type
                             )}
                           </div>
                           <div style={historySessionButtonMetaStyle}>
@@ -682,7 +695,8 @@ function PlayersPage({
                               {formatDisplayPassName(
                                 selectedSession.pass_name,
                                 selectedSession.workout_kind,
-                                selectedSession.running_origin
+                                selectedSession.running_origin,
+                                selectedSession.free_activity_type
                               )}
                             </div>
                             <div style={historySessionSummaryMetaStyle}>
@@ -694,7 +708,7 @@ function PlayersPage({
 
                         {selectedSession.workout_kind === "running" ? (
                           <div style={historySessionRunningCardStyle}>
-                            {selectedSession.running_summary || "Löppass genomfört"}
+                            {selectedSession.running_summary || "Aktivitet genomförd"}
                           </div>
                         ) : (
                             <div style={historyExerciseCardsViewportStyle}>

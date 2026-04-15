@@ -11,6 +11,12 @@ const PERIOD_OPTIONS = [
   { value: "all", label: "Hela historiken" },
 ]
 
+const FREE_ACTIVITY_LABELS = {
+  running: "Löpning",
+  football: "Fotboll",
+  orienteering: "Orientering",
+}
+
 const parseWeightValue = (value) => {
   const normalized = String(value ?? "")
     .trim()
@@ -28,9 +34,15 @@ const formatStatDate = (value) => {
   })
 }
 
-const formatCoachPassName = (passName, workoutKind, runningOrigin) => {
+const formatCoachPassName = (passName, workoutKind, runningOrigin, freeActivityType = "running") => {
   if (workoutKind === "running" && runningOrigin !== "assigned") {
-    return "Egna löppass"
+    const rawFreePassName = String(passName || "").trim()
+    if (rawFreePassName) {
+      const withoutTechnicalSuffix = rawFreePassName.replace(/_[a-f0-9]{8}$/i, "")
+      return withoutTechnicalSuffix.replace(/_/g, " ")
+    }
+
+    return FREE_ACTIVITY_LABELS[freeActivityType] || "Egen aktivitet"
   }
 
   const raw = String(passName || "").trim()
@@ -56,6 +68,12 @@ const formatCoachPassName = (passName, workoutKind, runningOrigin) => {
 
 const buildStatsRunningSummary = (session) => {
   if (!session) return ""
+
+  const freeActivityType = session.free_activity_type || "running"
+
+  if (freeActivityType !== "running") {
+    return session.running_time || "Aktivitet loggad"
+  }
 
   if (session.running_type === "intervals") {
     const intervalsCount = session.intervals_count ? `${session.intervals_count} intervaller` : null
@@ -154,11 +172,12 @@ const buildActivitySessions = (rows, playerMap) => {
         sessionId,
         playerId: String(row.user_id),
         playerName: player?.full_name || player?.username || "Spelare",
-        passName: formatCoachPassName(row.pass_name, row.workout_kind, row.running_origin),
+        passName: formatCoachPassName(row.pass_name, row.workout_kind, row.running_origin, row.free_activity_type),
         rawPassName: row.pass_name || "Pass",
         createdAt: row.created_at,
         workoutKind: row.workout_kind || "gym",
         runningOrigin: row.running_origin || null,
+        free_activity_type: row.free_activity_type || "running",
         runningSummary: "",
         passComment: row.pass_comment || "",
         running_type: row.running_type || null,
@@ -178,6 +197,7 @@ const buildActivitySessions = (rows, playerMap) => {
 
     if (session.workoutKind === "running") {
       session.runningSummary = buildStatsRunningSummary({
+        free_activity_type: session.free_activity_type,
         running_type: session.running_type,
         interval_time: session.interval_time,
         intervals_count: session.intervals_count,
@@ -310,7 +330,7 @@ function StatsPage({
       const playerIds = sortedPlayers.map((player) => player.id)
       const { data, error } = await supabase
         .from("workout_logs")
-        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse")
+        .select("user_id, pass_name, created_at, workout_session_id, is_completed, workout_kind, running_origin, free_activity_type, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse")
         .in("user_id", playerIds)
         .eq("is_completed", true)
         .order("created_at", { ascending: false })
@@ -710,7 +730,7 @@ function StatsPage({
 
                       {session.workoutKind === "running" ? (
                         <div style={activityRunningCardStyle}>
-                          {session.runningSummary || "Löppass genomfört"}
+                          {session.runningSummary || "Aktivitet genomförd"}
                         </div>
                       ) : (
                         <div style={activityExerciseCardsViewportStyle}>
