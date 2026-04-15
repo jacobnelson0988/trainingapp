@@ -130,6 +130,31 @@ Varje rekommendation ska spara en kort orsak, till exempel:
 
 ## Brainstorm
 
+### Tydligt desktop-läge för appen
+
+Idé: utveckla ett genomarbetat desktop-läge så att appen känns naturlig och effektiv även på dator, inte bara som en uppförstorad mobilvy.
+
+Mål:
+
+- behålla samma app och samma logik som idag
+- skapa tydligt olika layoutläge för mobil och dator
+- förbättra överblick, arbetsflöde och läsbarhet på större skärmar
+
+Prioriterade delar:
+
+1. tränarvyn
+2. passbyggaren
+3. spelarlistan
+4. statistik
+5. adminvyn
+6. spelarvyn
+
+Syfte:
+
+- göra appen mer professionell för tränare och admin som ofta arbetar från dator
+- använda skärmytan bättre med tydligare struktur och informationshierarki
+- skapa ett mer enhetligt UX/UI mellan mobil och desktop
+
 ### Planering av handbollspass
 
 Idé: lägga till en funktion där tränare kan planera rena handbollspass, inte bara fyspass.
