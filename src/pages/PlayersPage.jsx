@@ -1732,6 +1732,21 @@ const playerCardMainButtonStyle = {
   cursor: "pointer",
 }
 
+const playerCardNameStyle = {
+  fontSize: "16px",
+  fontWeight: "800",
+  color: "#18202b",
+  lineHeight: 1.3,
+}
+
+const playerCardMetaStyle = {
+  marginTop: "4px",
+  fontSize: "13px",
+  fontWeight: "600",
+  color: "#6b7280",
+  lineHeight: 1.4,
+}
+
 const listToolbarStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
