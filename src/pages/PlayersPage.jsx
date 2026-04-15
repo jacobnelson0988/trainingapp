@@ -89,7 +89,6 @@ function PlayersPage({
   const [selectedCompletedSessionId, setSelectedCompletedSessionId] = useState("")
   const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
   const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
-  const [bulkSelectedPlayerIds, setBulkSelectedPlayerIds] = useState([])
   const [activeEditorSection, setActiveEditorSection] = useState("passes")
   const [activeUtilityPanel, setActiveUtilityPanel] = useState("")
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
@@ -108,12 +107,6 @@ function PlayersPage({
       ...prev,
       [playerId]: passKey,
     }))
-  }
-
-  const handleToggleBulkSelectedPlayer = (playerId) => {
-    setBulkSelectedPlayerIds((prev) =>
-      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]
-    )
   }
 
   const filteredPlayers = players.filter((player) => {
@@ -1150,15 +1143,6 @@ function PlayersPage({
                     }}
                   >
                     <div style={playerCardTopRowStyle}>
-                      <label style={playerBulkSelectStyle}>
-                        <input
-                          type="checkbox"
-                          checked={bulkSelectedPlayerIds.includes(player.id)}
-                          onChange={() => handleToggleBulkSelectedPlayer(player.id)}
-                        />
-                        <span>Välj</span>
-                      </label>
-
                       <button
                         type="button"
                         onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
@@ -1228,22 +1212,6 @@ function PlayersPage({
           </button>
         )}
 
-        {filteredPlayers.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setActiveUtilityPanel((current) => (current === "bulk" ? "" : "bulk"))}
-            style={{
-              ...utilityButtonStyle,
-              ...(activeUtilityPanel === "bulk" ? utilityButtonActiveStyle : {}),
-            }}
-          >
-            <div style={utilityButtonTopStyle}>
-              <div style={utilityButtonTitleStyle}>Snabbval</div>
-              <div style={utilityBadgeStyle(bulkSelectedPlayerIds.length > 0)}>{bulkSelectedPlayerIds.length}</div>
-            </div>
-            <div style={utilityButtonMetaStyle}>Ändra målstyrning för flera spelare samtidigt</div>
-          </button>
-        )}
       </div>
 
       {activeUtilityPanel === "requests" && role === "coach" && (
@@ -1385,52 +1353,6 @@ function PlayersPage({
           ) : (
             <p style={mutedTextStyle}>Inga andra tränare finns i laget ännu.</p>
           )}
-        </div>
-      )}
-
-      {activeUtilityPanel === "bulk" && filteredPlayers.length > 0 && (
-        <div style={inlineUtilityPanelStyle}>
-          <div style={inlineUtilityPanelHeaderStyle}>
-            <div>
-              <div style={inlineUtilityPanelTitleStyle}>Snabbval för flera spelare</div>
-              <div style={inlineUtilityPanelMetaStyle}>
-                {bulkSelectedPlayerIds.length > 0
-                  ? `${bulkSelectedPlayerIds.length} spelare valda för målstyrning`
-                  : "Markera spelare i listan och ändra läge här."}
-              </div>
-            </div>
-          </div>
-
-          <div style={bulkActionButtonsStyle(isMobile)}>
-            <button
-              type="button"
-              onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, false)}
-              disabled={bulkSelectedPlayerIds.length === 0}
-              style={{
-                ...quickActionButtonStyle,
-                opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
-                cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
-                width: isMobile ? "100%" : "auto",
-              }}
-            >
-              Stäng av mål
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetIndividualGoalsEnabled(bulkSelectedPlayerIds, true)}
-              disabled={bulkSelectedPlayerIds.length === 0}
-              style={{
-                ...quickActionButtonStyle,
-                backgroundColor: "#ffffff",
-                color: "#18202b",
-                opacity: bulkSelectedPlayerIds.length === 0 ? 0.7 : 1,
-                cursor: bulkSelectedPlayerIds.length === 0 ? "default" : "pointer",
-                width: isMobile ? "100%" : "auto",
-              }}
-            >
-              Aktivera mål
-            </button>
-          </div>
         </div>
       )}
 
