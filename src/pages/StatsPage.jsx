@@ -44,7 +44,14 @@ const formatCoachPassName = (passName, workoutKind, runningOrigin) => {
     return `Pass ${String(passLetterMatch[1]).toUpperCase()}`
   }
 
+  const hasLetters = /[a-zåäö]/i.test(cleaned)
+  const isMostlyUppercase = hasLetters && cleaned === cleaned.toUpperCase()
+
+  if (!isMostlyUppercase) return cleaned
+
   return cleaned
+    .toLowerCase()
+    .replace(/(^|[\s/-])([a-zåäö])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`)
 }
 
 const buildStatsRunningSummary = (session) => {
@@ -694,9 +701,8 @@ function StatsPage({
                     <div style={activityDetailCardStyle}>
                       <div style={activityDetailHeaderStyle}>
                         <div>
-                          <div style={activityDetailTitleStyle}>{session.passName}</div>
                           <div style={activityDetailMetaStyle}>
-                            {session.playerName} • {formatStatDate(session.createdAt)}
+                            {session.playerName} • {session.passName} • {formatStatDate(session.createdAt)}
                             {session.runningSummary ? ` • ${session.runningSummary}` : ""}
                           </div>
                         </div>
@@ -1186,13 +1192,12 @@ const activityItemWrapStyle = {
 }
 
 const activityRowStyle = (isMobile) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: isMobile ? "flex-start" : "center",
-  flexDirection: isMobile ? "column" : "row",
-  gap: "8px",
-  padding: "14px 16px",
-  borderRadius: "18px",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  alignItems: "center",
+  gap: "10px",
+  padding: isMobile ? "12px 14px" : "14px 16px",
+  borderRadius: "16px",
   border: "1px solid #e2e8f0",
   backgroundColor: "#ffffff",
   boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
@@ -1204,24 +1209,25 @@ const activityPlayerNameStyle = {
   fontSize: "15px",
   fontWeight: "900",
   color: "#18202b",
-  marginBottom: "4px",
+  marginBottom: "2px",
 }
 
 const activityMetaStyle = {
-  fontSize: "13px",
+  fontSize: "12px",
+  fontWeight: "700",
   color: "#64748b",
 }
 
 const activityRowAsideStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "10px",
-  width: "100%",
+  display: "grid",
+  justifyItems: "end",
+  gap: "8px",
+  width: "auto",
+  flexShrink: 0,
 }
 
 const activityDateStyle = {
-  fontSize: "13px",
+  fontSize: "12px",
   fontWeight: "800",
   color: "#991b1b",
   whiteSpace: "nowrap",
@@ -1243,8 +1249,8 @@ const activityExpandIndicatorStyle = {
 }
 
 const activityDetailCardStyle = {
-  padding: "16px",
-  borderRadius: "22px",
+  padding: "14px",
+  borderRadius: "18px",
   border: "1px solid #f1d7d7",
   backgroundColor: "#fffdfd",
   boxShadow: "0 14px 30px rgba(24, 32, 43, 0.05)",
@@ -1255,14 +1261,7 @@ const activityDetailHeaderStyle = {
   justifyContent: "space-between",
   alignItems: "flex-start",
   gap: "12px",
-  marginBottom: "12px",
-}
-
-const activityDetailTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
-  marginBottom: "4px",
+  marginBottom: "10px",
 }
 
 const activityDetailMetaStyle = {
@@ -1314,8 +1313,8 @@ const activityExerciseCardStyle = {
   minWidth: "100%",
   maxWidth: "100%",
   boxSizing: "border-box",
-  padding: "16px",
-  borderRadius: "20px",
+  padding: "14px",
+  borderRadius: "16px",
   border: "1px solid #dbe5ef",
   backgroundColor: "#ffffff",
   overflow: "hidden",

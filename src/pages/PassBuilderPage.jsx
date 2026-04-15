@@ -1642,186 +1642,194 @@ function PassBuilderPage({
                 const isSelected = selectedTemplateCode === passKey
 
                 return (
-                  <button
+                  <div
                     key={passKey}
-                    type="button"
-                    onClick={() => setSelectedTemplateCode(passKey)}
                     style={{
-                      ...passCardButtonStyle,
+                      ...selectedPassInlineCardStyle,
                       border: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb",
                       backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
                     }}
                   >
-                    <div style={passCardTitleStyle}>{workout.label}</div>
-                    <div style={passCardMetaStyle}>
-                      {workout.workoutKind === "running"
-                        ? `Löppass • ${buildRunningWorkoutSummary(
-                            workout.workoutKind,
-                            workout.runningType,
-                            workout.runningConfig
-                          )}`
-                        : `${getWorkoutKindLabel(workout.workoutKind)} • ${(workout.exercises || []).length} övningar`}
-                    </div>
-                    <div
-                      style={{
-                        ...chipStyle,
-                        backgroundColor: isSelected ? "#c62828" : "#f3f4f6",
-                        color: isSelected ? "#ffffff" : "#4b5563",
-                      }}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplateCode(isSelected ? "" : passKey)}
+                      style={passCardButtonStyle}
                     >
-                      {isSelected ? "Valt pass" : "Markera pass"}
-                    </div>
-                  </button>
+                      <div style={passCardHeaderStyle}>
+                        <div>
+                          <div style={passCardTitleStyle}>{workout.label}</div>
+                          <div style={passCardMetaStyle}>
+                            {workout.workoutKind === "running"
+                              ? `Löppass • ${buildRunningWorkoutSummary(
+                                  workout.workoutKind,
+                                  workout.runningType,
+                                  workout.runningConfig
+                                )}`
+                              : `${getWorkoutKindLabel(workout.workoutKind)} • ${(workout.exercises || []).length} övningar`}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            ...chipStyle,
+                            backgroundColor: isSelected ? "#c62828" : "#f3f4f6",
+                            color: isSelected ? "#ffffff" : "#4b5563",
+                          }}
+                        >
+                          {isSelected ? "Öppet" : "Öppna"}
+                        </div>
+                      </div>
+                    </button>
+
+                    {isSelected ? (
+                      <div style={selectedPassInlineContentStyle}>
+                        <div style={panelHeaderStyle}>
+                          <div>
+                            <div style={sectionEyebrowStyle}>Valt pass</div>
+                            <div style={sectionTitleStyle}>{workout.label}</div>
+                          </div>
+                          <div style={selectedPassActionsStyle(isMobile)}>
+                            <button
+                              type="button"
+                              onClick={() => setIsAssignMenuOpen((current) => !current)}
+                              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+                            >
+                              {isAssignMenuOpen ? "Stäng tilldelning" : "Tilldela pass"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={openEditView}
+                              style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                            >
+                              Redigera pass
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={selectedPassInfoStyle}>
+                          <div style={selectedPassMetricStyle}>
+                            <div style={selectedPassMetricLabelStyle}>Kategori</div>
+                            <div style={selectedPassMetricValueStyle}>{getWorkoutKindLabel(workout.workoutKind)}</div>
+                          </div>
+
+                          <div style={selectedPassMetricStyle}>
+                            <div style={selectedPassMetricLabelStyle}>
+                              {workout.workoutKind === "running" ? "Typ" : "Övningar"}
+                            </div>
+                            <div style={selectedPassMetricValueStyle}>
+                              {workout.workoutKind === "running" ? "Löpning" : (workout.exercises || []).length}
+                            </div>
+                          </div>
+
+                          {workout.info ? (
+                            <div style={selectedPassDescriptionStyle}>{workout.info}</div>
+                          ) : (
+                            <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
+                          )}
+
+                          <div style={selectedPassExerciseListCardStyle}>
+                            <div style={selectedPassMetricLabelStyle}>
+                              {workout.workoutKind === "running" ? "Löppass" : "Övningar i passet"}
+                            </div>
+
+                            {workout.workoutKind === "running" ? (
+                              <div style={selectedPassDescriptionStyle}>
+                                {buildRunningWorkoutSummary(
+                                  workout.workoutKind,
+                                  workout.runningType,
+                                  workout.runningConfig
+                                )}
+                              </div>
+                            ) : (workout.exercises || []).length > 0 ? (
+                              <div style={selectedPassExerciseListStyle}>
+                                {(workout.exercises || []).map((exercise, index) => (
+                                  <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>
+                                    <span style={selectedPassExerciseIndexStyle}>{index + 1}</span>
+                                    <span>{getExerciseDisplayName(exercise)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={selectedPassEmptyStyle}>Inga övningar tillagda ännu.</div>
+                            )}
+                          </div>
+
+                          {isAssignMenuOpen ? (
+                            <div style={assignmentPanelStyle}>
+                              <div style={assignmentPanelHeaderStyle(isMobile)}>
+                                <div>
+                                  <div style={selectedPassMetricLabelStyle}>Tilldela till spelare</div>
+                                  <div style={assignmentHelperTextStyle}>
+                                    Välj alla direkt eller markera enskilda spelare i listan.
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleAssignAllPlayers}
+                                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                                  disabled={assignablePlayers.length === 0}
+                                >
+                                  Tilldela alla
+                                </button>
+                              </div>
+
+                              {assignablePlayers.length === 0 ? (
+                                <div style={selectedPassEmptyStyle}>Det finns inga aktiva spelare att tilldela passet till.</div>
+                              ) : (
+                                <>
+                                  <div style={assignmentPickerStyle}>
+                                    {assignablePlayers.map((player) => {
+                                      const isChecked = selectedAssignPlayerIds.includes(player.id)
+
+                                      return (
+                                        <label
+                                          key={player.id}
+                                          style={{
+                                            ...assignmentPlayerRowStyle,
+                                            borderColor: isChecked ? "#c62828" : "#e5e7eb",
+                                            backgroundColor: isChecked ? "#fff7f7" : "#ffffff",
+                                          }}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => toggleAssignPlayer(player.id)}
+                                          />
+                                          <span style={assignmentPlayerNameStyle}>
+                                            {player.full_name || player.username}
+                                          </span>
+                                        </label>
+                                      )
+                                    })}
+                                  </div>
+
+                                  <div style={assignmentFooterStyle(isMobile)}>
+                                    <div style={assignmentHelperTextStyle}>
+                                      {selectedAssignPlayerIds.length === 0
+                                        ? "Inga spelare valda ännu."
+                                        : `${selectedAssignPlayerIds.length} spelare markerade.`}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={handleAssignSelectedPlayers}
+                                      style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                                      disabled={selectedAssignPlayerIds.length === 0}
+                                    >
+                                      Tilldela markerade
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 )
               })}
             </div>
           )}
         </section>
-
-        {currentWorkout && (
-          <section style={panelStyle}>
-            <div style={panelHeaderStyle}>
-              <div>
-                <div style={sectionEyebrowStyle}>Valt pass</div>
-                <div style={sectionTitleStyle}>{currentWorkout.label}</div>
-              </div>
-              <div style={selectedPassActionsStyle(isMobile)}>
-                <button
-                  type="button"
-                  onClick={() => setIsAssignMenuOpen((current) => !current)}
-                  style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                >
-                  {isAssignMenuOpen ? "Stäng tilldelning" : "Tilldela pass"}
-                </button>
-                <button
-                  type="button"
-                  onClick={openEditView}
-                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                >
-                  Redigera pass
-                </button>
-              </div>
-            </div>
-
-            <div style={selectedPassInfoStyle}>
-              <div style={selectedPassMetricStyle}>
-                <div style={selectedPassMetricLabelStyle}>Kategori</div>
-                <div style={selectedPassMetricValueStyle}>{getWorkoutKindLabel(currentWorkout.workoutKind)}</div>
-              </div>
-
-              <div style={selectedPassMetricStyle}>
-                <div style={selectedPassMetricLabelStyle}>
-                  {currentWorkout.workoutKind === "running" ? "Typ" : "Övningar"}
-                </div>
-                <div style={selectedPassMetricValueStyle}>
-                  {currentWorkout.workoutKind === "running" ? "Löpning" : exerciseCount}
-                </div>
-              </div>
-
-              {currentWorkout.info ? (
-                <div style={selectedPassDescriptionStyle}>{currentWorkout.info}</div>
-              ) : (
-                <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
-              )}
-
-              <div style={selectedPassExerciseListCardStyle}>
-                <div style={selectedPassMetricLabelStyle}>
-                  {currentWorkout.workoutKind === "running" ? "Löppass" : "Övningar i passet"}
-                </div>
-
-                {currentWorkout.workoutKind === "running" ? (
-                  <div style={selectedPassDescriptionStyle}>
-                    {buildRunningWorkoutSummary(
-                      currentWorkout.workoutKind,
-                      currentWorkout.runningType,
-                      currentWorkout.runningConfig
-                    )}
-                  </div>
-                ) : exerciseCount > 0 ? (
-                  <div style={selectedPassExerciseListStyle}>
-                    {(currentWorkout.exercises || []).map((exercise, index) => (
-                      <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>
-                        <span style={selectedPassExerciseIndexStyle}>{index + 1}</span>
-                        <span>{getExerciseDisplayName(exercise)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={selectedPassEmptyStyle}>Inga övningar tillagda ännu.</div>
-                )}
-              </div>
-
-              {isAssignMenuOpen ? (
-                <div style={assignmentPanelStyle}>
-                  <div style={assignmentPanelHeaderStyle(isMobile)}>
-                    <div>
-                      <div style={selectedPassMetricLabelStyle}>Tilldela till spelare</div>
-                      <div style={assignmentHelperTextStyle}>
-                        Välj alla direkt eller markera enskilda spelare i listan.
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAssignAllPlayers}
-                      style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                      disabled={assignablePlayers.length === 0}
-                    >
-                      Tilldela alla
-                    </button>
-                  </div>
-
-                  {assignablePlayers.length === 0 ? (
-                    <div style={selectedPassEmptyStyle}>Det finns inga aktiva spelare att tilldela passet till.</div>
-                  ) : (
-                    <>
-                      <div style={assignmentPickerStyle}>
-                        {assignablePlayers.map((player) => {
-                          const isChecked = selectedAssignPlayerIds.includes(player.id)
-
-                          return (
-                            <label
-                              key={player.id}
-                              style={{
-                                ...assignmentPlayerRowStyle,
-                                borderColor: isChecked ? "#c62828" : "#e5e7eb",
-                                backgroundColor: isChecked ? "#fff7f7" : "#ffffff",
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleAssignPlayer(player.id)}
-                              />
-                              <span style={assignmentPlayerNameStyle}>
-                                {player.full_name || player.username}
-                              </span>
-                            </label>
-                          )
-                        })}
-                      </div>
-
-                      <div style={assignmentFooterStyle(isMobile)}>
-                        <div style={assignmentHelperTextStyle}>
-                          {selectedAssignPlayerIds.length === 0
-                            ? "Inga spelare valda ännu."
-                            : `${selectedAssignPlayerIds.length} spelare markerade.`}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAssignSelectedPlayers}
-                          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                          disabled={selectedAssignPlayerIds.length === 0}
-                        >
-                          Tilldela markerade
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          </section>
-        )}
       </div>
     </>
   )
@@ -2117,11 +2125,32 @@ const passGridStyle = {
 }
 
 const passCardButtonStyle = {
+  width: "100%",
+  border: "none",
+  background: "transparent",
   padding: "14px",
-  borderRadius: "16px",
-  backgroundColor: "#ffffff",
   textAlign: "left",
   cursor: "pointer",
+}
+
+const selectedPassInlineCardStyle = {
+  borderRadius: "16px",
+  backgroundColor: "#ffffff",
+  overflow: "hidden",
+}
+
+const passCardHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+}
+
+const selectedPassInlineContentStyle = {
+  display: "grid",
+  gap: "12px",
+  padding: "0 14px 14px",
+  borderTop: "1px solid #f0dada",
 }
 
 const passCardTitleStyle = {
