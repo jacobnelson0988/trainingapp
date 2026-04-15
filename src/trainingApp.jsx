@@ -1189,6 +1189,7 @@ function TrainingApp() {
     running_distance: "",
     running_time: "",
     average_pulse: "",
+    comment: "",
   })
   const [isSavingRunningSession, setIsSavingRunningSession] = useState(false)
   const [selectedPlayerHistory, setSelectedPlayerHistory] = useState([])
@@ -4413,7 +4414,7 @@ function TrainingApp() {
       reps: null,
       seconds: null,
       exercise_comment: null,
-      pass_comment: null,
+      pass_comment: String(runningDraft.comment || "").trim() || null,
     }
 
     const { error } = await supabase.from("workout_logs").insert(payload)
@@ -4434,6 +4435,7 @@ function TrainingApp() {
       running_distance: "",
       running_time: "",
       average_pulse: "",
+      comment: "",
     }))
     setStatus(`${activityLabel} sparat ✅`)
     setIsSavingRunningSession(false)
@@ -8019,6 +8021,23 @@ function TrainingApp() {
                               Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
                             </div>
                           )}
+                          {runningDraft.free_activity_type ? (
+                            <textarea
+                              rows={3}
+                              placeholder="Kommentar, t.ex. hur det kändes eller vad du tränade"
+                              value={runningDraft.comment}
+                              onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
+                              style={{
+                                ...inputStyle,
+                                width: "100%",
+                                minHeight: "96px",
+                                resize: "vertical",
+                                backgroundColor: "#ffffff",
+                                color: "#111827",
+                                gridColumn: isMobile ? "auto" : "span 2",
+                              }}
+                            />
+                          ) : null}
                         </div>
 
                         <button

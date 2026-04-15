@@ -708,7 +708,12 @@ function PlayersPage({
 
                         {selectedSession.workout_kind === "running" ? (
                           <div style={historySessionRunningCardStyle}>
-                            {selectedSession.running_summary || "Aktivitet genomförd"}
+                            <div>{selectedSession.running_summary || "Aktivitet genomförd"}</div>
+                            {selectedSession.pass_comment ? (
+                              <div style={{ marginTop: "10px", color: "#475569", lineHeight: 1.5 }}>
+                                <strong>Kommentar:</strong> {selectedSession.pass_comment}
+                              </div>
+                            ) : null}
                           </div>
                         ) : (
                             <div style={historyExerciseCardsViewportStyle}>
