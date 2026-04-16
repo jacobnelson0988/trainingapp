@@ -6791,7 +6791,7 @@ function TrainingApp() {
 
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
-  const groupedVisibleWorkoutEntries = ["gym_shared", "gym_individual", "prehab", "running"]
+  const groupedVisibleWorkoutEntries = ["gym_individual", "running", "prehab", "gym_shared"]
     .map((groupKey) => {
       const entries = sortedVisibleWorkoutEntries.filter(
         ([, workout]) => getPlayerWorkoutGroupKey(workout) === groupKey
