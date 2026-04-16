@@ -7478,6 +7478,7 @@ function TrainingApp() {
             {coachView === "stats" && (
               <StatsPage
                 candidatePlayers={statisticsPlayers}
+                exercises={exercisesFromDB}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 inputStyle={inputStyle}

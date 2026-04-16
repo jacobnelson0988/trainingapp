@@ -18,6 +18,49 @@ const FREE_ACTIVITY_LABELS = {
   swimming: "Simning",
 }
 
+const REP_RANGE_BUCKETS = [
+  { key: "1_3", label: "1-3", min: 1, max: 3 },
+  { key: "4_5", label: "4-5", min: 4, max: 5 },
+  { key: "6_10", label: "6-10", min: 6, max: 10 },
+  { key: "11_15", label: "11-15", min: 11, max: 15 },
+  { key: "16_20", label: "16-20", min: 16, max: 20 },
+]
+
+const getExerciseDisplayName = (exercise) =>
+  exercise?.displayName || exercise?.display_name || exercise?.name || ""
+
+const normalizeExerciseLookupValue = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+const getExerciseRepRangeBucket = (repsValue) => {
+  const reps = Number.parseFloat(String(repsValue ?? "").trim().replace(",", "."))
+  if (!Number.isFinite(reps) || reps <= 0) return null
+
+  return (
+    REP_RANGE_BUCKETS.find((bucket) => reps >= bucket.min && reps <= bucket.max) ||
+    (reps < REP_RANGE_BUCKETS[0].min ? REP_RANGE_BUCKETS[0] : REP_RANGE_BUCKETS[REP_RANGE_BUCKETS.length - 1])
+  )
+}
+
+const findExerciseByLoggedName = (exercises, exerciseName) => {
+  const lookupValue = normalizeExerciseLookupValue(exerciseName)
+  if (!lookupValue) return null
+
+  return (
+    (exercises || []).find((exercise) => {
+      const aliases = Array.isArray(exercise?.aliases) ? exercise.aliases : []
+      return [exercise?.name, exercise?.display_name, getExerciseDisplayName(exercise), ...aliases]
+        .map(normalizeExerciseLookupValue)
+        .filter(Boolean)
+        .includes(lookupValue)
+    }) || null
+  )
+}
+
 const parseWeightValue = (value) => {
   const normalized = String(value ?? "")
     .trim()
@@ -247,6 +290,7 @@ const buildActivitySessions = (rows, playerMap) => {
 
 function StatsPage({
   candidatePlayers,
+  exercises,
   cardTitleStyle,
   mutedTextStyle,
   inputStyle,
@@ -262,8 +306,10 @@ function StatsPage({
   const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
   const [activityRows, setActivityRows] = useState([])
+  const [repTargetRows, setRepTargetRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingActivity, setIsLoadingActivity] = useState(false)
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
   const [expandedChart, setExpandedChart] = useState(null)
   const [selectedActivitySessionId, setSelectedActivitySessionId] = useState("")
 
@@ -317,6 +363,34 @@ function StatsPage({
     }
 
     loadStats()
+  }, [selectedPlayerIds])
+
+  useEffect(() => {
+    const loadRepTargets = async () => {
+      if (!selectedPlayerIds.length) {
+        setRepTargetRows([])
+        return
+      }
+
+      setIsLoadingRecommendations(true)
+
+      const { data, error } = await supabase
+        .from("player_exercise_rep_targets")
+        .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
+        .in("player_id", selectedPlayerIds)
+
+      if (error) {
+        console.error(error)
+        setRepTargetRows([])
+        setIsLoadingRecommendations(false)
+        return
+      }
+
+      setRepTargetRows(data || [])
+      setIsLoadingRecommendations(false)
+    }
+
+    loadRepTargets()
   }, [selectedPlayerIds])
 
   useEffect(() => {
@@ -392,6 +466,67 @@ function StatsPage({
     if (exerciseFilter === "all") return progressionSeries
     return progressionSeries.filter((entry) => entry.exerciseName === exerciseFilter)
   }, [exerciseFilter, progressionSeries])
+
+  const repTargetsByPlayerExercise = useMemo(() => {
+    return (repTargetRows || []).reduce((acc, row) => {
+      if (!row.player_id || !row.exercise_id || !row.rep_range_key) return acc
+
+      const playerId = String(row.player_id)
+      const exerciseId = String(row.exercise_id)
+
+      if (!acc[playerId]) acc[playerId] = {}
+      if (!acc[playerId][exerciseId]) acc[playerId][exerciseId] = {}
+
+      acc[playerId][exerciseId][row.rep_range_key] = {
+        weight: row.target_weight,
+        source: row.source || "coach",
+        updated_at: row.updated_at || null,
+      }
+
+      return acc
+    }, {})
+  }, [repTargetRows])
+
+  const selectedExerciseRecommendationRows = useMemo(() => {
+    if (!selectedPlayerIds.length || exerciseFilter === "all") return []
+
+    const matchedExercise = findExerciseByLoggedName(exercises, exerciseFilter)
+    if (!matchedExercise?.id) return []
+
+    return selectedPlayerIds
+      .map((playerId) => {
+        const player = playerMap.get(String(playerId))
+        const latestLog = statsRows
+          .filter(
+            (row) =>
+              String(row.user_id) === String(playerId) &&
+              normalizeExerciseLookupValue(row.exercise) === normalizeExerciseLookupValue(exerciseFilter)
+          )
+          .slice()
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+
+        const latestWeight = parseWeightValue(latestLog?.weight)
+        const repBucket = getExerciseRepRangeBucket(latestLog?.reps)
+        const targetEntry = repBucket
+          ? repTargetsByPlayerExercise?.[String(playerId)]?.[String(matchedExercise.id)]?.[repBucket.key] || null
+          : null
+
+        return {
+          playerId: String(playerId),
+          playerName: player?.full_name || player?.username || "Spelare",
+          latestWeight,
+          latestReps: latestLog?.reps || null,
+          latestDate: latestLog?.created_at || null,
+          repRangeLabel: repBucket?.label || null,
+          recommendedWeight:
+            targetEntry?.weight != null && Number.isFinite(Number(targetEntry.weight))
+              ? Number(targetEntry.weight)
+              : null,
+          recommendationSource: targetEntry?.source || null,
+        }
+      })
+      .sort((a, b) => a.playerName.localeCompare(b.playerName, "sv"))
+  }, [exerciseFilter, exercises, playerMap, repTargetsByPlayerExercise, selectedPlayerIds, statsRows])
 
   const activitySessions = useMemo(() => {
     const visibleRows = activityPlayerId
@@ -817,6 +952,83 @@ function StatsPage({
         <p style={mutedTextStyle}>Laddar statistik...</p>
       ) : !selectedPlayerIds.length ? (
         <p style={mutedTextStyle}>Välj minst en spelare för att visa statistik.</p>
+      ) : exerciseFilter !== "all" ? (
+        <>
+          <div style={recommendationSectionStyle}>
+            <div style={recommendationSectionHeaderStyle}>
+              <div>
+                <div style={recommendationSectionTitleStyle}>Viktöversikt för {exerciseFilter}</div>
+                <div style={recommendationSectionTextStyle}>
+                  Visar senaste loggade vikt per spelare och rekommenderad vikt för samma repsintervall.
+                </div>
+              </div>
+            </div>
+
+            {isLoadingRecommendations ? (
+              <div style={mutedTextStyle}>Laddar rekommenderade vikter...</div>
+            ) : selectedExerciseRecommendationRows.length === 0 ? (
+              <div style={mutedTextStyle}>Ingen viktöversikt hittades för vald övning.</div>
+            ) : (
+              <div style={recommendationGridStyle(isMobile)}>
+                {selectedExerciseRecommendationRows.map((entry) => (
+                  <div key={entry.playerId} style={recommendationCardStyle}>
+                    <div style={recommendationCardHeaderStyle}>
+                      <div style={recommendationPlayerNameStyle}>{entry.playerName}</div>
+                      <div style={recommendationDateStyle}>
+                        {entry.latestDate ? formatStatDate(entry.latestDate) : "Ingen logg"}
+                      </div>
+                    </div>
+
+                    <div style={recommendationStatsGridStyle}>
+                      <div style={recommendationStatBoxStyle}>
+                        <div style={recommendationStatLabelStyle}>Senast loggat</div>
+                        <div style={recommendationStatValueStyle}>
+                          {entry.latestWeight != null ? `${entry.latestWeight} kg` : "—"}
+                        </div>
+                        <div style={recommendationStatMetaStyle}>
+                          {entry.latestReps ? `${entry.latestReps} reps` : "Ingen repsdata"}
+                        </div>
+                      </div>
+
+                      <div style={recommendationStatBoxStyle}>
+                        <div style={recommendationStatLabelStyle}>Rekommenderad vikt</div>
+                        <div style={recommendationStatValueStyle}>
+                          {entry.recommendedWeight != null ? `${entry.recommendedWeight} kg` : "—"}
+                        </div>
+                        <div style={recommendationStatMetaStyle}>
+                          {entry.repRangeLabel
+                            ? `${entry.repRangeLabel} reps`
+                            : "Saknar repsintervall"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {visibleSeries.length === 0 ? (
+            <p style={mutedTextStyle}>Ingen viktdata hittades för det aktuella urvalet.</p>
+          ) : (
+            <div style={chartGridStyle}>
+              {visibleSeries.map((entry) => (
+                <ExerciseChartCard
+                  key={entry.exerciseName}
+                  exerciseName={entry.exerciseName}
+                  playerSeries={entry.playerSeries}
+                  isMobile={isMobile}
+                  onExpand={() =>
+                    setExpandedChart({
+                      exerciseName: entry.exerciseName,
+                      playerSeries: entry.playerSeries,
+                    })
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </>
       ) : visibleSeries.length === 0 ? (
         <p style={mutedTextStyle}>Ingen viktdata hittades för det aktuella urvalet.</p>
       ) : (
@@ -1132,6 +1344,105 @@ const filterCardStyle = {
   borderRadius: "18px",
   border: "1px solid #e2e8f0",
   backgroundColor: "#fcfdff",
+}
+
+const recommendationSectionStyle = {
+  display: "grid",
+  gap: "12px",
+  marginBottom: "18px",
+}
+
+const recommendationSectionHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+}
+
+const recommendationSectionTitleStyle = {
+  fontSize: "18px",
+  fontWeight: "900",
+  color: "#18202b",
+  marginBottom: "4px",
+}
+
+const recommendationSectionTextStyle = {
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: "#64748b",
+}
+
+const recommendationGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const recommendationCardStyle = {
+  padding: "14px",
+  borderRadius: "18px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  minWidth: 0,
+}
+
+const recommendationCardHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "10px",
+  marginBottom: "12px",
+}
+
+const recommendationPlayerNameStyle = {
+  fontSize: "15px",
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const recommendationDateStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  color: "#991b1b",
+  whiteSpace: "nowrap",
+}
+
+const recommendationStatsGridStyle = {
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+}
+
+const recommendationStatBoxStyle = {
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #eef2f7",
+  backgroundColor: "#f8fafc",
+  minWidth: 0,
+}
+
+const recommendationStatLabelStyle = {
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "#64748b",
+  marginBottom: "6px",
+}
+
+const recommendationStatValueStyle = {
+  fontSize: "22px",
+  lineHeight: 1.1,
+  fontWeight: "900",
+  color: "#111827",
+  marginBottom: "4px",
+}
+
+const recommendationStatMetaStyle = {
+  fontSize: "12px",
+  lineHeight: 1.4,
+  color: "#64748b",
 }
 
 const filterTitleStyle = {
