@@ -26,6 +26,8 @@ const REP_RANGE_BUCKETS = [
   { key: "16_20", label: "16-20", min: 16, max: 20 },
 ]
 
+const REP_RANGE_PRIORITY = ["6_10", "4_5", "1_3", "11_15", "16_20"]
+
 const getExerciseDisplayName = (exercise) =>
   exercise?.displayName || exercise?.display_name || exercise?.name || ""
 
@@ -507,9 +509,39 @@ function StatsPage({
 
         const latestWeight = parseWeightValue(latestLog?.weight)
         const repBucket = getExerciseRepRangeBucket(latestLog?.reps)
+        const targetMap =
+          repTargetsByPlayerExercise?.[String(playerId)]?.[String(matchedExercise.id)] || {}
         const targetEntry = repBucket
           ? repTargetsByPlayerExercise?.[String(playerId)]?.[String(matchedExercise.id)]?.[repBucket.key] || null
           : null
+        const availableRecommendations = REP_RANGE_BUCKETS.map((bucket) => {
+          const bucketEntry = targetMap?.[bucket.key]
+          const numericWeight =
+            bucketEntry?.weight != null && Number.isFinite(Number(bucketEntry.weight))
+              ? Number(bucketEntry.weight)
+              : null
+
+          if (numericWeight == null) return null
+
+          return {
+            key: bucket.key,
+            label: bucket.label,
+            weight: numericWeight,
+            source: bucketEntry?.source || null,
+            updated_at: bucketEntry?.updated_at || null,
+          }
+        }).filter(Boolean)
+
+        const fallbackRecommendation =
+          availableRecommendations
+            .slice()
+            .sort(
+              (a, b) =>
+                REP_RANGE_PRIORITY.indexOf(a.key) - REP_RANGE_PRIORITY.indexOf(b.key)
+            )[0] || null
+
+        const resolvedRecommendation = targetEntry?.weight != null ? Number(targetEntry.weight) : fallbackRecommendation?.weight ?? null
+        const resolvedRecommendationRangeLabel = repBucket?.label || fallbackRecommendation?.label || null
 
         return {
           playerId: String(playerId),
@@ -518,11 +550,10 @@ function StatsPage({
           latestReps: latestLog?.reps || null,
           latestDate: latestLog?.created_at || null,
           repRangeLabel: repBucket?.label || null,
-          recommendedWeight:
-            targetEntry?.weight != null && Number.isFinite(Number(targetEntry.weight))
-              ? Number(targetEntry.weight)
-              : null,
-          recommendationSource: targetEntry?.source || null,
+          recommendedWeight: resolvedRecommendation,
+          recommendationRangeLabel: resolvedRecommendationRangeLabel,
+          recommendationSource: targetEntry?.source || fallbackRecommendation?.source || null,
+          availableRecommendations,
         }
       })
       .sort((a, b) => a.playerName.localeCompare(b.playerName, "sv"))
@@ -996,12 +1027,23 @@ function StatsPage({
                           {entry.recommendedWeight != null ? `${entry.recommendedWeight} kg` : "—"}
                         </div>
                         <div style={recommendationStatMetaStyle}>
-                          {entry.repRangeLabel
-                            ? `${entry.repRangeLabel} reps`
-                            : "Saknar repsintervall"}
+                          {entry.recommendationRangeLabel
+                            ? `${entry.recommendationRangeLabel} reps`
+                            : "Ingen målvikt sparad"}
                         </div>
                       </div>
                     </div>
+
+                    {entry.availableRecommendations.length > 0 ? (
+                      <div style={recommendationRangesWrapStyle}>
+                        {entry.availableRecommendations.map((recommendation) => (
+                          <div key={`${entry.playerId}-${recommendation.key}`} style={recommendationRangeChipStyle}>
+                            <span style={recommendationRangeChipLabelStyle}>{recommendation.label}</span>
+                            <span style={recommendationRangeChipValueStyle}>{recommendation.weight} kg</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -1443,6 +1485,38 @@ const recommendationStatMetaStyle = {
   fontSize: "12px",
   lineHeight: 1.4,
   color: "#64748b",
+}
+
+const recommendationRangesWrapStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+  marginTop: "12px",
+}
+
+const recommendationRangeChipStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "8px 10px",
+  borderRadius: "999px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#fff7f7",
+  minWidth: 0,
+}
+
+const recommendationRangeChipLabelStyle = {
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+}
+
+const recommendationRangeChipValueStyle = {
+  fontSize: "12px",
+  fontWeight: "900",
+  color: "#18202b",
 }
 
 const filterTitleStyle = {
