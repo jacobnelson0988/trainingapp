@@ -55,6 +55,50 @@ const getExerciseRepRangeBucket = (repsValue) => {
   )
 }
 
+const parseRepTargetRangeBounds = (target) => {
+  if (!target) return null
+
+  if (target.target_reps_min != null || target.target_reps_max != null) {
+    return {
+      min: target.target_reps_min != null ? Number(target.target_reps_min) : null,
+      max: target.target_reps_max != null ? Number(target.target_reps_max) : null,
+    }
+  }
+
+  if (target.target_reps != null && Number.isFinite(Number(target.target_reps))) {
+    const value = Number(target.target_reps)
+    return { min: value, max: value }
+  }
+
+  const rawText = String(target.target_reps_text || "").trim()
+  const rangeMatch = rawText.replace(/\s+/g, "").match(/^(\d+)-(\d+)$/)
+  if (rangeMatch) {
+    return {
+      min: Number(rangeMatch[1]),
+      max: Number(rangeMatch[2]),
+    }
+  }
+
+  if (rawText && Number.isFinite(Number(rawText))) {
+    const value = Number(rawText)
+    return { min: value, max: value }
+  }
+
+  return null
+}
+
+const getRepRangeBucketForTarget = (target) => {
+  if (!target || target.target_reps_mode === "max") return null
+
+  const bounds = parseRepTargetRangeBounds(target)
+  if (!bounds) return null
+
+  const representativeValue =
+    bounds.max != null ? bounds.max : bounds.min != null ? bounds.min : null
+
+  return representativeValue != null ? getExerciseRepRangeBucket(representativeValue) : null
+}
+
 const findExerciseByLoggedName = (exercises, exerciseName) => {
   const lookupValue = normalizeExerciseLookupValue(exerciseName)
   if (!lookupValue) return null
@@ -317,6 +361,8 @@ function StatsPage({
   const [statsRows, setStatsRows] = useState([])
   const [activityRows, setActivityRows] = useState([])
   const [repTargetRows, setRepTargetRows] = useState([])
+  const [legacyGoalRows, setLegacyGoalRows] = useState([])
+  const [legacyPassTargetRows, setLegacyPassTargetRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingActivity, setIsLoadingActivity] = useState(false)
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
@@ -379,24 +425,46 @@ function StatsPage({
     const loadRecommendations = async () => {
       if (!selectedPlayerIds.length) {
         setRepTargetRows([])
+        setLegacyGoalRows([])
+        setLegacyPassTargetRows([])
         return
       }
 
       setIsLoadingRecommendations(true)
 
-      const { data: repData, error: repError } = await supabase
-        .from("player_exercise_rep_targets")
-        .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
-        .in("player_id", selectedPlayerIds)
+      const [
+        { data: repData, error: repError },
+        { data: goalData, error: goalError },
+        { data: passTargetData, error: passTargetError },
+      ] = await Promise.all([
+        supabase
+          .from("player_exercise_rep_targets")
+          .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
+          .in("player_id", selectedPlayerIds),
+        supabase
+          .from("player_exercise_goals")
+          .select("player_id, exercise_id, target_reps, target_weight, updated_at")
+          .in("player_id", selectedPlayerIds),
+        supabase
+          .from("player_exercise_targets")
+          .select(
+            "player_id, exercise_name, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_weight, updated_at"
+          )
+          .in("player_id", selectedPlayerIds),
+      ])
 
-      if (repError) {
-        console.error(repError)
+      if (repError || goalError || passTargetError) {
+        console.error(repError || goalError || passTargetError)
         setRepTargetRows([])
+        setLegacyGoalRows([])
+        setLegacyPassTargetRows([])
         setIsLoadingRecommendations(false)
         return
       }
 
       setRepTargetRows(repData || [])
+      setLegacyGoalRows(goalData || [])
+      setLegacyPassTargetRows(passTargetData || [])
       setIsLoadingRecommendations(false)
     }
 
@@ -478,24 +546,81 @@ function StatsPage({
   }, [exerciseFilter, progressionSeries])
 
   const repTargetsByPlayerExercise = useMemo(() => {
-    return (repTargetRows || []).reduce((acc, row) => {
-      if (!row.player_id || !row.exercise_id || !row.rep_range_key) return acc
+    const nextMap = {}
+
+    ;(legacyGoalRows || []).forEach((row) => {
+      if (!row.player_id || !row.exercise_id || row.target_weight == null) return
+
+      const bucket = getRepRangeBucketForTarget({
+        target_reps: row.target_reps,
+        target_reps_mode: "fixed",
+      })
+
+      if (!bucket) return
 
       const playerId = String(row.player_id)
       const exerciseId = String(row.exercise_id)
 
-      if (!acc[playerId]) acc[playerId] = {}
-      if (!acc[playerId][exerciseId]) acc[playerId][exerciseId] = {}
+      if (!nextMap[playerId]) nextMap[playerId] = {}
+      if (!nextMap[playerId][exerciseId]) nextMap[playerId][exerciseId] = {}
 
-      acc[playerId][exerciseId][row.rep_range_key] = {
+      nextMap[playerId][exerciseId][bucket.key] = {
+        weight: row.target_weight,
+        source: "legacy_goal",
+        updated_at: row.updated_at || null,
+      }
+    })
+
+    ;(legacyPassTargetRows || []).forEach((row) => {
+      if (!row.player_id || !row.exercise_name || row.target_weight == null) return
+      if (String(row.exercise_name) === "__pass_assignment__") return
+
+      const matchedExercise = findExerciseByLoggedName(exercises, row.exercise_name)
+      if (!matchedExercise?.id) return
+
+      const bucket = getRepRangeBucketForTarget({
+        target_reps: row.target_reps,
+        target_reps_min: row.target_reps_min,
+        target_reps_max: row.target_reps_max,
+        target_reps_text: row.target_reps_text,
+        target_reps_mode: row.target_reps_mode,
+      })
+
+      if (!bucket) return
+
+      const playerId = String(row.player_id)
+      const exerciseId = String(matchedExercise.id)
+
+      if (!nextMap[playerId]) nextMap[playerId] = {}
+      if (!nextMap[playerId][exerciseId]) nextMap[playerId][exerciseId] = {}
+
+      if (!nextMap[playerId][exerciseId][bucket.key]) {
+        nextMap[playerId][exerciseId][bucket.key] = {
+          weight: row.target_weight,
+          source: "legacy_pass_target",
+          updated_at: row.updated_at || null,
+        }
+      }
+    })
+
+    ;(repTargetRows || []).forEach((row) => {
+      if (!row.player_id || !row.exercise_id || !row.rep_range_key) return
+
+      const playerId = String(row.player_id)
+      const exerciseId = String(row.exercise_id)
+
+      if (!nextMap[playerId]) nextMap[playerId] = {}
+      if (!nextMap[playerId][exerciseId]) nextMap[playerId][exerciseId] = {}
+
+      nextMap[playerId][exerciseId][row.rep_range_key] = {
         weight: row.target_weight,
         source: row.source || "coach",
         updated_at: row.updated_at || null,
       }
+    })
 
-      return acc
-    }, {})
-  }, [repTargetRows])
+    return nextMap
+  }, [exercises, legacyGoalRows, legacyPassTargetRows, repTargetRows])
 
   const selectedExerciseRecommendationRows = useMemo(() => {
     if (!selectedPlayerIds.length || exerciseFilter === "all") return []
