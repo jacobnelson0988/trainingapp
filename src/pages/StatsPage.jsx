@@ -27,6 +27,13 @@ const REP_RANGE_BUCKETS = [
 ]
 
 const REP_RANGE_PRIORITY = ["6_10", "4_5", "1_3", "11_15", "16_20"]
+const REP_RANGE_FILTER_OPTIONS = [
+  { value: "all", label: "Alla repsintervall" },
+  ...REP_RANGE_BUCKETS.map((bucket) => ({
+    value: bucket.key,
+    label: `${bucket.label} reps`,
+  })),
+]
 
 const getExerciseDisplayName = (exercise) =>
   exercise?.displayName || exercise?.display_name || exercise?.name || ""
@@ -305,6 +312,7 @@ function StatsPage({
   const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(!isMobile)
   const [exerciseFilter, setExerciseFilter] = useState("all")
+  const [repRangeFilter, setRepRangeFilter] = useState("all")
   const [periodFilter, setPeriodFilter] = useState("90")
   const [statsRows, setStatsRows] = useState([])
   const [activityRows, setActivityRows] = useState([])
@@ -532,16 +540,31 @@ function StatsPage({
           }
         }).filter(Boolean)
 
+        const filteredRecommendations =
+          repRangeFilter === "all"
+            ? availableRecommendations
+            : availableRecommendations.filter((recommendation) => recommendation.key === repRangeFilter)
+
         const fallbackRecommendation =
-          availableRecommendations
+          filteredRecommendations
             .slice()
             .sort(
               (a, b) =>
                 REP_RANGE_PRIORITY.indexOf(a.key) - REP_RANGE_PRIORITY.indexOf(b.key)
             )[0] || null
 
-        const resolvedRecommendation = targetEntry?.weight != null ? Number(targetEntry.weight) : fallbackRecommendation?.weight ?? null
-        const resolvedRecommendationRangeLabel = repBucket?.label || fallbackRecommendation?.label || null
+        const explicitTargetEntry =
+          repRangeFilter !== "all" ? targetMap?.[repRangeFilter] || null : targetEntry
+        const explicitTargetWeight =
+          explicitTargetEntry?.weight != null && Number.isFinite(Number(explicitTargetEntry.weight))
+            ? Number(explicitTargetEntry.weight)
+            : null
+        const resolvedRecommendation =
+          explicitTargetWeight != null ? explicitTargetWeight : fallbackRecommendation?.weight ?? null
+        const resolvedRecommendationRangeLabel =
+          repRangeFilter !== "all"
+            ? REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeFilter)?.label || null
+            : repBucket?.label || fallbackRecommendation?.label || null
 
         return {
           playerId: String(playerId),
@@ -552,12 +575,12 @@ function StatsPage({
           repRangeLabel: repBucket?.label || null,
           recommendedWeight: resolvedRecommendation,
           recommendationRangeLabel: resolvedRecommendationRangeLabel,
-          recommendationSource: targetEntry?.source || fallbackRecommendation?.source || null,
-          availableRecommendations,
+          recommendationSource: explicitTargetEntry?.source || fallbackRecommendation?.source || null,
+          availableRecommendations: filteredRecommendations,
         }
       })
       .sort((a, b) => a.playerName.localeCompare(b.playerName, "sv"))
-  }, [exerciseFilter, exercises, playerMap, repTargetsByPlayerExercise, selectedPlayerIds, statsRows])
+  }, [exerciseFilter, exercises, playerMap, repRangeFilter, repTargetsByPlayerExercise, selectedPlayerIds, statsRows])
 
   const activitySessions = useMemo(() => {
     const visibleRows = activityPlayerId
@@ -802,6 +825,24 @@ function StatsPage({
           </select>
           <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
             Visar toppset per pass för vald övning och spelare.
+          </div>
+        </div>
+
+        <div style={filterCardStyle}>
+          <div style={filterTitleStyle}>Repsintervall</div>
+          <select
+            value={repRangeFilter}
+            onChange={(event) => setRepRangeFilter(event.target.value)}
+            style={{ ...inputStyle, width: "100%" }}
+          >
+            {REP_RANGE_FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+            Styr vilken målviktsnivå som visas i viktöversikten för vald övning.
           </div>
         </div>
 
@@ -1339,7 +1380,9 @@ function getChartMetrics(playerSeries) {
 const filterGridStyle = (isMobile) => ({
   display: "grid",
   gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.5fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr)",
+  gridTemplateColumns: isMobile
+    ? "1fr"
+    : "minmax(0, 1.5fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr)",
   marginBottom: "18px",
 })
 
