@@ -728,7 +728,6 @@ const buildDefaultPassExerciseTarget = (exercise) => ({
   target_reps_max: exercise?.targetRepsMax ?? null,
   target_reps_text: exercise?.targetRepsText || null,
   target_reps_mode: exercise?.targetRepsMode || exercise?.defaultRepsMode || "fixed",
-  target_weight: null,
   target_comment: null,
 })
 
@@ -745,7 +744,6 @@ const mergeExerciseTargetWithPassDefaults = (exercise, overrideTarget) => {
     target_reps_max: overrideTarget.target_reps_max ?? defaultTarget.target_reps_max,
     target_reps_text: overrideTarget.target_reps_text ?? defaultTarget.target_reps_text,
     target_reps_mode: overrideTarget.target_reps_mode || defaultTarget.target_reps_mode,
-    target_weight: overrideTarget.target_weight ?? defaultTarget.target_weight,
     target_comment: overrideTarget.target_comment ?? defaultTarget.target_comment,
   }
 }
@@ -1727,7 +1725,6 @@ function TrainingApp() {
         target_reps_max: row.target_reps_max ?? null,
         target_reps_text: row.target_reps_text || null,
         target_reps_mode: row.target_reps_mode || "fixed",
-        target_weight: row.target_weight,
         target_comment: row.target_comment,
       }
     })
@@ -3097,7 +3094,7 @@ function TrainingApp() {
     const { data, error } = await supabase
       .from("player_exercise_targets")
       .select(
-        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_weight, target_comment"
+        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_comment"
       )
       .eq("player_id", playerId)
 
@@ -3235,6 +3232,24 @@ function TrainingApp() {
       return acc
     }, {})
 
+    Object.entries(repRangeWeightsByExerciseId).forEach(([exerciseId, repRangeWeights]) => {
+      if (!goalsByExerciseId[exerciseId]) {
+        goalsByExerciseId[exerciseId] = {
+          exercise_id: exerciseId,
+          target_sets: null,
+          target_reps: null,
+          comment: null,
+          rep_range_weights: normalizeRepRangeWeights(repRangeWeights),
+        }
+        return
+      }
+
+      goalsByExerciseId[exerciseId] = {
+        ...goalsByExerciseId[exerciseId],
+        rep_range_weights: normalizeRepRangeWeights(repRangeWeights),
+      }
+    })
+
     const nextHistory = summarizeHistoryRowsByExercise(historyRows || [])
       .map((exerciseHistory) => {
         const matchedExercise = findExerciseByLoggedName(exercisesFromDB, exerciseHistory.exercise_name)
@@ -3269,11 +3284,23 @@ function TrainingApp() {
       .filter(Boolean)
     const nextCompletedSessions = buildCoachPlayerCompletedSessions(historyRows || [], exercisesFromDB)
 
-    const nextDrafts = nextHistory.reduce((acc, entry) => {
-      const existingGoal = entry.existing_goal
-      const prefill = buildExerciseGoalPrefill(entry.best_weight_entry || entry.latest_entry)
+    const historyByExerciseId = nextHistory.reduce((acc, entry) => {
+      acc[entry.exercise_id] = entry
+      return acc
+    }, {})
 
-      acc[entry.exercise_id] = existingGoal
+    const draftExerciseIds = Array.from(
+      new Set([...nextHistory.map((entry) => entry.exercise_id), ...Object.keys(goalsByExerciseId)])
+    )
+
+    const nextDrafts = draftExerciseIds.reduce((acc, exerciseId) => {
+      const historyEntry = historyByExerciseId[exerciseId]
+      const existingGoal = goalsByExerciseId[exerciseId] || historyEntry?.existing_goal || null
+      const prefill = buildExerciseGoalPrefill(
+        historyEntry?.best_weight_entry || historyEntry?.latest_entry || null
+      )
+
+      acc[exerciseId] = existingGoal
         ? {
             target_sets: existingGoal.target_sets ?? "",
             target_reps: existingGoal.target_reps ?? "",
@@ -4614,15 +4641,13 @@ function TrainingApp() {
         (value) => value !== "" && value != null
       )
 
-    const rows = Object.entries(exerciseGoalDrafts)
-      .filter(([_, draft]) => {
-        const hasBaseGoalValue =
-          (draft.target_sets !== "" && draft.target_sets != null) ||
-          (draft.target_reps !== "" && draft.target_reps != null) ||
-          Boolean(String(draft.comment || "").trim())
+    const hasBaseExerciseGoalValue = (draft) =>
+      (draft.target_sets !== "" && draft.target_sets != null) ||
+      (draft.target_reps !== "" && draft.target_reps != null) ||
+      Boolean(String(draft.comment || "").trim())
 
-        return hasBaseGoalValue || hasRepRangeWeightValue(draft)
-      })
+    const rows = Object.entries(exerciseGoalDrafts)
+      .filter(([_, draft]) => hasBaseExerciseGoalValue(draft))
       .map(([exerciseId, draft]) => ({
         player_id: selectedPlayer.id,
         exercise_id: exerciseId,
@@ -4635,14 +4660,7 @@ function TrainingApp() {
     setIsSavingExerciseGoals(true)
 
     const deleteExerciseIds = Object.entries(exerciseGoalDrafts)
-      .filter(([_, draft]) => {
-        const hasValue =
-          (draft.target_sets !== "" && draft.target_sets != null) ||
-          (draft.target_reps !== "" && draft.target_reps != null) ||
-          Boolean(String(draft.comment || "").trim()) ||
-          hasRepRangeWeightValue(draft)
-        return !hasValue
-      })
+      .filter(([_, draft]) => !hasBaseExerciseGoalValue(draft))
       .map(([exerciseId]) => exerciseId)
 
     if (deleteExerciseIds.length > 0) {
@@ -7471,6 +7489,7 @@ function TrainingApp() {
               <StatsPage
                 candidatePlayers={statisticsPlayers}
                 exercises={exercisesFromDB}
+                currentUserId={user?.id}
                 cardTitleStyle={cardTitleStyle}
                 mutedTextStyle={mutedTextStyle}
                 inputStyle={inputStyle}

@@ -344,6 +344,7 @@ const buildActivitySessions = (rows, playerMap) => {
 function StatsPage({
   candidatePlayers,
   exercises,
+  currentUserId,
   cardTitleStyle,
   mutedTextStyle,
   inputStyle,
@@ -361,11 +362,11 @@ function StatsPage({
   const [statsRows, setStatsRows] = useState([])
   const [activityRows, setActivityRows] = useState([])
   const [repTargetRows, setRepTargetRows] = useState([])
-  const [legacyGoalRows, setLegacyGoalRows] = useState([])
-  const [legacyPassTargetRows, setLegacyPassTargetRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingActivity, setIsLoadingActivity] = useState(false)
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
+  const [recommendationDrafts, setRecommendationDrafts] = useState({})
+  const [savingRecommendationKey, setSavingRecommendationKey] = useState("")
   const [expandedChart, setExpandedChart] = useState(null)
   const [selectedActivitySessionId, setSelectedActivitySessionId] = useState("")
 
@@ -425,46 +426,24 @@ function StatsPage({
     const loadRecommendations = async () => {
       if (!selectedPlayerIds.length) {
         setRepTargetRows([])
-        setLegacyGoalRows([])
-        setLegacyPassTargetRows([])
         return
       }
 
       setIsLoadingRecommendations(true)
 
-      const [
-        { data: repData, error: repError },
-        { data: goalData, error: goalError },
-        { data: passTargetData, error: passTargetError },
-      ] = await Promise.all([
-        supabase
-          .from("player_exercise_rep_targets")
-          .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
-          .in("player_id", selectedPlayerIds),
-        supabase
-          .from("player_exercise_goals")
-          .select("player_id, exercise_id, target_reps, target_weight, updated_at")
-          .in("player_id", selectedPlayerIds),
-        supabase
-          .from("player_exercise_targets")
-          .select(
-            "player_id, exercise_name, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_weight, updated_at"
-          )
-          .in("player_id", selectedPlayerIds),
-      ])
+      const { data: repData, error: repError } = await supabase
+        .from("player_exercise_rep_targets")
+        .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
+        .in("player_id", selectedPlayerIds)
 
-      if (repError || goalError || passTargetError) {
-        console.error(repError || goalError || passTargetError)
+      if (repError) {
+        console.error(repError)
         setRepTargetRows([])
-        setLegacyGoalRows([])
-        setLegacyPassTargetRows([])
         setIsLoadingRecommendations(false)
         return
       }
 
       setRepTargetRows(repData || [])
-      setLegacyGoalRows(goalData || [])
-      setLegacyPassTargetRows(passTargetData || [])
       setIsLoadingRecommendations(false)
     }
 
@@ -546,81 +525,35 @@ function StatsPage({
   }, [exerciseFilter, progressionSeries])
 
   const repTargetsByPlayerExercise = useMemo(() => {
-    const nextMap = {}
-
-    ;(legacyGoalRows || []).forEach((row) => {
-      if (!row.player_id || !row.exercise_id || row.target_weight == null) return
-
-      const bucket = getRepRangeBucketForTarget({
-        target_reps: row.target_reps,
-        target_reps_mode: "fixed",
-      })
-
-      if (!bucket) return
+    return (repTargetRows || []).reduce((acc, row) => {
+      if (!row.player_id || !row.exercise_id || !row.rep_range_key) return acc
 
       const playerId = String(row.player_id)
       const exerciseId = String(row.exercise_id)
 
-      if (!nextMap[playerId]) nextMap[playerId] = {}
-      if (!nextMap[playerId][exerciseId]) nextMap[playerId][exerciseId] = {}
+      if (!acc[playerId]) acc[playerId] = {}
+      if (!acc[playerId][exerciseId]) acc[playerId][exerciseId] = {}
 
-      nextMap[playerId][exerciseId][bucket.key] = {
-        weight: row.target_weight,
-        source: "legacy_goal",
-        updated_at: row.updated_at || null,
-      }
-    })
-
-    ;(legacyPassTargetRows || []).forEach((row) => {
-      if (!row.player_id || !row.exercise_name || row.target_weight == null) return
-      if (String(row.exercise_name) === "__pass_assignment__") return
-
-      const matchedExercise = findExerciseByLoggedName(exercises, row.exercise_name)
-      if (!matchedExercise?.id) return
-
-      const bucket = getRepRangeBucketForTarget({
-        target_reps: row.target_reps,
-        target_reps_min: row.target_reps_min,
-        target_reps_max: row.target_reps_max,
-        target_reps_text: row.target_reps_text,
-        target_reps_mode: row.target_reps_mode,
-      })
-
-      if (!bucket) return
-
-      const playerId = String(row.player_id)
-      const exerciseId = String(matchedExercise.id)
-
-      if (!nextMap[playerId]) nextMap[playerId] = {}
-      if (!nextMap[playerId][exerciseId]) nextMap[playerId][exerciseId] = {}
-
-      if (!nextMap[playerId][exerciseId][bucket.key]) {
-        nextMap[playerId][exerciseId][bucket.key] = {
-          weight: row.target_weight,
-          source: "legacy_pass_target",
-          updated_at: row.updated_at || null,
-        }
-      }
-    })
-
-    ;(repTargetRows || []).forEach((row) => {
-      if (!row.player_id || !row.exercise_id || !row.rep_range_key) return
-
-      const playerId = String(row.player_id)
-      const exerciseId = String(row.exercise_id)
-
-      if (!nextMap[playerId]) nextMap[playerId] = {}
-      if (!nextMap[playerId][exerciseId]) nextMap[playerId][exerciseId] = {}
-
-      nextMap[playerId][exerciseId][row.rep_range_key] = {
+      acc[playerId][exerciseId][row.rep_range_key] = {
         weight: row.target_weight,
         source: row.source || "coach",
         updated_at: row.updated_at || null,
       }
-    })
 
-    return nextMap
-  }, [exercises, legacyGoalRows, legacyPassTargetRows, repTargetRows])
+      return acc
+    }, {})
+  }, [repTargetRows])
+
+  const targetExerciseOptions = useMemo(() => {
+    const targetNames = (repTargetRows || [])
+      .map((row) => (exercises || []).find((exercise) => String(exercise.id) === String(row.exercise_id)))
+      .filter(Boolean)
+      .map((exercise) => getExerciseDisplayName(exercise))
+
+    return Array.from(new Set([...exerciseOptions, ...targetNames])).sort((a, b) =>
+      a.localeCompare(b, "sv")
+    )
+  }, [exerciseOptions, exercises, repTargetRows])
 
   const selectedExerciseRecommendationRows = useMemo(() => {
     if (!selectedPlayerIds.length || exerciseFilter === "all") return []
@@ -644,9 +577,6 @@ function StatsPage({
         const repBucket = getExerciseRepRangeBucket(latestLog?.reps)
         const targetMap =
           repTargetsByPlayerExercise?.[String(playerId)]?.[String(matchedExercise.id)] || {}
-        const targetEntry = repBucket
-          ? repTargetsByPlayerExercise?.[String(playerId)]?.[String(matchedExercise.id)]?.[repBucket.key] || null
-          : null
         const availableRecommendations = REP_RANGE_BUCKETS.map((bucket) => {
           const bucketEntry = targetMap?.[bucket.key]
           const numericWeight =
@@ -671,25 +601,21 @@ function StatsPage({
             : availableRecommendations.filter((recommendation) => recommendation.key === repRangeFilter)
 
         const fallbackRecommendation =
-          filteredRecommendations
-            .slice()
-            .sort(
-              (a, b) =>
-                REP_RANGE_PRIORITY.indexOf(a.key) - REP_RANGE_PRIORITY.indexOf(b.key)
-            )[0] || null
+          repRangeFilter === "all"
+            ? filteredRecommendations
+                .slice()
+                .sort(
+                  (a, b) =>
+                    REP_RANGE_PRIORITY.indexOf(a.key) - REP_RANGE_PRIORITY.indexOf(b.key)
+                )[0] || null
+            : null
 
-        const explicitTargetEntry =
-          repRangeFilter !== "all" ? targetMap?.[repRangeFilter] || null : targetEntry
+        const explicitTargetEntry = repRangeFilter !== "all" ? targetMap?.[repRangeFilter] || null : null
         const explicitTargetWeight =
           explicitTargetEntry?.weight != null && Number.isFinite(Number(explicitTargetEntry.weight))
             ? Number(explicitTargetEntry.weight)
             : null
-        const resolvedRecommendation =
-          explicitTargetWeight != null
-            ? explicitTargetWeight
-            : fallbackRecommendation?.weight != null
-            ? fallbackRecommendation.weight
-            : null
+        const resolvedRecommendation = explicitTargetWeight != null ? explicitTargetWeight : fallbackRecommendation?.weight ?? null
         const resolvedRecommendationRangeLabel =
           repRangeFilter !== "all"
             ? REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeFilter)?.label || null
@@ -698,6 +624,8 @@ function StatsPage({
         return {
           playerId: String(playerId),
           playerName: player?.full_name || player?.username || "Spelare",
+          exerciseId: String(matchedExercise.id),
+          exerciseType: matchedExercise.exercise_type || "reps_only",
           latestWeight,
           latestReps: latestLog?.reps || null,
           latestDate: latestLog?.created_at || null,
@@ -710,6 +638,95 @@ function StatsPage({
       })
       .sort((a, b) => a.playerName.localeCompare(b.playerName, "sv"))
   }, [exerciseFilter, exercises, playerMap, repRangeFilter, repTargetsByPlayerExercise, selectedPlayerIds, statsRows])
+
+  useEffect(() => {
+    if (repRangeFilter === "all") return
+
+    setRecommendationDrafts((prev) => {
+      const next = { ...prev }
+
+      selectedExerciseRecommendationRows.forEach((entry) => {
+        const draftKey = `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+        next[draftKey] =
+          prev[draftKey] ?? (entry.recommendedWeight != null ? String(entry.recommendedWeight) : "")
+      })
+
+      return next
+    })
+  }, [repRangeFilter, selectedExerciseRecommendationRows])
+
+  const handleRecommendationDraftChange = (entry, value) => {
+    if (repRangeFilter === "all") return
+    const draftKey = `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+    setRecommendationDrafts((prev) => ({
+      ...prev,
+      [draftKey]: value,
+    }))
+  }
+
+  const handleSaveRecommendationWeight = async (entry) => {
+    if (!entry?.exerciseId || repRangeFilter === "all" || entry.exerciseType !== "weight_reps") return
+
+    const draftKey = `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+    const rawValue = String(recommendationDrafts[draftKey] ?? "").trim().replace(",", ".")
+    setSavingRecommendationKey(draftKey)
+
+    if (!rawValue) {
+      const { error } = await supabase
+        .from("player_exercise_rep_targets")
+        .delete()
+        .eq("player_id", entry.playerId)
+        .eq("exercise_id", entry.exerciseId)
+        .eq("rep_range_key", repRangeFilter)
+
+      if (error) {
+        console.error(error)
+        setSavingRecommendationKey("")
+        return
+      }
+    } else {
+      const numericValue = Number(rawValue)
+
+      if (!Number.isFinite(numericValue) || numericValue <= 0) {
+        setSavingRecommendationKey("")
+        return
+      }
+
+      const { error } = await supabase
+        .from("player_exercise_rep_targets")
+        .upsert(
+          {
+            player_id: entry.playerId,
+            exercise_id: entry.exerciseId,
+            rep_range_key: repRangeFilter,
+            target_weight: numericValue,
+            updated_by: currentUserId || null,
+            source: "coach",
+          },
+          { onConflict: "player_id,exercise_id,rep_range_key" }
+        )
+
+      if (error) {
+        console.error(error)
+        setSavingRecommendationKey("")
+        return
+      }
+    }
+
+    const { data: repData, error: repError } = await supabase
+      .from("player_exercise_rep_targets")
+      .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
+      .in("player_id", selectedPlayerIds)
+
+    if (repError) {
+      console.error(repError)
+      setSavingRecommendationKey("")
+      return
+    }
+
+    setRepTargetRows(repData || [])
+    setSavingRecommendationKey("")
+  }
 
   const activitySessions = useMemo(() => {
     const visibleRows = activityPlayerId
@@ -752,7 +769,7 @@ function StatsPage({
         </div>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Övningar</div>
-          <div style={introStatValueStyle}>{exerciseOptions.length}</div>
+          <div style={introStatValueStyle}>{targetExerciseOptions.length}</div>
         </div>
       </div>
 
@@ -840,7 +857,7 @@ function StatsPage({
         </div>
         <div style={statsSummaryCardStyle}>
           <div style={statsSummaryLabelStyle}>Övningar med data</div>
-          <div style={statsSummaryValueStyle}>{exerciseOptions.length}</div>
+          <div style={statsSummaryValueStyle}>{targetExerciseOptions.length}</div>
         </div>
         <div style={statsSummaryCardStyle}>
           <div style={statsSummaryLabelStyle}>Datarader</div>
@@ -946,7 +963,7 @@ function StatsPage({
             style={{ ...inputStyle, width: "100%" }}
           >
             <option value="all">Alla övningar</option>
-            {exerciseOptions.map((exerciseName) => (
+            {targetExerciseOptions.map((exerciseName) => (
               <option key={exerciseName} value={exerciseName}>
                 {exerciseName}
               </option>
@@ -1214,6 +1231,54 @@ function StatsPage({
                         ))}
                       </div>
                     ) : null}
+
+                    {entry.exerciseType === "weight_reps" ? (
+                      repRangeFilter === "all" ? (
+                        <div style={recommendationQuickEditHintStyle}>
+                          Välj ett specifikt repsintervall för att snabbredigera målvikt här.
+                        </div>
+                      ) : (
+                        <div style={recommendationQuickEditRowStyle(isMobile)}>
+                          <input
+                            type="number"
+                            placeholder="Målvikt i kg"
+                            value={
+                              recommendationDrafts[`${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`] ?? ""
+                            }
+                            onChange={(event) => handleRecommendationDraftChange(entry, event.target.value)}
+                            style={{ ...inputStyle, width: isMobile ? "100%" : "180px" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveRecommendationWeight(entry)}
+                            disabled={
+                              savingRecommendationKey ===
+                              `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+                            }
+                            style={{
+                              ...secondaryButtonStyle,
+                              width: isMobile ? "100%" : "auto",
+                              backgroundColor: "#111827",
+                              color: "#ffffff",
+                              opacity:
+                                savingRecommendationKey ===
+                                `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+                                  ? 0.7
+                                  : 1,
+                            }}
+                          >
+                            {savingRecommendationKey ===
+                            `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+                              ? "Sparar..."
+                              : "Spara målvikt"}
+                          </button>
+                        </div>
+                      )
+                    ) : (
+                      <div style={recommendationQuickEditHintStyle}>
+                        Den här övningen använder inte målvikt.
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1689,6 +1754,25 @@ const recommendationRangeChipValueStyle = {
   fontSize: "12px",
   fontWeight: "900",
   color: "#18202b",
+}
+
+const recommendationQuickEditRowStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexDirection: isMobile ? "column" : "row",
+  alignItems: isMobile ? "stretch" : "center",
+  marginTop: "12px",
+})
+
+const recommendationQuickEditHintStyle = {
+  marginTop: "12px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#f8fafc",
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: "#64748b",
 }
 
 const filterTitleStyle = {

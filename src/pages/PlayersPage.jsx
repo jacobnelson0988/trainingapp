@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
 
 const repRangeOptions = [
@@ -122,6 +122,54 @@ function PlayersPage({
   const archivedPlayerCount = players.filter((player) => player.is_archived).length
   const historyModeCount = players.filter((player) => player.individual_goals_enabled === false).length
   const openRequestCount = targetChangeRequests.length
+
+  const assignedExerciseEntries = useMemo(() => {
+    const historyById = new Map(
+      (selectedPlayerHistory || []).map((entry) => [String(entry.exercise_id), entry])
+    )
+    const nextMap = new Map()
+
+    ;(assignedPassCodes || []).forEach((passKey) => {
+      const workout = activeWorkouts?.[passKey]
+      const passLabel = workout?.label || passKey
+
+      ;(workout?.exercises || []).forEach((exercise) => {
+        const exerciseId = String(exercise.exerciseId || exercise.id || exercise.name)
+        const historyEntry =
+          historyById.get(exerciseId) ||
+          (selectedPlayerHistory || []).find(
+            (entry) =>
+              String(entry.exercise_name || "").trim().toLowerCase() ===
+              String(exercise.name || "").trim().toLowerCase()
+          ) ||
+          null
+
+        const existingEntry = nextMap.get(exerciseId)
+
+        if (existingEntry) {
+          if (!existingEntry.pass_labels.includes(passLabel)) {
+            existingEntry.pass_labels.push(passLabel)
+          }
+          return
+        }
+
+        nextMap.set(exerciseId, {
+          exercise_id: exerciseId,
+          exercise_name: exercise.name,
+          exercise_display_name: getExerciseDisplayName(exercise),
+          exercise_type: exercise.type || exercise.exercise_type || "reps_only",
+          pass_labels: [passLabel],
+          latest_entry: historyEntry?.latest_entry || null,
+          best_weight_entry: historyEntry?.best_weight_entry || null,
+          entry_count: historyEntry?.entry_count || 0,
+        })
+      })
+    })
+
+    return Array.from(nextMap.values()).sort((a, b) =>
+      String(a.exercise_display_name || "").localeCompare(String(b.exercise_display_name || ""), "sv")
+    )
+  }, [activeWorkouts, assignedPassCodes, selectedPlayerHistory])
 
   useEffect(() => {
     const firstSessionId = selectedPlayerCompletedSessions?.[0]?.session_id || ""
@@ -607,7 +655,7 @@ function PlayersPage({
                 opacity: isSavingTargets ? 0.7 : 1,
               }}
             >
-              {isSavingTargets ? "Sparar..." : "Spara mål"}
+              {isSavingTargets ? "Sparar..." : "Spara passavvikelser"}
             </button>
       </div>
         )}
@@ -617,8 +665,8 @@ function PlayersPage({
       {activeEditorSection === "history" && (
       <div style={editorSectionCardStyle}>
         <div style={sectionHeaderCompactStyle}>
-          <div style={sectionTitleCompactStyle}>Historik och personliga mål</div>
-          <div style={sectionMetaCompactStyle}>Bygg mål utifrån spelarens verkliga historik</div>
+          <div style={sectionTitleCompactStyle}>Historik och övningsmål</div>
+          <div style={sectionMetaCompactStyle}>Tilldelade övningar samlas i en lista med mål per repsintervall.</div>
         </div>
         {player.individual_goals_enabled === false ? (
           <div style={archivedInfoCardStyle}>
@@ -786,13 +834,20 @@ function PlayersPage({
               )}
             </div>
 
-            {selectedPlayerHistory.length === 0 ? (
-              <p style={mutedTextStyle}>Ingen övningshistorik finns ännu för spelaren.</p>
+            {assignedExerciseEntries.length === 0 ? (
+              <p style={mutedTextStyle}>Spelaren har inga tilldelade styrkeövningar ännu.</p>
             ) : (
             <div style={{ display: "grid", gap: "12px", marginBottom: "14px" }}>
-              {selectedPlayerHistory.map((entry) => {
+              {assignedExerciseEntries.map((entry) => {
                 const draft = exerciseGoalDrafts[entry.exercise_id] || {}
-                const existingGoal = selectedPlayerExerciseGoals[entry.exercise_id]
+                const existingGoal =
+                  selectedPlayerExerciseGoals[entry.exercise_id] ||
+                  (Object.values(draft.rep_range_weights || {}).some(
+                    (value) => value !== "" && value != null
+                  )
+                    ? { rep_range_weights: draft.rep_range_weights }
+                    : null)
+                const hasHistory = Boolean(entry.latest_entry || entry.best_weight_entry || entry.entry_count > 0)
 
                 return (
                   <div
@@ -823,6 +878,13 @@ function PlayersPage({
                           {entry.latest_entry?.created_at
                             ? ` • senast ${new Date(entry.latest_entry.created_at).toLocaleDateString("sv-SE")}`
                             : ""}
+                        </div>
+                        <div style={exercisePassBadgeWrapStyle}>
+                          {entry.pass_labels.map((passLabel) => (
+                            <div key={`${entry.exercise_id}-${passLabel}`} style={exercisePassBadgeStyle}>
+                              {passLabel}
+                            </div>
+                          ))}
                         </div>
                       </div>
 
@@ -858,7 +920,7 @@ function PlayersPage({
                             ? `${entry.latest_entry.top_reps} reps`
                             : entry.latest_entry?.top_seconds
                             ? `${entry.latest_entry.top_seconds} sek`
-                            : "-"}
+                            : "Ingen logg"}
                         </div>
                         <div style={historyStatMetaStyle}>
                           {[
@@ -876,7 +938,7 @@ function PlayersPage({
                         <div style={historyStatValueStyle}>
                           {entry.best_weight_entry?.top_weight != null
                             ? `${entry.best_weight_entry.top_weight} kg`
-                            : "-"}
+                            : "Ingen logg"}
                         </div>
                         <div style={historyStatMetaStyle}>
                           {[
@@ -887,7 +949,7 @@ function PlayersPage({
                               : null,
                           ]
                             .filter(Boolean)
-                            .join(" • ")}
+                            .join(" • ") || "Ingen vikt registrerad ännu"}
                         </div>
                       </div>
                     </div>
@@ -920,61 +982,67 @@ function PlayersPage({
                       />
                     </div>
 
-                    <div style={{ marginBottom: "10px" }}>
-                      <div
-                        style={{
-                          marginBottom: "8px",
-                          fontSize: "13px",
-                          fontWeight: "800",
-                          color: "#18202b",
-                        }}
-                      >
-                        Målvikter per repsintervall
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: "8px",
-                          gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))",
-                        }}
-                      >
-                        {repRangeOptions.map((option) => (
-                          <div
-                            key={`${entry.exercise_id}-${option.key}`}
-                            style={{
-                              padding: "10px",
-                              borderRadius: "12px",
-                              border: "1px solid #e2e8f0",
-                              backgroundColor: "#f8fafc",
-                            }}
-                          >
+                    {entry.exercise_type === "weight_reps" ? (
+                      <div style={{ marginBottom: "10px" }}>
+                        <div
+                          style={{
+                            marginBottom: "8px",
+                            fontSize: "13px",
+                            fontWeight: "800",
+                            color: "#18202b",
+                          }}
+                        >
+                          Målvikter per repsintervall
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: "8px",
+                            gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))",
+                          }}
+                        >
+                          {repRangeOptions.map((option) => (
                             <div
+                              key={`${entry.exercise_id}-${option.key}`}
                               style={{
-                                marginBottom: "6px",
-                                fontSize: "12px",
-                                fontWeight: "800",
-                                color: "#64748b",
+                                padding: "10px",
+                                borderRadius: "12px",
+                                border: "1px solid #e2e8f0",
+                                backgroundColor: "#f8fafc",
                               }}
                             >
-                              {option.label}
+                              <div
+                                style={{
+                                  marginBottom: "6px",
+                                  fontSize: "12px",
+                                  fontWeight: "800",
+                                  color: "#64748b",
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                              <input
+                                type="number"
+                                placeholder="kg"
+                                value={draft.rep_range_weights?.[option.key] ?? ""}
+                                onChange={(e) =>
+                                  handleExerciseGoalRepRangeWeightDraftChange(
+                                    entry.exercise_id,
+                                    option.key,
+                                    e.target.value
+                                  )
+                                }
+                                style={{ ...inputStyle, width: "100%" }}
+                              />
                             </div>
-                            <input
-                              type="number"
-                              placeholder="kg"
-                              value={draft.rep_range_weights?.[option.key] ?? ""}
-                              onChange={(e) =>
-                                handleExerciseGoalRepRangeWeightDraftChange(
-                                  entry.exercise_id,
-                                  option.key,
-                                  e.target.value
-                                )
-                              }
-                              style={{ ...inputStyle, width: "100%" }}
-                            />
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div style={exerciseGoalInfoStyle}>
+                        Den här övningen använder inte målvikter. Mål sätts i stället via set, reps eller kommentar.
+                      </div>
+                    )}
 
                     <input
                       type="text"
@@ -989,6 +1057,7 @@ function PlayersPage({
                     <button
                       type="button"
                       onClick={() => handlePrefillExerciseGoalFromHistory(entry.exercise_id)}
+                      disabled={!hasHistory}
                       style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto" }}
                     >
                       Fyll från historik
@@ -1899,6 +1968,36 @@ const historyViewerCardStyle = {
   borderRadius: "16px",
   border: "1px solid #e2e8f0",
   backgroundColor: "#f8fbff",
+}
+
+const exercisePassBadgeWrapStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "6px",
+  marginTop: "8px",
+}
+
+const exercisePassBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "5px 9px",
+  borderRadius: "999px",
+  border: "1px solid #f0d3d3",
+  backgroundColor: "#fff7f7",
+  color: "#991b1b",
+  fontSize: "11px",
+  fontWeight: "800",
+}
+
+const exerciseGoalInfoStyle = {
+  marginBottom: "10px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #e2e8f0",
+  backgroundColor: "#f8fafc",
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: "#64748b",
 }
 
 const historySessionPickerStyle = {
