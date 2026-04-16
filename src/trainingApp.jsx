@@ -9596,6 +9596,17 @@ const pageStyle = {
   overflowX: "hidden",
 }
 
+const uiSurface = "var(--ghf-surface)"
+const uiSurfaceAlt = "var(--ghf-surface-alt)"
+const uiBorder = "var(--ghf-line)"
+const uiBorderStrong = "var(--ghf-line-strong)"
+const uiBorderSoft = "var(--ghf-line-soft)"
+const uiShadowSm = "var(--ghf-shadow-sm)"
+const uiShadowMd = "var(--ghf-shadow-md)"
+const uiShadowLg = "var(--ghf-shadow-lg)"
+const uiSelectedSurface = "var(--ghf-selected-bg)"
+const uiSelectedBorder = "var(--ghf-selected-border)"
+
 const appTitleStyle = {
   margin: "0 0 8px 0",
   fontSize: "clamp(2rem, 4vw, 3.4rem)",
@@ -9729,9 +9740,9 @@ const activeWorkoutPageMetaRowStyle = (isMobile) => ({
 const activeWorkoutPageMetaCardStyle = {
   padding: "14px 16px",
   borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowSm,
 }
 
 const activeWorkoutPageMetaLabelStyle = {
@@ -9753,12 +9764,13 @@ const feedbackActionBarStyle = {
   marginBottom: "16px",
   padding: "16px 18px",
   borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "12px",
+  boxShadow: uiShadowSm,
 }
 
 const feedbackActionTitleStyle = {
@@ -9779,9 +9791,9 @@ const feedbackComposerCardStyle = {
   marginBottom: "16px",
   padding: "18px",
   borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.06)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const feedbackComposerActionsStyle = {
@@ -9794,14 +9806,14 @@ const feedbackComposerActionsStyle = {
 const logoutButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
-  border: "1px solid #f0d4d4",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorderStrong}`,
+  backgroundColor: uiSurface,
   color: "#18202b",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
   whiteSpace: "nowrap",
-  boxShadow: "0 10px 26px rgba(24, 32, 43, 0.08)",
+  boxShadow: uiShadowSm,
 }
 
 const headerActionsWrapStyle = (isMobile) => ({
@@ -9827,11 +9839,11 @@ const menuButtonStyle = {
   gap: "4px",
   padding: 0,
   borderRadius: "14px",
-  border: "1px solid #d8e3ef",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorderStrong}`,
+  backgroundColor: uiSurface,
   color: "#18202b",
   cursor: "pointer",
-  boxShadow: "0 10px 26px rgba(24, 32, 43, 0.08)",
+  boxShadow: uiShadowSm,
 }
 
 const menuIconLineStyle = {
@@ -9850,9 +9862,9 @@ const menuDropdownStyle = (isMobile) => ({
   minHeight: isMobile ? "50vh" : "46vh",
   padding: "14px",
   borderRadius: "20px 0 0 20px",
-  border: "1px solid #d8e3ef",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 18px 40px rgba(24, 32, 43, 0.12)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowLg,
   zIndex: 10,
   overflowY: "auto",
 })
@@ -9862,7 +9874,7 @@ const menuItemButtonStyle = {
   padding: "12px 14px",
   border: "none",
   borderRadius: "12px",
-  backgroundColor: "#ffffff",
+  backgroundColor: uiSurface,
   color: "#18202b",
   cursor: "pointer",
   fontSize: "14px",
@@ -9886,13 +9898,13 @@ const coachTabsWrapStyle = {
 const coachTabButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
-  border: "1px solid #f1d7d7",
-  backgroundColor: "rgba(255,255,255,0.92)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   color: "#18202b",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
-  boxShadow: "0 8px 18px rgba(24, 32, 43, 0.06)",
+  boxShadow: uiShadowSm,
 }
 
 const activeCoachTabButtonStyle = {
@@ -9925,11 +9937,10 @@ const cardStyle = {
   boxSizing: "border-box",
   marginBottom: "20px",
   padding: "20px",
-  border: "1px solid #f0dcdc",
+  border: `1px solid ${uiBorder}`,
   borderRadius: "24px",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
-  boxShadow: "0 18px 40px rgba(24, 32, 43, 0.08)",
+  background: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const cardTitleStyle = {
@@ -9990,8 +10001,8 @@ const exerciseDetailsPanelStyle = {
   marginBottom: "14px",
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurfaceAlt,
 }
 
 const exerciseDetailsLabelStyle = {
@@ -10083,8 +10094,8 @@ const exerciseSwipeCardStyle = {
 }
 
 const targetBoxStyle = {
-  backgroundColor: "#f7fafc",
-  border: "1px solid #dbe6f0",
+  backgroundColor: uiSurfaceAlt,
+  border: `1px solid ${uiBorder}`,
   borderRadius: "18px",
   padding: "14px 16px",
   marginBottom: "14px",
@@ -10108,18 +10119,18 @@ const targetHistoryBadgeStyle = {
   display: "inline-flex",
   padding: "5px 9px",
   borderRadius: "999px",
-  backgroundColor: "#ffffff",
+  backgroundColor: uiSurface,
   color: "#46607a",
   fontSize: "12px",
   fontWeight: "800",
-  border: "1px solid #d8e3ef",
+  border: `1px solid ${uiBorder}`,
 }
 
 const latestSummaryWrapStyle = {
   padding: "12px 14px",
   borderRadius: "16px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #e1e8f0",
+  backgroundColor: uiSurface,
+  border: `1px solid ${uiBorder}`,
 }
 
 const latestSummaryLabelStyle = {
@@ -10143,7 +10154,7 @@ const latestSummaryMetaStyle = {
 
 const targetSectionDividerStyle = {
   height: "1px",
-  backgroundColor: "#e2e8f0",
+  backgroundColor: uiBorderSoft,
   margin: "12px 0",
 }
 
@@ -10193,8 +10204,8 @@ const latestRowStyle = {
 }
 
 const infoBoxStyle = {
-  backgroundColor: "#f8fafc",
-  border: "1px solid #dbe5ef",
+  backgroundColor: uiSurfaceAlt,
+  border: `1px solid ${uiBorder}`,
   borderRadius: "16px",
   padding: "10px 12px",
   marginBottom: "14px",
@@ -10225,8 +10236,8 @@ const activeSetCardStyle = {
   marginBottom: "10px",
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: "#fffdfd",
-  border: "1px solid #efe2e2",
+  backgroundColor: uiSurface,
+  border: `1px solid ${uiBorder}`,
 }
 
 const setInputHintStyle = {
@@ -10239,16 +10250,16 @@ const exerciseCommentCardStyle = {
   marginBottom: "12px",
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: "#f9fafb",
-  border: "1px solid #e5e7eb",
+  backgroundColor: uiSurfaceAlt,
+  border: `1px solid ${uiBorder}`,
 }
 
 const alternativeSelectionCardStyle = {
   marginBottom: "12px",
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: "#f8fafc",
-  border: "1px solid #dbe5ef",
+  backgroundColor: uiSurfaceAlt,
+  border: `1px solid ${uiBorder}`,
 }
 
 const alternativeSelectionTitleStyle = {
@@ -10324,7 +10335,7 @@ const setHeaderRowStyle = {
 const setTypeToggleStyle = {
   padding: "7px 10px",
   borderRadius: "999px",
-  border: "1px solid #dbeafe",
+  border: `1px solid ${uiBorder}`,
   backgroundColor: "#eef4ff",
   color: "#1d4ed8",
   cursor: "pointer",
@@ -10358,11 +10369,12 @@ const compactSetRemoveButtonStyle = {
 const inputStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #d9e2ec",
+  border: `1px solid ${uiBorderStrong}`,
   fontSize: "14px",
   minWidth: "120px",
-  backgroundColor: "#ffffff",
+  backgroundColor: uiSurface,
   color: "#18202b",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 }
 
 const buttonStyle = {
@@ -10380,19 +10392,20 @@ const buttonStyle = {
 const secondaryButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
-  border: "1px solid #d8e3ef",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorderStrong}`,
+  backgroundColor: uiSurface,
   color: "#18202b",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
+  boxShadow: uiShadowSm,
 }
 
 const removeButtonStyle = {
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #d8e3ef",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   color: "#566173",
   cursor: "pointer",
   fontSize: "14px",
@@ -10409,9 +10422,11 @@ const pickerGridStyle = {
 const passCategorySectionStyle = {
   padding: "14px",
   borderRadius: "24px",
-  border: "1px solid #f0dcdc",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   display: "grid",
   gap: "12px",
+  boxShadow: uiShadowSm,
 }
 
 const passCategoryHeaderStyle = (isMobile) => ({
@@ -10450,8 +10465,8 @@ const passCategoryCountStyle = {
   justifyContent: "center",
   padding: "10px 12px",
   borderRadius: "16px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   color: "#18202b",
   fontSize: "13px",
   fontWeight: "800",
@@ -10470,9 +10485,9 @@ const passPickerItemStyle = {
   minWidth: 0,
   padding: "14px 15px",
   borderRadius: "16px",
-  border: "1px solid #dfe7ef",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,252,0.96))",
-  boxShadow: "0 10px 22px rgba(24, 32, 43, 0.05)",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
+  boxShadow: uiShadowSm,
   overflow: "hidden",
 }
 
@@ -10516,8 +10531,8 @@ const pickerExpandIconStyle = (isSelected) => ({
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  border: "1px solid #ece5e5",
-  backgroundColor: isSelected ? "#fff1f1" : "#ffffff",
+  border: `1px solid ${isSelected ? uiSelectedBorder : uiBorder}`,
+  backgroundColor: isSelected ? uiSelectedSurface : uiSurface,
   color: isSelected ? "#b61e24" : "#6b7280",
   fontSize: "22px",
   fontWeight: "800",
@@ -10569,14 +10584,14 @@ const passPreviewCardStyle = {
   width: "100%",
   marginTop: 0,
   padding: "14px 0 0",
-  borderTop: "1px solid #ead4d4",
+  borderTop: `1px solid ${uiBorder}`,
 }
 
 const passPreviewContentCardStyle = {
   padding: "14px",
   borderRadius: "14px",
-  border: "1px solid #e1e8f0",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   marginBottom: "14px",
 }
 
@@ -10619,8 +10634,8 @@ const passPreviewListItemStyle = {
   gap: "10px",
   padding: "9px 10px",
   borderRadius: "14px",
-  backgroundColor: "#f8fbff",
-  border: "1px solid #dbe5ef",
+  backgroundColor: uiSurfaceAlt,
+  border: `1px solid ${uiBorder}`,
   color: "#18202b",
   fontSize: "13px",
   fontWeight: "800",
@@ -10661,12 +10676,11 @@ const statusStyle = {
 const coachNavCardStyle = {
   padding: "18px",
   borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,249,0.96))",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 14px 28px rgba(24, 32, 43, 0.06)",
+  boxShadow: uiShadowMd,
 }
 
 const coachNavTitleStyle = {
@@ -10709,8 +10723,8 @@ const accountPasswordCardStyle = {
   marginTop: "16px",
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#f8fbff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurfaceAlt,
 }
 
 const accountPasswordTitleStyle = {
@@ -10737,8 +10751,8 @@ const accountPasswordFormStyle = (isMobile) => ({
 const accountInfoCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
 }
 
 const accountInfoLabelStyle = {
@@ -10790,9 +10804,9 @@ const dangerActionButtonStyle = {
 const playerHomeHeroCardStyle = {
   padding: "20px",
   borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const playerHomeHeaderStyle = {
@@ -10832,8 +10846,8 @@ const playerHomeStatsGridStyle = (isMobile) => ({
 const playerHomeStatCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
 }
 
 const playerHomeStatLabelStyle = {
@@ -10869,11 +10883,11 @@ const playerQuickActionCardStyle = {
   minHeight: "112px",
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.05)",
+  boxShadow: uiShadowSm,
 }
 
 const playerQuickActionTopRowStyle = {
@@ -10917,9 +10931,9 @@ const playerSummaryGridStyle = (isMobile) => ({
 const playerSummaryCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowSm,
 }
 
 const playerSummaryLabelStyle = {
@@ -10947,9 +10961,9 @@ const playerSummaryMetaStyle = {
 const playerOverviewPanelStyle = {
   padding: "18px",
   borderRadius: "22px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.06)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const playerOverviewPanelHeaderStyle = {
@@ -10998,8 +11012,8 @@ const playerHistorySectionLabelStyle = {
 const playerHistoryItemStyle = {
   padding: "14px",
   borderRadius: "16px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #e5e7eb",
+  backgroundColor: uiSurface,
+  border: `1px solid ${uiBorder}`,
 }
 
 const playerHistoryItemHeaderStyle = (isMobile) => ({
@@ -11049,8 +11063,8 @@ const playerHistoryHighlightsGridStyle = (isMobile) => ({
 const playerHistoryHighlightCardStyle = {
   padding: "12px 14px",
   borderRadius: "16px",
-  border: "1px solid #efe5e5",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
 }
 
 const playerHistoryHighlightLabelStyle = {
@@ -11090,8 +11104,8 @@ const playerStatsExerciseButtonStyle = {
   width: "100%",
   padding: "14px",
   borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   textAlign: "left",
   cursor: "pointer",
 }
@@ -11111,9 +11125,9 @@ const playerStatsExerciseMetaStyle = {
 const playerStatsCardStyle = {
   padding: "18px",
   borderRadius: "22px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.06)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const playerStatsHeaderStyle = (isMobile) => ({
@@ -11174,8 +11188,8 @@ const playerStatsRecentItemStyle = {
   gap: "12px",
   padding: "12px 14px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
 }
 
 const playerStatsRecentDateStyle = {
@@ -11200,8 +11214,8 @@ const playerStatsRecentValueStyle = {
 const playerStatsEmptyStyle = {
   padding: "18px",
   borderRadius: "20px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   color: "#566173",
   fontSize: "14px",
 }
@@ -11210,8 +11224,8 @@ const playerStatsEmptyInlineStyle = {
   marginBottom: "14px",
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
   color: "#566173",
   fontSize: "14px",
 }
@@ -11320,11 +11334,11 @@ const coachBottomNavStyle = {
   gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
   gap: "6px",
   padding: "10px 8px 8px",
-  borderTop: "1px solid rgba(15, 23, 42, 0.08)",
+  borderTop: `1px solid ${uiBorder}`,
   borderRadius: "22px 22px 0 0",
-  background: "rgba(255, 255, 255, 0.96)",
+  background: "rgba(255, 255, 255, 0.98)",
   backdropFilter: "blur(18px)",
-  boxShadow: "0 -10px 30px rgba(15, 23, 42, 0.08)",
+  boxShadow: "0 -2px 8px rgba(15, 23, 42, 0.05), 0 -16px 36px rgba(15, 23, 42, 0.08)",
   pointerEvents: "auto",
 }
 

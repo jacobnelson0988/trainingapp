@@ -1,3 +1,8 @@
+const uiSurface = "var(--ghf-surface)"
+const uiBorder = "var(--ghf-line)"
+const uiShadowSm = "var(--ghf-shadow-sm)"
+const uiShadowMd = "var(--ghf-shadow-md)"
+
 function CoachHomePage({
   setCoachView,
   setSelectedPlayer,
@@ -137,9 +142,9 @@ const heroCardStyle = {
   marginBottom: "18px",
   padding: "20px",
   borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const heroHeaderRowStyle = {
@@ -187,8 +192,8 @@ const statsGridStyle = (isMobile) => ({
 const statCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
 }
 
 const statLabelStyle = {
@@ -233,11 +238,11 @@ const navCardStyle = {
   minHeight: "132px",
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.05)",
+  boxShadow: uiShadowSm,
 }
 
 const navTitleStyle = {

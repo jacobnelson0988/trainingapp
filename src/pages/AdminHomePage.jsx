@@ -1,3 +1,8 @@
+const uiSurface = "var(--ghf-surface)"
+const uiBorder = "var(--ghf-line)"
+const uiShadowSm = "var(--ghf-shadow-sm)"
+const uiShadowMd = "var(--ghf-shadow-md)"
+
 function AdminHomePage({
   setCoachView,
   totalUsers,
@@ -143,8 +148,8 @@ const statsGridStyle = (isMobile, count) => ({
 const statCardStyle = {
   padding: "14px 16px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
 }
 
 const statLabelStyle = {
@@ -167,9 +172,9 @@ const introCardStyle = {
   marginBottom: "14px",
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowMd,
 }
 
 const introTitleStyle = {
@@ -196,11 +201,11 @@ const navCardStyle = {
   minHeight: "132px",
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "#ffffff",
+  border: `1px solid ${uiBorder}`,
+  background: uiSurface,
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.05)",
+  boxShadow: uiShadowSm,
 }
 
 const navTitleStyle = {
