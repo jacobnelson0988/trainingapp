@@ -317,6 +317,7 @@ function StatsPage({
   const [statsRows, setStatsRows] = useState([])
   const [activityRows, setActivityRows] = useState([])
   const [repTargetRows, setRepTargetRows] = useState([])
+  const [goalRows, setGoalRows] = useState([])
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingActivity, setIsLoadingActivity] = useState(false)
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
@@ -376,31 +377,43 @@ function StatsPage({
   }, [selectedPlayerIds])
 
   useEffect(() => {
-    const loadRepTargets = async () => {
+    const loadRecommendations = async () => {
       if (!selectedPlayerIds.length) {
         setRepTargetRows([])
+        setGoalRows([])
         return
       }
 
       setIsLoadingRecommendations(true)
 
-      const { data, error } = await supabase
-        .from("player_exercise_rep_targets")
-        .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
-        .in("player_id", selectedPlayerIds)
+      const [
+        { data: repData, error: repError },
+        { data: goalData, error: goalError },
+      ] = await Promise.all([
+        supabase
+          .from("player_exercise_rep_targets")
+          .select("player_id, exercise_id, rep_range_key, target_weight, source, updated_at")
+          .in("player_id", selectedPlayerIds),
+        supabase
+          .from("player_exercise_goals")
+          .select("player_id, exercise_id, target_weight, updated_at")
+          .in("player_id", selectedPlayerIds),
+      ])
 
-      if (error) {
-        console.error(error)
+      if (repError || goalError) {
+        console.error(repError || goalError)
         setRepTargetRows([])
+        setGoalRows([])
         setIsLoadingRecommendations(false)
         return
       }
 
-      setRepTargetRows(data || [])
+      setRepTargetRows(repData || [])
+      setGoalRows(goalData || [])
       setIsLoadingRecommendations(false)
     }
 
-    loadRepTargets()
+    loadRecommendations()
   }, [selectedPlayerIds])
 
   useEffect(() => {
@@ -497,6 +510,23 @@ function StatsPage({
     }, {})
   }, [repTargetRows])
 
+  const goalWeightsByPlayerExercise = useMemo(() => {
+    return (goalRows || []).reduce((acc, row) => {
+      if (!row.player_id || !row.exercise_id) return acc
+
+      const playerId = String(row.player_id)
+      const exerciseId = String(row.exercise_id)
+
+      if (!acc[playerId]) acc[playerId] = {}
+      acc[playerId][exerciseId] =
+        row.target_weight != null && Number.isFinite(Number(row.target_weight))
+          ? Number(row.target_weight)
+          : null
+
+      return acc
+    }, {})
+  }, [goalRows])
+
   const selectedExerciseRecommendationRows = useMemo(() => {
     if (!selectedPlayerIds.length || exerciseFilter === "all") return []
 
@@ -559,12 +589,18 @@ function StatsPage({
           explicitTargetEntry?.weight != null && Number.isFinite(Number(explicitTargetEntry.weight))
             ? Number(explicitTargetEntry.weight)
             : null
+        const fallbackGoalWeight =
+          goalWeightsByPlayerExercise?.[String(playerId)]?.[String(matchedExercise.id)] ?? null
         const resolvedRecommendation =
-          explicitTargetWeight != null ? explicitTargetWeight : fallbackRecommendation?.weight ?? null
+          explicitTargetWeight != null
+            ? explicitTargetWeight
+            : fallbackRecommendation?.weight != null
+            ? fallbackRecommendation.weight
+            : fallbackGoalWeight
         const resolvedRecommendationRangeLabel =
           repRangeFilter !== "all"
             ? REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeFilter)?.label || null
-            : repBucket?.label || fallbackRecommendation?.label || null
+            : repBucket?.label || fallbackRecommendation?.label || (fallbackGoalWeight != null ? "Basmål" : null)
 
         return {
           playerId: String(playerId),
@@ -580,7 +616,7 @@ function StatsPage({
         }
       })
       .sort((a, b) => a.playerName.localeCompare(b.playerName, "sv"))
-  }, [exerciseFilter, exercises, playerMap, repRangeFilter, repTargetsByPlayerExercise, selectedPlayerIds, statsRows])
+  }, [exerciseFilter, exercises, goalWeightsByPlayerExercise, playerMap, repRangeFilter, repTargetsByPlayerExercise, selectedPlayerIds, statsRows])
 
   const activitySessions = useMemo(() => {
     const visibleRows = activityPlayerId
