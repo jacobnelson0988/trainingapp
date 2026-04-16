@@ -221,131 +221,6 @@ const getExercisePerSideSuffix = (executionSide, exerciseType = "reps_only") => 
   return ""
 }
 
-const TIMER_STORAGE_PREFIX = "exercise-timer"
-
-const getExerciseTimerStorageKey = (userId, exerciseKey, mode) =>
-  [TIMER_STORAGE_PREFIX, userId || "guest", exerciseKey || "unknown", mode].join(":")
-
-const readStoredExerciseTimer = (userId, exerciseKey, mode) => {
-  if (typeof window === "undefined") return null
-
-  try {
-    const raw = window.localStorage.getItem(getExerciseTimerStorageKey(userId, exerciseKey, mode))
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    return {
-      restSeconds:
-        Number.isFinite(Number(parsed?.restSeconds)) && Number(parsed.restSeconds) > 0
-          ? Number(parsed.restSeconds)
-          : null,
-      workSeconds:
-        Number.isFinite(Number(parsed?.workSeconds)) && Number(parsed.workSeconds) > 0
-          ? Number(parsed.workSeconds)
-          : null,
-    }
-  } catch (error) {
-    console.error("Could not read stored exercise timer", error)
-    return null
-  }
-}
-
-const storeExerciseTimer = (userId, exerciseKey, mode, values) => {
-  if (typeof window === "undefined") return
-
-  try {
-    window.localStorage.setItem(
-      getExerciseTimerStorageKey(userId, exerciseKey, mode),
-      JSON.stringify({
-        restSeconds:
-          Number.isFinite(Number(values?.restSeconds)) && Number(values.restSeconds) > 0
-            ? Number(values.restSeconds)
-            : null,
-        workSeconds:
-          Number.isFinite(Number(values?.workSeconds)) && Number(values.workSeconds) > 0
-            ? Number(values.workSeconds)
-            : null,
-      })
-    )
-  } catch (error) {
-    console.error("Could not store exercise timer", error)
-  }
-}
-
-const parseFirstDurationSeconds = (...values) => {
-  for (const value of values) {
-    const match = String(value || "")
-      .trim()
-      .match(/(\d+)/)
-    if (match) {
-      const parsed = Number(match[1])
-      if (Number.isFinite(parsed) && parsed > 0) return parsed
-    }
-  }
-  return null
-}
-
-const getExerciseDefaultRestSeconds = (exerciseType) => {
-  if (exerciseType === "weight_reps") return 90
-  if (exerciseType === "seconds_only") return 30
-  return 60
-}
-
-const getExerciseDefaultWorkSeconds = ({ selectedExercise, currentSet, currentTarget, exercise }) =>
-  parseFirstDurationSeconds(
-    currentSet?.seconds,
-    currentTarget?.target_reps_mode === "max" ? "" : currentTarget?.target_reps,
-    currentTarget?.target_duration_text,
-    currentTarget?.target_reps_text,
-    exercise?.targetDurationText
-  ) || 30
-
-const clampTimerSeconds = (value, fallback) => {
-  const parsed = Number(String(value || "").trim())
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
-  return Math.min(60 * 60, Math.round(parsed))
-}
-
-const formatTimerClock = (seconds) => {
-  const safeSeconds = Math.max(0, Number(seconds) || 0)
-  const minutes = Math.floor(safeSeconds / 60)
-  const remainingSeconds = safeSeconds % 60
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
-}
-
-const triggerExerciseTimerSignal = () => {
-  if (typeof window === "undefined") return
-
-  try {
-    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-      navigator.vibrate([120, 60, 120])
-    }
-
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext
-    if (!AudioContextClass) return
-
-    const audioContext = new AudioContextClass()
-    const oscillator = audioContext.createOscillator()
-    const gainNode = audioContext.createGain()
-
-    oscillator.type = "sine"
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime)
-    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.02)
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.32)
-
-    oscillator.connect(gainNode)
-    gainNode.connect(audioContext.destination)
-    oscillator.start()
-    oscillator.stop(audioContext.currentTime + 0.34)
-
-    oscillator.onended = () => {
-      audioContext.close().catch(() => {})
-    }
-  } catch (error) {
-    console.error("Could not play timer signal", error)
-  }
-}
-
 const getExerciseMeasurementLabelWithSide = (exerciseType, executionSide) => {
   const baseLabel = getExerciseMeasurementLabel(exerciseType)
   const suffix = getExercisePerSideSuffix(executionSide, exerciseType)
@@ -1181,18 +1056,6 @@ const getInitialGlobalView = () => {
 }
 
 function TrainingApp() {
-  const createInitialExerciseTimerState = () => ({
-    exerciseIndex: null,
-    mode: "rest",
-    phase: "idle",
-    pausedPhase: null,
-    remainingSeconds: 0,
-    restSeconds: 60,
-    workSeconds: 30,
-    activeSetIndex: null,
-    finishedMessage: "",
-  })
-
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth <= 768 : false
   )
@@ -1337,7 +1200,6 @@ function TrainingApp() {
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
   const [passComment, setPassComment] = useState("")
-  const [exerciseTimer, setExerciseTimer] = useState(createInitialExerciseTimerState)
   const [completedWorkoutSessions, setCompletedWorkoutSessions] = useState([])
   const [isLoadingCompletedWorkoutSessions, setIsLoadingCompletedWorkoutSessions] = useState(false)
   const [workoutDateDrafts, setWorkoutDateDrafts] = useState({})
@@ -1375,7 +1237,6 @@ function TrainingApp() {
     average_pulse: "",
   })
   const exerciseCarouselRef = useRef(null)
-  const exerciseTimerIntervalRef = useRef(null)
 
   useEffect(() => {
     loadUser()
@@ -1545,74 +1406,6 @@ function TrainingApp() {
   useEffect(() => {
     setActiveExerciseIndex(0)
   }, [selectedWorkout, isWorkoutActive])
-
-  useEffect(() => {
-    if (exerciseTimer.phase !== "work" && exerciseTimer.phase !== "rest") {
-      if (exerciseTimerIntervalRef.current) {
-        clearInterval(exerciseTimerIntervalRef.current)
-        exerciseTimerIntervalRef.current = null
-      }
-      return
-    }
-
-    if (exerciseTimerIntervalRef.current) {
-      clearInterval(exerciseTimerIntervalRef.current)
-    }
-
-    exerciseTimerIntervalRef.current = window.setInterval(() => {
-      setExerciseTimer((prev) => {
-        if (prev.phase !== "work" && prev.phase !== "rest") return prev
-
-        if (prev.remainingSeconds <= 1) {
-          if (prev.phase === "work") {
-            triggerExerciseTimerSignal()
-            return {
-              ...prev,
-              phase: "rest",
-              pausedPhase: null,
-              remainingSeconds: prev.restSeconds,
-              finishedMessage: "Arbete klart, vila startad",
-            }
-          }
-
-          triggerExerciseTimerSignal()
-          return {
-            ...prev,
-            phase: "finished",
-            pausedPhase: null,
-            remainingSeconds: 0,
-            finishedMessage: prev.mode === "interval" ? "Intervall klart" : "Vila klar",
-          }
-        }
-
-        return {
-          ...prev,
-          remainingSeconds: prev.remainingSeconds - 1,
-        }
-      })
-    }, 1000)
-
-    return () => {
-      if (exerciseTimerIntervalRef.current) {
-        clearInterval(exerciseTimerIntervalRef.current)
-        exerciseTimerIntervalRef.current = null
-      }
-    }
-  }, [exerciseTimer.phase])
-
-  useEffect(() => {
-    if (!isWorkoutActive) {
-      setExerciseTimer(createInitialExerciseTimerState())
-      return
-    }
-
-    if (exerciseTimer.exerciseIndex == null) return
-    const timerExerciseCardIndex = exerciseTimer.exerciseIndex + 1
-
-    if (activeExerciseIndex !== timerExerciseCardIndex) {
-      setExerciseTimer(createInitialExerciseTimerState())
-    }
-  }, [activeExerciseIndex, isWorkoutActive])
 
   useEffect(() => {
     if (!isWorkoutActive) return
@@ -4268,7 +4061,6 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
-    setExerciseTimer(createInitialExerciseTimerState())
     setExpandedInfo({})
     setActiveRunningInput({
       interval_time: "",
@@ -4279,141 +4071,6 @@ function TrainingApp() {
     })
     setPlayerView("pass")
     setStatus(`${workoutLabel} avbrutet`)
-  }
-
-  const getExerciseTimerDefaults = (exerciseIndex, selectedExercise, currentTarget, activeSetIndex = null) => {
-    const exerciseType = selectedExercise?.type || "reps_only"
-    const exerciseKey =
-      selectedExercise?.exerciseId ||
-      selectedExercise?.name ||
-      selectedExercise?.displayName ||
-      `${exerciseIndex}`
-    const currentSet =
-      activeSetIndex != null && activeSetIndex >= 0 ? (inputs[exerciseIndex] || [])[activeSetIndex] : null
-    const restFallback = getExerciseDefaultRestSeconds(exerciseType)
-    const workFallback = getExerciseDefaultWorkSeconds({
-      selectedExercise,
-      currentSet,
-      currentTarget,
-      exercise: activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex],
-    })
-
-    const storedRest = readStoredExerciseTimer(user?.id, exerciseKey, "rest")
-    const storedInterval = readStoredExerciseTimer(user?.id, exerciseKey, "interval")
-
-    return {
-      exerciseKey,
-      restSeconds: storedRest?.restSeconds || restFallback,
-      intervalRestSeconds: storedInterval?.restSeconds || getExerciseDefaultRestSeconds("seconds_only"),
-      workSeconds: storedInterval?.workSeconds || workFallback,
-    }
-  }
-
-  const openExerciseTimer = (exerciseIndex, selectedExercise, currentTarget, mode, activeSetIndex = null) => {
-    const defaults = getExerciseTimerDefaults(exerciseIndex, selectedExercise, currentTarget, activeSetIndex)
-    const nextMode = mode === "interval" ? "interval" : "rest"
-
-    setExerciseTimer({
-      exerciseIndex,
-      mode: nextMode,
-      phase: "idle",
-      pausedPhase: null,
-      remainingSeconds: 0,
-      restSeconds: nextMode === "interval" ? defaults.intervalRestSeconds : defaults.restSeconds,
-      workSeconds: nextMode === "interval" ? defaults.workSeconds : 0,
-      activeSetIndex,
-      finishedMessage: "",
-    })
-  }
-
-  const handleExerciseTimerValueChange = (exerciseIndex, field, value) => {
-    setExerciseTimer((prev) => {
-      if (prev.exerciseIndex !== exerciseIndex) return prev
-      const fallback = field === "workSeconds" ? prev.workSeconds || 30 : prev.restSeconds || 60
-      return {
-        ...prev,
-        [field]: clampTimerSeconds(value, fallback),
-        finishedMessage: "",
-      }
-    })
-  }
-
-  const startExerciseTimer = (exerciseIndex, selectedExercise, currentTarget, mode, activeSetIndex = null) => {
-    const defaults = getExerciseTimerDefaults(exerciseIndex, selectedExercise, currentTarget, activeSetIndex)
-    const nextMode = mode === "interval" ? "interval" : "rest"
-    const exerciseKey = defaults.exerciseKey
-
-    setExerciseTimer((prev) => {
-      const restSeconds =
-        prev.exerciseIndex === exerciseIndex && prev.mode === nextMode
-          ? clampTimerSeconds(
-              prev.restSeconds,
-              nextMode === "interval" ? defaults.intervalRestSeconds : defaults.restSeconds
-            )
-          : nextMode === "interval"
-          ? defaults.intervalRestSeconds
-          : defaults.restSeconds
-
-      const workSeconds =
-        nextMode === "interval"
-          ? prev.exerciseIndex === exerciseIndex && prev.mode === nextMode
-            ? clampTimerSeconds(prev.workSeconds, defaults.workSeconds)
-            : defaults.workSeconds
-          : 0
-
-      storeExerciseTimer(user?.id, exerciseKey, nextMode, {
-        restSeconds,
-        workSeconds: nextMode === "interval" ? workSeconds : null,
-      })
-
-      return {
-        exerciseIndex,
-        mode: nextMode,
-        phase: nextMode === "interval" ? "work" : "rest",
-        pausedPhase: null,
-        remainingSeconds: nextMode === "interval" ? workSeconds : restSeconds,
-        restSeconds,
-        workSeconds,
-        activeSetIndex,
-        finishedMessage: "",
-      }
-    })
-  }
-
-  const pauseExerciseTimer = (exerciseIndex) => {
-    setExerciseTimer((prev) => {
-      if (prev.exerciseIndex !== exerciseIndex) return prev
-      if (prev.phase !== "work" && prev.phase !== "rest") return prev
-      return {
-        ...prev,
-        phase: "paused",
-        pausedPhase: prev.phase,
-      }
-    })
-  }
-
-  const resumeExerciseTimer = (exerciseIndex) => {
-    setExerciseTimer((prev) => {
-      if (prev.exerciseIndex !== exerciseIndex || prev.phase !== "paused") return prev
-      return {
-        ...prev,
-        phase: prev.pausedPhase || (prev.mode === "interval" ? "work" : "rest"),
-        pausedPhase: null,
-      }
-    })
-  }
-
-  const resetExerciseTimer = (exerciseIndex) => {
-    setExerciseTimer((prev) => {
-      if (prev.exerciseIndex !== exerciseIndex) return prev
-      return {
-        ...prev,
-        phase: "idle",
-        pausedPhase: null,
-        remainingSeconds: 0,
-        finishedMessage: "",
-      }
-    })
   }
 
   const handleAddSet = (exerciseIndex) => {
@@ -9113,24 +8770,6 @@ function TrainingApp() {
               fallbackWeight: currentTarget?.target_weight ?? null,
             })
             const currentRepRangeBucket = getRepRangeBucketForTarget(currentTarget)
-            const timerDefaults = getExerciseTimerDefaults(i, selectedExercise, currentTarget)
-            const timerState =
-              exerciseTimer.exerciseIndex === i
-                ? exerciseTimer
-                : {
-                    exerciseIndex: i,
-                    mode: selectedExercise?.type === "seconds_only" ? "interval" : "rest",
-                    phase: "idle",
-                    pausedPhase: null,
-                    remainingSeconds: 0,
-                    restSeconds:
-                      selectedExercise?.type === "seconds_only"
-                        ? timerDefaults.intervalRestSeconds
-                        : timerDefaults.restSeconds,
-                    workSeconds: selectedExercise?.type === "seconds_only" ? timerDefaults.workSeconds : 0,
-                    activeSetIndex: null,
-                    finishedMessage: "",
-                  }
             const targetRequestComposerKey = `${selectedExercise?.exerciseId || exercise.exerciseId}:${
               currentRepRangeBucket?.key || "none"
             }`
@@ -9747,185 +9386,8 @@ function TrainingApp() {
                           )}
                         </div>
                       )}
-
-                      {selectedExercise?.type === "seconds_only" && (
-                        <button
-                          type="button"
-                          onClick={() => openExerciseTimer(i, selectedExercise, currentTarget, "interval", j)}
-                          style={{
-                            ...miniTimerButtonStyle,
-                            marginTop: "10px",
-                            backgroundColor:
-                              timerState.activeSetIndex === j && timerState.mode === "interval" ? "#fff1f1" : "#ffffff",
-                            borderColor:
-                              timerState.activeSetIndex === j && timerState.mode === "interval" ? "#dc2626" : "#e5e7eb",
-                            color:
-                              timerState.activeSetIndex === j && timerState.mode === "interval" ? "#991b1b" : "#374151",
-                          }}
-                        >
-                          {timerState.activeSetIndex === j && timerState.mode === "interval"
-                            ? "Intervall vald"
-                            : "Använd timer för setet"}
-                        </button>
-                      )}
                     </div>
                   ))}
-
-                {isWorkoutActive && !isProtocol && (
-                  <div style={exerciseTimerCardStyle}>
-                    <div style={exerciseTimerHeaderStyle}>
-                      <div>
-                        <div style={exerciseTimerTitleStyle}>
-                          {selectedExercise?.type === "seconds_only" ? "Intervalltimer" : "Vilotimer"}
-                        </div>
-                        <div style={exerciseTimerHintStyle}>
-                          {selectedExercise?.type === "seconds_only"
-                            ? timerState.activeSetIndex != null
-                              ? `Kopplad till set ${timerState.activeSetIndex + 1}`
-                              : "Välj gärna ett set ovan eller kör med standardtiden"
-                            : "Starta vila direkt efter ett arbetsset"}
-                        </div>
-                      </div>
-
-                      {selectedExercise?.type !== "seconds_only" && (
-                        <button
-                          type="button"
-                          onClick={() => openExerciseTimer(i, selectedExercise, currentTarget, "rest")}
-                          style={miniTimerButtonStyle}
-                        >
-                          Justera
-                        </button>
-                      )}
-                    </div>
-
-                    {selectedExercise?.type === "seconds_only" ? (
-                      <div style={exerciseTimerFieldsGridStyle(isMobile)}>
-                        <label style={exerciseTimerFieldStyle}>
-                          <span style={exerciseTimerFieldLabelStyle}>Arbete</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={timerState.workSeconds || timerDefaults.workSeconds}
-                            onChange={(event) => {
-                              if (exerciseTimer.exerciseIndex !== i || exerciseTimer.mode !== "interval") {
-                                openExerciseTimer(i, selectedExercise, currentTarget, "interval", timerState.activeSetIndex)
-                              }
-                              handleExerciseTimerValueChange(i, "workSeconds", event.target.value)
-                            }}
-                            style={{ ...inputStyle, width: "100%" }}
-                          />
-                        </label>
-
-                        <label style={exerciseTimerFieldStyle}>
-                          <span style={exerciseTimerFieldLabelStyle}>Vila</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={timerState.restSeconds || timerDefaults.intervalRestSeconds}
-                            onChange={(event) => {
-                              if (exerciseTimer.exerciseIndex !== i || exerciseTimer.mode !== "interval") {
-                                openExerciseTimer(i, selectedExercise, currentTarget, "interval", timerState.activeSetIndex)
-                              }
-                              handleExerciseTimerValueChange(i, "restSeconds", event.target.value)
-                            }}
-                            style={{ ...inputStyle, width: "100%" }}
-                          />
-                        </label>
-                      </div>
-                    ) : (
-                      <div style={exerciseTimerFieldsGridStyle(isMobile)}>
-                        <label style={exerciseTimerFieldStyle}>
-                          <span style={exerciseTimerFieldLabelStyle}>Vila</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={timerState.restSeconds || timerDefaults.restSeconds}
-                            onChange={(event) => {
-                              if (exerciseTimer.exerciseIndex !== i || exerciseTimer.mode !== "rest") {
-                                openExerciseTimer(i, selectedExercise, currentTarget, "rest")
-                              }
-                              handleExerciseTimerValueChange(i, "restSeconds", event.target.value)
-                            }}
-                            style={{ ...inputStyle, width: "100%" }}
-                          />
-                        </label>
-                      </div>
-                    )}
-
-                    <div style={exerciseTimerDisplayStyle(timerState.phase)}>
-                      <div style={exerciseTimerPhaseLabelStyle}>
-                        {timerState.phase === "work"
-                          ? "Arbete"
-                          : timerState.phase === "rest"
-                          ? "Vila"
-                          : timerState.phase === "paused"
-                          ? "Pausad"
-                          : timerState.phase === "finished"
-                          ? "Klar"
-                          : "Redo"}
-                      </div>
-                      <div style={exerciseTimerClockStyle}>
-                        {formatTimerClock(timerState.remainingSeconds)}
-                      </div>
-                      <div style={exerciseTimerMessageStyle}>
-                        {timerState.finishedMessage ||
-                          (selectedExercise?.type === "seconds_only"
-                            ? "Kör arbete och vila i ett flöde"
-                            : "Enkel nedräkning för återhämtning")}
-                      </div>
-                    </div>
-
-                    <div style={exerciseTimerActionsStyle(isMobile)}>
-                      {(timerState.phase === "idle" || timerState.phase === "finished") && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            startExerciseTimer(
-                              i,
-                              selectedExercise,
-                              currentTarget,
-                              selectedExercise?.type === "seconds_only" ? "interval" : "rest",
-                              timerState.activeSetIndex
-                            )
-                          }
-                          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                        >
-                          {selectedExercise?.type === "seconds_only" ? "Starta intervall" : "Starta vila"}
-                        </button>
-                      )}
-
-                      {(timerState.phase === "work" || timerState.phase === "rest") && (
-                        <button
-                          type="button"
-                          onClick={() => pauseExerciseTimer(i)}
-                          style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                        >
-                          Pausa
-                        </button>
-                      )}
-
-                      {timerState.phase === "paused" && (
-                        <button
-                          type="button"
-                          onClick={() => resumeExerciseTimer(i)}
-                          style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                        >
-                          Fortsätt
-                        </button>
-                      )}
-
-                      {timerState.exerciseIndex === i && timerState.phase !== "idle" && (
-                        <button
-                          type="button"
-                          onClick={() => resetExerciseTimer(i)}
-                          style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                        >
-                          Återställ
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {isWorkoutActive && (
                   <div style={exerciseCommentCardStyle}>
@@ -10275,114 +9737,6 @@ const activeWorkoutPageMetaValueStyle = {
   fontWeight: "900",
   color: "#18202b",
 }
-
-const miniTimerButtonStyle = {
-  padding: "9px 12px",
-  borderRadius: "12px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
-  color: "#374151",
-  cursor: "pointer",
-  fontSize: "13px",
-  fontWeight: "800",
-}
-
-const exerciseTimerCardStyle = {
-  marginTop: "14px",
-  padding: "14px",
-  borderRadius: "18px",
-  border: "1px solid #f0dcdc",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
-}
-
-const exerciseTimerHeaderStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "12px",
-}
-
-const exerciseTimerTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "900",
-  color: "#18202b",
-  marginBottom: "4px",
-}
-
-const exerciseTimerHintStyle = {
-  fontSize: "13px",
-  color: "#6b7280",
-  lineHeight: 1.5,
-}
-
-const exerciseTimerFieldsGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-  marginBottom: "12px",
-})
-
-const exerciseTimerFieldStyle = {
-  display: "grid",
-  gap: "6px",
-}
-
-const exerciseTimerFieldLabelStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-  color: "#991b1b",
-}
-
-const exerciseTimerDisplayStyle = (phase) => ({
-  padding: "14px 12px",
-  borderRadius: "16px",
-  border: "1px solid #ecdede",
-  backgroundColor:
-    phase === "finished"
-      ? "#ecfdf3"
-      : phase === "work"
-      ? "#eff6ff"
-      : phase === "rest"
-      ? "#fff7ed"
-      : "#ffffff",
-  marginBottom: "12px",
-  textAlign: "center",
-})
-
-const exerciseTimerPhaseLabelStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "#991b1b",
-  marginBottom: "8px",
-}
-
-const exerciseTimerClockStyle = {
-  fontSize: "clamp(2rem, 6vw, 2.8rem)",
-  fontWeight: "900",
-  lineHeight: 1,
-  color: "#18202b",
-  marginBottom: "8px",
-}
-
-const exerciseTimerMessageStyle = {
-  fontSize: "13px",
-  color: "#566173",
-  lineHeight: 1.5,
-}
-
-const exerciseTimerActionsStyle = (isMobile) => ({
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-  alignItems: "center",
-  flexDirection: isMobile ? "column" : "row",
-})
 
 const feedbackActionBarStyle = {
   marginBottom: "16px",
