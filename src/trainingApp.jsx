@@ -448,10 +448,6 @@ const buildExerciseGoalPrefill = (historyEntry) => ({
     historyEntry?.top_reps != null && Number.isFinite(Number(historyEntry.top_reps))
       ? Number(historyEntry.top_reps)
       : "",
-  target_weight:
-    historyEntry?.top_weight != null && Number.isFinite(historyEntry.top_weight)
-      ? historyEntry.top_weight
-      : "",
   comment: historyEntry?.comment || "",
 })
 
@@ -555,7 +551,6 @@ const getResolvedExerciseTargetWeight = ({
   exerciseId,
   repTarget,
   repTargetsByExercise,
-  fallbackWeight = null,
 }) => {
   const bucket = getRepRangeBucketForTarget(repTarget)
   const bucketWeight = bucket ? repTargetsByExercise?.[exerciseId]?.[bucket.key] : null
@@ -565,7 +560,7 @@ const getResolvedExerciseTargetWeight = ({
     return Number.isFinite(numericValue) ? numericValue : bucketWeight
   }
 
-  return fallbackWeight
+  return null
 }
 
 const getRepRangeLabelByKey = (repRangeKey) =>
@@ -1701,7 +1696,7 @@ function TrainingApp() {
   const { data, error } = await supabase
       .from("player_exercise_targets")
       .select(
-        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_weight, target_comment"
+        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_comment"
       )
       .eq("player_id", userId)
 
@@ -3134,7 +3129,6 @@ function TrainingApp() {
         target_sets: row.target_sets ?? "",
         target_reps: getRepTargetInputValue(row),
         target_reps_mode: row.target_reps_mode || "fixed",
-        target_weight: row.target_weight ?? "",
         target_comment: row.target_comment ?? "",
       }
     })
@@ -3213,7 +3207,7 @@ function TrainingApp() {
           .order("created_at", { ascending: false }),
         supabase
           .from("player_exercise_goals")
-          .select("exercise_id, target_sets, target_reps, target_weight, comment")
+          .select("exercise_id, target_sets, target_reps, comment")
           .eq("player_id", playerId),
         supabase
           .from("player_exercise_rep_targets")
@@ -3283,7 +3277,6 @@ function TrainingApp() {
         ? {
             target_sets: existingGoal.target_sets ?? "",
             target_reps: existingGoal.target_reps ?? "",
-            target_weight: existingGoal.target_weight ?? "",
             comment: existingGoal.comment ?? "",
             rep_range_weights: normalizeRepRangeWeights(existingGoal.rep_range_weights),
           }
@@ -5323,7 +5316,7 @@ function TrainingApp() {
           exercise_name: exercise.name,
           target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
           ...repTargetPayload,
-          target_weight: draft.target_weight === "" ? null : Number(draft.target_weight),
+          target_weight: null,
           target_comment: draft.target_comment || null,
         }
       })
@@ -5564,8 +5557,7 @@ function TrainingApp() {
             target_sets:
               draft.target_sets === "" || draft.target_sets == null ? null : Number(draft.target_sets),
             ...repTargetPayload,
-            target_weight:
-              draft.target_weight === "" || draft.target_weight == null ? null : Number(draft.target_weight),
+            target_weight: null,
             target_comment: draft.target_comment || null,
           }
         }),
@@ -8768,7 +8760,6 @@ function TrainingApp() {
               exerciseId: selectedExercise?.exerciseId || exercise.exerciseId,
               repTarget: currentTarget,
               repTargetsByExercise: playerExerciseRepTargets,
-              fallbackWeight: currentTarget?.target_weight ?? null,
             })
             const currentRepRangeBucket = getRepRangeBucketForTarget(currentTarget)
             const targetRequestComposerKey = `${selectedExercise?.exerciseId || exercise.exerciseId}:${

@@ -559,22 +559,17 @@ function PlayersPage({
                             >
                               {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
                             </button>
-                            {selectedExercise.type === "weight_reps" && (
-                              <input
-                                type="number"
-                                placeholder="Vikt"
-                                value={draft.target_weight ?? ""}
-                                onChange={(e) =>
-                                  handleTargetDraftChange(selectedPassKey, selectedExercise.name, "target_weight", e.target.value)
-                                }
-                                style={{ ...inputStyle, width: isMobile ? "100%" : undefined }}
-                              />
-                            )}
                           </div>
 
                           {draft.target_reps_mode !== "max" && (
                             <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>
                               Skriv till exempel <strong>8</strong> eller <strong>6-10</strong>.
+                            </div>
+                          )}
+
+                          {selectedExercise.type === "weight_reps" && (
+                            <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>
+                              Målvikt styrs av övningen och repsintervallet i spelarens övningsmål, inte här i passavvikelsen.
                             </div>
                           )}
 
