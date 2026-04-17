@@ -2,8 +2,96 @@
 
 Automatiskt exporterad lista över klarmarkerad feedback i Supabase.
 
-Senast uppdaterad: 15 apr. 2026 08:29
-Antal poster: 32
+Senast uppdaterad: 17 apr. 2026 13:05
+Antal poster: 38
+
+---
+
+## Nya klara poster sedan senaste export
+
+### 1. Test Spelare 1
+
+- Status: Klar
+- Roll: Spelare
+- Lag: Test-lag
+- Skapad: 15 apr. 2026 20:08
+- Status uppdaterad: 17 apr. 2026 13:05
+- Username: test.spelare1
+- ID: 20717d00-648a-4332-bc6e-9e5b42a24f4d
+
+### Feedback
+
+Lägg till racketsport som egen aktivitet
+
+### 2. Olle Nelson Ring
+
+- Status: Klar
+- Roll: Spelare
+- Lag: Gustavsberg P2012-2013
+- Skapad: 14 apr. 2026 17:24
+- Status uppdaterad: 15 apr. 2026 17:35
+- Username: oll.rin1
+- ID: a960f875-72b4-432a-9d32-463baa0b8a7b
+
+### Feedback
+
+"gemensamma" gympass borde ha en egen kategori.
+
+### 3. Jacob Nelson
+
+- Status: Klar
+- Roll: Tränare
+- Lag: Gustavsberg P2012-2013
+- Skapad: 15 apr. 2026 08:32
+- Status uppdaterad: 15 apr. 2026 17:21
+- Username: jac.nel2
+- ID: 9d7d67e9-139d-47b8-a743-8b0e9ecf9293
+
+### Feedback
+
+Listor öppnas fortfarande inte i anslutning till kortet i "spelare" (tränarvyn)
+
+### 4. Jacob Nelson
+
+- Status: Klar
+- Roll: Tränare
+- Lag: Gustavsberg P2012-2013
+- Skapad: 15 apr. 2026 08:40
+- Status uppdaterad: 15 apr. 2026 17:19
+- Username: jac.nel2
+- ID: 064ec70a-5f23-4392-bbee-120171518e3a
+
+### Feedback
+
+I "tilldela pass" i pass byggaren ska man även kunna ta bort en tilldelning för flera spelare. Alltså ska listan med spelare ha rutan ikryssad om de är tilldelade det aktuella passet. Om man då "kryssar ur" rutan och sparar så de inte längre vara tilldelade det aktuella passet. Knapparna koppar till detta ska vara "Spara" och "Välj alla".
+
+### 5. Olle Nelson Ring
+
+- Status: Klar
+- Roll: Spelare
+- Lag: Gustavsberg P2012-2013
+- Skapad: 15 apr. 2026 17:04
+- Status uppdaterad: 15 apr. 2026 17:14
+- Username: oll.rin1
+- ID: ea869f70-964f-4f7e-a751-df335211e0c1
+
+### Feedback
+
+Egen aktivitet ska inte automatiskt visa "löpning" när man öppnar det. Det blir tydligare om man först får välja vilken aktivitet man gör från listan, efter det kommer alla övriga fält upp.
+
+### 6. Test Tränare
+
+- Status: Klar
+- Roll: Tränare
+- Lag: Test-lag
+- Skapad: 15 apr. 2026 13:47
+- Status uppdaterad: 15 apr. 2026 17:13
+- Username: test.coach
+- ID: 2ec00b09-2c2b-47cc-a665-71e9369901c8
+
+### Feedback
+
+Lägg in funktion för att kunna registrera träningar i andra idrotter.
 
 ---
 
