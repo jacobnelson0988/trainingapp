@@ -351,7 +351,7 @@ function StatsPage({
   secondaryButtonStyle,
   isMobile,
 }) {
-  const [viewMode, setViewMode] = useState("activity")
+  const [viewMode, setViewMode] = useState("stats")
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
   const [activityPlayerId, setActivityPlayerId] = useState("")
   const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
@@ -842,23 +842,6 @@ function StatsPage({
                 </div>
               </div>
             ) : null}
-
-            <div style={statsSummaryGridStyle(isMobile)}>
-              <div style={statsSummaryCardStyle}>
-                <div style={statsSummaryLabelStyle}>Genomförda pass</div>
-                <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{activitySessions.length}</div>
-              </div>
-              <div style={statsSummaryCardStyle}>
-                <div style={statsSummaryLabelStyle}>Spelare i filtret</div>
-                <div style={statsSummaryValueStyle}>{activityPlayerId ? 1 : sortedPlayers.length}</div>
-              </div>
-              <div style={statsSummaryCardStyle}>
-                <div style={statsSummaryLabelStyle}>Senaste aktivitet</div>
-                <div style={{ ...statsSummaryValueStyle, fontSize: "18px" }}>
-                  {activitySessions[0]?.createdAt ? formatStatDate(activitySessions[0].createdAt) : "-"}
-                </div>
-              </div>
-            </div>
 
             {isLoadingActivity ? (
               <p style={mutedTextStyle}>Laddar aktivitet...</p>
@@ -1599,9 +1582,9 @@ const contentPanelStyle = {
   marginTop: "4px",
   padding: "16px",
   borderRadius: "22px",
-  border: "1px solid #d7dee7",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.07), 0 16px 34px rgba(15, 23, 42, 0.08)",
+  border: "1px solid #cbd5e1",
+  backgroundColor: "#f8fafc",
+  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08), 0 22px 48px rgba(15, 23, 42, 0.12)",
 }
 
 const panelHeaderStyle = (isMobile) => ({
@@ -1905,6 +1888,7 @@ const activityRowStyle = (isMobile) => ({
   boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
   width: "100%",
   minWidth: 0,
+  textAlign: "left",
 })
 
 const activityPlayerNameStyle = {
