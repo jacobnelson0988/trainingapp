@@ -16,6 +16,7 @@ const FREE_ACTIVITY_LABELS = {
   football: "Fotboll",
   orienteering: "Orientering",
   swimming: "Simning",
+  racket_sport: "Racketsport",
 }
 
 const REP_RANGE_BUCKETS = [

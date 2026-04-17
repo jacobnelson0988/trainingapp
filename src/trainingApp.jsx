@@ -284,6 +284,7 @@ const FREE_ACTIVITY_OPTIONS = [
   { value: "football", label: "Fotboll" },
   { value: "orienteering", label: "Orientering" },
   { value: "swimming", label: "Simning" },
+  { value: "racket_sport", label: "Racketsport" },
 ]
 
 const getFreeActivityLabel = (activityType) =>
