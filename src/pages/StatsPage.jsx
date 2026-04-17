@@ -123,6 +123,23 @@ const parseWeightValue = (value) => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+const getLocalDayKey = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
+}
+
+const getLocalDayTimestamp = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+}
+
 const formatStatDate = (value) => {
   if (!value) return "-"
   return new Date(value).toLocaleDateString("sv-SE", {
@@ -218,19 +235,27 @@ const buildActivityRowSummary = (session) => {
   return parts.join(" • ") || "Pass loggat"
 }
 
-const buildProgressionSeries = (rows, playerMap) => {
+const buildProgressionSeries = (rows, playerMap, selectedExerciseName, selectedRepRangeKey) => {
+  if (!selectedExerciseName || selectedExerciseName === "all") return []
+  if (!selectedRepRangeKey || selectedRepRangeKey === "all") return []
+
   const grouped = new Map()
+  const normalizedExerciseName = normalizeExerciseLookupValue(selectedExerciseName)
 
   ;(rows || []).forEach((row) => {
     const weight = parseWeightValue(row.weight)
-    if (weight == null || !row.user_id || !row.exercise) return
+    const repBucket = getExerciseRepRangeBucket(row.reps)
+    if (weight == null || !row.user_id || !row.exercise || !repBucket) return
+    if (repBucket.key !== selectedRepRangeKey) return
+    if (normalizeExerciseLookupValue(row.exercise) !== normalizedExerciseName) return
 
     const playerId = String(row.user_id)
     const exerciseName = String(row.exercise || "").trim()
-    const sessionKey =
-      row.workout_session_id ||
-      `${String(row.created_at || "").slice(0, 10)}:${row.pass_name || ""}:${exerciseName}`
-    const groupingKey = `${playerId}__${exerciseName}__${sessionKey}`
+    const dayKey = getLocalDayKey(row.created_at)
+    const dayTimestamp = getLocalDayTimestamp(row.created_at)
+    if (!dayKey || dayTimestamp == null) return
+
+    const groupingKey = `${playerId}__${exerciseName}__${dayKey}`
     const existing = grouped.get(groupingKey)
 
     if (!existing || weight > existing.weight) {
@@ -239,6 +264,8 @@ const buildProgressionSeries = (rows, playerMap) => {
         exerciseName,
         weight,
         created_at: row.created_at,
+        dayKey,
+        dayTimestamp,
       })
     }
   })
@@ -267,11 +294,11 @@ const buildProgressionSeries = (rows, playerMap) => {
           color: LINE_COLORS[index % LINE_COLORS.length],
           points: entries
             .slice()
-            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .sort((a, b) => a.dayTimestamp - b.dayTimestamp)
             .map((entry) => ({
-              x: new Date(entry.created_at).getTime(),
+              x: entry.dayTimestamp,
               y: entry.weight,
-              label: formatStatDate(entry.created_at),
+              label: formatStatDate(entry.dayTimestamp),
             })),
         }))
         .filter((series) => series.points.length > 0)
@@ -438,7 +465,7 @@ function StatsPage({
 
       const { data, error } = await supabase
         .from("workout_logs")
-        .select("user_id, exercise, weight, created_at, workout_session_id, pass_name, set_number, is_completed, set_type")
+        .select("user_id, exercise, weight, reps, created_at, workout_session_id, pass_name, set_number, is_completed, set_type")
         .in("user_id", selectedPlayerIds)
         .not("weight", "is", null)
         .eq("set_type", "work")
@@ -537,8 +564,8 @@ function StatsPage({
   }, [periodFilter, statsRows])
 
   const progressionSeries = useMemo(
-    () => buildProgressionSeries(filteredStatsRows, playerMap),
-    [filteredStatsRows, playerMap]
+    () => buildProgressionSeries(filteredStatsRows, playerMap, exerciseFilter, repRangeFilter),
+    [exerciseFilter, filteredStatsRows, playerMap, repRangeFilter]
   )
 
   const exerciseOptions = useMemo(
@@ -556,6 +583,7 @@ function StatsPage({
   }, [selectedPlayerIds, sortedPlayers])
 
   const visibleSeries = useMemo(() => {
+    if (exerciseFilter === "all" || repRangeFilter === "all") return []
     if (exerciseFilter === "all") return progressionSeries
     return progressionSeries.filter((entry) => entry.exerciseName === exerciseFilter)
   }, [exerciseFilter, progressionSeries])
@@ -604,7 +632,9 @@ function StatsPage({
           .filter(
             (row) =>
               String(row.user_id) === String(playerId) &&
-              normalizeExerciseLookupValue(row.exercise) === normalizeExerciseLookupValue(exerciseFilter)
+              normalizeExerciseLookupValue(row.exercise) === normalizeExerciseLookupValue(exerciseFilter) &&
+              (repRangeFilter === "all" ||
+                getExerciseRepRangeBucket(row.reps)?.key === repRangeFilter)
           )
           .slice()
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
@@ -1115,7 +1145,7 @@ function StatsPage({
                     ))}
                   </select>
                   <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
-                    Visar toppset per pass för vald övning och spelare.
+                    Välj den övning du vill analysera i grafen och viktöversikten.
                   </div>
                 </div>
 
@@ -1133,7 +1163,7 @@ function StatsPage({
                     ))}
                   </select>
                   <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
-                    Styr vilken målviktsnivå som visas för vald övning.
+                    Graferna visas först när ett specifikt repsintervall är valt.
                   </div>
                 </div>
 
@@ -1293,19 +1323,26 @@ function StatsPage({
                   </div>
                 ) : null}
 
-                {visibleSeries.length === 0 ? (
-                  <p style={mutedTextStyle}>Ingen viktdata hittades för det aktuella urvalet.</p>
+                {exerciseFilter === "all" ? (
+                  <p style={mutedTextStyle}>Välj en specifik övning för att visa viktutveckling.</p>
+                ) : repRangeFilter === "all" ? (
+                  <p style={mutedTextStyle}>Välj ett specifikt repsintervall för att visa viktutveckling per dag.</p>
+                ) : visibleSeries.length === 0 ? (
+                  <p style={mutedTextStyle}>Ingen viktdata hittades för vald övning och valt repsintervall.</p>
                 ) : (
                   <div style={chartGridStyle}>
                     {visibleSeries.map((entry) => (
                       <ExerciseChartCard
                         key={entry.exerciseName}
                         exerciseName={entry.exerciseName}
+                        repRangeLabel={REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeFilter)?.label || ""}
                         playerSeries={entry.playerSeries}
                         isMobile={isMobile}
                         onExpand={() =>
                           setExpandedChart({
                             exerciseName: entry.exerciseName,
+                            repRangeLabel:
+                              REP_RANGE_BUCKETS.find((bucket) => bucket.key === repRangeFilter)?.label || "",
                             playerSeries: entry.playerSeries,
                           })
                         }
@@ -1322,6 +1359,7 @@ function StatsPage({
       {expandedChart ? (
         <ChartModal
           exerciseName={expandedChart.exerciseName}
+          repRangeLabel={expandedChart.repRangeLabel}
           playerSeries={expandedChart.playerSeries}
           onClose={() => setExpandedChart(null)}
         />
@@ -1330,12 +1368,10 @@ function StatsPage({
   )
 }
 
-function ExerciseChartCard({ exerciseName, playerSeries, isMobile, onExpand }) {
+function ExerciseChartCard({ exerciseName, repRangeLabel, playerSeries, isMobile, onExpand }) {
   const chartMetrics = useMemo(() => getChartMetrics(playerSeries), [playerSeries])
 
   if (!chartMetrics) return null
-
-  const { allPoints } = chartMetrics
 
   return (
     <div style={chartCardStyle}>
@@ -1351,7 +1387,11 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile, onExpand }) {
       >
         <div>
           <div style={chartTitleStyle}>{exerciseName}</div>
-          <div style={chartSubtitleStyle}>Viktutveckling per spelare</div>
+          <div style={chartSubtitleStyle}>
+            {repRangeLabel
+              ? `Högsta loggade vikt per dag inom ${repRangeLabel} reps`
+              : "Högsta loggade vikt per dag"}
+          </div>
         </div>
 
         <div style={chartHeaderActionsStyle}>
@@ -1392,7 +1432,7 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile, onExpand }) {
               </div>
               <div style={statLineStyle}>Senast: {latestPoint?.y ?? "-"} kg</div>
               <div style={statLineStyle}>Bäst: {bestPoint?.y ?? "-"} kg</div>
-              <div style={statFootnoteStyle}>{allPoints.length} datapunkter i grafen</div>
+              <div style={statFootnoteStyle}>{series.points.length} dagar med datapunkter</div>
             </div>
           )
         })}
@@ -1401,7 +1441,7 @@ function ExerciseChartCard({ exerciseName, playerSeries, isMobile, onExpand }) {
   )
 }
 
-function ChartModal({ exerciseName, playerSeries, onClose }) {
+function ChartModal({ exerciseName, repRangeLabel, playerSeries, onClose }) {
   const chartMetrics = useMemo(() => getChartMetrics(playerSeries), [playerSeries])
 
   useEffect(() => {
@@ -1421,7 +1461,11 @@ function ChartModal({ exerciseName, playerSeries, onClose }) {
         <div style={chartModalHeaderStyle}>
           <div>
             <div style={chartTitleStyle}>{exerciseName}</div>
-            <div style={chartSubtitleStyle}>Förstorad graf med högre upplösning</div>
+            <div style={chartSubtitleStyle}>
+              {repRangeLabel
+                ? `Förstorad graf för högsta vikt per dag inom ${repRangeLabel} reps`
+                : "Förstorad graf med högre upplösning"}
+            </div>
           </div>
 
           <button type="button" onClick={onClose} style={closeButtonStyle}>
