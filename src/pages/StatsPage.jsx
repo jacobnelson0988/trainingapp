@@ -380,7 +380,7 @@ function StatsPage({
   secondaryButtonStyle,
   isMobile,
 }) {
-  const [viewMode, setViewMode] = useState("stats")
+  const [viewMode, setViewMode] = useState("activity")
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
   const [activityPlayerId, setActivityPlayerId] = useState("")
   const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
