@@ -355,7 +355,8 @@ function StatsPage({
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
   const [activityPlayerId, setActivityPlayerId] = useState("")
   const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(!isMobile)
+  const [activityFiltersOpen, setActivityFiltersOpen] = useState(!isMobile)
+  const [statsFiltersOpen, setStatsFiltersOpen] = useState(!isMobile)
   const [exerciseFilter, setExerciseFilter] = useState("all")
   const [repRangeFilter, setRepRangeFilter] = useState("all")
   const [periodFilter, setPeriodFilter] = useState("90")
@@ -371,8 +372,13 @@ function StatsPage({
   const [selectedActivitySessionId, setSelectedActivitySessionId] = useState("")
 
   useEffect(() => {
-    setFiltersOpen(!isMobile)
+    setActivityFiltersOpen(!isMobile)
+    setStatsFiltersOpen(!isMobile)
   }, [isMobile])
+
+  useEffect(() => {
+    setIsPlayerMenuOpen(false)
+  }, [viewMode])
 
   const sortedPlayers = useMemo(
     () =>
@@ -736,6 +742,11 @@ function StatsPage({
     return buildActivitySessions(visibleRows, playerMap)
   }, [activityPlayerId, activityRows, playerMap])
 
+  const selectedActivitySession = useMemo(
+    () => activitySessions.find((session) => session.sessionId === selectedActivitySessionId) || null,
+    [activitySessions, selectedActivitySessionId]
+  )
+
   useEffect(() => {
     setSelectedActivitySessionId((current) => {
       if (current && activitySessions.some((session) => session.sessionId === current)) {
@@ -772,329 +783,155 @@ function StatsPage({
           <div style={introStatValueStyle}>{targetExerciseOptions.length}</div>
         </div>
       </div>
-
-      <div
-        style={{
-          marginTop: "14px",
-          marginBottom: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: isMobile ? "stretch" : "flex-start",
-          flexDirection: isMobile ? "column" : "row",
-          gap: "12px",
-        }}
-      >
-        <div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>Välj vy</h3>
-          <p style={mutedTextStyle}>Filter och detaljer öppnas i direkt anslutning till det du trycker på.</p>
-        </div>
-
-        <div style={statsHeaderActionsStyle(isMobile)}>
-          <button
-            type="button"
-            onClick={() => setViewMode("activity")}
-            style={{
-              ...secondaryButtonStyle,
-              width: isMobile ? "100%" : "auto",
-              backgroundColor: viewMode === "activity" ? "#111827" : "#ffffff",
-              color: viewMode === "activity" ? "#ffffff" : "#18202b",
-            }}
-          >
-            Aktivitet
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("stats")}
-            style={{
-              ...secondaryButtonStyle,
-              width: isMobile ? "100%" : "auto",
-              backgroundColor: viewMode === "stats" ? "#111827" : "#ffffff",
-              color: viewMode === "stats" ? "#ffffff" : "#18202b",
-            }}
-          >
-            Statistik
-          </button>
-          {viewMode === "stats" && (
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedPlayerIds(sortedPlayers.map((player) => player.id))
-              setIsPlayerMenuOpen(false)
-            }}
-            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-            disabled={!sortedPlayers.length}
-          >
-            Välj alla
-          </button>
-          )}
-          {viewMode === "stats" && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedPlayerIds([])
-                setIsPlayerMenuOpen(false)
-              }}
-              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-            >
-              Rensa val
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((prev) => !prev)}
-            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-          >
-            {filtersOpen ? "Dölj filter" : "Visa filter"}
-          </button>
-        </div>
+      <div style={viewSwitchWrapStyle(isMobile)}>
+        <button
+          type="button"
+          onClick={() => setViewMode("activity")}
+          style={primaryViewButtonStyle(viewMode === "activity", isMobile)}
+        >
+          Aktivitet
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("stats")}
+          style={primaryViewButtonStyle(viewMode === "stats", isMobile)}
+        >
+          Statistik
+        </button>
       </div>
 
-      {viewMode === "stats" ? (
-      <div style={statsSummaryGridStyle(isMobile)}>
-        <div style={statsSummaryCardStyle}>
-          <div style={statsSummaryLabelStyle}>Valda spelare</div>
-          <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{selectedPlayerIds.length}</div>
-        </div>
-        <div style={statsSummaryCardStyle}>
-          <div style={statsSummaryLabelStyle}>Övningar med data</div>
-          <div style={statsSummaryValueStyle}>{targetExerciseOptions.length}</div>
-        </div>
-        <div style={statsSummaryCardStyle}>
-          <div style={statsSummaryLabelStyle}>Datarader</div>
-          <div style={statsSummaryValueStyle}>{filteredStatsRows.length}</div>
-        </div>
-      </div>
-      ) : (
-      <div style={statsSummaryGridStyle(isMobile)}>
-        <div style={statsSummaryCardStyle}>
-          <div style={statsSummaryLabelStyle}>Genomförda pass</div>
-          <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{activitySessions.length}</div>
-        </div>
-        <div style={statsSummaryCardStyle}>
-          <div style={statsSummaryLabelStyle}>Spelare i filtret</div>
-          <div style={statsSummaryValueStyle}>{activityPlayerId ? 1 : sortedPlayers.length}</div>
-        </div>
-        <div style={statsSummaryCardStyle}>
-          <div style={statsSummaryLabelStyle}>Senaste aktivitet</div>
-          <div style={{ ...statsSummaryValueStyle, fontSize: "18px" }}>
-            {activitySessions[0]?.createdAt ? formatStatDate(activitySessions[0].createdAt) : "-"}
-          </div>
-        </div>
-      </div>
-      )}
+      <div style={contentPanelStyle}>
+        {viewMode === "activity" ? (
+          <>
+            <div style={panelHeaderStyle(isMobile)}>
+              <div>
+                <div style={panelTitleStyle}>Aktivitet</div>
+                <div style={panelTextStyle}>
+                  Välj spelare i filtret och öppna sedan ett genomfört pass i det fasta detaljkortet under listan.
+                </div>
+              </div>
 
-      {filtersOpen && viewMode === "stats" && (
-      <div style={filterGridStyle(isMobile)}>
-        <div style={filterCardStyle}>
-          <div style={filterTitleStyle}>Spelare</div>
-          {sortedPlayers.length === 0 ? (
-            <div style={mutedTextStyle}>Inga aktiva spelare tillgängliga.</div>
-          ) : (
-            <div style={{ position: "relative" }}>
               <button
                 type="button"
-                onClick={() => setIsPlayerMenuOpen((prev) => !prev)}
-                style={{
-                  ...inputStyle,
-                  width: "100%",
-                  textAlign: "left",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "10px",
-                  cursor: "pointer",
-                  backgroundColor: "#ffffff",
-                }}
+                onClick={() => setActivityFiltersOpen((prev) => !prev)}
+                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
               >
-                <span>{selectedPlayerSummary}</span>
-                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>
-                  {isPlayerMenuOpen ? "Stäng" : "Öppna"}
-                </span>
+                {activityFiltersOpen ? "Dölj filter" : "Visa filter"}
               </button>
+            </div>
 
-              {isPlayerMenuOpen && (
-                <div style={playerDropdownMenuStyle}>
-                  <div style={playerDropdownActionsStyle}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPlayerIds(sortedPlayers.map((player) => player.id))}
-                      style={{ ...secondaryButtonStyle, width: "100%" }}
-                    >
-                      Markera alla
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPlayerIds([])}
-                      style={{ ...secondaryButtonStyle, width: "100%", backgroundColor: "#ffffff", color: "#18202b" }}
-                    >
-                      Rensa val
-                    </button>
-                  </div>
-
-                  <div style={playerDropdownListStyle}>
+            {activityFiltersOpen ? (
+              <div style={activityFilterGridStyle(isMobile)}>
+                <div style={filterCardStyle}>
+                  <div style={filterTitleStyle}>Spelare</div>
+                  <select
+                    value={activityPlayerId}
+                    onChange={(event) => setActivityPlayerId(event.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    <option value="">Alla spelare</option>
                     {sortedPlayers.map((player) => (
-                      <label key={player.id} style={playerDropdownItemStyle}>
-                        <input
-                          type="checkbox"
-                          checked={selectedPlayerIds.includes(player.id)}
-                          onChange={() =>
-                            setSelectedPlayerIds((prev) =>
-                              prev.includes(player.id)
-                                ? prev.filter((entry) => entry !== player.id)
-                                : [...prev, player.id]
-                            )
-                          }
-                        />
-                        <span>{player.full_name}</span>
-                      </label>
+                      <option key={player.id} value={player.id}>
+                        {player.full_name}
+                      </option>
                     ))}
+                  </select>
+                  <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+                    Filtrera aktivitetslistan på en specifik spelare eller visa hela laget.
                   </div>
                 </div>
-              )}
+              </div>
+            ) : null}
+
+            <div style={statsSummaryGridStyle(isMobile)}>
+              <div style={statsSummaryCardStyle}>
+                <div style={statsSummaryLabelStyle}>Genomförda pass</div>
+                <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{activitySessions.length}</div>
+              </div>
+              <div style={statsSummaryCardStyle}>
+                <div style={statsSummaryLabelStyle}>Spelare i filtret</div>
+                <div style={statsSummaryValueStyle}>{activityPlayerId ? 1 : sortedPlayers.length}</div>
+              </div>
+              <div style={statsSummaryCardStyle}>
+                <div style={statsSummaryLabelStyle}>Senaste aktivitet</div>
+                <div style={{ ...statsSummaryValueStyle, fontSize: "18px" }}>
+                  {activitySessions[0]?.createdAt ? formatStatDate(activitySessions[0].createdAt) : "-"}
+                </div>
+              </div>
             </div>
-          )}
-        </div>
 
-        <div style={filterCardStyle}>
-          <div style={filterTitleStyle}>Övning</div>
-          <select
-            value={exerciseFilter}
-            onChange={(event) => setExerciseFilter(event.target.value)}
-            style={{ ...inputStyle, width: "100%" }}
-          >
-            <option value="all">Alla övningar</option>
-            {targetExerciseOptions.map((exerciseName) => (
-              <option key={exerciseName} value={exerciseName}>
-                {exerciseName}
-              </option>
-            ))}
-          </select>
-          <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
-            Visar toppset per pass för vald övning och spelare.
-          </div>
-        </div>
+            {isLoadingActivity ? (
+              <p style={mutedTextStyle}>Laddar aktivitet...</p>
+            ) : activitySessions.length === 0 ? (
+              <p style={mutedTextStyle}>Ingen aktivitet hittades för det aktuella urvalet.</p>
+            ) : (
+              <>
+                <div style={activityListStyle}>
+                  {activitySessions.map((session) => {
+                    const isSelected = selectedActivitySessionId === session.sessionId
 
-        <div style={filterCardStyle}>
-          <div style={filterTitleStyle}>Repsintervall</div>
-          <select
-            value={repRangeFilter}
-            onChange={(event) => setRepRangeFilter(event.target.value)}
-            style={{ ...inputStyle, width: "100%" }}
-          >
-            {REP_RANGE_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
-            Styr vilken målviktsnivå som visas i viktöversikten för vald övning.
-          </div>
-        </div>
-
-        <div style={filterCardStyle}>
-          <div style={filterTitleStyle}>Period</div>
-          <select
-            value={periodFilter}
-            onChange={(event) => setPeriodFilter(event.target.value)}
-            style={{ ...inputStyle, width: "100%" }}
-          >
-            {PERIOD_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
-            Begränsar graferna till vald tidsperiod utan att ändra spelare eller övningsval.
-          </div>
-        </div>
-      </div>
-      )}
-
-      {filtersOpen && viewMode === "activity" && (
-        <div style={filterGridStyle(isMobile)}>
-          <div style={filterCardStyle}>
-            <div style={filterTitleStyle}>Spelare</div>
-            <select
-              value={activityPlayerId}
-              onChange={(event) => setActivityPlayerId(event.target.value)}
-              style={{ ...inputStyle, width: "100%" }}
-            >
-              <option value="">Alla spelare</option>
-              {sortedPlayers.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.full_name}
-                </option>
-              ))}
-            </select>
-            <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
-              Filtrera listan på en specifik spelare eller visa hela laget.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {viewMode === "activity" ? (
-        isLoadingActivity ? (
-          <p style={mutedTextStyle}>Laddar aktivitet...</p>
-        ) : activitySessions.length === 0 ? (
-          <p style={mutedTextStyle}>Ingen aktivitet hittades för det aktuella urvalet.</p>
-        ) : (
-          <div style={activityListStyle}>
-            {activitySessions.map((session) => {
-              const isSelected = selectedActivitySessionId === session.sessionId
-
-              return (
-                <div key={session.sessionId} style={activityItemWrapStyle}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedActivitySessionId((current) =>
-                        current === session.sessionId ? "" : session.sessionId
-                      )
-                    }
-                    style={{
-                      ...activityRowStyle(isMobile),
-                      borderColor: isSelected ? "#c62828" : "#ece5e5",
-                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div>
-                      <div style={activityPlayerNameStyle}>{session.playerName}</div>
-                      <div style={activityMetaStyle}>{session.passName}</div>
-                    </div>
-                    <div style={activityRowAsideStyle}>
-                      <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
-                      <div style={activityExpandIndicatorStyle}>{isSelected ? "−" : "+"}</div>
-                    </div>
-                  </button>
-
-                  {isSelected ? (
-                    <div style={activityDetailCardStyle}>
-                      <div style={activityDetailHeaderStyle}>
+                    return (
+                      <button
+                        key={session.sessionId}
+                        type="button"
+                        onClick={() =>
+                          setSelectedActivitySessionId((current) =>
+                            current === session.sessionId ? "" : session.sessionId
+                          )
+                        }
+                        style={{
+                          ...activityRowStyle(isMobile),
+                          borderColor: isSelected ? "#efc7c7" : "#d7dee7",
+                          backgroundColor: isSelected ? "#fff4f4" : "#ffffff",
+                          cursor: "pointer",
+                        }}
+                      >
                         <div>
-                          <div style={activityDetailMetaStyle}>
-                            {session.playerName} • {session.passName} • {formatStatDate(session.createdAt)}
-                            {session.runningSummary ? ` • ${session.runningSummary}` : ""}
-                          </div>
+                          <div style={activityPlayerNameStyle}>{session.playerName}</div>
+                          <div style={activityMetaStyle}>{session.passName}</div>
+                        </div>
+                        <div style={activityRowAsideStyle}>
+                          <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
+                          <div style={activityExpandIndicatorStyle}>{isSelected ? "−" : "+"}</div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div style={activityDetailPanelStyle}>
+                  {!selectedActivitySession ? (
+                    <div style={emptyDetailPanelStyle}>
+                      Välj ett pass i listan för att se övningar, set och eventuell kommentar här.
+                    </div>
+                  ) : (
+                    <>
+                      <div style={activityDetailPanelHeaderStyle}>
+                        <div style={panelTitleStyle}>{selectedActivitySession.passName}</div>
+                        <div style={activityDetailMetaStyle}>
+                          {selectedActivitySession.playerName} • {formatStatDate(selectedActivitySession.createdAt)}
+                          {selectedActivitySession.runningSummary ? ` • ${selectedActivitySession.runningSummary}` : ""}
                         </div>
                       </div>
 
-                      {session.workoutKind === "running" ? (
+                      {selectedActivitySession.workoutKind === "running" ? (
                         <div style={activityRunningCardStyle}>
-                          {session.runningSummary || "Aktivitet genomförd"}
+                          {selectedActivitySession.runningSummary || "Aktivitet genomförd"}
                         </div>
                       ) : (
                         <div style={activityExerciseCardsViewportStyle}>
                           <div style={activitySwipeHintStyle}>Svep mellan övningarna</div>
                           <div style={activityExerciseCardsTrackStyle}>
-                            {session.exercises.map((exercise) => (
-                              <div key={`${session.sessionId}-${exercise.name}`} style={activityExerciseCardStyle}>
+                            {selectedActivitySession.exercises.map((exercise) => (
+                              <div
+                                key={`${selectedActivitySession.sessionId}-${exercise.name}`}
+                                style={activityExerciseCardStyle}
+                              >
                                 <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
                                 <div style={activityExerciseCardSubStyle}>
-                                  {exercise.protocolConfig ? `${exercise.sets.length} block klara` : `${exercise.sets.length} set loggade`}
+                                  {exercise.protocolConfig
+                                    ? `${exercise.sets.length} block klara`
+                                    : `${exercise.sets.length} set loggade`}
                                 </div>
 
                                 <div style={activitySetListStyle}>
@@ -1105,7 +942,7 @@ function StatsPage({
 
                                     return (
                                       <div
-                                        key={`${session.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                        key={`${selectedActivitySession.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
                                         style={activitySetCardStyle}
                                       >
                                         <div style={activitySetTitleStyle}>
@@ -1154,178 +991,326 @@ function StatsPage({
                         </div>
                       )}
 
-                      {session.passComment ? (
+                      {selectedActivitySession.passComment ? (
                         <div style={activityPassCommentStyle}>
-                          <strong>Kommentar:</strong> {session.passComment}
+                          <strong>Kommentar:</strong> {selectedActivitySession.passComment}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div style={panelHeaderStyle(isMobile)}>
+              <div>
+                <div style={panelTitleStyle}>Statistik</div>
+                <div style={panelTextStyle}>
+                  Filtrera spelare och övning, jämför senaste logg med målvikt och öppna sedan utvecklingen i graferna.
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStatsFiltersOpen((prev) => !prev)}
+                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+              >
+                {statsFiltersOpen ? "Dölj filter" : "Visa filter"}
+              </button>
+            </div>
+
+            {statsFiltersOpen ? (
+              <div style={filterGridStyle(isMobile)}>
+                <div style={filterCardStyle}>
+                  <div style={filterTitleStyle}>Spelare</div>
+                  {sortedPlayers.length === 0 ? (
+                    <div style={mutedTextStyle}>Inga aktiva spelare tillgängliga.</div>
+                  ) : (
+                    <div style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsPlayerMenuOpen((prev) => !prev)}
+                        style={{
+                          ...inputStyle,
+                          width: "100%",
+                          textAlign: "left",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "10px",
+                          cursor: "pointer",
+                          backgroundColor: "#ffffff",
+                        }}
+                      >
+                        <span>{selectedPlayerSummary}</span>
+                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>
+                          {isPlayerMenuOpen ? "Stäng" : "Öppna"}
+                        </span>
+                      </button>
+
+                      {isPlayerMenuOpen ? (
+                        <div style={playerDropdownMenuStyle}>
+                          <div style={playerDropdownActionsStyle}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPlayerIds(sortedPlayers.map((player) => player.id))}
+                              style={{ ...secondaryButtonStyle, width: "100%" }}
+                            >
+                              Välj alla
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPlayerIds([])}
+                              style={{ ...secondaryButtonStyle, width: "100%" }}
+                            >
+                              Rensa val
+                            </button>
+                          </div>
+
+                          <div style={playerDropdownListStyle}>
+                            {sortedPlayers.map((player) => (
+                              <label key={player.id} style={playerDropdownItemStyle}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPlayerIds.includes(player.id)}
+                                  onChange={() =>
+                                    setSelectedPlayerIds((prev) =>
+                                      prev.includes(player.id)
+                                        ? prev.filter((entry) => entry !== player.id)
+                                        : [...prev, player.id]
+                                    )
+                                  }
+                                />
+                                <span>{player.full_name}</span>
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       ) : null}
                     </div>
-                  ) : null}
+                  )}
                 </div>
-              )
-            })}
-          </div>
-        )
-      ) : isLoadingStats ? (
-        <p style={mutedTextStyle}>Laddar statistik...</p>
-      ) : !selectedPlayerIds.length ? (
-        <p style={mutedTextStyle}>Välj minst en spelare för att visa statistik.</p>
-      ) : exerciseFilter !== "all" ? (
-        <>
-          <div style={recommendationSectionStyle}>
-            <div style={recommendationSectionHeaderStyle}>
-              <div>
-                <div style={recommendationSectionTitleStyle}>Viktöversikt för {exerciseFilter}</div>
-                <div style={recommendationSectionTextStyle}>
-                  Visar senaste loggade vikt per spelare och rekommenderad vikt för samma repsintervall.
+
+                <div style={filterCardStyle}>
+                  <div style={filterTitleStyle}>Övning</div>
+                  <select
+                    value={exerciseFilter}
+                    onChange={(event) => setExerciseFilter(event.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    <option value="all">Alla övningar</option>
+                    {targetExerciseOptions.map((exerciseName) => (
+                      <option key={exerciseName} value={exerciseName}>
+                        {exerciseName}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+                    Visar toppset per pass för vald övning och spelare.
+                  </div>
                 </div>
+
+                <div style={filterCardStyle}>
+                  <div style={filterTitleStyle}>Repsintervall</div>
+                  <select
+                    value={repRangeFilter}
+                    onChange={(event) => setRepRangeFilter(event.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    {REP_RANGE_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+                    Styr vilken målviktsnivå som visas för vald övning.
+                  </div>
+                </div>
+
+                <div style={filterCardStyle}>
+                  <div style={filterTitleStyle}>Period</div>
+                  <select
+                    value={periodFilter}
+                    onChange={(event) => setPeriodFilter(event.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    {PERIOD_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ ...mutedTextStyle, marginTop: "10px" }}>
+                    Begränsar graferna till vald tidsperiod utan att ändra spelare eller övningsval.
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div style={statsSummaryGridStyle(isMobile)}>
+              <div style={statsSummaryCardStyle}>
+                <div style={statsSummaryLabelStyle}>Valda spelare</div>
+                <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{selectedPlayerIds.length}</div>
+              </div>
+              <div style={statsSummaryCardStyle}>
+                <div style={statsSummaryLabelStyle}>Övningar med data</div>
+                <div style={statsSummaryValueStyle}>{targetExerciseOptions.length}</div>
+              </div>
+              <div style={statsSummaryCardStyle}>
+                <div style={statsSummaryLabelStyle}>Datarader</div>
+                <div style={statsSummaryValueStyle}>{filteredStatsRows.length}</div>
               </div>
             </div>
 
-            {isLoadingRecommendations ? (
-              <div style={mutedTextStyle}>Laddar rekommenderade vikter...</div>
-            ) : selectedExerciseRecommendationRows.length === 0 ? (
-              <div style={mutedTextStyle}>Ingen viktöversikt hittades för vald övning.</div>
+            {isLoadingStats ? (
+              <p style={mutedTextStyle}>Laddar statistik...</p>
+            ) : !selectedPlayerIds.length ? (
+              <p style={mutedTextStyle}>Välj minst en spelare för att visa statistik.</p>
             ) : (
-              <div style={recommendationGridStyle(isMobile)}>
-                {selectedExerciseRecommendationRows.map((entry) => (
-                  <div key={entry.playerId} style={recommendationCardStyle}>
-                    <div style={recommendationCardHeaderStyle}>
-                      <div style={recommendationPlayerNameStyle}>{entry.playerName}</div>
-                      <div style={recommendationDateStyle}>
-                        {entry.latestDate ? formatStatDate(entry.latestDate) : "Ingen logg"}
-                      </div>
-                    </div>
-
-                    <div style={recommendationStatsGridStyle}>
-                      <div style={recommendationStatBoxStyle}>
-                        <div style={recommendationStatLabelStyle}>Senast loggat</div>
-                        <div style={recommendationStatValueStyle}>
-                          {entry.latestWeight != null ? `${entry.latestWeight} kg` : "—"}
-                        </div>
-                        <div style={recommendationStatMetaStyle}>
-                          {entry.latestReps ? `${entry.latestReps} reps` : "Ingen repsdata"}
-                        </div>
-                      </div>
-
-                      <div style={recommendationStatBoxStyle}>
-                        <div style={recommendationStatLabelStyle}>Rekommenderad vikt</div>
-                        <div style={recommendationStatValueStyle}>
-                          {entry.recommendedWeight != null ? `${entry.recommendedWeight} kg` : "—"}
-                        </div>
-                        <div style={recommendationStatMetaStyle}>
-                          {entry.recommendationRangeLabel
-                            ? `${entry.recommendationRangeLabel} reps`
-                            : "Ingen målvikt sparad"}
+              <>
+                {exerciseFilter !== "all" ? (
+                  <div style={recommendationSectionStyle}>
+                    <div style={recommendationSectionHeaderStyle}>
+                      <div>
+                        <div style={recommendationSectionTitleStyle}>Viktöversikt för {exerciseFilter}</div>
+                        <div style={recommendationSectionTextStyle}>
+                          Visar senaste loggade vikt per spelare och rekommenderad vikt för samma repsintervall.
                         </div>
                       </div>
                     </div>
 
-                    {entry.availableRecommendations.length > 0 ? (
-                      <div style={recommendationRangesWrapStyle}>
-                        {entry.availableRecommendations.map((recommendation) => (
-                          <div key={`${entry.playerId}-${recommendation.key}`} style={recommendationRangeChipStyle}>
-                            <span style={recommendationRangeChipLabelStyle}>{recommendation.label}</span>
-                            <span style={recommendationRangeChipValueStyle}>{recommendation.weight} kg</span>
+                    {isLoadingRecommendations ? (
+                      <div style={mutedTextStyle}>Laddar rekommenderade vikter...</div>
+                    ) : selectedExerciseRecommendationRows.length === 0 ? (
+                      <div style={mutedTextStyle}>Ingen viktöversikt hittades för vald övning.</div>
+                    ) : (
+                      <div style={recommendationGridStyle(isMobile)}>
+                        {selectedExerciseRecommendationRows.map((entry) => (
+                          <div key={entry.playerId} style={recommendationCardStyle}>
+                            <div style={recommendationCardHeaderStyle}>
+                              <div style={recommendationPlayerNameStyle}>{entry.playerName}</div>
+                              <div style={recommendationDateStyle}>
+                                {entry.latestDate ? formatStatDate(entry.latestDate) : "Ingen logg"}
+                              </div>
+                            </div>
+
+                            <div style={recommendationStatsGridStyle}>
+                              <div style={recommendationStatBoxStyle}>
+                                <div style={recommendationStatLabelStyle}>Senast loggat</div>
+                                <div style={recommendationStatValueStyle}>
+                                  {entry.latestWeight != null ? `${entry.latestWeight} kg` : "—"}
+                                </div>
+                                <div style={recommendationStatMetaStyle}>
+                                  {entry.latestReps ? `${entry.latestReps} reps` : "Ingen repsdata"}
+                                </div>
+                              </div>
+
+                              <div style={recommendationStatBoxStyle}>
+                                <div style={recommendationStatLabelStyle}>Rekommenderad vikt</div>
+                                <div style={recommendationStatValueStyle}>
+                                  {entry.recommendedWeight != null ? `${entry.recommendedWeight} kg` : "—"}
+                                </div>
+                                <div style={recommendationStatMetaStyle}>
+                                  {entry.recommendationRangeLabel
+                                    ? `${entry.recommendationRangeLabel} reps`
+                                    : "Ingen målvikt sparad"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {entry.availableRecommendations.length > 0 ? (
+                              <div style={recommendationRangesWrapStyle}>
+                                {entry.availableRecommendations.map((recommendation) => (
+                                  <div key={`${entry.playerId}-${recommendation.key}`} style={recommendationRangeChipStyle}>
+                                    <span style={recommendationRangeChipLabelStyle}>{recommendation.label}</span>
+                                    <span style={recommendationRangeChipValueStyle}>{recommendation.weight} kg</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {entry.exerciseType === "weight_reps" ? (
+                              repRangeFilter === "all" ? (
+                                <div style={recommendationQuickEditHintStyle}>
+                                  Välj ett specifikt repsintervall för att snabbredigera målvikt här.
+                                </div>
+                              ) : (
+                                <div style={recommendationQuickEditRowStyle(isMobile)}>
+                                  <input
+                                    type="number"
+                                    placeholder="Målvikt i kg"
+                                    value={
+                                      recommendationDrafts[`${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`] ?? ""
+                                    }
+                                    onChange={(event) => handleRecommendationDraftChange(entry, event.target.value)}
+                                    style={{ ...inputStyle, width: isMobile ? "100%" : "180px" }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveRecommendationWeight(entry)}
+                                    disabled={
+                                      savingRecommendationKey ===
+                                      `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+                                    }
+                                    style={{
+                                      ...secondaryButtonStyle,
+                                      width: isMobile ? "100%" : "auto",
+                                      backgroundColor: "#111827",
+                                      color: "#ffffff",
+                                      opacity:
+                                        savingRecommendationKey ===
+                                        `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+                                          ? 0.7
+                                          : 1,
+                                    }}
+                                  >
+                                    {savingRecommendationKey ===
+                                    `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
+                                      ? "Sparar..."
+                                      : "Spara målvikt"}
+                                  </button>
+                                </div>
+                              )
+                            ) : (
+                              <div style={recommendationQuickEditHintStyle}>
+                                Den här övningen använder inte målvikt.
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
-                    ) : null}
-
-                    {entry.exerciseType === "weight_reps" ? (
-                      repRangeFilter === "all" ? (
-                        <div style={recommendationQuickEditHintStyle}>
-                          Välj ett specifikt repsintervall för att snabbredigera målvikt här.
-                        </div>
-                      ) : (
-                        <div style={recommendationQuickEditRowStyle(isMobile)}>
-                          <input
-                            type="number"
-                            placeholder="Målvikt i kg"
-                            value={
-                              recommendationDrafts[`${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`] ?? ""
-                            }
-                            onChange={(event) => handleRecommendationDraftChange(entry, event.target.value)}
-                            style={{ ...inputStyle, width: isMobile ? "100%" : "180px" }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSaveRecommendationWeight(entry)}
-                            disabled={
-                              savingRecommendationKey ===
-                              `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
-                            }
-                            style={{
-                              ...secondaryButtonStyle,
-                              width: isMobile ? "100%" : "auto",
-                              backgroundColor: "#111827",
-                              color: "#ffffff",
-                              opacity:
-                                savingRecommendationKey ===
-                                `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
-                                  ? 0.7
-                                  : 1,
-                            }}
-                          >
-                            {savingRecommendationKey ===
-                            `${entry.playerId}:${entry.exerciseId}:${repRangeFilter}`
-                              ? "Sparar..."
-                              : "Spara målvikt"}
-                          </button>
-                        </div>
-                      )
-                    ) : (
-                      <div style={recommendationQuickEditHintStyle}>
-                        Den här övningen använder inte målvikt.
-                      </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                ) : null}
 
-          {visibleSeries.length === 0 ? (
-            <p style={mutedTextStyle}>Ingen viktdata hittades för det aktuella urvalet.</p>
-          ) : (
-            <div style={chartGridStyle}>
-              {visibleSeries.map((entry) => (
-                <ExerciseChartCard
-                  key={entry.exerciseName}
-                  exerciseName={entry.exerciseName}
-                  playerSeries={entry.playerSeries}
-                  isMobile={isMobile}
-                  onExpand={() =>
-                    setExpandedChart({
-                      exerciseName: entry.exerciseName,
-                      playerSeries: entry.playerSeries,
-                    })
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </>
-      ) : visibleSeries.length === 0 ? (
-        <p style={mutedTextStyle}>Ingen viktdata hittades för det aktuella urvalet.</p>
-      ) : (
-        <div style={chartGridStyle}>
-          {visibleSeries.map((entry) => (
-            <ExerciseChartCard
-              key={entry.exerciseName}
-              exerciseName={entry.exerciseName}
-              playerSeries={entry.playerSeries}
-              isMobile={isMobile}
-              onExpand={() =>
-                setExpandedChart({
-                  exerciseName: entry.exerciseName,
-                  playerSeries: entry.playerSeries,
-                })
-              }
-            />
-          ))}
-        </div>
-      )}
+                {visibleSeries.length === 0 ? (
+                  <p style={mutedTextStyle}>Ingen viktdata hittades för det aktuella urvalet.</p>
+                ) : (
+                  <div style={chartGridStyle}>
+                    {visibleSeries.map((entry) => (
+                      <ExerciseChartCard
+                        key={entry.exerciseName}
+                        exerciseName={entry.exerciseName}
+                        playerSeries={entry.playerSeries}
+                        isMobile={isMobile}
+                        onExpand={() =>
+                          setExpandedChart({
+                            exerciseName: entry.exerciseName,
+                            playerSeries: entry.playerSeries,
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
 
       {expandedChart ? (
         <ChartModal
@@ -1580,12 +1565,66 @@ const filterGridStyle = (isMobile) => ({
   marginBottom: "18px",
 })
 
-const statsHeaderActionsStyle = (isMobile) => ({
-  display: "flex",
+const activityFilterGridStyle = (isMobile) => ({
+  display: "grid",
   gap: "8px",
-  flexDirection: isMobile ? "column" : "row",
-  flexWrap: "wrap",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(260px, 360px)",
+  marginBottom: "16px",
 })
+
+const viewSwitchWrapStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(2, minmax(180px, 220px))",
+  marginTop: "16px",
+  marginBottom: "14px",
+})
+
+const primaryViewButtonStyle = (isActive, isMobile) => ({
+  minHeight: isMobile ? "54px" : "58px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: isActive ? "1px solid #b91c1c" : "1px solid #cbd5e1",
+  background: isActive ? "linear-gradient(135deg, #c62828 0%, #991b1b 100%)" : "#ffffff",
+  color: isActive ? "#ffffff" : "#111827",
+  fontSize: isMobile ? "15px" : "16px",
+  fontWeight: "900",
+  cursor: "pointer",
+  boxShadow: isActive
+    ? "0 14px 28px rgba(198, 40, 40, 0.24)"
+    : "0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06)",
+})
+
+const contentPanelStyle = {
+  marginTop: "4px",
+  padding: "16px",
+  borderRadius: "22px",
+  border: "1px solid #d7dee7",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.07), 0 16px 34px rgba(15, 23, 42, 0.08)",
+}
+
+const panelHeaderStyle = (isMobile) => ({
+  display: "flex",
+  alignItems: isMobile ? "stretch" : "flex-start",
+  justifyContent: "space-between",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "12px",
+  marginBottom: "14px",
+})
+
+const panelTitleStyle = {
+  fontSize: "20px",
+  fontWeight: "900",
+  color: "#111827",
+  marginBottom: "4px",
+}
+
+const panelTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#64748b",
+}
 
 const statsSummaryGridStyle = (isMobile) => ({
   display: "grid",
@@ -1844,6 +1883,7 @@ const activityListStyle = {
   gap: "10px",
   width: "100%",
   minWidth: 0,
+  marginBottom: "16px",
 }
 
 const activityItemWrapStyle = {
@@ -1916,6 +1956,28 @@ const activityDetailCardStyle = {
   border: "1px solid #f1d7d7",
   backgroundColor: "#fffdfd",
   boxShadow: "0 14px 30px rgba(24, 32, 43, 0.05)",
+}
+
+const activityDetailPanelStyle = {
+  padding: "14px",
+  borderRadius: "20px",
+  border: "1px solid #d7dee7",
+  backgroundColor: "#ffffff",
+  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06)",
+}
+
+const activityDetailPanelHeaderStyle = {
+  marginBottom: "12px",
+}
+
+const emptyDetailPanelStyle = {
+  padding: "18px 14px",
+  borderRadius: "16px",
+  border: "1px dashed #cbd5e1",
+  backgroundColor: "#f8fafc",
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#64748b",
 }
 
 const activityDetailHeaderStyle = {
