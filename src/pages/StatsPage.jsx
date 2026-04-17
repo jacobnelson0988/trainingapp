@@ -188,6 +188,35 @@ const buildStatsRunningSummary = (session) => {
   return [distance, runningTime, averagePulse].filter(Boolean).join(" • ") || "Distans"
 }
 
+const buildActivityRowSummary = (session) => {
+  if (!session) return ""
+
+  if (session.workoutKind === "running") {
+    return session.runningSummary || "Aktivitet loggad"
+  }
+
+  const exerciseCount = Array.isArray(session.exercises) ? session.exercises.length : 0
+  const setCount = Array.isArray(session.exercises)
+    ? session.exercises.reduce((sum, exercise) => sum + (exercise.sets?.length || 0), 0)
+    : 0
+
+  const parts = []
+
+  if (exerciseCount > 0) {
+    parts.push(`${exerciseCount} övning${exerciseCount === 1 ? "" : "ar"}`)
+  }
+
+  if (setCount > 0) {
+    parts.push(`${setCount} set`)
+  }
+
+  if (session.passComment) {
+    parts.push("kommentar")
+  }
+
+  return parts.join(" • ") || "Pass loggat"
+}
+
 const buildProgressionSeries = (rows, playerMap) => {
   const grouped = new Map()
 
@@ -872,10 +901,11 @@ function StatsPage({
                         <div>
                           <div style={activityPlayerNameStyle}>{session.playerName}</div>
                           <div style={activityMetaStyle}>{session.passName}</div>
+                          <div style={activitySummaryStyle}>{buildActivityRowSummary(session)}</div>
                         </div>
                         <div style={activityRowAsideStyle}>
                           <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
-                          <div style={activityExpandIndicatorStyle}>{isSelected ? "−" : "+"}</div>
+                          {isSelected ? <div style={activitySelectedHintStyle}>Vald</div> : null}
                         </div>
                       </button>
                     )
@@ -1904,6 +1934,14 @@ const activityMetaStyle = {
   color: "#64748b",
 }
 
+const activitySummaryStyle = {
+  marginTop: "6px",
+  fontSize: "12px",
+  lineHeight: 1.45,
+  color: "#475569",
+  fontWeight: "700",
+}
+
 const activityRowAsideStyle = {
   display: "grid",
   justifyItems: "end",
@@ -1919,19 +1957,18 @@ const activityDateStyle = {
   whiteSpace: "nowrap",
 }
 
-const activityExpandIndicatorStyle = {
-  width: "28px",
-  height: "28px",
+const activitySelectedHintStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #f0d3d3",
+  backgroundColor: "#fff1f1",
+  border: "1px solid #efc7c7",
   color: "#991b1b",
-  fontSize: "18px",
+  fontSize: "11px",
   fontWeight: "900",
-  flexShrink: 0,
+  whiteSpace: "nowrap",
 }
 
 const activityDetailCardStyle = {
