@@ -836,7 +836,7 @@ function StatsPage({
               <div>
                 <div style={panelTitleStyle}>Aktivitet</div>
                 <div style={panelTextStyle}>
-                  Välj spelare i filtret och öppna sedan ett genomfört pass i det fasta detaljkortet under listan.
+                  Välj spelare i filtret och öppna sedan ett genomfört pass direkt i listan för att se övningar, set och kommentar.
                 </div>
               </div>
 
@@ -877,14 +877,13 @@ function StatsPage({
             ) : activitySessions.length === 0 ? (
               <p style={mutedTextStyle}>Ingen aktivitet hittades för det aktuella urvalet.</p>
             ) : (
-              <>
-                <div style={activityListStyle}>
-                  {activitySessions.map((session) => {
-                    const isSelected = selectedActivitySessionId === session.sessionId
+              <div style={activityListStyle}>
+                {activitySessions.map((session) => {
+                  const isSelected = selectedActivitySessionId === session.sessionId
 
-                    return (
+                  return (
+                    <div key={session.sessionId} style={activityItemWrapStyle}>
                       <button
-                        key={session.sessionId}
                         type="button"
                         onClick={() =>
                           setSelectedActivitySessionId((current) =>
@@ -905,114 +904,108 @@ function StatsPage({
                         </div>
                         <div style={activityRowAsideStyle}>
                           <div style={activityDateStyle}>{formatStatDate(session.createdAt)}</div>
-                          {isSelected ? <div style={activitySelectedHintStyle}>Vald</div> : null}
+                          <div style={activitySelectedHintStyle}>{isSelected ? "−" : "+"}</div>
                         </div>
                       </button>
-                    )
-                  })}
-                </div>
 
-                <div style={activityDetailPanelStyle}>
-                  {!selectedActivitySession ? (
-                    <div style={emptyDetailPanelStyle}>
-                      Välj ett pass i listan för att se övningar, set och eventuell kommentar här.
-                    </div>
-                  ) : (
-                    <>
-                      <div style={activityDetailPanelHeaderStyle}>
-                        <div style={panelTitleStyle}>{selectedActivitySession.passName}</div>
-                        <div style={activityDetailMetaStyle}>
-                          {selectedActivitySession.playerName} • {formatStatDate(selectedActivitySession.createdAt)}
-                          {selectedActivitySession.runningSummary ? ` • ${selectedActivitySession.runningSummary}` : ""}
-                        </div>
-                      </div>
-
-                      {selectedActivitySession.workoutKind === "running" ? (
-                        <div style={activityRunningCardStyle}>
-                          {selectedActivitySession.runningSummary || "Aktivitet genomförd"}
-                        </div>
-                      ) : (
-                        <div style={activityExerciseCardsViewportStyle}>
-                          <div style={activitySwipeHintStyle}>Svep mellan övningarna</div>
-                          <div style={activityExerciseCardsTrackStyle}>
-                            {selectedActivitySession.exercises.map((exercise) => (
-                              <div
-                                key={`${selectedActivitySession.sessionId}-${exercise.name}`}
-                                style={activityExerciseCardStyle}
-                              >
-                                <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
-                                <div style={activityExerciseCardSubStyle}>
-                                  {exercise.protocolConfig
-                                    ? `${exercise.sets.length} block klara`
-                                    : `${exercise.sets.length} set loggade`}
-                                </div>
-
-                                <div style={activitySetListStyle}>
-                                  {exercise.sets.map((setEntry, setIndex) => {
-                                    const protocolStep = exercise.protocolConfig
-                                      ? getExerciseProtocolStep(exercise, setEntry.setNumber || setIndex + 1)
-                                      : null
-
-                                    return (
-                                      <div
-                                        key={`${selectedActivitySession.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
-                                        style={activitySetCardStyle}
-                                      >
-                                        <div style={activitySetTitleStyle}>
-                                          {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
-                                        </div>
-
-                                        {protocolStep ? (
-                                          <div style={{ display: "grid", gap: "6px" }}>
-                                            <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
-                                              {protocolStep.summary}
-                                            </div>
-                                            <div style={activitySetMetaValueStyle}>Klart</div>
-                                            {setEntry.exerciseComment ? (
-                                              <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
-                                                Kommentar: {setEntry.exerciseComment}
-                                              </div>
-                                            ) : null}
-                                          </div>
-                                        ) : (
-                                          <div style={activitySetMetaGridStyle}>
-                                            <div style={activitySetMetaItemStyle}>
-                                              <div style={activitySetMetaLabelStyle}>Vikt</div>
-                                              <div style={activitySetMetaValueStyle}>
-                                                {setEntry.weight ? `${setEntry.weight} kg` : "—"}
-                                              </div>
-                                            </div>
-                                            <div style={activitySetMetaItemStyle}>
-                                              <div style={activitySetMetaLabelStyle}>Reps</div>
-                                              <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
-                                            </div>
-                                            <div style={activitySetMetaItemStyle}>
-                                              <div style={activitySetMetaLabelStyle}>Tid</div>
-                                              <div style={activitySetMetaValueStyle}>
-                                                {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            ))}
+                      {isSelected ? (
+                        <div style={activityDetailPanelStyle}>
+                          <div style={activityDetailPanelHeaderStyle}>
+                            <div style={panelTitleStyle}>{session.passName}</div>
+                            <div style={activityDetailMetaStyle}>
+                              {session.playerName} • {formatStatDate(session.createdAt)}
+                              {session.runningSummary ? ` • ${session.runningSummary}` : ""}
+                            </div>
                           </div>
-                        </div>
-                      )}
 
-                      {selectedActivitySession.passComment ? (
-                        <div style={activityPassCommentStyle}>
-                          <strong>Kommentar:</strong> {selectedActivitySession.passComment}
+                          {session.workoutKind === "running" ? (
+                            <div style={activityRunningCardStyle}>
+                              {session.runningSummary || "Aktivitet genomförd"}
+                            </div>
+                          ) : (
+                            <div style={activityExerciseCardsViewportStyle}>
+                              <div style={activitySwipeHintStyle}>Svep mellan övningarna</div>
+                              <div style={activityExerciseCardsTrackStyle}>
+                                {session.exercises.map((exercise) => (
+                                  <div
+                                    key={`${session.sessionId}-${exercise.name}`}
+                                    style={activityExerciseCardStyle}
+                                  >
+                                    <div style={activityExerciseCardTitleStyle}>{exercise.displayName}</div>
+                                    <div style={activityExerciseCardSubStyle}>
+                                      {exercise.protocolConfig
+                                        ? `${exercise.sets.length} block klara`
+                                        : `${exercise.sets.length} set loggade`}
+                                    </div>
+
+                                    <div style={activitySetListStyle}>
+                                      {exercise.sets.map((setEntry, setIndex) => {
+                                        const protocolStep = exercise.protocolConfig
+                                          ? getExerciseProtocolStep(exercise, setEntry.setNumber || setIndex + 1)
+                                          : null
+
+                                        return (
+                                          <div
+                                            key={`${session.sessionId}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                            style={activitySetCardStyle}
+                                          >
+                                            <div style={activitySetTitleStyle}>
+                                              {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
+                                            </div>
+
+                                            {protocolStep ? (
+                                              <div style={{ display: "grid", gap: "6px" }}>
+                                                <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                                                  {protocolStep.summary}
+                                                </div>
+                                                <div style={activitySetMetaValueStyle}>Klart</div>
+                                                {setEntry.exerciseComment ? (
+                                                  <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                                                    Kommentar: {setEntry.exerciseComment}
+                                                  </div>
+                                                ) : null}
+                                              </div>
+                                            ) : (
+                                              <div style={activitySetMetaGridStyle}>
+                                                <div style={activitySetMetaItemStyle}>
+                                                  <div style={activitySetMetaLabelStyle}>Vikt</div>
+                                                  <div style={activitySetMetaValueStyle}>
+                                                    {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                                  </div>
+                                                </div>
+                                                <div style={activitySetMetaItemStyle}>
+                                                  <div style={activitySetMetaLabelStyle}>Reps</div>
+                                                  <div style={activitySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                                </div>
+                                                <div style={activitySetMetaItemStyle}>
+                                                  <div style={activitySetMetaLabelStyle}>Tid</div>
+                                                  <div style={activitySetMetaValueStyle}>
+                                                    {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {session.passComment ? (
+                            <div style={activityPassCommentStyle}>
+                              <strong>Kommentar:</strong> {session.passComment}
+                            </div>
+                          ) : null}
                         </div>
                       ) : null}
-                    </>
-                  )}
-                </div>
-              </>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </>
         ) : (
