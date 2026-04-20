@@ -17,6 +17,8 @@ const FREE_ACTIVITY_LABELS = {
   orienteering: "Orientering",
   swimming: "Simning",
   racket_sport: "Racketsport",
+  handball: "Handboll",
+  custom: "Egen aktivitet",
 }
 
 const REP_RANGE_BUCKETS = [

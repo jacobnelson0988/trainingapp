@@ -8,6 +8,7 @@ import PassBuilderPage from "./pages/PassBuilderPage"
 import UsersAdminPage from "./pages/UsersAdminPage"
 import TeamsPage from "./pages/TeamsPage"
 import AdminHomePage from "./pages/AdminHomePage"
+import CalendarPage from "./pages/CalendarPage"
 import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
@@ -267,6 +268,31 @@ const buildProtocolInputRows = (exercise, workoutSessionId, exerciseIndex) => {
 
 const getTodayDateInputValue = () => new Date().toISOString().slice(0, 10)
 
+const getDateInputValueFromTimestamp = (value) => {
+  if (!value) return getTodayDateInputValue()
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return getTodayDateInputValue()
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+const getWeekStartDateInputValue = (value = new Date()) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return getTodayDateInputValue()
+  }
+
+  const day = date.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + diff)
+  return getDateInputValueFromTimestamp(date)
+}
+
 const combineDateWithExistingTime = (dateValue, existingTimestamp) => {
   if (!dateValue) return null
 
@@ -285,6 +311,8 @@ const FREE_ACTIVITY_OPTIONS = [
   { value: "orienteering", label: "Orientering" },
   { value: "swimming", label: "Simning" },
   { value: "racket_sport", label: "Racketsport" },
+  { value: "handball", label: "Handboll" },
+  { value: "custom", label: "Egen aktivitet" },
 ]
 
 const getFreeActivityLabel = (activityType) =>
@@ -1198,9 +1226,19 @@ function TrainingApp() {
   const [isLoadingCompletedWorkoutSessions, setIsLoadingCompletedWorkoutSessions] = useState(false)
   const [workoutDateDrafts, setWorkoutDateDrafts] = useState({})
   const [savingWorkoutDateSessionId, setSavingWorkoutDateSessionId] = useState(null)
+  const [calendarWeekStart, setCalendarWeekStart] = useState(() => getWeekStartDateInputValue())
+  const [calendarEntries, setCalendarEntries] = useState([])
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState(false)
+  const [isSubmittingCalendar, setIsSubmittingCalendar] = useState(false)
+  const [isSavingCalendarActivity, setIsSavingCalendarActivity] = useState(false)
+  const [isCancellingCalendarActivity, setIsCancellingCalendarActivity] = useState(false)
+  const [updatingCalendarEventPlayerId, setUpdatingCalendarEventPlayerId] = useState(null)
+  const [activeCalendarEventPlayerId, setActiveCalendarEventPlayerId] = useState(null)
+  const [pendingFreeActivityCalendarEvent, setPendingFreeActivityCalendarEvent] = useState(null)
   const [runningDraft, setRunningDraft] = useState({
     log_date: getTodayDateInputValue(),
     free_activity_type: "",
+    custom_activity_title: "",
     running_type: "distance",
     interval_time: "",
     intervals_count: "",
@@ -1264,6 +1302,15 @@ function TrainingApp() {
     loadCompletedWorkoutSessions(user.id)
     loadPlayerExerciseProgress(user.id)
   }, [user, profile?.role, exercisesFromDB])
+
+  useEffect(() => {
+    if (!user || !profile || !["coach", "player"].includes(profile.role)) {
+      setCalendarEntries([])
+      return
+    }
+
+    loadCalendarEntries()
+  }, [user, profile, calendarWeekStart, players])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -3749,6 +3796,484 @@ function TrainingApp() {
     )
   }
 
+  const getCalendarWeekRange = () => {
+    const start = new Date(`${calendarWeekStart}T00:00:00`)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 7)
+    return {
+      startIso: start.toISOString(),
+      endIso: end.toISOString(),
+    }
+  }
+
+  const buildCalendarEntriesFromRows = (rows) =>
+    (rows || [])
+      .map((row) => {
+        const playerLinks = (row.calendar_event_players || []).map((link) => ({
+          id: link.id,
+          player_id: link.player_id,
+          completion_status: link.completion_status || "planned",
+          assignment_source: link.assignment_source || "direct",
+          linked_workout_session_id: link.linked_workout_session_id || null,
+          completed_at: link.completed_at || null,
+          player_name:
+            link.player?.full_name ||
+            link.player?.username ||
+            players.find((player) => player.id === link.player_id)?.full_name ||
+            "Spelare",
+        }))
+
+        const summary = playerLinks.reduce(
+          (acc, link) => {
+            acc[link.completion_status] = (acc[link.completion_status] || 0) + 1
+            return acc
+          },
+          { planned: 0, completed: 0, skipped: 0, cancelled: 0 }
+        )
+
+        return {
+          id: row.id,
+          series_id: row.series_id,
+          title: row.title,
+          description: row.description || "",
+          activity_kind: row.activity_kind,
+          workout_template_id: row.workout_template_id || null,
+          free_activity_type: row.free_activity_type || null,
+          location: row.location || "",
+          starts_at: row.starts_at,
+          ends_at: row.ends_at,
+          is_cancelled: row.is_cancelled === true,
+          player_links: playerLinks,
+          current_user_link: playerLinks.find((link) => link.player_id === user?.id) || null,
+          summary,
+        }
+      })
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+
+  const loadCalendarEntries = async () => {
+    if (!profile?.team_id || !user || !["coach", "player"].includes(profile.role)) {
+      setCalendarEntries([])
+      return
+    }
+
+    setIsLoadingCalendar(true)
+
+    const { startIso, endIso } = getCalendarWeekRange()
+
+    let query = supabase
+      .from("calendar_events")
+      .select(`
+        id,
+        series_id,
+        title,
+        description,
+        activity_kind,
+        workout_template_id,
+        free_activity_type,
+        location,
+        starts_at,
+        ends_at,
+        is_cancelled,
+        calendar_event_players (
+          id,
+          player_id,
+          assignment_source,
+          completion_status,
+          linked_workout_session_id,
+          completed_at,
+          player:profiles!calendar_event_players_player_id_fkey (
+            id,
+            full_name,
+            username
+          )
+        )
+      `)
+      .eq("team_id", profile.team_id)
+      .eq("is_cancelled", false)
+      .gte("starts_at", startIso)
+      .lt("starts_at", endIso)
+      .order("starts_at", { ascending: true })
+
+    if (profile.role === "player") {
+      query = query.eq("calendar_event_players.player_id", user.id)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error(error)
+      setCalendarEntries([])
+      setIsLoadingCalendar(false)
+      return
+    }
+
+    setCalendarEntries(buildCalendarEntriesFromRows(data || []))
+    setIsLoadingCalendar(false)
+  }
+
+  const handleCreateCalendarActivity = async (payloadOrError) => {
+    if (payloadOrError?.error) {
+      setStatus(payloadOrError.error)
+      return { ok: false }
+    }
+
+    if (!profile?.team_id || !user || !payloadOrError) {
+      setStatus("Kunde inte skapa kalenderaktiviteten")
+      return { ok: false }
+    }
+
+    const targetPlayerIds =
+      profile.role === "coach"
+        ? payloadOrError.target_mode === "selected"
+          ? payloadOrError.player_ids
+          : players.filter((player) => !player.is_archived).map((player) => player.id)
+        : [user.id]
+
+    if (!targetPlayerIds.length) {
+      setStatus("Det finns inga spelare att lägga in aktiviteten för ännu")
+      return { ok: false }
+    }
+
+    setIsSubmittingCalendar(true)
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Stockholm"
+    const recurrenceWeekdays = payloadOrError.is_recurring ? [new Date(payloadOrError.starts_at).getDay()] : null
+
+    const { data: seriesRow, error: seriesError } = await supabase
+      .from("calendar_series")
+      .insert({
+        team_id: profile.team_id,
+        created_by: user.id,
+        title: payloadOrError.title,
+        description: payloadOrError.description || null,
+        activity_kind: payloadOrError.activity_kind,
+        workout_template_id: payloadOrError.workout_template_id,
+        free_activity_type: payloadOrError.free_activity_type,
+        location: payloadOrError.location,
+        starts_at: payloadOrError.starts_at,
+        ends_at: payloadOrError.ends_at,
+        timezone,
+        is_recurring: payloadOrError.is_recurring,
+        recurrence_freq: payloadOrError.is_recurring ? "weekly" : null,
+        recurrence_interval: payloadOrError.is_recurring ? 1 : null,
+        recurrence_weekdays: recurrenceWeekdays,
+        recurrence_until: payloadOrError.is_recurring ? payloadOrError.recurrence_until : null,
+      })
+      .select("id")
+      .single()
+
+    if (seriesError || !seriesRow?.id) {
+      console.error(seriesError)
+      setStatus("Kunde inte skapa kalenderaktiviteten")
+      setIsSubmittingCalendar(false)
+      return { ok: false }
+    }
+
+    const startsAt = new Date(payloadOrError.starts_at)
+    const endsAt = new Date(payloadOrError.ends_at)
+    const untilDate = payloadOrError.is_recurring
+      ? new Date(`${payloadOrError.recurrence_until}T23:59:59`)
+      : startsAt
+    const eventRows = []
+
+    let currentStart = new Date(startsAt)
+    let currentEnd = new Date(endsAt)
+
+    while (currentStart.getTime() <= untilDate.getTime()) {
+      eventRows.push({
+        series_id: seriesRow.id,
+        team_id: profile.team_id,
+        created_by: user.id,
+        title: payloadOrError.title,
+        description: payloadOrError.description || null,
+        activity_kind: payloadOrError.activity_kind,
+        workout_template_id: payloadOrError.workout_template_id,
+        free_activity_type: payloadOrError.free_activity_type,
+        location: payloadOrError.location,
+        starts_at: currentStart.toISOString(),
+        ends_at: currentEnd.toISOString(),
+        timezone,
+        source_date: currentStart.toISOString().slice(0, 10),
+      })
+
+      if (!payloadOrError.is_recurring) break
+
+      currentStart = new Date(currentStart.getTime() + 7 * 24 * 60 * 60 * 1000)
+      currentEnd = new Date(currentEnd.getTime() + 7 * 24 * 60 * 60 * 1000)
+    }
+
+    const { data: insertedEvents, error: eventsError } = await supabase
+      .from("calendar_events")
+      .insert(eventRows)
+      .select("id")
+
+    if (eventsError || !insertedEvents?.length) {
+      console.error(eventsError)
+      setStatus("Kunde inte skapa kalenderhändelserna")
+      setIsSubmittingCalendar(false)
+      return { ok: false }
+    }
+
+    const assignmentSource =
+      profile.role === "coach"
+        ? payloadOrError.target_mode === "selected"
+          ? "direct"
+          : "team"
+        : "self"
+
+    const playerRows = insertedEvents.flatMap((eventRow) =>
+      targetPlayerIds.map((playerId) => ({
+        calendar_event_id: eventRow.id,
+        player_id: playerId,
+        assignment_source: assignmentSource,
+        completion_status: "planned",
+      }))
+    )
+
+    const { error: playerError } = await supabase
+      .from("calendar_event_players")
+      .insert(playerRows)
+
+    if (playerError) {
+      console.error(playerError)
+      setStatus("Kalenderaktiviteten skapades men spelarkopplingen misslyckades")
+      setIsSubmittingCalendar(false)
+      await loadCalendarEntries()
+      return { ok: false }
+    }
+
+    setStatus("Kalenderaktivitet sparad ✅")
+    setIsSubmittingCalendar(false)
+    await loadCalendarEntries()
+    return { ok: true }
+  }
+
+  const handleUpdateCalendarEventPlayerStatus = async (calendarEventPlayerId, nextStatus) => {
+    if (!calendarEventPlayerId || !nextStatus) return
+
+    setUpdatingCalendarEventPlayerId(calendarEventPlayerId)
+
+    const { error } = await supabase
+      .from("calendar_event_players")
+      .update({
+        completion_status: nextStatus,
+        completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
+        linked_workout_session_id: nextStatus === "completed" ? undefined : null,
+      })
+      .eq("id", calendarEventPlayerId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte uppdatera kalenderstatus")
+      setUpdatingCalendarEventPlayerId(null)
+      return
+    }
+
+    setUpdatingCalendarEventPlayerId(null)
+    await loadCalendarEntries()
+  }
+
+  const handleSaveCalendarActivity = async (entry, payloadOrError) => {
+    if (payloadOrError?.error) {
+      setStatus(payloadOrError.error)
+      return { ok: false }
+    }
+
+    if (!entry?.id || !payloadOrError) {
+      setStatus("Kunde inte spara kalenderaktiviteten")
+      return { ok: false }
+    }
+
+    setIsSavingCalendarActivity(true)
+
+    const { error: updateError } = await supabase
+      .from("calendar_events")
+      .update({
+        title: payloadOrError.title,
+        description: payloadOrError.description || null,
+        activity_kind: payloadOrError.activity_kind,
+        workout_template_id: payloadOrError.workout_template_id,
+        free_activity_type: payloadOrError.free_activity_type,
+        location: payloadOrError.location,
+        starts_at: payloadOrError.starts_at,
+        ends_at: payloadOrError.ends_at,
+      })
+      .eq("id", entry.id)
+
+    if (updateError) {
+      console.error(updateError)
+      setStatus("Kunde inte spara ändringen")
+      setIsSavingCalendarActivity(false)
+      return { ok: false }
+    }
+
+    if (profile?.role === "coach") {
+      const existingLinks = Array.isArray(entry.player_links) ? entry.player_links : []
+      const nextPlayerIds =
+        payloadOrError.target_mode === "selected"
+          ? payloadOrError.player_ids
+          : players.filter((player) => !player.is_archived).map((player) => player.id)
+
+      const removedLinkIds = existingLinks
+        .filter((link) => !nextPlayerIds.includes(link.player_id))
+        .map((link) => link.id)
+
+      if (removedLinkIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("calendar_event_players")
+          .delete()
+          .in("id", removedLinkIds)
+
+        if (deleteError) {
+          console.error(deleteError)
+          setStatus("Spelarkopplingarna kunde inte uppdateras helt")
+          setIsSavingCalendarActivity(false)
+          await loadCalendarEntries()
+          return { ok: false }
+        }
+      }
+
+      const existingPlayerIds = existingLinks.map((link) => link.player_id)
+      const playerRowsToInsert = nextPlayerIds
+        .filter((playerId) => !existingPlayerIds.includes(playerId))
+        .map((playerId) => ({
+          calendar_event_id: entry.id,
+          player_id: playerId,
+          assignment_source: payloadOrError.target_mode === "selected" ? "direct" : "team",
+          completion_status: "planned",
+        }))
+
+      if (playerRowsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("calendar_event_players")
+          .insert(playerRowsToInsert)
+
+        if (insertError) {
+          console.error(insertError)
+          setStatus("Nya spelare kunde inte läggas till i aktiviteten")
+          setIsSavingCalendarActivity(false)
+          await loadCalendarEntries()
+          return { ok: false }
+        }
+      }
+    }
+
+    setStatus("Kalenderaktivitet uppdaterad ✅")
+    setIsSavingCalendarActivity(false)
+    await loadCalendarEntries()
+    return { ok: true }
+  }
+
+  const handleCancelCalendarActivity = async (entry) => {
+    if (!entry?.id) return { ok: false }
+
+    const confirmLabel =
+      profile?.role === "coach"
+        ? `Vill du ställa in "${entry.title}"?`
+        : `Vill du ta bort "${entry.title}" från kalendern?`
+
+    if (!window.confirm(confirmLabel)) {
+      return { ok: false }
+    }
+
+    setIsCancellingCalendarActivity(true)
+
+    const { error: eventError } = await supabase
+      .from("calendar_events")
+      .update({ is_cancelled: true })
+      .eq("id", entry.id)
+
+    if (eventError) {
+      console.error(eventError)
+      setStatus("Kunde inte ställa in aktiviteten")
+      setIsCancellingCalendarActivity(false)
+      return { ok: false }
+    }
+
+    if (entry.player_links?.length) {
+      const { error: linkError } = await supabase
+        .from("calendar_event_players")
+        .update({ completion_status: "cancelled" })
+        .eq("calendar_event_id", entry.id)
+
+      if (linkError) {
+        console.error(linkError)
+      }
+    }
+
+    setStatus(profile?.role === "coach" ? "Aktiviteten är inställd ✅" : "Aktiviteten togs bort ✅")
+    setIsCancellingCalendarActivity(false)
+    await loadCalendarEntries()
+    return { ok: true }
+  }
+
+  const markCalendarEventPlayerCompleted = async (calendarEventPlayerId, workoutSessionId) => {
+    if (!calendarEventPlayerId) return
+
+    const { error } = await supabase
+      .from("calendar_event_players")
+      .update({
+        completion_status: "completed",
+        linked_workout_session_id: workoutSessionId,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", calendarEventPlayerId)
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    await loadCalendarEntries()
+  }
+
+  const handleOpenCalendarEntry = async (entry) => {
+    if (!entry) return
+
+    if (entry.activity_kind === "template_workout") {
+      const matchedWorkout = Object.entries(activeWorkouts || {}).find(
+        ([, workout]) => String(workout.id) === String(entry.workout_template_id)
+      )
+
+      if (!matchedWorkout?.[0]) {
+        setStatus("Det här passet kunde inte hittas i appen")
+        return
+      }
+
+      await startWorkout(matchedWorkout[0], {
+        calendarEventPlayerId: entry.current_user_link?.id || null,
+      })
+      return
+    }
+
+    const freeActivityType =
+      entry.activity_kind === "handball"
+        ? "handball"
+        : entry.activity_kind === "custom"
+        ? "custom"
+        : entry.free_activity_type || "running"
+
+    setPendingFreeActivityCalendarEvent({
+      id: entry.current_user_link?.id || null,
+      title: entry.title,
+    })
+    setRunningDraft({
+      log_date: getDateInputValueFromTimestamp(entry.starts_at),
+      free_activity_type: freeActivityType,
+      custom_activity_title: freeActivityType === "custom" ? entry.title : "",
+      running_type: "distance",
+      interval_time: "",
+      intervals_count: "",
+      running_distance: "",
+      running_time: "",
+      average_pulse: "",
+      comment: entry.description || "",
+    })
+    setPlayerOverviewPanel("running")
+    setPlayerView("overview")
+    setStatus(`Förifyllde aktivitet från kalendern: ${entry.title}`)
+  }
+
   const loadLatestData = async (userId) => {
     const { data, error } = await supabase
       .from("workout_logs")
@@ -3841,7 +4366,7 @@ function TrainingApp() {
     setLatestWorkout(groupedLatestWorkout)
   }
 
-  const startWorkout = async (workoutKey) => {
+  const startWorkout = async (workoutKey, options = {}) => {
     if (!user) return
 
     const newSessionId = generateSessionId()
@@ -3866,6 +4391,8 @@ function TrainingApp() {
     setCurrentSessionId(newSessionId)
     setIsWorkoutActive(true)
     setExpandedInfo({})
+    setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
+    setPendingFreeActivityCalendarEvent(null)
 
     if (workout.workoutKind === "running") {
       setActiveRunningInput({
@@ -3929,6 +4456,8 @@ function TrainingApp() {
   const finishWorkout = async () => {
     if (!currentSessionId || !selectedWorkout || !user) return
 
+    const calendarEventPlayerId = activeCalendarEventPlayerId
+
     if (activeWorkouts[selectedWorkout]?.workoutKind === "running") {
       const activeRunningWorkout = activeWorkouts[selectedWorkout]
       const { error } = await supabase.from("workout_logs").insert({
@@ -3954,6 +4483,7 @@ function TrainingApp() {
           ? Number(activeRunningInput.average_pulse)
           : null,
         pass_comment: passComment.trim() || null,
+        calendar_event_player_id: calendarEventPlayerId,
       })
 
       if (error) {
@@ -3968,6 +4498,7 @@ function TrainingApp() {
       setSelectedExerciseOptionKeys({})
       setExerciseComments({})
       setPassComment("")
+      setActiveCalendarEventPlayerId(null)
       setActiveRunningInput({
         interval_time: "",
         intervals_count: "",
@@ -3975,8 +4506,9 @@ function TrainingApp() {
         running_time: "",
         average_pulse: "",
       })
-      setPlayerView("overview")
+      setPlayerView(calendarEventPlayerId ? "calendar" : "overview")
       setStatus(`${activeRunningWorkout.label} avslutat`)
+      await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
       await loadCompletedWorkoutSessions(user.id)
       await loadLatestData(user.id)
       return
@@ -4012,6 +4544,7 @@ function TrainingApp() {
             reps: firstSet.reps || null,
             seconds: firstSet.seconds || null,
             exercise_comment: exerciseComments[exerciseIndex].trim(),
+            calendar_event_player_id: calendarEventPlayerId,
           },
           { onConflict: "client_set_id" }
         )
@@ -4047,15 +4580,19 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
-    setPlayerView("overview")
+    setActiveCalendarEventPlayerId(null)
+    setPlayerView(calendarEventPlayerId ? "calendar" : "overview")
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
+    await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
     await loadLatestWorkoutForPass(selectedWorkout, user.id)
     await loadLatestData(user.id)
   }
 
   const cancelWorkout = async () => {
     if (!currentSessionId || !selectedWorkout || !user) return
+
+    const nextPlayerView = activeCalendarEventPlayerId ? "calendar" : "pass"
 
     const workoutLabel = activeWorkouts[selectedWorkout]?.label || "passet"
     const shouldCancel = window.confirm(
@@ -4083,6 +4620,7 @@ function TrainingApp() {
     setExerciseComments({})
     setPassComment("")
     setExpandedInfo({})
+    setActiveCalendarEventPlayerId(null)
     setActiveRunningInput({
       interval_time: "",
       intervals_count: "",
@@ -4090,7 +4628,7 @@ function TrainingApp() {
       running_time: "",
       average_pulse: "",
     })
-    setPlayerView("pass")
+    setPlayerView(nextPlayerView)
     setStatus(`${workoutLabel} avbrutet`)
   }
 
@@ -4151,6 +4689,7 @@ function TrainingApp() {
         reps: set.reps || null,
         seconds: set.seconds || null,
         exercise_comment: exerciseComment,
+        calendar_event_player_id: activeCalendarEventPlayerId,
       },
       { onConflict: "client_set_id" }
     )
@@ -4354,6 +4893,7 @@ function TrainingApp() {
         reps: firstSet.reps || null,
         seconds: firstSet.seconds || null,
         exercise_comment: exerciseComments[exerciseIndex]?.trim() || null,
+        calendar_event_player_id: activeCalendarEventPlayerId,
       },
       { onConflict: "client_set_id" }
     )
@@ -4465,6 +5005,14 @@ function TrainingApp() {
       return
     }
 
+    if (
+      runningDraft.free_activity_type === "custom" &&
+      !String(runningDraft.custom_activity_title || "").trim()
+    ) {
+      setStatus("Skriv vad den egna aktiviteten heter")
+      return
+    }
+
     const createdAt = combineDateWithExistingTime(runningDraft.log_date, new Date().toISOString())
     if (!createdAt) {
       setStatus("Välj ett giltigt datum för aktiviteten")
@@ -4475,7 +5023,10 @@ function TrainingApp() {
 
     const workoutSessionId = generateSessionId()
     const freeActivityType = runningDraft.free_activity_type || "running"
-    const activityLabel = getFreeActivityLabel(freeActivityType)
+    const activityLabel =
+      freeActivityType === "custom"
+        ? String(runningDraft.custom_activity_title || "").trim()
+        : pendingFreeActivityCalendarEvent?.title || getFreeActivityLabel(freeActivityType)
     const isFreeRunning = freeActivityType === "running"
     const payload = {
       client_set_id: `running-${workoutSessionId}`,
@@ -4515,6 +5066,7 @@ function TrainingApp() {
       seconds: null,
       exercise_comment: null,
       pass_comment: String(runningDraft.comment || "").trim() || null,
+      calendar_event_player_id: pendingFreeActivityCalendarEvent?.id || null,
     }
 
     const { error } = await supabase.from("workout_logs").insert(payload)
@@ -4530,6 +5082,7 @@ function TrainingApp() {
       ...prev,
       log_date: getTodayDateInputValue(),
       free_activity_type: "",
+      custom_activity_title: "",
       interval_time: "",
       intervals_count: "",
       running_distance: "",
@@ -4537,6 +5090,9 @@ function TrainingApp() {
       average_pulse: "",
       comment: "",
     }))
+    setPlayerView(pendingFreeActivityCalendarEvent?.id ? "calendar" : playerView)
+    await markCalendarEventPlayerCompleted(pendingFreeActivityCalendarEvent?.id, workoutSessionId)
+    setPendingFreeActivityCalendarEvent(null)
     setStatus(`${activityLabel} sparat ✅`)
     setIsSavingRunningSession(false)
     await loadCompletedWorkoutSessions(user.id)
@@ -6834,6 +7390,7 @@ function TrainingApp() {
 
   const coachTabs = [
     { key: "home", label: "Översikt" },
+    { key: "calendar", label: "Kalender" },
     { key: "players", label: "Användare" },
     { key: "stats", label: "Statistik" },
     { key: "exerciseBank", label: "Övningar" },
@@ -6846,6 +7403,7 @@ function TrainingApp() {
 
   const playerTabs = [
     { key: "overview", label: "Översikt" },
+    { key: "calendar", label: "Kalender" },
     { key: "pass", label: "Pass" },
     { key: "stats", label: "Statistik" },
     {
@@ -6887,6 +7445,7 @@ function TrainingApp() {
   const managementTabs = profile?.role === "head_admin" ? headAdminTabs : coachTabs
   const coachBottomTabs = [
     { key: "home", label: "Hem", icon: "home" },
+    { key: "calendar", label: "Kalender", icon: "calendar" },
     { key: "players", label: "Spelare", icon: "players" },
     { key: "passBuilder", label: "Pass", icon: "pass" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
@@ -6902,6 +7461,7 @@ function TrainingApp() {
   ]
   const playerBottomTabs = [
     { key: "overview", label: "Hem", icon: "home" },
+    { key: "calendar", label: "Kalender", icon: "calendar" },
     { key: "pass", label: "Pass", icon: "pass" },
     { key: "stats", label: "Statistik", icon: "stats" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
@@ -7341,6 +7901,39 @@ function TrainingApp() {
               )
             )}
 
+            {coachView === "calendar" && profile?.role === "coach" && (
+              <CalendarPage
+                role={profile.role}
+                isMobile={isMobile}
+                teamName={teamName}
+                entries={calendarEntries}
+                players={players.filter((player) => !player.is_archived)}
+                workouts={activeWorkouts}
+                weekStart={calendarWeekStart}
+                isLoading={isLoadingCalendar}
+                isSubmittingCreate={isSubmittingCalendar}
+                isSavingActivity={isSavingCalendarActivity}
+                isCancellingActivity={isCancellingCalendarActivity}
+                updatingEntryStatusId={updatingCalendarEventPlayerId}
+                onPreviousWeek={() =>
+                  setCalendarWeekStart((prev) =>
+                    getDateInputValueFromTimestamp(new Date(`${prev}T00:00:00`).getTime() - 7 * 24 * 60 * 60 * 1000)
+                  )
+                }
+                onNextWeek={() =>
+                  setCalendarWeekStart((prev) =>
+                    getDateInputValueFromTimestamp(new Date(`${prev}T00:00:00`).getTime() + 7 * 24 * 60 * 60 * 1000)
+                  )
+                }
+                onGoToToday={() => setCalendarWeekStart(getWeekStartDateInputValue())}
+                onCreateActivity={handleCreateCalendarActivity}
+                onSaveActivity={handleSaveCalendarActivity}
+                onCancelActivity={handleCancelCalendarActivity}
+                onOpenEntry={handleOpenCalendarEntry}
+                onUpdateEntryStatus={handleUpdateCalendarEventPlayerStatus}
+              />
+            )}
+
             {coachView === "users" && profile?.role === "head_admin" && (
               <UsersAdminPage
                 users={allUsers}
@@ -7692,7 +8285,12 @@ function TrainingApp() {
 
           {showCoachBottomNav && (
             <div style={coachBottomNavWrapStyle}>
-              <div style={coachBottomNavStyle}>
+              <div
+                style={{
+                  ...coachBottomNavStyle,
+                  gridTemplateColumns: `repeat(${coachBottomTabs.length}, minmax(0, 1fr))`,
+                }}
+              >
                 {coachBottomTabs.map((tab) => {
                   const isActive = coachView === tab.key
 
@@ -7724,7 +8322,12 @@ function TrainingApp() {
 
           {showAdminBottomNav && (
             <div style={coachBottomNavWrapStyle}>
-              <div style={coachBottomNavStyle}>
+              <div
+                style={{
+                  ...coachBottomNavStyle,
+                  gridTemplateColumns: `repeat(${adminBottomTabs.length}, minmax(0, 1fr))`,
+                }}
+              >
                 {adminBottomTabs.map((tab) => {
                   const isActive = coachView === tab.key
 
@@ -8081,6 +8684,22 @@ function TrainingApp() {
                       </div>
 
                       <div style={playerAccordionContentStyle}>
+                        {pendingFreeActivityCalendarEvent?.id ? (
+                          <div
+                            style={{
+                              marginBottom: "12px",
+                              padding: "12px 14px",
+                              borderRadius: "14px",
+                              backgroundColor: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              color: "#9a3412",
+                              fontSize: "13px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Loggar från kalendern: {pendingFreeActivityCalendarEvent.title}
+                          </div>
+                        ) : null}
                         <div
                           style={{
                             display: "grid",
@@ -8182,6 +8801,21 @@ function TrainingApp() {
                               />
                             </>
                           ) : null}
+                          {runningDraft.free_activity_type === "custom" && (
+                            <input
+                              type="text"
+                              placeholder="Vad gjorde du?"
+                              value={runningDraft.custom_activity_title}
+                              onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
+                              style={{
+                                ...inputStyle,
+                                width: "100%",
+                                backgroundColor: "#ffffff",
+                                color: "#111827",
+                                gridColumn: isMobile ? "auto" : "span 2",
+                              }}
+                            />
+                          )}
                           {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
                             <div
                               style={{
@@ -8232,6 +8866,39 @@ function TrainingApp() {
                 )}
               </div>
             </div>
+          )}
+
+          {!isWorkoutActive && playerView === "calendar" && (
+            <CalendarPage
+              role={profile.role}
+              isMobile={isMobile}
+              teamName={teamName}
+              entries={calendarEntries}
+              players={[]}
+              workouts={activeWorkouts}
+              weekStart={calendarWeekStart}
+              isLoading={isLoadingCalendar}
+              isSubmittingCreate={isSubmittingCalendar}
+              isSavingActivity={isSavingCalendarActivity}
+              isCancellingActivity={isCancellingCalendarActivity}
+              updatingEntryStatusId={updatingCalendarEventPlayerId}
+              onPreviousWeek={() =>
+                setCalendarWeekStart((prev) =>
+                  getDateInputValueFromTimestamp(new Date(`${prev}T00:00:00`).getTime() - 7 * 24 * 60 * 60 * 1000)
+                )
+              }
+              onNextWeek={() =>
+                setCalendarWeekStart((prev) =>
+                  getDateInputValueFromTimestamp(new Date(`${prev}T00:00:00`).getTime() + 7 * 24 * 60 * 60 * 1000)
+                )
+              }
+              onGoToToday={() => setCalendarWeekStart(getWeekStartDateInputValue())}
+              onCreateActivity={handleCreateCalendarActivity}
+              onSaveActivity={handleSaveCalendarActivity}
+              onCancelActivity={handleCancelCalendarActivity}
+              onOpenEntry={handleOpenCalendarEntry}
+              onUpdateEntryStatus={handleUpdateCalendarEventPlayerStatus}
+            />
           )}
 
           {!isWorkoutActive && playerView === "pass" && (
@@ -8550,7 +9217,12 @@ function TrainingApp() {
 
       {showPlayerBottomNav && (
         <div style={coachBottomNavWrapStyle}>
-          <div style={coachBottomNavStyle}>
+          <div
+            style={{
+              ...coachBottomNavStyle,
+              gridTemplateColumns: `repeat(${playerBottomTabs.length}, minmax(0, 1fr))`,
+            }}
+          >
             {playerBottomTabs.map((tab) => {
               const isActive =
                 tab.key === "account" ? globalView === "account" : globalView === "app" && playerView === tab.key
@@ -11279,6 +11951,15 @@ const renderCoachBottomNavIcon = (icon, isActive) => {
           <rect x="3" y="4" width="18" height="18" rx="3" />
           <path d="M8 2v4" />
           <path d="M16 2v4" />
+        </svg>
+      )
+    case "calendar":
+      return (
+        <svg {...commonProps}>
+          <rect x="3" y="4" width="18" height="17" rx="3" />
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+          <path d="M3 10h18" />
         </svg>
       )
     case "messages":

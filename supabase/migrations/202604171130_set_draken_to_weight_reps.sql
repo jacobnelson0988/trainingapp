@@ -1,5 +1,4 @@
 update public.exercises
 set
-  exercise_type = 'weight_reps',
-  updated_at = timezone('utc', now())
+  exercise_type = 'weight_reps'
 where lower(name) = 'draken';

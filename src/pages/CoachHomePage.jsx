@@ -41,6 +41,17 @@ function CoachHomePage({
       },
     },
     {
+      key: "calendar",
+      title: "Kalender",
+      text: "Planera veckan med pass, aktiviteter och återkommande serier.",
+      accent: "#0f766e",
+      background: "#ecfeff",
+      onClick: () => {
+        setCoachView("calendar")
+        setSelectedPlayer(null)
+      },
+    },
+    {
       key: "exerciseBank",
       title: "Övningsbank",
       text: "Samla övningar, guider och media på ett ställe.",
