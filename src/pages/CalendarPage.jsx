@@ -239,6 +239,7 @@ function CalendarPage({
 }) {
   const [editingEntry, setEditingEntry] = useState(null)
   const [draft, setDraft] = useState(() => createEmptyDraft(role))
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const workoutOptions = useMemo(
     () =>
@@ -286,6 +287,7 @@ function CalendarPage({
   const resetDraft = () => {
     setDraft(createEmptyDraft(role))
     setEditingEntry(null)
+    setIsCreateOpen(false)
   }
 
   const handleDraftChange = (field, value) => {
@@ -329,9 +331,244 @@ function CalendarPage({
   }
 
   const handleStartEdit = (entry) => {
+    setIsCreateOpen(false)
     setEditingEntry(entry)
     setDraft(buildDraftFromEntry(entry, role, workouts))
   }
+
+  const handleOpenCreate = () => {
+    setEditingEntry(null)
+    setDraft(createEmptyDraft(role))
+    setIsCreateOpen((prev) => !prev)
+  }
+
+  const renderActivityForm = () => (
+    <div style={formCardStyle}>
+      <div style={formTitleRowStyle}>
+        <div>
+          <div style={formTitleStyle}>
+            {editingEntry
+              ? "Redigera aktivitet"
+              : role === "coach"
+              ? "Ny aktivitet"
+              : "Lägg till aktivitet"}
+          </div>
+          <div style={formTextStyle}>
+            {editingEntry
+              ? "Ändringarna gäller den här kalenderposten direkt."
+              : role === "coach"
+              ? "Lägg till en aktivitet för hela laget eller utvalda spelare."
+              : "Lägg in en egen aktivitet direkt i veckan."}
+          </div>
+        </div>
+
+        <button type="button" onClick={resetDraft} style={ghostButtonStyle}>
+          Stäng
+        </button>
+      </div>
+
+      <div style={formGridStyle(isMobile)}>
+        <label style={fieldStyle}>
+          <span style={fieldLabelStyle}>Typ</span>
+          <select
+            value={draft.activity_kind}
+            onChange={(event) => handleDraftChange("activity_kind", event.target.value)}
+            style={inputStyle}
+          >
+            {ACTIVITY_KIND_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {draft.activity_kind === "template_workout" ? (
+          <label style={fieldStyle}>
+            <span style={fieldLabelStyle}>Pass</span>
+            <select
+              value={draft.workout_template_id}
+              onChange={(event) => handleTemplateChange(event.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Välj pass</option>
+              {workoutOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label style={fieldStyle}>
+            <span style={fieldLabelStyle}>Titel</span>
+            <input
+              type="text"
+              value={draft.title}
+              onChange={(event) => handleDraftChange("title", event.target.value)}
+              style={inputStyle}
+              placeholder="T.ex. Extra handboll eller återhämtning"
+            />
+          </label>
+        )}
+
+        {draft.activity_kind === "free_activity" ? (
+          <label style={fieldStyle}>
+            <span style={fieldLabelStyle}>Aktivitet</span>
+            <select
+              value={draft.free_activity_type}
+              onChange={(event) => handleDraftChange("free_activity_type", event.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Välj aktivitet</option>
+              {FREE_ACTIVITY_OPTIONS.filter((option) => option.value !== "custom").map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        <label style={fieldStyle}>
+          <span style={fieldLabelStyle}>Datum</span>
+          <input
+            type="date"
+            value={draft.date}
+            onChange={(event) => handleDraftChange("date", event.target.value)}
+            style={inputStyle}
+          />
+        </label>
+
+        <label style={fieldStyle}>
+          <span style={fieldLabelStyle}>Starttid</span>
+          <input
+            type="time"
+            value={draft.start_time}
+            onChange={(event) => handleDraftChange("start_time", event.target.value)}
+            style={inputStyle}
+          />
+        </label>
+
+        <label style={fieldStyle}>
+          <span style={fieldLabelStyle}>Längd</span>
+          <input
+            type="number"
+            min="1"
+            value={draft.duration_minutes}
+            onChange={(event) => handleDraftChange("duration_minutes", event.target.value)}
+            style={inputStyle}
+            placeholder="Minuter"
+          />
+        </label>
+
+        <label style={fieldStyle}>
+          <span style={fieldLabelStyle}>Plats</span>
+          <input
+            type="text"
+            value={draft.location}
+            onChange={(event) => handleDraftChange("location", event.target.value)}
+            style={inputStyle}
+            placeholder="T.ex. Ekvallen eller gymmet"
+          />
+        </label>
+
+        <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+          <span style={fieldLabelStyle}>Beskrivning</span>
+          <textarea
+            rows={3}
+            value={draft.description}
+            onChange={(event) => handleDraftChange("description", event.target.value)}
+            style={{ ...inputStyle, minHeight: 92, resize: "vertical" }}
+            placeholder="Kort anteckning om vad som ska göras."
+          />
+        </label>
+
+        {!editingEntry ? (
+          <>
+            <label style={toggleStyle}>
+              <input
+                type="checkbox"
+                checked={draft.is_recurring}
+                onChange={(event) => handleDraftChange("is_recurring", event.target.checked)}
+              />
+              <span>Återkom varje vecka</span>
+            </label>
+
+            {draft.is_recurring ? (
+              <label style={fieldStyle}>
+                <span style={fieldLabelStyle}>Slutdatum</span>
+                <input
+                  type="date"
+                  value={draft.recurrence_until}
+                  onChange={(event) => handleDraftChange("recurrence_until", event.target.value)}
+                  style={inputStyle}
+                />
+              </label>
+            ) : null}
+          </>
+        ) : (
+          <div style={{ ...editHintStyle, gridColumn: "1 / -1" }}>
+            Den här redigeringen gäller bara den valda kalenderposten, inte hela serien.
+          </div>
+        )}
+
+        {role === "coach" ? (
+          <>
+            <label style={fieldStyle}>
+              <span style={fieldLabelStyle}>Målgrupp</span>
+              <select
+                value={draft.target_mode}
+                onChange={(event) => handleDraftChange("target_mode", event.target.value)}
+                style={inputStyle}
+              >
+                <option value="team">Hela laget</option>
+                <option value="selected">Utvalda spelare</option>
+              </select>
+            </label>
+
+            {draft.target_mode === "selected" ? (
+              <div style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                <span style={fieldLabelStyle}>Spelare</span>
+                <div style={playerSelectionStyle}>
+                  {(players || []).map((player) => (
+                    <label key={player.id} style={playerCheckboxStyle}>
+                      <input
+                        type="checkbox"
+                        checked={draft.player_ids.includes(player.id)}
+                        onChange={() => handlePlayerToggle(player.id)}
+                      />
+                      <span>{player.full_name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+
+      <div style={formActionsStyle}>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmittingCreate || isSavingActivity}
+          style={primaryButtonStyle}
+        >
+          {editingEntry
+            ? isSavingActivity
+              ? "Sparar..."
+              : "Spara ändringar"
+            : isSubmittingCreate
+            ? "Sparar..."
+            : "Spara aktivitet"}
+        </button>
+        <button type="button" onClick={resetDraft} style={secondaryButtonStyleCompact}>
+          Avbryt
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -343,6 +580,11 @@ function CalendarPage({
           </div>
         </div>
         <div style={weekActionsStyle(isMobile)}>
+          {!editingEntry ? (
+            <button type="button" onClick={handleOpenCreate} style={primaryButtonCompactStyle}>
+              {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
+            </button>
+          ) : null}
           <button type="button" onClick={onPreviousWeek} style={secondaryButtonStyle}>
             Föregående
           </button>
@@ -355,344 +597,146 @@ function CalendarPage({
         </div>
       </div>
 
-      <div style={layoutStyle(isMobile)}>
-        <div style={weekColumnStyle}>
+      {isCreateOpen && !editingEntry ? <div style={composerWrapStyle}>{renderActivityForm()}</div> : null}
+
+      <div style={weekColumnStyle}>
           {isLoading ? (
             <div style={emptyStateStyle}>Laddar kalender...</div>
           ) : (
-            weekDays.map((day) => (
-              <section key={day.key} style={dayCardStyle}>
-                <div style={dayHeaderStyle}>
-                  <div style={dayTitleStyle}>{day.label}</div>
-                  <div style={dayCountStyle}>{entriesByDay[day.key]?.length || 0}</div>
-                </div>
+            <div style={weekGridStyle(isMobile)}>
+              {weekDays.map((day) => (
+                <section key={day.key} style={dayCardStyle}>
+                  <div style={dayHeaderStyle}>
+                    <div style={dayTitleStyle}>{day.label}</div>
+                    <div style={dayCountStyle}>{entriesByDay[day.key]?.length || 0}</div>
+                  </div>
 
-                {(entriesByDay[day.key] || []).length === 0 ? (
-                  <div style={dayEmptyStyle}>Inget planerat.</div>
-                ) : (
-                  <div style={eventStackStyle}>
-                    {(entriesByDay[day.key] || []).map((entry) => {
-                      const status = entry.current_user_link?.completion_status || "planned"
-                      const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
+                  {(entriesByDay[day.key] || []).length === 0 ? (
+                    <div style={dayEmptyStyle}>Inget planerat.</div>
+                  ) : (
+                    <div style={eventStackStyle}>
+                      {(entriesByDay[day.key] || []).map((entry) => {
+                        const status = entry.current_user_link?.completion_status || "planned"
+                        const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
+                        const isEditingThisEntry = editingEntry?.id === entry.id
 
-                      return (
-                        <div key={entry.id} style={eventCardStyle}>
-                          <div style={eventTopRowStyle}>
-                            <div>
-                              <div style={eventTitleStyle}>{entry.title}</div>
-                              <div style={eventMetaStyle}>
-                                {formatTime(entry.starts_at)}-{formatTime(entry.ends_at)}
-                                {entry.location ? ` • ${entry.location}` : ""}
-                              </div>
-                            </div>
-                            <div
-                              style={{
-                                ...statusBadgeStyle,
-                                backgroundColor: statusTheme.background,
-                                color: statusTheme.color,
-                              }}
-                            >
-                              {statusLabelMap[status] || "Planerad"}
-                            </div>
-                          </div>
-
-                          {entry.description ? <div style={eventDescriptionStyle}>{entry.description}</div> : null}
-
-                          {role === "coach" ? (
-                            <div style={coachMetaWrapStyle}>
-                              <div style={coachMetaTextStyle}>
-                                {entry.player_links.length} spelare
-                                {entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""}
-                                {entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}
-                              </div>
-                              {entry.player_links.length > 0 ? (
-                                <div style={playerChipWrapStyle}>
-                                  {entry.player_links.slice(0, 8).map((link) => (
-                                    <span key={link.id} style={playerChipStyle}>
-                                      {link.player_name}
-                                    </span>
-                                  ))}
+                        return (
+                          <div key={entry.id} style={eventWrapStyle}>
+                            <div style={eventCardStyle}>
+                              <div style={eventTopRowStyle}>
+                                <div>
+                                  <div style={eventTitleStyle}>{entry.title}</div>
+                                  <div style={eventMetaStyle}>
+                                    {formatTime(entry.starts_at)}-{formatTime(entry.ends_at)}
+                                    {entry.location ? ` • ${entry.location}` : ""}
+                                  </div>
                                 </div>
-                              ) : null}
-                              <div style={playerActionsWrapStyle}>
-                                <button type="button" onClick={() => handleStartEdit(entry)} style={secondaryButtonStyle}>
-                                  Redigera
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onCancelActivity(entry)}
-                                  disabled={isCancellingActivity}
-                                  style={dangerButtonStyle}
+                                <div
+                                  style={{
+                                    ...statusBadgeStyle,
+                                    backgroundColor: statusTheme.background,
+                                    color: statusTheme.color,
+                                  }}
                                 >
-                                  Ställ in
-                                </button>
+                                  {statusLabelMap[status] || "Planerad"}
+                                </div>
                               </div>
+
+                              {entry.description ? <div style={eventDescriptionStyle}>{entry.description}</div> : null}
+
+                              {role === "coach" ? (
+                                <div style={coachMetaWrapStyle}>
+                                  <div style={coachMetaTextStyle}>
+                                    {entry.player_links.length} spelare
+                                    {entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""}
+                                    {entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}
+                                  </div>
+                                  {entry.player_links.length > 0 ? (
+                                    <div style={playerChipWrapStyle}>
+                                      {entry.player_links.slice(0, isMobile ? 4 : 3).map((link) => (
+                                        <span key={link.id} style={playerChipStyle}>
+                                          {link.player_name}
+                                        </span>
+                                      ))}
+                                      {entry.player_links.length > (isMobile ? 4 : 3) ? (
+                                        <span style={playerChipMutedStyle}>
+                                          +{entry.player_links.length - (isMobile ? 4 : 3)}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                  <div style={playerActionsWrapStyle}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEdit(entry)}
+                                      style={secondaryButtonStyleCompact}
+                                    >
+                                      {isEditingThisEntry ? "Redigerar" : "Redigera"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onCancelActivity(entry)}
+                                      disabled={isCancellingActivity}
+                                      style={dangerButtonCompactStyle}
+                                    >
+                                      Ställ in
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={playerActionsWrapStyle}>
+                                  <button type="button" onClick={() => onOpenEntry(entry)} style={primaryButtonCompactStyle}>
+                                    {entry.activity_kind === "template_workout" ? "Starta" : "Öppna"}
+                                  </button>
+                                  {entry.current_user_link && entry.current_user_link.completion_status !== "completed" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "skipped")}
+                                      disabled={updatingEntryStatusId === entry.current_user_link.id}
+                                      style={secondaryButtonStyleCompact}
+                                    >
+                                      Hoppa över
+                                    </button>
+                                  ) : null}
+                                  {entry.current_user_link && entry.current_user_link.completion_status === "skipped" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "planned")}
+                                      disabled={updatingEntryStatusId === entry.current_user_link.id}
+                                      style={secondaryButtonStyleCompact}
+                                    >
+                                      Återställ
+                                    </button>
+                                  ) : null}
+                                  {getCanEditEntry(entry, role) ? (
+                                    <button type="button" onClick={() => handleStartEdit(entry)} style={secondaryButtonStyleCompact}>
+                                      Redigera
+                                    </button>
+                                  ) : null}
+                                  {getCanEditEntry(entry, role) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => onCancelActivity(entry)}
+                                      disabled={isCancellingActivity}
+                                      style={dangerButtonCompactStyle}
+                                    >
+                                      Ta bort
+                                    </button>
+                                  ) : null}
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div style={playerActionsWrapStyle}>
-                              <button type="button" onClick={() => onOpenEntry(entry)} style={primaryButtonStyle}>
-                                {entry.activity_kind === "template_workout" ? "Starta" : "Öppna"}
-                              </button>
-                              {entry.current_user_link && entry.current_user_link.completion_status !== "completed" ? (
-                                <button
-                                  type="button"
-                                  onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "skipped")}
-                                  disabled={updatingEntryStatusId === entry.current_user_link.id}
-                                  style={secondaryButtonStyle}
-                                >
-                                  Hoppa över
-                                </button>
-                              ) : null}
-                              {entry.current_user_link && entry.current_user_link.completion_status === "skipped" ? (
-                                <button
-                                  type="button"
-                                  onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "planned")}
-                                  disabled={updatingEntryStatusId === entry.current_user_link.id}
-                                  style={secondaryButtonStyle}
-                                >
-                                  Återställ
-                                </button>
-                              ) : null}
-                              {getCanEditEntry(entry, role) ? (
-                                <button type="button" onClick={() => handleStartEdit(entry)} style={secondaryButtonStyle}>
-                                  Redigera
-                                </button>
-                              ) : null}
-                              {getCanEditEntry(entry, role) ? (
-                                <button
-                                  type="button"
-                                  onClick={() => onCancelActivity(entry)}
-                                  disabled={isCancellingActivity}
-                                  style={dangerButtonStyle}
-                                >
-                                  Ta bort
-                                </button>
-                              ) : null}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </section>
-            ))
-          )}
-        </div>
 
-        <div style={formCardStyle}>
-          <div style={formTitleStyle}>
-            {editingEntry
-              ? "Redigera aktivitet"
-              : role === "coach"
-              ? "Planera aktivitet"
-              : "Lägg till egen aktivitet"}
-          </div>
-          <div style={formTextStyle}>
-            {editingEntry
-              ? "Du ändrar den valda kalenderposten direkt i den här veckan."
-              : role === "coach"
-              ? "Skapa engångsaktiviteter eller återkommande veckoserier för hela laget eller utvalda spelare."
-              : "Lägg in sådant du själv planerar att göra och få det i samma veckovy."}
-          </div>
-
-          <div style={formGridStyle}>
-            <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Typ</span>
-              <select
-                value={draft.activity_kind}
-                onChange={(event) => handleDraftChange("activity_kind", event.target.value)}
-                style={inputStyle}
-              >
-                {ACTIVITY_KIND_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {draft.activity_kind === "template_workout" ? (
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>Pass</span>
-                <select
-                  value={draft.workout_template_id}
-                  onChange={(event) => handleTemplateChange(event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">Välj pass</option>
-                  {workoutOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>Titel</span>
-                <input
-                  type="text"
-                  value={draft.title}
-                  onChange={(event) => handleDraftChange("title", event.target.value)}
-                  style={inputStyle}
-                  placeholder="T.ex. Extra handboll eller återhämtning"
-                />
-              </label>
-            )}
-
-            {draft.activity_kind === "free_activity" ? (
-              <label style={fieldStyle}>
-                <span style={fieldLabelStyle}>Aktivitet</span>
-                <select
-                  value={draft.free_activity_type}
-                  onChange={(event) => handleDraftChange("free_activity_type", event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">Välj aktivitet</option>
-                  {FREE_ACTIVITY_OPTIONS.filter((option) => option.value !== "custom").map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-
-            <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Datum</span>
-              <input
-                type="date"
-                value={draft.date}
-                onChange={(event) => handleDraftChange("date", event.target.value)}
-                style={inputStyle}
-              />
-            </label>
-
-            <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Starttid</span>
-              <input
-                type="time"
-                value={draft.start_time}
-                onChange={(event) => handleDraftChange("start_time", event.target.value)}
-                style={inputStyle}
-              />
-            </label>
-
-            <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Längd</span>
-              <input
-                type="number"
-                min="1"
-                value={draft.duration_minutes}
-                onChange={(event) => handleDraftChange("duration_minutes", event.target.value)}
-                style={inputStyle}
-                placeholder="Minuter"
-              />
-            </label>
-
-            <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Plats</span>
-              <input
-                type="text"
-                value={draft.location}
-                onChange={(event) => handleDraftChange("location", event.target.value)}
-                style={inputStyle}
-                placeholder="T.ex. Ekvallen eller gymmet"
-              />
-            </label>
-
-            <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
-              <span style={fieldLabelStyle}>Beskrivning</span>
-              <textarea
-                rows={3}
-                value={draft.description}
-                onChange={(event) => handleDraftChange("description", event.target.value)}
-                style={{ ...inputStyle, minHeight: 92, resize: "vertical" }}
-                placeholder="Kort anteckning om vad som ska göras."
-              />
-            </label>
-
-            {!editingEntry ? (
-              <>
-                <label style={toggleStyle}>
-                  <input
-                    type="checkbox"
-                    checked={draft.is_recurring}
-                    onChange={(event) => handleDraftChange("is_recurring", event.target.checked)}
-                  />
-                  <span>Återkom varje vecka</span>
-                </label>
-
-                {draft.is_recurring ? (
-                  <label style={fieldStyle}>
-                    <span style={fieldLabelStyle}>Slutdatum</span>
-                    <input
-                      type="date"
-                      value={draft.recurrence_until}
-                      onChange={(event) => handleDraftChange("recurrence_until", event.target.value)}
-                      style={inputStyle}
-                    />
-                  </label>
-                ) : null}
-              </>
-            ) : (
-              <div style={editHintStyle}>Den här redigeringen gäller bara den valda kalenderposten, inte hela serien.</div>
-            )}
-
-            {role === "coach" ? (
-              <>
-                <label style={fieldStyle}>
-                  <span style={fieldLabelStyle}>Målgrupp</span>
-                  <select
-                    value={draft.target_mode}
-                    onChange={(event) => handleDraftChange("target_mode", event.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="team">Hela laget</option>
-                    <option value="selected">Utvalda spelare</option>
-                  </select>
-                </label>
-
-                {draft.target_mode === "selected" ? (
-                  <div style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
-                    <span style={fieldLabelStyle}>Spelare</span>
-                    <div style={playerSelectionStyle}>
-                      {(players || []).map((player) => (
-                        <label key={player.id} style={playerCheckboxStyle}>
-                          <input
-                            type="checkbox"
-                            checked={draft.player_ids.includes(player.id)}
-                            onChange={() => handlePlayerToggle(player.id)}
-                          />
-                          <span>{player.full_name}</span>
-                        </label>
-                      ))}
+                            {isEditingThisEntry ? <div style={inlineComposerStyle}>{renderActivityForm()}</div> : null}
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmittingCreate || isSavingActivity}
-            style={{ ...primaryButtonStyle, width: "100%", marginTop: 16 }}
-          >
-            {editingEntry ? (isSavingActivity ? "Sparar..." : "Spara ändringar") : isSubmittingCreate ? "Sparar..." : "Spara aktivitet"}
-          </button>
-          {editingEntry ? (
-            <button
-              type="button"
-              onClick={resetDraft}
-              style={{ ...secondaryButtonStyle, width: "100%", marginTop: 10 }}
-            >
-              Avbryt redigering
-            </button>
-          ) : null}
-        </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
       </div>
     </div>
   )
@@ -727,23 +771,32 @@ const weekActionsStyle = (isMobile) => ({
   flexWrap: "wrap",
 })
 
-const layoutStyle = (isMobile) => ({
-  display: "grid",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.7fr) minmax(320px, 0.95fr)",
-  gap: "16px",
-  alignItems: "start",
-})
-
 const weekColumnStyle = {
   display: "grid",
   gap: "12px",
 }
 
+const composerWrapStyle = {
+  marginBottom: "14px",
+}
+
+const inlineComposerStyle = {
+  marginTop: "8px",
+}
+
+const weekGridStyle = (isMobile) => ({
+  display: "grid",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(7, minmax(0, 1fr))",
+  gap: "10px",
+  alignItems: "start",
+})
+
 const dayCardStyle = {
-  padding: "14px",
+  padding: "12px",
   borderRadius: "18px",
   border: "1px solid #ece5e5",
   backgroundColor: "#fffefe",
+  minHeight: "100%",
 }
 
 const dayHeaderStyle = {
@@ -755,7 +808,7 @@ const dayHeaderStyle = {
 }
 
 const dayTitleStyle = {
-  fontSize: "16px",
+  fontSize: "14px",
   fontWeight: 900,
   color: "#111827",
 }
@@ -782,19 +835,24 @@ const emptyStateStyle = {
 }
 
 const dayEmptyStyle = {
-  padding: "8px 2px 2px",
+  padding: "6px 2px 2px",
   color: "#9ca3af",
-  fontSize: "14px",
+  fontSize: "13px",
 }
 
 const eventStackStyle = {
   display: "grid",
-  gap: "10px",
+  gap: "8px",
+}
+
+const eventWrapStyle = {
+  display: "grid",
+  gap: "8px",
 }
 
 const eventCardStyle = {
-  padding: "14px",
-  borderRadius: "16px",
+  padding: "10px",
+  borderRadius: "14px",
   backgroundColor: "#fcfbfb",
   border: "1px solid #f0e7e7",
 }
@@ -807,28 +865,28 @@ const eventTopRowStyle = {
 }
 
 const eventTitleStyle = {
-  fontSize: "15px",
+  fontSize: "13px",
   fontWeight: 900,
   color: "#111827",
 }
 
 const eventMetaStyle = {
-  marginTop: "4px",
-  fontSize: "13px",
+  marginTop: "3px",
+  fontSize: "12px",
   color: "#6b7280",
 }
 
 const eventDescriptionStyle = {
-  marginTop: "10px",
-  fontSize: "14px",
-  lineHeight: 1.55,
+  marginTop: "8px",
+  fontSize: "12px",
+  lineHeight: 1.45,
   color: "#4b5563",
 }
 
 const statusBadgeStyle = {
-  padding: "6px 10px",
+  padding: "5px 8px",
   borderRadius: "999px",
-  fontSize: "12px",
+  fontSize: "11px",
   fontWeight: 800,
   whiteSpace: "nowrap",
 }
@@ -838,31 +896,40 @@ const coachMetaWrapStyle = {
 }
 
 const coachMetaTextStyle = {
-  fontSize: "13px",
+  fontSize: "12px",
   color: "#6b7280",
 }
 
 const playerChipWrapStyle = {
   display: "flex",
   flexWrap: "wrap",
-  gap: "6px",
-  marginTop: "10px",
+  gap: "5px",
+  marginTop: "8px",
 }
 
 const playerChipStyle = {
-  padding: "6px 10px",
+  padding: "4px 8px",
   borderRadius: "999px",
   backgroundColor: "#f4f4f5",
   color: "#374151",
-  fontSize: "12px",
+  fontSize: "11px",
   fontWeight: 700,
+}
+
+const playerChipMutedStyle = {
+  padding: "4px 8px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#991b1b",
+  fontSize: "11px",
+  fontWeight: 800,
 }
 
 const playerActionsWrapStyle = {
   display: "flex",
   flexWrap: "wrap",
-  gap: "8px",
-  marginTop: "12px",
+  gap: "6px",
+  marginTop: "10px",
 }
 
 const formCardStyle = {
@@ -871,6 +938,13 @@ const formCardStyle = {
   border: "1px solid #ece5e5",
   backgroundColor: "#fffefe",
   boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)",
+}
+
+const formTitleRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
 }
 
 const formTitleStyle = {
@@ -886,11 +960,12 @@ const formTextStyle = {
   color: "#6b7280",
 }
 
-const formGridStyle = {
+const formGridStyle = (isMobile) => ({
   display: "grid",
   gap: "12px",
   marginTop: "16px",
-}
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
 
 const fieldStyle = {
   display: "grid",
@@ -936,7 +1011,7 @@ const editHintStyle = {
 const playerSelectionStyle = {
   display: "grid",
   gap: "8px",
-  maxHeight: "220px",
+  maxHeight: "180px",
   overflowY: "auto",
   padding: "10px",
   borderRadius: "14px",
@@ -963,6 +1038,13 @@ const primaryButtonStyle = {
   cursor: "pointer",
 }
 
+const primaryButtonCompactStyle = {
+  ...primaryButtonStyle,
+  padding: "9px 12px",
+  borderRadius: "12px",
+  fontSize: "12px",
+}
+
 const secondaryButtonStyle = {
   border: "1px solid #e5d9d9",
   borderRadius: "14px",
@@ -974,6 +1056,13 @@ const secondaryButtonStyle = {
   cursor: "pointer",
 }
 
+const secondaryButtonStyleCompact = {
+  ...secondaryButtonStyle,
+  padding: "9px 12px",
+  borderRadius: "12px",
+  fontSize: "12px",
+}
+
 const dangerButtonStyle = {
   border: "1px solid #f3c6c6",
   borderRadius: "14px",
@@ -983,6 +1072,30 @@ const dangerButtonStyle = {
   fontSize: "14px",
   fontWeight: 700,
   cursor: "pointer",
+}
+
+const dangerButtonCompactStyle = {
+  ...dangerButtonStyle,
+  padding: "9px 12px",
+  borderRadius: "12px",
+  fontSize: "12px",
+}
+
+const ghostButtonStyle = {
+  border: "none",
+  backgroundColor: "transparent",
+  color: "#6b7280",
+  fontSize: "13px",
+  fontWeight: 800,
+  cursor: "pointer",
+  padding: "2px 0",
+}
+
+const formActionsStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+  marginTop: "16px",
 }
 
 export default CalendarPage

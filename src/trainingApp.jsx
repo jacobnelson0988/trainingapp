@@ -3964,7 +3964,7 @@ function TrainingApp() {
 
     if (seriesError || !seriesRow?.id) {
       console.error(seriesError)
-      setStatus("Kunde inte skapa kalenderaktiviteten")
+      setStatus(await getFunctionErrorMessage(seriesError, "Kunde inte skapa kalenderaktiviteten"))
       setIsSubmittingCalendar(false)
       return { ok: false }
     }
@@ -4009,7 +4009,7 @@ function TrainingApp() {
 
     if (eventsError || !insertedEvents?.length) {
       console.error(eventsError)
-      setStatus("Kunde inte skapa kalenderhändelserna")
+      setStatus(await getFunctionErrorMessage(eventsError, "Kunde inte skapa kalenderhändelserna"))
       setIsSubmittingCalendar(false)
       return { ok: false }
     }
@@ -4036,7 +4036,12 @@ function TrainingApp() {
 
     if (playerError) {
       console.error(playerError)
-      setStatus("Kalenderaktiviteten skapades men spelarkopplingen misslyckades")
+      setStatus(
+        await getFunctionErrorMessage(
+          playerError,
+          "Kalenderaktiviteten skapades men spelarkopplingen misslyckades"
+        )
+      )
       setIsSubmittingCalendar(false)
       await loadCalendarEntries()
       return { ok: false }
