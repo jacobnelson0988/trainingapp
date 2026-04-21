@@ -276,6 +276,25 @@ const formatStopwatchTime = (elapsedMs) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
 }
 
+const formatCalendarTime = (value) => {
+  if (!value) return ""
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+
+  return date.toLocaleTimeString("sv-SE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+const formatTodayLabel = () =>
+  new Date().toLocaleDateString("sv-SE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+
 const getDateInputValueFromTimestamp = (value) => {
   if (!value) return getTodayDateInputValue()
 
@@ -1232,6 +1251,7 @@ function TrainingApp() {
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
   const [passComment, setPassComment] = useState("")
+  const [lastFinishedWorkoutSummary, setLastFinishedWorkoutSummary] = useState(null)
   const [completedWorkoutSessions, setCompletedWorkoutSessions] = useState([])
   const [isLoadingCompletedWorkoutSessions, setIsLoadingCompletedWorkoutSessions] = useState(false)
   const [workoutDateDrafts, setWorkoutDateDrafts] = useState({})
@@ -4417,6 +4437,7 @@ function TrainingApp() {
     setCurrentSessionId(newSessionId)
     setIsWorkoutActive(true)
     setExpandedInfo({})
+    setLastFinishedWorkoutSummary(null)
     setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
     setPendingFreeActivityCalendarEvent(null)
 
@@ -4495,6 +4516,19 @@ function TrainingApp() {
 
     if (activeWorkouts[selectedWorkout]?.workoutKind === "running") {
       const activeRunningWorkout = activeWorkouts[selectedWorkout]
+      const finishedSummary = {
+        label: activeRunningWorkout.label,
+        kind: "Löppass",
+        meta: buildRunningSummary({
+          running_type: activeRunningWorkout.runningType,
+          interval_time: activeRunningWorkout.runningConfig?.interval_time,
+          intervals_count: activeRunningWorkout.runningConfig?.intervals_count,
+          running_distance: activeRunningWorkout.runningConfig?.running_distance,
+          running_time: activeRunningWorkout.runningConfig?.running_time,
+        }),
+        highlightLabel: "Loggat",
+        highlightValue: "Löpningen är sparad",
+      }
       const { error } = await supabase.from("workout_logs").insert({
         client_set_id: `assigned-running-${currentSessionId}`,
         user_id: user.id,
@@ -4528,6 +4562,7 @@ function TrainingApp() {
       }
 
       setIsWorkoutActive(false)
+      setLastFinishedWorkoutSummary(finishedSummary)
       setCurrentSessionId(null)
       setInputs({})
       setSelectedExerciseOptionKeys({})
@@ -4542,7 +4577,7 @@ function TrainingApp() {
         running_time: "",
         average_pulse: "",
       })
-      setPlayerView(calendarEventPlayerId ? "calendar" : "overview")
+      setPlayerView("overview")
       setStatus(`${activeRunningWorkout.label} avslutat`)
       await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
       await loadCompletedWorkoutSessions(user.id)
@@ -4551,6 +4586,59 @@ function TrainingApp() {
     }
 
     const activeExercises = activeWorkouts[selectedWorkout]?.exercises || []
+    const activeWorkout = activeWorkouts[selectedWorkout]
+    const loggedSetCount = activeExercises.reduce((total, exercise, exerciseIndex) => {
+      const selectedExercise = getSelectedExerciseExecution(
+        exercise,
+        selectedExerciseOptionKeys[exerciseIndex]
+      )
+      const exerciseInputs = inputs[exerciseIndex] || []
+
+      if (isProtocolExercise(selectedExercise || exercise)) {
+        return total + exerciseInputs.filter((set) => set?.protocolCompleted).length
+      }
+
+      return (
+        total +
+        exerciseInputs.filter((set) =>
+          Boolean(
+            String(set?.weight || "").trim() ||
+              String(set?.reps || "").trim() ||
+              String(set?.seconds || "").trim()
+          )
+        ).length
+      )
+    }, 0)
+    const bestWeightSet = activeExercises
+      .flatMap((exercise, exerciseIndex) => {
+        const selectedExercise = getSelectedExerciseExecution(
+          exercise,
+          selectedExerciseOptionKeys[exerciseIndex]
+        )
+
+        return (inputs[exerciseIndex] || []).map((set) => ({
+          exerciseName:
+            selectedExercise?.displayName ||
+            selectedExercise?.name ||
+            exercise.displayName ||
+            exercise.name,
+          weight: parseLoggedNumber(set?.weight),
+          reps: set?.reps,
+        }))
+      })
+      .filter((set) => set.weight != null)
+      .sort((a, b) => b.weight - a.weight)[0]
+    const finishedSummary = {
+      label: activeWorkout?.label || "Pass",
+      kind: "Gympass",
+      meta: `${activeExercises.length} övningar · ${loggedSetCount} set`,
+      highlightLabel: bestWeightSet ? "Tyngsta lyftet idag" : "Passet är sparat",
+      highlightValue: bestWeightSet
+        ? `${bestWeightSet.exerciseName} · ${bestWeightSet.weight} kg${
+            bestWeightSet.reps ? ` × ${bestWeightSet.reps}` : ""
+          }`
+        : "Snyggt jobbat. Passet finns i historiken.",
+    }
     const commentWrites = activeExercises
       .map((exercise, exerciseIndex) => {
         const selectedExercise = getSelectedExerciseExecution(
@@ -4611,6 +4699,7 @@ function TrainingApp() {
     }
 
     setIsWorkoutActive(false)
+    setLastFinishedWorkoutSummary(finishedSummary)
     setCurrentSessionId(null)
     setInputs({})
     setSelectedExerciseOptionKeys({})
@@ -4618,7 +4707,7 @@ function TrainingApp() {
     setPassComment("")
     setRestStopwatchStartedAt(null)
     setActiveCalendarEventPlayerId(null)
-    setPlayerView(calendarEventPlayerId ? "calendar" : "overview")
+    setPlayerView("overview")
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
     await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
@@ -4656,6 +4745,7 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
+    setLastFinishedWorkoutSummary(null)
     setRestStopwatchStartedAt(null)
     setExpandedInfo({})
     setActiveCalendarEventPlayerId(null)
@@ -7464,12 +7554,55 @@ function TrainingApp() {
     : isRunningWorkoutActive
     ? "Löppass"
     : `Övning ${Math.min(activeExerciseIndex, activeWorkoutExerciseCount)} / ${activeWorkoutExerciseCount}`
+  const activeWorkoutProgressSegments = Array.from({ length: Math.max(activeWorkoutSlideCount, 1) }, (_, index) => ({
+    key: index,
+    isComplete: index < activeExerciseIndex,
+    isCurrent: index === activeExerciseIndex,
+  }))
   const assignedCompletedSessions = completedWorkoutSessions.filter(
     (session) => !(session.workout_kind === "running" && session.running_origin !== "assigned")
   )
   const ownRunningSessions = completedWorkoutSessions.filter(
     (session) => session.workout_kind === "running" && session.running_origin !== "assigned"
   )
+  const todayDateInput = getTodayDateInputValue()
+  const todaysPlayerCalendarEntries = calendarEntries.filter(
+    (entry) =>
+      !entry.is_cancelled &&
+      getDateInputValueFromTimestamp(entry.starts_at) === todayDateInput &&
+      (!entry.current_user_link || entry.current_user_link.completion_status !== "completed")
+  )
+  const primaryTodayCalendarEntry = todaysPlayerCalendarEntries[0] || null
+  const primaryTodayWorkoutEntry =
+    primaryTodayCalendarEntry?.activity_kind === "template_workout"
+      ? Object.entries(visibleWorkouts).find(
+          ([, workout]) => String(workout.id) === String(primaryTodayCalendarEntry.workout_template_id)
+        )
+      : null
+  const fallbackWorkoutEntry = sortedVisibleWorkoutEntries[0] || null
+  const primaryHomeWorkoutKey = primaryTodayWorkoutEntry?.[0] || fallbackWorkoutEntry?.[0] || null
+  const primaryHomeWorkout = primaryTodayWorkoutEntry?.[1] || fallbackWorkoutEntry?.[1] || null
+  const primaryHomeSource = primaryTodayCalendarEntry
+    ? `I kalendern${formatCalendarTime(primaryTodayCalendarEntry.starts_at) ? ` · ${formatCalendarTime(primaryTodayCalendarEntry.starts_at)}` : ""}`
+    : primaryHomeWorkout
+    ? "Rekommenderat"
+    : "Ingen aktivitet idag"
+  const primaryHomeTitle = primaryTodayCalendarEntry?.title || primaryHomeWorkout?.label || "Lugnt idag"
+  const primaryHomeSubtitle = primaryHomeWorkout
+    ? primaryHomeWorkout.workoutKind === "running"
+      ? getWorkoutKindLabel(primaryHomeWorkout.workoutKind)
+      : primaryHomeWorkout.gymPassType === "shared"
+      ? "Gemensamt gympass"
+      : "Styrka"
+    : primaryTodayCalendarEntry?.activity_kind === "handball"
+    ? "Handboll"
+    : primaryTodayCalendarEntry
+    ? "Egen aktivitet"
+    : "Inget pass planerat"
+  const weekCompletionCount = completedWorkoutSessions.filter(
+    (session) => getDateInputValueFromTimestamp(session.created_at) >= calendarWeekStart
+  ).length
+  const todayWeekIndex = (new Date().getDay() + 6) % 7
 
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
@@ -8433,24 +8566,37 @@ function TrainingApp() {
             )
           ) : (
             <div style={activeWorkoutPageHeroStyle(isMobile)}>
-              <div style={activeWorkoutPageBadgeStyle}>Pågående träningspass</div>
-              <div style={activeWorkoutPageTitleStyle}>
-                {activeWorkoutData?.label || "Träningspass"}
+              <div style={activeWorkoutTopBarStyle}>
+                <button
+                  type="button"
+                  onClick={cancelWorkout}
+                  style={activeWorkoutCloseButtonStyle}
+                  aria-label="Avbryt pass"
+                >
+                  ×
+                </button>
+                <div style={activeWorkoutLiveMetaStyle}>
+                  <span style={activeWorkoutLiveDotStyle} />
+                  <span>{activeWorkoutData?.label || "Träningspass"}</span>
+                  <span>·</span>
+                  <span>{activeWorkoutProgressSummary}</span>
+                </div>
               </div>
-              <div style={activeWorkoutPageTextStyle}>
-                Du är nu inne i passet. Svep eller bläddra mellan övningskorten och avsluta på sista kortet.
+              <div style={activeWorkoutProgressBarStyle}>
+                {activeWorkoutProgressSegments.map((segment) => (
+                  <div
+                    key={segment.key}
+                    style={{
+                      ...activeWorkoutProgressSegmentStyle,
+                      backgroundColor: segment.isCurrent
+                        ? "#d94a1f"
+                        : segment.isComplete
+                        ? "#1a1814"
+                        : "rgba(26, 24, 20, 0.14)",
+                    }}
+                  />
+                ))}
               </div>
-              <button
-                type="button"
-                onClick={cancelWorkout}
-                style={{
-                  ...activeWorkoutCancelButtonStyle,
-                  width: isMobile ? "100%" : "auto",
-                  marginTop: "14px",
-                }}
-              >
-                Avbryt och gå tillbaka
-              </button>
             </div>
           )}
 
@@ -8483,44 +8629,103 @@ function TrainingApp() {
           )}
 
           {!isWorkoutActive && playerView === "overview" && (
-            <div style={{ display: "grid", gap: "16px" }}>
-              <div style={playerHomeHeaderStyle}>
-                <div style={playerHomeHeaderInlineStyle}>
-                  <div style={playerHomeHeaderTitleStyle}>{playerFirstName}</div>
-                  <div style={playerHomeHeaderTextStyle}>{teamName}</div>
-                </div>
-              </div>
-
-              <div style={playerHomeStatsGridStyle(isMobile)}>
-                <div style={playerHomeStatCardStyle}>
-                  <div style={playerHomeStatLabelStyle}>Tilldelade pass</div>
-                  <div style={{ ...playerHomeStatValueStyle, color: "#b61e24" }}>
-                    {Object.keys(visibleWorkouts).length}
+            <div style={playerTodayPageStyle}>
+              {lastFinishedWorkoutSummary && (
+                <div style={playerWorkoutCompleteCardStyle}>
+                  <div style={playerTodayMonoLabelStyle}>Pass klart</div>
+                  <div style={playerWorkoutCompleteTitleStyle}>{lastFinishedWorkoutSummary.label}</div>
+                  <div style={playerWorkoutCompleteMetaStyle}>{lastFinishedWorkoutSummary.meta}</div>
+                  <div style={playerWorkoutHighlightCardStyle}>
+                    <div style={playerTodayMonoLabelStyle}>{lastFinishedWorkoutSummary.highlightLabel}</div>
+                    <div style={playerWorkoutHighlightValueStyle}>{lastFinishedWorkoutSummary.highlightValue}</div>
+                  </div>
+                  <div style={playerWorkoutCompleteActionsStyle(isMobile)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLastFinishedWorkoutSummary(null)
+                        navigatePlayerSection("stats")
+                      }}
+                      style={{ ...buttonStyle, ...playerTodayPrimaryButtonStyle }}
+                    >
+                      Se statistik
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLastFinishedWorkoutSummary(null)}
+                      style={{ ...secondaryButtonStyle, ...playerTodaySecondaryButtonStyle }}
+                    >
+                      Tillbaka till idag
+                    </button>
                   </div>
                 </div>
-                <div style={playerHomeStatCardStyle}>
-                  <div style={playerHomeStatLabelStyle}>Olästa</div>
-                  <div style={playerHomeStatValueStyle}>{unreadMessageCount}</div>
+              )}
+
+              <div style={playerTodayMetaRowStyle}>
+                <div>
+                  <div style={playerTodayMonoLabelStyle}>{formatTodayLabel()}</div>
+                  <div style={playerTodayTitleStyle}>Idag.</div>
                 </div>
-                <div style={playerHomeStatCardStyle}>
-                  <div style={playerHomeStatLabelStyle}>Loggade pass</div>
-                  <div style={playerHomeStatValueStyle}>{completedWorkoutSessions.length}</div>
-                </div>
+                <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
               </div>
 
-              <div style={playerQuickActionsGridStyle(isMobile)}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (primaryTodayCalendarEntry) {
+                    handleOpenCalendarEntry(primaryTodayCalendarEntry)
+                    return
+                  }
+
+                  if (primaryHomeWorkoutKey) {
+                    startWorkout(primaryHomeWorkoutKey)
+                    return
+                  }
+
+                  navigatePlayerSection("pass")
+                }}
+                style={playerTodayPrimaryCardStyle}
+              >
+                <div style={playerTodayPrimaryCardTopStyle}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={playerTodaySourceRowStyle}>
+                      {primaryTodayCalendarEntry && <span style={playerTodayAccentDotStyle} />}
+                      <span>{primaryHomeSource}</span>
+                    </div>
+                    <div style={playerTodayWorkoutTitleStyle}>{primaryHomeTitle}</div>
+                    <div style={playerTodayWorkoutSubtitleStyle}>{primaryHomeSubtitle}</div>
+                  </div>
+                  <div style={playerTodayPlayButtonStyle}>▶</div>
+                </div>
+                <div style={playerTodayStatsRowStyle}>
+                  <div style={playerTodayStatStyle}>
+                    <span>Övningar</span>
+                    <strong>{primaryHomeWorkout?.workoutKind === "running" ? "Löp" : primaryHomeWorkout?.exercises?.length || "-"}</strong>
+                  </div>
+                  <div style={playerTodayStatStyle}>
+                    <span>Pass</span>
+                    <strong>{Object.keys(visibleWorkouts).length}</strong>
+                  </div>
+                  <div style={playerTodayStatStyle}>
+                    <span>Senast</span>
+                    <strong>{primaryHomeWorkoutKey ? formatDaysSince(latestPassDates[primaryHomeWorkoutKey]) : "-"}</strong>
+                  </div>
+                </div>
+              </button>
+
+              <div style={playerTodayQuickActionsGridStyle(isMobile)}>
                 <div style={playerQuickActionBlockStyle}>
                   <button
                     type="button"
                     onClick={() => navigatePlayerSection("pass")}
-                    style={playerQuickActionCardStyle}
+                    style={playerTodayQuickActionCardStyle}
                   >
                     <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Dina pass</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#b61e24", backgroundColor: "#fff1f1" }}>→</div>
+                      <div style={playerQuickActionTitleStyle}>Välj pass</div>
+                      <div style={playerTodayQuickActionArrowStyle}>→</div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Välj ett av dina pass
+                      A · B · C · löp
                     </div>
                   </button>
                 </div>
@@ -8529,14 +8734,14 @@ function TrainingApp() {
                   <button
                     type="button"
                     onClick={() => navigatePlayerSection("stats")}
-                    style={playerQuickActionCardStyle}
+                    style={playerTodayQuickActionCardStyle}
                   >
                     <div style={playerQuickActionTopRowStyle}>
                       <div style={playerQuickActionTitleStyle}>Statistik</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#1d4ed8", backgroundColor: "#eef4ff" }}>→</div>
+                      <div style={playerTodayQuickActionArrowStyle}>→</div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Följ din utveckling i olika övningar
+                      Din progression
                     </div>
                   </button>
                 </div>
@@ -8545,16 +8750,16 @@ function TrainingApp() {
                   <button
                     type="button"
                     onClick={() => togglePlayerOverviewPanel("history")}
-                    style={playerQuickActionCardStyle}
+                    style={playerTodayQuickActionCardStyle}
                   >
                     <div style={playerQuickActionTopRowStyle}>
                       <div style={playerQuickActionTitleStyle}>Historik</div>
-                    <div style={{ ...playerQuickActionArrowStyle, color: "#0f766e", backgroundColor: "#ecfeff" }}>
+                    <div style={playerTodayQuickActionArrowStyle}>
                       {playerOverviewPanel === "history" ? "−" : "+"}
                     </div>
                   </div>
                   <div style={playerQuickActionTextStyle}>
-                    Se de senaste genomförda passen
+                    Tidigare pass
                   </div>
                 </button>
 
@@ -8564,19 +8769,40 @@ function TrainingApp() {
                   <button
                     type="button"
                     onClick={() => togglePlayerOverviewPanel("running")}
-                    style={playerQuickActionCardStyle}
+                    style={playerTodayQuickActionCardStyle}
                   >
                     <div style={playerQuickActionTopRowStyle}>
                       <div style={playerQuickActionTitleStyle}>Egen aktivitet</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
+                      <div style={playerTodayQuickActionArrowStyle}>
                         {playerOverviewPanel === "running" ? "−" : "+"}
                       </div>
                     </div>
                     <div style={playerQuickActionTextStyle}>
-                      Registrera träning du gjort i andra sporter
+                      Logga annat
                     </div>
                   </button>
 
+                </div>
+
+                <div style={playerTodayWeekCardStyle}>
+                  <div style={playerTodayWeekHeaderStyle}>
+                    <div style={playerTodayMonoLabelStyle}>Denna vecka</div>
+                    <div style={playerTodayWeekCountStyle}>{weekCompletionCount} loggade</div>
+                  </div>
+                  <div style={playerTodayWeekGridStyle}>
+                    {["M", "T", "O", "T", "F", "L", "S"].map((day, index) => (
+                      <div
+                        key={`${day}-${index}`}
+                        style={{
+                          ...playerTodayWeekCellStyle,
+                          ...(index === todayWeekIndex ? playerTodayWeekCellTodayStyle : {}),
+                          ...(index < Math.min(weekCompletionCount, 7) ? playerTodayWeekCellDoneStyle : {}),
+                        }}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {playerOverviewPanel === "history" && (
@@ -9390,9 +9616,10 @@ function TrainingApp() {
                   isMobile
                     ? {
                         ...cardStyle,
+                        ...activeWorkoutExerciseCardStyle,
                         ...exerciseSwipeCardStyle,
                       }
-                    : cardStyle
+                    : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
                 }
               >
                 <div style={exerciseProgressStyle}>Uppvärmning</div>
@@ -9429,9 +9656,10 @@ function TrainingApp() {
                 isMobile
                   ? {
                       ...cardStyle,
+                      ...activeWorkoutExerciseCardStyle,
                       ...exerciseSwipeCardStyle,
                     }
-                  : cardStyle
+                  : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
               }
             >
               <div style={exerciseProgressStyle}>Löppass</div>
@@ -9531,9 +9759,10 @@ function TrainingApp() {
                   isMobile
                     ? {
                         ...cardStyle,
+                        ...activeWorkoutExerciseCardStyle,
                         ...exerciseSwipeCardStyle,
                       }
-                    : cardStyle
+                    : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
                 }
                 >
                 <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
@@ -10185,20 +10414,22 @@ function TrainingApp() {
                   isMobile
                     ? {
                         ...cardStyle,
+                        ...activeWorkoutExerciseCardStyle,
                         ...exerciseSwipeCardStyle,
                         order: activeWorkoutSlideCount - 1,
                       }
                     : {
                         ...cardStyle,
+                        ...activeWorkoutExerciseCardStyle,
                         order: activeWorkoutSlideCount - 1,
                       }
                 }
               >
                 <div style={exerciseProgressStyle}>Avslut</div>
 
-                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Sista kortet</h3>
+                <h3 style={activeWorkoutFinishTitleStyle}>Pass klart?</h3>
                 <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-                  Skriv en kort kommentar om hela passet och avsluta sedan härifrån.
+                  Lägg en kort kommentar om känslan idag och spara passet.
                 </p>
 
                 <div style={exerciseCommentCardStyle}>
@@ -10215,9 +10446,9 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={finishWorkout}
-                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                  style={{ ...buttonStyle, ...activeWorkoutFinishButtonStyle, width: isMobile ? "100%" : "auto" }}
                 >
-                  Spara kommentar och avsluta pass
+                  Avsluta pass
                 </button>
               </div>
             </div>
@@ -10333,6 +10564,13 @@ const uiShadowMd = "var(--ghf-shadow-md)"
 const uiShadowLg = "var(--ghf-shadow-lg)"
 const uiSelectedSurface = "var(--ghf-selected-bg)"
 const uiSelectedBorder = "var(--ghf-selected-border)"
+const playerPaper = "#f3efe6"
+const playerInk = "#1a1814"
+const playerInkSoft = "#6f6659"
+const playerAccent = "#d94a1f"
+const playerLine = "rgba(26, 24, 20, 0.14)"
+const playerDisplayFont = '"Fraunces", Georgia, serif'
+const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
 
 const appTitleStyle = {
   margin: "0 0 8px 0",
@@ -10406,113 +10644,143 @@ const heroTextStyle = {
 
 const activeWorkoutPageHeroStyle = (isMobile) => ({
   width: "100%",
-  padding: isMobile ? "18px 16px" : "22px 22px 20px",
-  borderRadius: isMobile ? "20px" : "26px",
-  background:
-    "linear-gradient(135deg, rgba(24, 32, 43, 0.98) 0%, rgba(153, 27, 27, 0.95) 52%, rgba(198, 40, 40, 0.92) 100%)",
-  color: "#ffffff",
-  boxShadow: "0 24px 42px rgba(24, 32, 43, 0.16)",
+  padding: isMobile ? "10px 0 4px" : "12px 0 8px",
+  borderRadius: 0,
+  background: "transparent",
+  color: playerInk,
+  boxShadow: "none",
 })
 
-const activeWorkoutPageBadgeStyle = {
-  display: "inline-flex",
-  marginBottom: "12px",
-  padding: "6px 12px",
+const activeWorkoutTopBarStyle = {
+  display: "grid",
+  gridTemplateColumns: "40px minmax(0, 1fr) 40px",
+  alignItems: "center",
+  gap: "10px",
+}
+
+const activeWorkoutCloseButtonStyle = {
+  width: "40px",
+  height: "40px",
   borderRadius: "999px",
-  backgroundColor: "rgba(255,255,255,0.14)",
-  color: "#fff7f7",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-}
-
-const activeWorkoutPageTitleStyle = {
-  fontSize: "clamp(1.8rem, 3vw, 2.6rem)",
-  fontWeight: "900",
-  lineHeight: 1,
-  marginBottom: "10px",
-}
-
-const activeWorkoutPageTextStyle = {
-  maxWidth: "720px",
-  fontSize: "15px",
-  lineHeight: 1.6,
-  color: "rgba(255,255,255,0.9)",
-}
-
-const activeWorkoutCancelButtonStyle = {
-  padding: "12px 16px",
-  borderRadius: "16px",
-  border: "1px solid rgba(255,255,255,0.22)",
-  backgroundColor: "rgba(255,255,255,0.12)",
-  color: "#ffffff",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "transparent",
+  color: playerInkSoft,
   cursor: "pointer",
-  fontSize: "14px",
-  fontWeight: "800",
+  fontSize: "24px",
+  lineHeight: 1,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const activeWorkoutLiveMetaStyle = {
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+}
+
+const activeWorkoutLiveDotStyle = {
+  width: "7px",
+  height: "7px",
+  borderRadius: "999px",
+  backgroundColor: playerAccent,
+  flexShrink: 0,
+}
+
+const activeWorkoutProgressBarStyle = {
+  display: "flex",
+  gap: "5px",
+  marginTop: "16px",
+}
+
+const activeWorkoutProgressSegmentStyle = {
+  flex: 1,
+  height: "4px",
+  borderRadius: "999px",
 }
 
 const activeWorkoutPageWrapStyle = {
   width: "100%",
   marginTop: "6px",
+  padding: "4px",
+  borderRadius: "28px",
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.12), transparent 30%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
 }
 
 const activeWorkoutPageMetaRowStyle = (isMobile) => ({
   display: "grid",
-  gap: "12px",
-  marginBottom: "16px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+  gap: "10px",
+  marginBottom: "14px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
 })
 
 const activeWorkoutPageMetaCardStyle = {
-  padding: "14px 16px",
+  padding: "12px",
   borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowSm,
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.32)",
+  boxShadow: "none",
 }
 
 const activeWorkoutPageMetaLabelStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.06em",
+  fontFamily: playerMonoFont,
+  fontSize: "9px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: playerInkSoft,
   marginBottom: "6px",
 }
 
 const activeWorkoutPageMetaValueStyle = {
+  fontFamily: playerDisplayFont,
   fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
+  fontWeight: "600",
+  lineHeight: 1.05,
+  color: playerInk,
 }
 
 const restStopwatchCardStyle = {
   ...activeWorkoutPageMetaCardStyle,
   textAlign: "left",
   cursor: "pointer",
-  background: "linear-gradient(135deg, #18202b 0%, #2f3a4d 100%)",
-  border: "1px solid rgba(24, 32, 43, 0.2)",
+  background: playerInk,
+  border: `1px solid ${playerInk}`,
+  color: playerPaper,
+  minHeight: "86px",
 }
 
 const restStopwatchLabelStyle = {
   ...activeWorkoutPageMetaLabelStyle,
-  color: "rgba(255, 255, 255, 0.78)",
+  color: "rgba(243, 239, 230, 0.64)",
 }
 
 const restStopwatchValueStyle = {
-  fontSize: "30px",
+  fontFamily: playerMonoFont,
+  fontSize: "clamp(22px, 6vw, 30px)",
   lineHeight: 1,
-  fontWeight: "950",
+  fontWeight: "700",
   letterSpacing: "0.02em",
-  color: "#ffffff",
+  color: playerPaper,
 }
 
 const restStopwatchHintStyle = {
   marginTop: "6px",
-  fontSize: "12px",
-  fontWeight: "800",
-  color: "rgba(255, 255, 255, 0.72)",
+  fontSize: "10px",
+  fontWeight: "700",
+  color: "rgba(243, 239, 230, 0.68)",
 }
 
 const feedbackActionBarStyle = {
@@ -10799,12 +11067,15 @@ const mutedTextStyle = {
 const exerciseProgressStyle = {
   display: "inline-block",
   marginBottom: "12px",
-  padding: "6px 12px",
+  padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
-  fontSize: "12px",
-  fontWeight: "800",
+  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  color: playerAccent,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
 }
 
 const exerciseCarouselToolbarStyle = {
@@ -10846,6 +11117,28 @@ const exerciseSwipeCardStyle = {
   scrollSnapAlign: "start",
   scrollSnapStop: "always",
   marginBottom: 0,
+}
+
+const activeWorkoutExerciseCardStyle = {
+  border: `1px solid ${playerLine}`,
+  borderRadius: "24px",
+  backgroundColor: "rgba(255, 255, 255, 0.34)",
+  boxShadow: "none",
+}
+
+const activeWorkoutFinishTitleStyle = {
+  margin: "0 0 8px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(36px, 10vw, 54px)",
+  lineHeight: 0.95,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const activeWorkoutFinishButtonStyle = {
+  background: playerAccent,
+  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
 }
 
 const targetBoxStyle = {
@@ -10988,11 +11281,11 @@ const infoToggleButtonStyle = {
 }
 
 const activeSetCardStyle = {
-  marginBottom: "10px",
+  marginBottom: "8px",
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: uiSurface,
-  border: `1px solid ${uiBorder}`,
+  backgroundColor: "rgba(255, 255, 255, 0.38)",
+  border: `1px solid ${playerLine}`,
 }
 
 const setInputHintStyle = {
@@ -11005,8 +11298,8 @@ const exerciseCommentCardStyle = {
   marginBottom: "12px",
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  border: `1px solid ${playerLine}`,
 }
 
 const alternativeSelectionCardStyle = {
@@ -11073,9 +11366,12 @@ const exerciseCommentTitleStyle = {
   color: "#374151",
 }
 const setLabelStyle = {
-  fontSize: "13px",
-  fontWeight: "800",
-  color: "#566173",
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
   marginBottom: "8px",
 }
 
@@ -11556,93 +11852,290 @@ const dangerActionButtonStyle = {
   fontWeight: "800",
 }
 
-const playerHomeHeroCardStyle = {
-  padding: "20px",
-  borderRadius: "24px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
-  boxShadow: uiShadowMd,
-}
-
-const playerHomeHeaderStyle = {
-  display: "flex",
-  alignItems: "baseline",
-  justifyContent: "flex-start",
-  gap: "10px",
-  padding: "2px 2px 0",
-  flexWrap: "wrap",
-}
-
-const playerHomeHeaderInlineStyle = {
-  display: "flex",
-  alignItems: "baseline",
-  gap: "10px",
-  flexWrap: "wrap",
-}
-
-const playerHomeHeaderTitleStyle = {
-  fontSize: "28px",
-  fontWeight: "900",
-  color: "#111827",
-}
-
-const playerHomeHeaderTextStyle = {
-  fontSize: "14px",
-  color: "#6b7280",
-}
-
-const playerHomeStatsGridStyle = (isMobile) => ({
+const playerTodayPageStyle = {
   display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
-  marginBottom: "14px",
-})
-
-const playerHomeStatCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+  gap: "16px",
+  padding: "4px",
+  borderRadius: "30px",
+  background:
+    "radial-gradient(circle at 15% 0%, rgba(217, 74, 31, 0.13), transparent 28%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
 }
 
-const playerHomeStatLabelStyle = {
-  marginBottom: "6px",
+const playerTodayMetaRowStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "14px",
+  padding: "8px 6px 0",
+}
+
+const playerTodayMonoLabelStyle = {
+  fontFamily: playerMonoFont,
   fontSize: "11px",
-  fontWeight: "800",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerTodayTitleStyle = {
+  marginTop: "12px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(48px, 13vw, 74px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  fontStyle: "italic",
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerTodayTeamPillStyle = {
+  padding: "8px 10px",
+  borderRadius: "999px",
+  border: `1px solid ${playerLine}`,
+  color: playerInkSoft,
+  fontSize: "12px",
+  fontWeight: 800,
+  maxWidth: "42%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+}
+
+const playerTodayPrimaryCardStyle = {
+  width: "100%",
+  padding: "22px",
+  borderRadius: "24px",
+  border: "none",
+  backgroundColor: playerInk,
+  color: playerPaper,
+  cursor: "pointer",
+  textAlign: "left",
+  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
+}
+
+const playerTodayPrimaryCardTopStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "18px",
+}
+
+const playerTodaySourceRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "rgba(243, 239, 230, 0.64)",
+}
+
+const playerTodayAccentDotStyle = {
+  width: "7px",
+  height: "7px",
+  borderRadius: "999px",
+  backgroundColor: playerAccent,
+  flexShrink: 0,
+}
+
+const playerTodayWorkoutTitleStyle = {
+  marginTop: "12px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 8vw, 44px)",
+  fontWeight: 650,
+  lineHeight: 0.98,
+  letterSpacing: "-0.04em",
+  color: playerPaper,
+}
+
+const playerTodayWorkoutSubtitleStyle = {
+  marginTop: "4px",
+  fontSize: "16px",
+  fontWeight: 700,
+  color: "rgba(243, 239, 230, 0.68)",
+}
+
+const playerTodayPlayButtonStyle = {
+  width: "54px",
+  height: "54px",
+  borderRadius: "999px",
+  backgroundColor: playerAccent,
+  color: playerPaper,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "18px",
+  flexShrink: 0,
+  boxShadow: "0 12px 24px rgba(217, 74, 31, 0.28)",
+}
+
+const playerTodayStatsRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "14px",
+  marginTop: "20px",
+  paddingTop: "16px",
+  borderTop: "1px solid rgba(243, 239, 230, 0.14)",
+}
+
+const playerTodayStatStyle = {
+  display: "grid",
+  gap: "4px",
+  minWidth: 0,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "rgba(243, 239, 230, 0.56)",
 }
 
-const playerHomeStatValueStyle = {
-  fontSize: "28px",
-  lineHeight: 1,
-  fontWeight: "900",
-  color: "#111827",
-}
-
-const playerHomeIntroStyle = {
-  margin: 0,
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#6b7280",
-}
-
-const playerQuickActionsGridStyle = (isMobile) => ({
+const playerTodayQuickActionsGridStyle = (isMobile) => ({
   display: "grid",
-  gap: "12px",
+  gap: "10px",
   gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
 })
 
-const playerQuickActionCardStyle = {
-  minHeight: "112px",
-  padding: "16px",
+const playerTodayQuickActionCardStyle = {
+  minHeight: "104px",
+  width: "100%",
+  padding: "14px",
   borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
+  border: `1px solid ${playerLine}`,
+  background: "rgba(255, 255, 255, 0.24)",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: uiShadowSm,
+  boxShadow: "none",
+}
+
+const playerTodayQuickActionArrowStyle = {
+  width: "30px",
+  height: "30px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  backgroundColor: playerInk,
+  color: playerPaper,
+  fontSize: "17px",
+  fontWeight: "900",
+  flexShrink: 0,
+}
+
+const playerTodayWeekCardStyle = {
+  gridColumn: "1 / -1",
+  padding: "16px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  background: "rgba(255, 255, 255, 0.22)",
+}
+
+const playerTodayWeekHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "baseline",
+  gap: "10px",
+  marginBottom: "12px",
+}
+
+const playerTodayWeekCountStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerTodayWeekGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+  gap: "7px",
+}
+
+const playerTodayWeekCellStyle = {
+  aspectRatio: "1",
+  borderRadius: "13px",
+  border: `1px solid ${playerLine}`,
+  color: playerInkSoft,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: 700,
+}
+
+const playerTodayWeekCellTodayStyle = {
+  borderColor: playerAccent,
+  color: playerAccent,
+}
+
+const playerTodayWeekCellDoneStyle = {
+  backgroundColor: playerInk,
+  borderColor: playerInk,
+  color: playerPaper,
+}
+
+const playerWorkoutCompleteCardStyle = {
+  padding: "22px",
+  borderRadius: "24px",
+  backgroundColor: playerInk,
+  color: playerPaper,
+  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
+}
+
+const playerWorkoutCompleteTitleStyle = {
+  marginTop: "10px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(38px, 10vw, 58px)",
+  lineHeight: 0.95,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+}
+
+const playerWorkoutCompleteMetaStyle = {
+  marginTop: "8px",
+  color: "rgba(243, 239, 230, 0.7)",
+  fontSize: "15px",
+  fontWeight: 700,
+}
+
+const playerWorkoutHighlightCardStyle = {
+  marginTop: "18px",
+  padding: "16px",
+  borderRadius: "18px",
+  backgroundColor: "rgba(243, 239, 230, 0.08)",
+  border: "1px solid rgba(243, 239, 230, 0.12)",
+}
+
+const playerWorkoutHighlightValueStyle = {
+  marginTop: "8px",
+  fontFamily: playerDisplayFont,
+  fontSize: "24px",
+  lineHeight: 1.05,
+  fontWeight: 650,
+}
+
+const playerWorkoutCompleteActionsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "10px",
+  marginTop: "18px",
+  flexDirection: isMobile ? "column" : "row",
+})
+
+const playerTodayPrimaryButtonStyle = {
+  background: playerAccent,
+  boxShadow: "none",
+}
+
+const playerTodaySecondaryButtonStyle = {
+  backgroundColor: "transparent",
+  borderColor: "rgba(243, 239, 230, 0.18)",
+  color: playerPaper,
+  boxShadow: "none",
 }
 
 const playerQuickActionTopRowStyle = {
@@ -11651,18 +12144,6 @@ const playerQuickActionTopRowStyle = {
   justifyContent: "space-between",
   gap: "10px",
   marginBottom: "10px",
-}
-
-const playerQuickActionArrowStyle = {
-  width: "32px",
-  height: "32px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "999px",
-  fontSize: "18px",
-  fontWeight: "900",
-  flexShrink: 0,
 }
 
 const playerQuickActionTitleStyle = {
