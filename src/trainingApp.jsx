@@ -268,6 +268,14 @@ const buildProtocolInputRows = (exercise, workoutSessionId, exerciseIndex) => {
 
 const getTodayDateInputValue = () => new Date().toISOString().slice(0, 10)
 
+const formatStopwatchTime = (elapsedMs) => {
+  const totalSeconds = Math.max(0, Math.floor(Number(elapsedMs || 0) / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
 const getDateInputValueFromTimestamp = (value) => {
   if (!value) return getTodayDateInputValue()
 
@@ -1218,6 +1226,8 @@ function TrainingApp() {
   const [status, setStatus] = useState("")
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
+  const [restStopwatchStartedAt, setRestStopwatchStartedAt] = useState(null)
+  const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -1302,6 +1312,17 @@ function TrainingApp() {
     loadCompletedWorkoutSessions(user.id)
     loadPlayerExerciseProgress(user.id)
   }, [user, profile?.role, exercisesFromDB])
+
+  useEffect(() => {
+    if (!isWorkoutActive || !restStopwatchStartedAt) return
+
+    setRestStopwatchNow(Date.now())
+    const intervalId = window.setInterval(() => {
+      setRestStopwatchNow(Date.now())
+    }, 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [isWorkoutActive, restStopwatchStartedAt])
 
   useEffect(() => {
     if (!user || !profile || !["coach", "player"].includes(profile.role)) {
@@ -4400,6 +4421,7 @@ function TrainingApp() {
     setPendingFreeActivityCalendarEvent(null)
 
     if (workout.workoutKind === "running") {
+      setRestStopwatchStartedAt(null)
       setActiveRunningInput({
         interval_time: workout.runningConfig?.interval_time || "",
         intervals_count:
@@ -4452,10 +4474,18 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys(defaultExerciseOptionKeys)
     setExerciseComments(defaultExerciseComments)
     setPassComment("")
+    setRestStopwatchStartedAt(Date.now())
+    setRestStopwatchNow(Date.now())
     setPlayerView("workout")
     setStatus(`${workout.label} startat`)
 
     await loadLatestWorkoutForPass(workoutKey, user.id)
+  }
+
+  const resetRestStopwatch = () => {
+    const now = Date.now()
+    setRestStopwatchStartedAt(now)
+    setRestStopwatchNow(now)
   }
 
   const finishWorkout = async () => {
@@ -4503,6 +4533,7 @@ function TrainingApp() {
       setSelectedExerciseOptionKeys({})
       setExerciseComments({})
       setPassComment("")
+      setRestStopwatchStartedAt(null)
       setActiveCalendarEventPlayerId(null)
       setActiveRunningInput({
         interval_time: "",
@@ -4585,6 +4616,7 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
+    setRestStopwatchStartedAt(null)
     setActiveCalendarEventPlayerId(null)
     setPlayerView(calendarEventPlayerId ? "calendar" : "overview")
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
@@ -4624,6 +4656,7 @@ function TrainingApp() {
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
+    setRestStopwatchStartedAt(null)
     setExpandedInfo({})
     setActiveCalendarEventPlayerId(null)
     setActiveRunningInput({
@@ -7390,6 +7423,10 @@ function TrainingApp() {
     ? activeWorkoutData.exercises
     : []
   const activeWorkoutExerciseCount = isRunningWorkoutActive ? 1 : activeWorkoutExercises.length
+  const restStopwatchElapsedMs =
+    isWorkoutActive && !isRunningWorkoutActive && restStopwatchStartedAt
+      ? restStopwatchNow - restStopwatchStartedAt
+      : 0
 
   const unreadMessageCount = messages.filter((message) => message.hasUnread).length
 
@@ -9271,6 +9308,18 @@ function TrainingApp() {
               <div style={activeWorkoutPageMetaLabelStyle}>Övning</div>
               <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutProgressSummary}</div>
             </div>
+            {!isRunningWorkoutActive && (
+              <button
+                type="button"
+                onClick={resetRestStopwatch}
+                style={restStopwatchCardStyle}
+                aria-label="Nollställ vilostoppklocka"
+              >
+                <div style={restStopwatchLabelStyle}>Vila</div>
+                <div style={restStopwatchValueStyle}>{formatStopwatchTime(restStopwatchElapsedMs)}</div>
+                <div style={restStopwatchHintStyle}>Tryck för att nollställa</div>
+              </button>
+            )}
           </div>
 
           {isMobile && activeWorkoutSlideCount > 1 && (
@@ -10412,7 +10461,7 @@ const activeWorkoutPageMetaRowStyle = (isMobile) => ({
   display: "grid",
   gap: "12px",
   marginBottom: "16px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
 })
 
 const activeWorkoutPageMetaCardStyle = {
@@ -10436,6 +10485,34 @@ const activeWorkoutPageMetaValueStyle = {
   fontSize: "18px",
   fontWeight: "900",
   color: "#18202b",
+}
+
+const restStopwatchCardStyle = {
+  ...activeWorkoutPageMetaCardStyle,
+  textAlign: "left",
+  cursor: "pointer",
+  background: "linear-gradient(135deg, #18202b 0%, #2f3a4d 100%)",
+  border: "1px solid rgba(24, 32, 43, 0.2)",
+}
+
+const restStopwatchLabelStyle = {
+  ...activeWorkoutPageMetaLabelStyle,
+  color: "rgba(255, 255, 255, 0.78)",
+}
+
+const restStopwatchValueStyle = {
+  fontSize: "30px",
+  lineHeight: 1,
+  fontWeight: "950",
+  letterSpacing: "0.02em",
+  color: "#ffffff",
+}
+
+const restStopwatchHintStyle = {
+  marginTop: "6px",
+  fontSize: "12px",
+  fontWeight: "800",
+  color: "rgba(255, 255, 255, 0.72)",
 }
 
 const feedbackActionBarStyle = {
