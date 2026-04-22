@@ -377,57 +377,6 @@ const getWorkoutKindLabel = (workoutKind) => {
 
 const getGymPassTypeLabel = (gymPassType) => (gymPassType === "shared" ? "Gemensamt gympass" : "Individuellt gympass")
 
-const getPlayerWorkoutGroupKey = (workout) => {
-  const workoutKind = workout?.workoutKind || "gym"
-  if (workoutKind === "running") return "running"
-  if (workoutKind === "prehab") return "prehab"
-  return workout?.gymPassType === "shared" ? "gym_shared" : "gym_individual"
-}
-
-const getPlayerWorkoutKindTheme = (groupKey) => {
-  if (groupKey === "running") {
-    return {
-      title: "Löppass",
-      description: "Distans och intervaller du kan köra när du vill.",
-      badgeBackground: "#eef4ff",
-      badgeColor: "#1d4ed8",
-      sectionBackground: "#f8fbff",
-      sectionBorder: "#dbe7ff",
-    }
-  }
-
-  if (groupKey === "prehab") {
-    return {
-      title: "Skadeförebyggande",
-      description: "Pass för kontroll, stabilitet och hållbarhet över tid.",
-      badgeBackground: "#ecfdf5",
-      badgeColor: "#0f766e",
-      sectionBackground: "#f7fffb",
-      sectionBorder: "#d4f5e5",
-    }
-  }
-
-  if (groupKey === "gym_shared") {
-    return {
-      title: "Gemensamma gympass",
-      description: "Pass som tränaren markerat som gemensamma för laget.",
-      badgeBackground: "#fff1f1",
-      badgeColor: "#b61e24",
-      sectionBackground: "#fffdfd",
-      sectionBorder: "#f0dcdc",
-    }
-  }
-
-  return {
-    title: "Individuella gympass",
-    description: "Pass du kan köra när det passar, med övningar, målvikter och progression.",
-    badgeBackground: "#fef3c7",
-    badgeColor: "#92400e",
-    sectionBackground: "#fffdf7",
-    sectionBorder: "#f3e3b5",
-  }
-}
-
 const summarizeHistoryRowsByExercise = (rows) => {
   const grouped = new Map()
 
@@ -7487,21 +7436,6 @@ function TrainingApp() {
 
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
-  const groupedVisibleWorkoutEntries = ["gym_individual", "running", "prehab", "gym_shared"]
-    .map((groupKey) => {
-      const entries = sortedVisibleWorkoutEntries.filter(
-        ([, workout]) => getPlayerWorkoutGroupKey(workout) === groupKey
-      )
-
-      if (entries.length === 0) return null
-
-      return {
-        workoutKind: groupKey,
-        entries,
-        theme: getPlayerWorkoutKindTheme(groupKey),
-      }
-    })
-    .filter(Boolean)
   const playerWorkoutEntriesByFamily = {
     strength: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "gym"),
     running: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "running"),
@@ -7512,14 +7446,11 @@ function TrainingApp() {
     running: playerWorkoutEntriesByFamily.running.length,
     prehab: playerWorkoutEntriesByFamily.prehab.length,
   }
-  const displayedGroupedWorkoutEntries = groupedVisibleWorkoutEntries.filter((group) => {
-    if (playerPassFamily === "strength") {
-      return group.workoutKind === "gym_individual" || group.workoutKind === "gym_shared"
-    }
-    if (playerPassFamily === "running") return group.workoutKind === "running"
-    if (playerPassFamily === "prehab") return group.workoutKind === "prehab"
-    return true
-  })
+  const selectedPlayerPassEntries = playerPassFamily
+    ? playerWorkoutEntriesByFamily[playerPassFamily] || []
+    : []
+  const recommendedPlayerPassEntries = selectedPlayerPassEntries.slice(0, 2)
+  const shelfPlayerPassEntries = selectedPlayerPassEntries.slice(recommendedPlayerPassEntries.length)
   const playerPassFamilyTitle =
     playerPassFamily === "strength"
       ? "Styrka"
@@ -7773,6 +7704,124 @@ function TrainingApp() {
   }
   const togglePlayerOverviewPanel = (panelKey) => {
     setPlayerOverviewPanel((current) => (current === panelKey ? null : panelKey))
+  }
+  const getPlayerPassDisplayType = (workout) => {
+    if (workout.workoutKind === "running") return getWorkoutKindLabel(workout.workoutKind)
+    if (workout.workoutKind === "prehab") return "Prehab"
+    return getGymPassTypeLabel(workout.gymPassType)
+  }
+  const getPlayerPassSummary = (workout) => {
+    if (workout.workoutKind === "running") {
+      return buildRunningSummary({
+        running_type: workout.runningType,
+        interval_time: workout.runningConfig?.interval_time,
+        intervals_count: workout.runningConfig?.intervals_count,
+        running_distance: workout.runningConfig?.running_distance,
+        running_time: workout.runningConfig?.running_time,
+      })
+    }
+
+    return `${workout.exercises.length} övningar`
+  }
+  const renderPlayerPassDetails = (key, workout, variant = "default") => (
+    <div style={variant === "featured" ? playerFeaturedPassDetailsStyle : playerShelfPassDetailsStyle}>
+      <div style={passPreviewContentCardStyle}>
+        {workout.info && (
+          <div style={{ marginBottom: "14px" }}>
+            <div style={passPreviewStatLabelStyle}>Info om passet</div>
+            <div style={passPreviewInfoTextStyle}>{workout.info}</div>
+          </div>
+        )}
+
+        <div style={passPreviewStatLabelStyle}>
+          {workout.workoutKind === "running" ? "Löppass" : "Innehåll"}
+        </div>
+        <div style={passPreviewExerciseCountStyle}>{getPlayerPassSummary(workout)}</div>
+
+        {workout.workoutKind !== "running" && workout.exercises.length > 0 && (
+          <div style={passPreviewListWrapStyle}>
+            <div style={passPreviewExerciseStackStyle}>
+              {workout.exercises.map((exercise, exerciseIndex) => (
+                <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
+                  <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
+                  <span style={passPreviewExerciseNameStyle}>
+                    {exercise.displayName || exercise.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {workout.workoutKind !== "running" && workout.exercises.length === 0 && (
+          <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
+        )}
+      </div>
+
+      <button
+        onClick={() => startWorkout(key)}
+        style={{ ...buttonStyle, ...playerPassStartButtonStyle, width: isMobile ? "100%" : "auto" }}
+      >
+        Starta pass
+      </button>
+    </div>
+  )
+  const renderRecommendedPassCard = ([key, workout], index) => {
+    const isSelected = selectedWorkout === key
+    const passStatus = getPassStatus(latestPassDates[key])
+
+    return (
+      <div key={key} style={playerFeaturedPassWrapStyle}>
+        <button
+          type="button"
+          onClick={() => setSelectedWorkout((current) => (current === key ? null : key))}
+          aria-pressed={isSelected}
+          style={playerFeaturedPassCardStyle(index)}
+        >
+          <div style={playerFeaturedPassMetaRowStyle}>
+            <span>Rekommenderat {index + 1}</span>
+            <span>{passStatus.label}</span>
+          </div>
+          <div style={playerFeaturedPassTitleStyle}>{workout.label}</div>
+          <div style={playerFeaturedPassSummaryStyle}>{getPlayerPassSummary(workout)}</div>
+          <div style={playerFeaturedPassFooterStyle}>
+            <span>{getPlayerPassDisplayType(workout)}</span>
+            <span>{formatDaysSince(latestPassDates[key])}</span>
+          </div>
+        </button>
+        {isSelected && renderPlayerPassDetails(key, workout, "featured")}
+      </div>
+    )
+  }
+  const renderShelfPassRow = ([key, workout]) => {
+    const isSelected = selectedWorkout === key
+    const passStatus = getPassStatus(latestPassDates[key])
+
+    return (
+      <div key={key} style={playerShelfPassWrapStyle}>
+        <button
+          type="button"
+          onClick={() => setSelectedWorkout((current) => (current === key ? null : key))}
+          aria-pressed={isSelected}
+          style={{
+            ...playerShelfPassButtonStyle,
+            ...(isSelected ? playerShelfPassButtonActiveStyle : {}),
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={playerShelfPassTitleStyle}>{workout.label}</div>
+            <div style={playerShelfPassMetaStyle}>
+              {getPlayerPassDisplayType(workout)} · {getPlayerPassSummary(workout)} · {passStatus.label}
+            </div>
+          </div>
+          <div style={playerShelfPassRightStyle}>
+            <span>{formatDaysSince(latestPassDates[key])}</span>
+            <span style={playerShelfPassExpandStyle}>{isSelected ? "−" : "+"}</span>
+          </div>
+        </button>
+        {isSelected && renderPlayerPassDetails(key, workout)}
+      </div>
+    )
   }
   const playerHeaderSubtitle =
     profile?.role === "head_admin"
@@ -9395,195 +9444,49 @@ function TrainingApp() {
                     </section>
                   )}
 
-                  {displayedGroupedWorkoutEntries.length === 0 && playerPassFamily !== "running" && (
+                  {playerPassFamily && selectedPlayerPassEntries.length === 0 && (
                     <div style={playerHistoryEmptyStyle}>Inga pass finns i den här kategorin ännu.</div>
                   )}
 
-                  {displayedGroupedWorkoutEntries.map((group) => (
-                    <section
-                      key={group.workoutKind}
-                      style={{
-                        ...passCategorySectionStyle,
-                        backgroundColor: group.theme.sectionBackground,
-                        borderColor: group.theme.sectionBorder,
-                      }}
-                    >
-                      <div style={passCategoryHeaderStyle(isMobile)}>
+                  {playerPassFamily && recommendedPlayerPassEntries.length > 0 && (
+                    <section style={playerRecommendedPassSectionStyle}>
+                      <div style={playerPassSectionHeaderStyle}>
                         <div>
-                          <div
-                            style={{
-                              ...passCategoryBadgeStyle,
-                              backgroundColor: group.theme.badgeBackground,
-                              color: group.theme.badgeColor,
-                            }}
-                          >
-                            {group.theme.title}
+                          <div style={playerTodayMonoLabelStyle}>
+                            {playerPassFamily === "running" ? "Färdiga pass" : "Rekommenderat nu"}
                           </div>
-                          <div style={passCategoryTitleStyle}>{group.theme.title}</div>
-                          <div style={passCategoryTextStyle}>{group.theme.description}</div>
+                          <div style={playerPassSectionTitleStyle}>
+                            {playerPassFamily === "running" ? "Intervaller att köra." : "Börja här."}
+                          </div>
                         </div>
-                        <div style={passCategoryCountStyle}>
-                          {group.entries.length} {group.entries.length === 1 ? "pass" : "pass"}
+                        <div style={playerPassSectionCountStyle}>
+                          {recommendedPlayerPassEntries.length} val
                         </div>
                       </div>
 
-                      <div style={passCategoryListStyle}>
-                        {group.entries.map(([key, workout], index) => {
-                          const isSelected = selectedWorkout === key
-                          const passStatus = getPassStatus(latestPassDates[key])
-                          const isRecommended = index === 0 && group.entries.length > 1
-
-                          return (
-                            <div
-                              key={key}
-                              style={{
-                                ...passPickerItemStyle,
-                                borderColor: isSelected ? "#c62828" : passPickerItemStyle.borderColor,
-                                background: isSelected
-                                  ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
-                                  : passPickerItemStyle.background,
-                              }}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedWorkout((current) => (current === key ? null : key))
-                                }}
-                                aria-pressed={isSelected}
-                                style={{
-                                  ...pickerButtonStyle,
-                                  marginBottom: 0,
-                                }}
-                              >
-                                <div style={pickerHeaderRowStyle}>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div style={pickerPillRowStyle}>
-                                      <div
-                                        style={{
-                                          ...pickerStatusPillStyle,
-                                          backgroundColor: passStatus.backgroundColor,
-                                          color: passStatus.color,
-                                        }}
-                                      >
-                                        {passStatus.label}
-                                      </div>
-                                      <div
-                                        style={{
-                                          ...pickerStatusPillStyle,
-                                          backgroundColor: group.theme.badgeBackground,
-                                          color: group.theme.badgeColor,
-                                        }}
-                                      >
-                                        {workout.workoutKind === "gym"
-                                          ? getGymPassTypeLabel(workout.gymPassType)
-                                          : getWorkoutKindLabel(workout.workoutKind)}
-                                      </div>
-                                      {isRecommended && (
-                                        <div
-                                          style={{
-                                            ...pickerStatusPillStyle,
-                                            backgroundColor: "#18202b",
-                                            color: "#ffffff",
-                                          }}
-                                        >
-                                          Rekommenderat nu
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div style={pickerTitleStyle}>{workout.label}</div>
-                                  </div>
-                                  <div style={pickerExpandIconStyle(isSelected)}>{isSelected ? "−" : "+"}</div>
-                                </div>
-
-                                <div style={pickerSummaryRowStyle}>
-                                  <div style={pickerSummaryTextStyle}>
-                                    Senast: {formatDate(latestPassDates[key])}
-                                  </div>
-                                  <div style={pickerSummaryDividerStyle}>•</div>
-                                  <div style={pickerSummaryTextStyle}>{formatDaysSince(latestPassDates[key])}</div>
-                                </div>
-
-                                <div style={pickerSecondarySummaryStyle}>
-                                  {workout.workoutKind === "running"
-                                    ? buildRunningSummary({
-                                        running_type: workout.runningType,
-                                        interval_time: workout.runningConfig?.interval_time,
-                                        intervals_count: workout.runningConfig?.intervals_count,
-                                        running_distance: workout.runningConfig?.running_distance,
-                                        running_time: workout.runningConfig?.running_time,
-                                      })
-                                    : `${workout.exercises.length} övningar`}
-                                </div>
-
-                                <div style={pickerActionHintStyle}>
-                                  {isSelected ? "Tryck igen för att stänga" : "Tryck för att visa passet"}
-                                </div>
-                              </button>
-
-                              {isSelected && (
-                                <div
-                                  style={{
-                                    ...passPreviewCardStyle,
-                                    padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
-                                  }}
-                                >
-                                  <div style={passPreviewContentCardStyle}>
-                                    {workout.info && (
-                                      <div style={{ marginBottom: "14px" }}>
-                                        <div style={passPreviewStatLabelStyle}>Info om passet</div>
-                                        <div style={passPreviewInfoTextStyle}>{workout.info}</div>
-                                      </div>
-                                    )}
-
-                                    <div style={passPreviewStatLabelStyle}>
-                                      {workout.workoutKind === "running" ? "Löppass" : "Övningar"}
-                                    </div>
-                                    <div style={passPreviewExerciseCountStyle}>
-                                      {workout.workoutKind === "running"
-                                        ? buildRunningSummary({
-                                            running_type: workout.runningType,
-                                            interval_time: workout.runningConfig?.interval_time,
-                                            intervals_count: workout.runningConfig?.intervals_count,
-                                            running_distance: workout.runningConfig?.running_distance,
-                                            running_time: workout.runningConfig?.running_time,
-                                          })
-                                        : `${workout.exercises.length} st`}
-                                    </div>
-
-                                    {workout.workoutKind !== "running" && workout.exercises.length > 0 && (
-                                      <div style={passPreviewListWrapStyle}>
-                                        <div style={passPreviewExerciseStackStyle}>
-                                          {workout.exercises.map((exercise, exerciseIndex) => (
-                                            <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                                              <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
-                                              <span style={passPreviewExerciseNameStyle}>
-                                                {exercise.displayName || exercise.name}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {workout.workoutKind !== "running" && workout.exercises.length === 0 && (
-                                      <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
-                                    )}
-                                  </div>
-
-                                  <button
-                                    onClick={() => startWorkout(key)}
-                                    style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                                  >
-                                    Starta pass
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
+                      <div style={playerFeaturedPassGridStyle(isMobile)}>
+                        {recommendedPlayerPassEntries.map(renderRecommendedPassCard)}
                       </div>
                     </section>
-                  ))}
+                  )}
+
+                  {playerPassFamily && shelfPlayerPassEntries.length > 0 && (
+                    <section style={playerShelfPassSectionStyle}>
+                      <div style={playerPassSectionHeaderStyle}>
+                        <div>
+                          <div style={playerTodayMonoLabelStyle}>Övriga pass</div>
+                          <div style={playerShelfSectionTitleStyle}>Hylla</div>
+                        </div>
+                        <div style={playerPassSectionCountStyle}>
+                          {shelfPlayerPassEntries.length} pass
+                        </div>
+                      </div>
+
+                      <div style={playerShelfPassListStyle}>
+                        {shelfPlayerPassEntries.map(renderShelfPassRow)}
+                      </div>
+                    </section>
+                  )}
                 </div>
               )}
             </>
@@ -9774,18 +9677,6 @@ function TrainingApp() {
               <div style={activeWorkoutPageMetaLabelStyle}>Övning</div>
               <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutProgressSummary}</div>
             </div>
-            {!isRunningWorkoutActive && (
-              <button
-                type="button"
-                onClick={resetRestStopwatch}
-                style={restStopwatchCardStyle}
-                aria-label="Nollställ vilostoppklocka"
-              >
-                <div style={restStopwatchLabelStyle}>Vila</div>
-                <div style={restStopwatchValueStyle}>{formatStopwatchTime(restStopwatchElapsedMs)}</div>
-                <div style={restStopwatchHintStyle}>Tryck för att nollställa</div>
-              </button>
-            )}
           </div>
 
           {isMobile && activeWorkoutSlideCount > 1 && (
@@ -9979,6 +9870,24 @@ function TrainingApp() {
             const targetRequestComposerKey = `${selectedExercise?.exerciseId || exercise.exerciseId}:${
               currentRepRangeBucket?.key || "none"
             }`
+            const activeLiftTargetSummary =
+              profile?.individual_goals_enabled === false && latestExerciseTopSet
+                ? formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)
+                : currentTarget?.target_reps_mode === "max"
+                ? "Max idag"
+                : currentTarget
+                ? [
+                    formatRepTargetValue(currentTarget),
+                    selectedExercise?.type === "weight_reps" && resolvedCurrentTargetWeight != null
+                      ? `${resolvedCurrentTargetWeight} kg`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "Följ känslan"
+            const activeLiftLatestSummary = latestExerciseTopSet
+              ? formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)
+              : "Ingen historik ännu"
             const isTargetRequestComposerOpen =
               activeTargetChangeRequestDraft?.composer_key === targetRequestComposerKey
             const exerciseTextSections = getExerciseTextSections({
@@ -10129,6 +10038,22 @@ function TrainingApp() {
                           </button>
                         )
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {!isProtocol && (
+                  <div style={activeLiftDataGridStyle(isMobile)}>
+                    <div style={activeLiftDataCardStyle}>
+                      <div style={activeLiftDataLabelStyle}>Dagens mål</div>
+                      <div style={activeLiftDataValueStyle}>{activeLiftTargetSummary}</div>
+                    </div>
+                    <div style={activeLiftDataCardStyle}>
+                      <div style={activeLiftDataLabelStyle}>Senast</div>
+                      <div style={activeLiftDataValueStyle}>{activeLiftLatestSummary}</div>
+                      {latestExerciseDate && (
+                        <div style={activeLiftDataMetaStyle}>{formatDate(latestExerciseDate)}</div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -10484,6 +10409,27 @@ function TrainingApp() {
                   </div>
                 )}
 
+                {isWorkoutActive && !isProtocol && (
+                  <div style={activeLiftLogHeaderStyle(isMobile)}>
+                    <button
+                      type="button"
+                      onClick={resetRestStopwatch}
+                      style={activeLiftRestButtonStyle}
+                      aria-label="Nollställ vilostoppklocka"
+                    >
+                      <span style={restStopwatchLabelStyle}>Vila</span>
+                      <span style={restStopwatchValueStyle}>{formatStopwatchTime(restStopwatchElapsedMs)}</span>
+                      <span style={restStopwatchHintStyle}>Tryck för att nollställa</span>
+                    </button>
+                    <button
+                      onClick={() => handleAddSet(i)}
+                      style={activeLiftAddSetButtonStyle}
+                    >
+                      + Lägg till set
+                    </button>
+                  </div>
+                )}
+
                 {isWorkoutActive &&
                   !isProtocol &&
                   (inputs[i] || []).map((set, j) => (
@@ -10608,15 +10554,6 @@ function TrainingApp() {
                       style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "88px" }}
                     />
                   </div>
-                )}
-
-                {isWorkoutActive && !isProtocol && (
-                  <button
-                    onClick={() => handleAddSet(i)}
-                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                  >
-                    + Lägg till set
-                  </button>
                 )}
 
                 {exercise.info.length > 0 && (
@@ -10802,8 +10739,6 @@ const uiBorderSoft = "var(--ghf-line-soft)"
 const uiShadowSm = "var(--ghf-shadow-sm)"
 const uiShadowMd = "var(--ghf-shadow-md)"
 const uiShadowLg = "var(--ghf-shadow-lg)"
-const uiSelectedSurface = "var(--ghf-selected-bg)"
-const uiSelectedBorder = "var(--ghf-selected-border)"
 const playerPaper = "#f3efe6"
 const playerInk = "#1a1814"
 const playerInkSoft = "#6f6659"
@@ -11026,7 +10961,7 @@ const activeWorkoutPageMetaRowStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
   marginBottom: "14px",
-  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))",
 })
 
 const activeWorkoutPageMetaCardStyle = {
@@ -11444,6 +11379,75 @@ const activeWorkoutFinishButtonStyle = {
   boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
 }
 
+const activeLiftDataGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  marginBottom: "12px",
+})
+
+const activeLiftDataCardStyle = {
+  padding: "14px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.34)",
+}
+
+const activeLiftDataLabelStyle = {
+  marginBottom: "8px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeLiftDataValueStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 7vw, 34px)",
+  lineHeight: 0.95,
+  fontWeight: 650,
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const activeLiftDataMetaStyle = {
+  marginTop: "8px",
+  fontSize: "12px",
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
+const activeLiftLogHeaderStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 0.8fr) minmax(180px, 0.6fr)",
+  alignItems: "stretch",
+  marginBottom: "10px",
+})
+
+const activeLiftRestButtonStyle = {
+  ...restStopwatchCardStyle,
+  minHeight: "96px",
+  display: "grid",
+  gap: "5px",
+  alignContent: "center",
+}
+
+const activeLiftAddSetButtonStyle = {
+  minHeight: "96px",
+  padding: "18px",
+  borderRadius: "20px",
+  border: `1px solid ${playerAccent}`,
+  background: playerAccent,
+  color: playerPaper,
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: 900,
+  boxShadow: "0 16px 30px rgba(217, 74, 31, 0.18)",
+}
+
 const targetBoxStyle = {
   backgroundColor: uiSurfaceAlt,
   border: `1px solid ${uiBorder}`,
@@ -11584,10 +11588,10 @@ const infoToggleButtonStyle = {
 }
 
 const activeSetCardStyle = {
-  marginBottom: "8px",
-  padding: "12px",
-  borderRadius: "16px",
-  backgroundColor: "rgba(255, 255, 255, 0.38)",
+  marginBottom: "10px",
+  padding: "14px",
+  borderRadius: "18px",
+  backgroundColor: "rgba(255, 255, 255, 0.46)",
   border: `1px solid ${playerLine}`,
 }
 
@@ -11707,6 +11711,10 @@ const setInputsRowStyle = {
 const compactSetInputStyle = {
   flex: 1,
   minWidth: 0,
+  minHeight: "52px",
+  fontSize: "18px",
+  fontWeight: 900,
+  textAlign: "center",
 }
 
 const textareaStyle = {
@@ -11860,172 +11868,209 @@ const playerRunningHubCardTitleStyle = {
   color: playerInk,
 }
 
-const passCategorySectionStyle = {
-  padding: "14px",
-  borderRadius: "24px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+const playerRecommendedPassSectionStyle = {
   display: "grid",
   gap: "12px",
-  boxShadow: uiShadowSm,
 }
 
-const passCategoryHeaderStyle = (isMobile) => ({
+const playerPassSectionHeaderStyle = {
   display: "flex",
-  alignItems: isMobile ? "flex-start" : "center",
   justifyContent: "space-between",
-  flexDirection: isMobile ? "column" : "row",
-  gap: "10px",
-})
-
-const passCategoryBadgeStyle = {
-  display: "inline-flex",
-  marginBottom: "8px",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: "800",
+  alignItems: "flex-end",
+  gap: "12px",
+  padding: "0 4px",
 }
 
-const passCategoryTitleStyle = {
-  fontSize: "20px",
-  fontWeight: "900",
-  color: "#18202b",
-  marginBottom: "4px",
+const playerPassSectionTitleStyle = {
+  marginTop: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 8vw, 46px)",
+  lineHeight: 0.92,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
 }
 
-const passCategoryTextStyle = {
-  fontSize: "14px",
-  lineHeight: 1.5,
-  color: "#566173",
+const playerShelfSectionTitleStyle = {
+  ...playerPassSectionTitleStyle,
+  fontSize: "clamp(26px, 7vw, 38px)",
 }
 
-const passCategoryCountStyle = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "10px 12px",
-  borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  color: "#18202b",
-  fontSize: "13px",
-  fontWeight: "800",
+const playerPassSectionCountStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
   whiteSpace: "nowrap",
 }
 
-const passCategoryListStyle = {
+const playerFeaturedPassGridStyle = (isMobile) => ({
   display: "grid",
   gap: "12px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const playerFeaturedPassWrapStyle = {
+  display: "grid",
+  gap: "0",
 }
 
-const passPickerItemStyle = {
+const playerFeaturedPassCardStyle = (index = 0) => ({
+  minHeight: "190px",
+  width: "100%",
+  padding: "20px",
+  borderRadius: "26px",
+  border: `1px solid ${index === 0 ? playerInk : playerAccent}`,
+  background:
+    index === 0
+      ? `radial-gradient(circle at 88% 12%, rgba(217, 74, 31, 0.32), transparent 30%), ${playerInk}`
+      : `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`,
+  color: playerPaper,
+  textAlign: "left",
+  cursor: "pointer",
+  boxShadow: "0 22px 42px rgba(26, 24, 20, 0.18)",
+})
+
+const playerFeaturedPassMetaRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  marginBottom: "20px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "rgba(243, 239, 230, 0.68)",
+}
+
+const playerFeaturedPassTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(32px, 9vw, 52px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  letterSpacing: "-0.06em",
+}
+
+const playerFeaturedPassSummaryStyle = {
+  marginTop: "10px",
+  fontSize: "15px",
+  lineHeight: 1.4,
+  fontWeight: 800,
+  color: "rgba(243, 239, 230, 0.72)",
+}
+
+const playerFeaturedPassFooterStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginTop: "20px",
+  paddingTop: "14px",
+  borderTop: "1px solid rgba(243, 239, 230, 0.16)",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: "rgba(243, 239, 230, 0.66)",
+}
+
+const playerFeaturedPassDetailsStyle = {
+  padding: "14px",
+  borderRadius: "0 0 24px 24px",
+  border: `1px solid ${playerLine}`,
+  borderTop: "none",
+  backgroundColor: "rgba(255, 255, 255, 0.3)",
+}
+
+const playerShelfPassSectionStyle = {
+  display: "grid",
+  gap: "12px",
+  padding: "16px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.22)",
+}
+
+const playerShelfPassListStyle = {
   display: "grid",
   gap: "8px",
-  width: "100%",
-  minWidth: 0,
-  padding: "14px 15px",
-  borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
-  boxShadow: uiShadowSm,
-  overflow: "hidden",
 }
 
-const pickerButtonStyle = {
+const playerShelfPassWrapStyle = {
+  display: "grid",
+}
+
+const playerShelfPassButtonStyle = {
   width: "100%",
-  padding: 0,
-  borderRadius: 0,
-  border: "none",
-  background: "transparent",
+  minHeight: "72px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "13px 14px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.3)",
+  color: playerInk,
   textAlign: "left",
   cursor: "pointer",
 }
 
-const pickerHeaderRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "8px",
+const playerShelfPassButtonActiveStyle = {
+  backgroundColor: "rgba(26, 24, 20, 0.92)",
+  borderColor: playerInk,
+  color: playerPaper,
 }
 
-const pickerPillRowStyle = {
-  display: "flex",
-  gap: "6px",
-  flexWrap: "wrap",
-  marginBottom: "8px",
+const playerShelfPassTitleStyle = {
+  fontSize: "16px",
+  fontWeight: 900,
+  overflowWrap: "anywhere",
 }
 
-const pickerStatusPillStyle = {
-  display: "inline-flex",
-  padding: "6px 10px",
-  borderRadius: "999px",
+const playerShelfPassMetaStyle = {
+  marginTop: "5px",
   fontSize: "12px",
-  fontWeight: "800",
+  lineHeight: 1.4,
+  fontWeight: 800,
+  opacity: 0.68,
 }
 
-const pickerExpandIconStyle = (isSelected) => ({
-  width: "34px",
-  height: "34px",
+const playerShelfPassRightStyle = {
+  display: "grid",
+  justifyItems: "end",
+  gap: "8px",
+  flexShrink: 0,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+}
+
+const playerShelfPassExpandStyle = {
+  width: "30px",
+  height: "30px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  border: `1px solid ${isSelected ? uiSelectedBorder : uiBorder}`,
-  backgroundColor: isSelected ? uiSelectedSurface : uiSurface,
-  color: isSelected ? "#b61e24" : "#6b7280",
-  fontSize: "22px",
-  fontWeight: "800",
-  flexShrink: 0,
-})
-
-const pickerTitleStyle = {
-  fontWeight: "900",
-  fontSize: "17px",
-  color: "#18202b",
+  backgroundColor: "rgba(255, 255, 255, 0.18)",
+  fontSize: "20px",
+  lineHeight: 1,
 }
 
-const pickerSummaryRowStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  flexWrap: "wrap",
+const playerShelfPassDetailsStyle = {
+  padding: "12px 0 4px",
 }
 
-const pickerSummaryTextStyle = {
-  fontSize: "13px",
-  lineHeight: 1.4,
-  fontWeight: "700",
-  color: "#566173",
-  overflowWrap: "anywhere",
-}
-
-const pickerSummaryDividerStyle = {
-  fontSize: "12px",
-  color: "#94a3b8",
-}
-
-const pickerSecondarySummaryStyle = {
-  marginTop: "4px",
-  fontSize: "13px",
-  lineHeight: 1.5,
-  fontWeight: "800",
-  color: "#18202b",
-}
-
-const pickerActionHintStyle = {
-  marginTop: "8px",
-  fontSize: "12px",
-  fontWeight: "700",
-  color: "#566173",
-}
-
-const passPreviewCardStyle = {
-  width: "100%",
-  marginTop: 0,
-  padding: "14px 0 0",
-  borderTop: `1px solid ${uiBorder}`,
+const playerPassStartButtonStyle = {
+  background: playerAccent,
+  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
 }
 
 const passPreviewContentCardStyle = {
