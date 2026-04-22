@@ -1107,6 +1107,7 @@ function TrainingApp() {
   const [playerView, setPlayerView] = useState("overview")
   const [playerOverviewPanel, setPlayerOverviewPanel] = useState(null)
   const [playerPassFamily, setPlayerPassFamily] = useState(null)
+  const [playerRunningView, setPlayerRunningView] = useState(null)
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseId, setSelectedPlayerStatsExerciseId] = useState("")
@@ -5159,6 +5160,7 @@ function TrainingApp() {
       average_pulse: "",
       comment: "",
     }))
+    setPlayerRunningView(null)
     setPlayerView(pendingFreeActivityCalendarEvent?.id ? "calendar" : playerView)
     await markCalendarEventPlayerCompleted(pendingFreeActivityCalendarEvent?.id, workoutSessionId)
     setPendingFreeActivityCalendarEvent(null)
@@ -7390,10 +7392,9 @@ function TrainingApp() {
 
     if (!targetCard) return
 
-    targetCard.scrollIntoView({
+    exerciseCarouselRef.current.scrollTo({
+      left: targetCard.offsetLeft,
       behavior: "smooth",
-      block: "nearest",
-      inline: "start",
     })
     setActiveExerciseIndex(index)
   }
@@ -7442,21 +7443,37 @@ function TrainingApp() {
   const selectedPlayerPassEntries = playerPassFamily
     ? playerWorkoutEntriesByFamily[playerPassFamily] || []
     : []
-  const recommendedPlayerPassEntries = selectedPlayerPassEntries.slice(0, 2)
+  const recommendedPlayerPassCount =
+    playerPassFamily === "strength" ? 1 : playerPassFamily === "running" ? 0 : 2
+  const recommendedPlayerPassEntries = selectedPlayerPassEntries.slice(0, recommendedPlayerPassCount)
   const shelfPlayerPassEntries = selectedPlayerPassEntries.slice(recommendedPlayerPassEntries.length)
+  const shouldShowPlayerPassList =
+    playerPassFamily && (playerPassFamily !== "running" || playerRunningView === "assigned")
   const playerPassFamilyTitle =
     playerPassFamily === "strength"
       ? "Styrka"
       : playerPassFamily === "running"
-      ? "Löpning"
+      ? playerRunningView === "assigned"
+        ? "Färdiga intervallpass"
+        : playerRunningView === "ownInterval"
+        ? "Skapa intervall"
+        : playerRunningView === "distance"
+        ? "Logga distans"
+        : "Löpning"
       : playerPassFamily === "prehab"
       ? "Prehab"
       : "Välj träning"
   const playerPassFamilyDescription =
     playerPassFamily === "strength"
       ? "Rekommenderade styrkepass först, men du väljer själv vad du kör idag."
-      : playerPassFamily === "running"
-      ? "Välj ett färdigt intervallpass, skapa ett enkelt eget intervallpass eller logga fri distans."
+    : playerPassFamily === "running"
+      ? playerRunningView === "assigned"
+        ? "Välj ett coachat intervallpass och öppna registreringen därifrån."
+        : playerRunningView === "ownInterval"
+        ? "Registrera ett eget enkelt intervallpass utan att skapa en ny mall."
+        : playerRunningView === "distance"
+        ? "Logga fri distans i efterhand med kilometer, tid och puls."
+        : "Välj ett färdigt intervallpass, skapa ett enkelt eget intervallpass eller logga fri distans."
       : playerPassFamily === "prehab"
       ? "Skadeförebyggande pass samlade för snabb start."
       : "Börja med träningsfamilj och gå vidare därifrån."
@@ -7670,8 +7687,31 @@ function TrainingApp() {
   }
   const openPlayerPassFamily = (familyKey) => {
     setPlayerPassFamily(familyKey)
+    setPlayerRunningView(null)
+    setSelectedWorkout(null)
     setPlayerOverviewPanel(null)
     navigatePlayerSection("pass")
+  }
+  const openPlayerRunningView = (viewKey) => {
+    setPlayerRunningView(viewKey)
+    setSelectedWorkout(null)
+
+    if (viewKey === "ownInterval" || viewKey === "distance") {
+      setRunningDraft((prev) => ({
+        ...prev,
+        log_date: prev.log_date || getTodayDateInputValue(),
+        free_activity_type: "running",
+        custom_activity_title: "",
+        running_type: viewKey === "ownInterval" ? "intervals" : "distance",
+        interval_time: "",
+        intervals_count: "",
+        running_distance: "",
+        running_time: "",
+        average_pulse: "",
+        comment: "",
+      }))
+      setPendingFreeActivityCalendarEvent(null)
+    }
   }
   const openRunningDraftPanel = (panelKey) => {
     const nextDraft = {
@@ -9377,7 +9417,14 @@ function TrainingApp() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (playerPassFamily === "running" && playerRunningView) {
+                        setPlayerRunningView(null)
+                        setSelectedWorkout(null)
+                        return
+                      }
+
                       setPlayerPassFamily(null)
+                      setPlayerRunningView(null)
                       setSelectedWorkout(null)
                     }}
                     style={playerPassBackButtonStyle}
@@ -9395,17 +9442,17 @@ function TrainingApp() {
                 <div style={pickerGridStyle}>
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
-                      <button type="button" onClick={() => setPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
                         <div style={playerHomeTrainingKickerStyle}>Rekommenderat</div>
                         <div style={playerHomeTrainingTitleStyle}>Styrka</div>
                         <div style={playerHomeTrainingTextStyle}>{playerFamilyCounts.strength} pass</div>
                       </button>
-                      <button type="button" onClick={() => setPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
                         <div style={playerHomeTrainingKickerStyle}>Fritt</div>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                         <div style={playerHomeTrainingTextStyle}>Intervaller och distans</div>
                       </button>
-                      <button type="button" onClick={() => setPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
                         <div style={playerHomeTrainingKickerStyle}>Hållbarhet</div>
                         <div style={playerHomeTrainingTitleStyle}>Prehab</div>
                         <div style={playerHomeTrainingTextStyle}>{playerFamilyCounts.prehab} pass</div>
@@ -9413,26 +9460,26 @@ function TrainingApp() {
                     </div>
                   )}
 
-                  {playerPassFamily === "running" && (
+                  {playerPassFamily === "running" && !playerRunningView && (
                     <section style={playerRunningHubStyle}>
                       <div>
                         <div style={playerTodayMonoLabelStyle}>Löphubb</div>
                         <div style={playerRunningHubTitleStyle}>Välj hur löpningen ska loggas.</div>
                       </div>
                       <div style={playerRunningHubGridStyle(isMobile)}>
-                        <button type="button" onClick={() => setPlayerPassFamily("running")} style={playerRunningHubCardStyle}>
+                        <button type="button" onClick={() => openPlayerRunningView("assigned")} style={playerRunningHubCardStyle}>
                           <div style={playerHomeTrainingKickerStyle}>Coachpass</div>
                           <div style={playerRunningHubCardTitleStyle}>Färdiga intervallpass</div>
                           <div style={playerHomeTrainingTextStyle}>
                             {playerFamilyCounts.running ? `${playerFamilyCounts.running} pass nedan` : "Inga färdiga löppass ännu"}
                           </div>
                         </button>
-                        <button type="button" onClick={() => openRunningDraftPanel("ownInterval")} style={playerRunningHubCardStyle}>
+                        <button type="button" onClick={() => openPlayerRunningView("ownInterval")} style={playerRunningHubCardStyle}>
                           <div style={playerHomeTrainingKickerStyle}>Eget upplägg</div>
                           <div style={playerRunningHubCardTitleStyle}>Skapa intervall</div>
                           <div style={playerHomeTrainingTextStyle}>Tid per intervall och antal intervaller</div>
                         </button>
-                        <button type="button" onClick={() => openRunningDraftPanel("distance")} style={playerRunningHubCardStyle}>
+                        <button type="button" onClick={() => openPlayerRunningView("distance")} style={playerRunningHubCardStyle}>
                           <div style={playerHomeTrainingKickerStyle}>Fri löpning</div>
                           <div style={playerRunningHubCardTitleStyle}>Logga distans</div>
                           <div style={playerHomeTrainingTextStyle}>Datum, kilometer, tid och puls</div>
@@ -9441,11 +9488,142 @@ function TrainingApp() {
                     </section>
                   )}
 
-                  {playerPassFamily && selectedPlayerPassEntries.length === 0 && (
+                  {playerPassFamily === "running" && playerRunningView === "ownInterval" && (
+                    <section style={playerRunningRegistrationPageStyle}>
+                      <div style={playerRunningRegistrationHeaderStyle}>
+                        <div style={playerTodayMonoLabelStyle}>Eget upplägg</div>
+                        <div style={playerRunningRegistrationTitleStyle}>Intervaller, enkelt loggat.</div>
+                      </div>
+                      <div style={playerRunningRegistrationGridStyle(isMobile)}>
+                        <label style={fieldLabelStyle}>
+                          Datum
+                          <input
+                            type="date"
+                            value={runningDraft.log_date}
+                            onChange={(e) => handleRunningDraftChange("log_date", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Tid per intervall
+                          <input
+                            placeholder="t.ex. 1 min eller 45 sek"
+                            value={runningDraft.interval_time}
+                            onChange={(e) => handleRunningDraftChange("interval_time", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Antal intervaller
+                          <input
+                            placeholder="t.ex. 8"
+                            value={runningDraft.intervals_count}
+                            onChange={(e) => handleRunningDraftChange("intervals_count", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
+                          Tid eller kommentar
+                          <textarea
+                            rows={3}
+                            placeholder="T.ex. känsla, vila eller total tid"
+                            value={runningDraft.comment}
+                            onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
+                            style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                          />
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveRunningSession}
+                        disabled={isSavingRunningSession}
+                        style={{
+                          ...buttonStyle,
+                          ...playerPassStartButtonStyle,
+                          width: "100%",
+                          opacity: isSavingRunningSession ? 0.7 : 1,
+                        }}
+                      >
+                        {isSavingRunningSession ? "Sparar..." : "Spara intervallpass"}
+                      </button>
+                    </section>
+                  )}
+
+                  {playerPassFamily === "running" && playerRunningView === "distance" && (
+                    <section style={playerRunningRegistrationPageStyle}>
+                      <div style={playerRunningRegistrationHeaderStyle}>
+                        <div style={playerTodayMonoLabelStyle}>Fri löpning</div>
+                        <div style={playerRunningRegistrationTitleStyle}>Distans efter känsla.</div>
+                      </div>
+                      <div style={playerRunningRegistrationGridStyle(isMobile)}>
+                        <label style={fieldLabelStyle}>
+                          Datum
+                          <input
+                            type="date"
+                            value={runningDraft.log_date}
+                            onChange={(e) => handleRunningDraftChange("log_date", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Kilometer
+                          <input
+                            placeholder="t.ex. 5,2"
+                            value={runningDraft.running_distance}
+                            onChange={(e) => handleRunningDraftChange("running_distance", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Tid
+                          <input
+                            placeholder="t.ex. 24:30"
+                            value={runningDraft.running_time}
+                            onChange={(e) => handleRunningDraftChange("running_time", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Snittpuls
+                          <input
+                            placeholder="valfritt"
+                            value={runningDraft.average_pulse}
+                            onChange={(e) => handleRunningDraftChange("average_pulse", e.target.value)}
+                            style={{ ...inputStyle, width: "100%" }}
+                          />
+                        </label>
+                        <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
+                          Kommentar
+                          <textarea
+                            rows={3}
+                            placeholder="Hur kändes passet?"
+                            value={runningDraft.comment}
+                            onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
+                            style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                          />
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveRunningSession}
+                        disabled={isSavingRunningSession}
+                        style={{
+                          ...buttonStyle,
+                          ...playerPassStartButtonStyle,
+                          width: "100%",
+                          opacity: isSavingRunningSession ? 0.7 : 1,
+                        }}
+                      >
+                        {isSavingRunningSession ? "Sparar..." : "Spara distans"}
+                      </button>
+                    </section>
+                  )}
+
+                  {shouldShowPlayerPassList && selectedPlayerPassEntries.length === 0 && (
                     <div style={playerHistoryEmptyStyle}>Inga pass finns i den här kategorin ännu.</div>
                   )}
 
-                  {playerPassFamily && recommendedPlayerPassEntries.length > 0 && (
+                  {shouldShowPlayerPassList && recommendedPlayerPassEntries.length > 0 && (
                     <section style={playerRecommendedPassSectionStyle}>
                       <div style={playerPassSectionHeaderStyle}>
                         <div>
@@ -9467,12 +9645,16 @@ function TrainingApp() {
                     </section>
                   )}
 
-                  {playerPassFamily && shelfPlayerPassEntries.length > 0 && (
+                  {shouldShowPlayerPassList && shelfPlayerPassEntries.length > 0 && (
                     <section style={playerShelfPassSectionStyle}>
                       <div style={playerPassSectionHeaderStyle}>
                         <div>
-                          <div style={playerTodayMonoLabelStyle}>Övriga pass</div>
-                          <div style={playerShelfSectionTitleStyle}>Fler pass</div>
+                          <div style={playerTodayMonoLabelStyle}>
+                            {playerPassFamily === "running" ? "Coachpass" : "Övriga pass"}
+                          </div>
+                          <div style={playerShelfSectionTitleStyle}>
+                            {playerPassFamily === "running" ? "Välj intervall" : "Fler pass"}
+                          </div>
                         </div>
                         <div style={playerPassSectionCountStyle}>
                           {shelfPlayerPassEntries.length} pass
@@ -9615,6 +9797,7 @@ function TrainingApp() {
                   onClick={() => {
                     if (tab.key === "pass") {
                       setPlayerPassFamily(null)
+                      setPlayerRunningView(null)
                     }
                     navigatePlayerSection(tab.key)
                   }}
@@ -9750,31 +9933,38 @@ function TrainingApp() {
                     : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
                 }
               >
-                <div style={exerciseProgressStyle}>Uppvärmning</div>
-
-                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Uppvärmning</h3>
-
-                {!!activeWorkoutWarmup.cardio && (
-                  <div style={{ marginBottom: activeWorkoutWarmup.technique.length ? 14 : 0 }}>
-                    <p style={subheadingStyle}>Pulshöjande aktivitet</p>
-                    <p style={mutedTextStyle}>{activeWorkoutWarmup.cardio}</p>
+                <div style={activeWarmupScreenStyle}>
+                  <div style={exerciseProgressStyle}>Start</div>
+                  <h3 style={activeWarmupTitleStyle}>Uppvärmning</h3>
+                  <div style={activeWarmupLeadStyle}>
+                    Gör kroppen redo. När du är klar går du vidare till första lyftet.
                   </div>
-                )}
 
-                {!!activeWorkoutWarmup.technique.length && (
-                  <div>
-                    <p style={subheadingStyle}>Teknikuppvärmning</p>
-                    <div style={mutedTextStyle}>
-                      {activeWorkoutWarmup.technique.map((item, index) => (
-                        <div key={index}>{index + 1}. {item}</div>
-                      ))}
+                  <div style={activeWarmupGridStyle(isMobile)}>
+                    <div style={activeWarmupBlockStyle}>
+                      <div style={activeWarmupBlockLabelStyle}>Pulshöjande</div>
+                      <div style={activeWarmupBlockTextStyle}>
+                        {activeWorkoutWarmup.cardio || "Ingen pulshöjande del inlagd."}
+                      </div>
+                    </div>
+
+                    <div style={activeWarmupBlockStyle}>
+                      <div style={activeWarmupBlockLabelStyle}>Teknik</div>
+                      {activeWorkoutWarmup.technique.length ? (
+                        <div style={activeWarmupStepsStyle}>
+                          {activeWorkoutWarmup.technique.map((item, index) => (
+                            <div key={index} style={activeWarmupStepStyle}>
+                              <span>{index + 1}</span>
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={activeWarmupBlockTextStyle}>Ingen teknikdel inlagd.</div>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {!activeWorkoutWarmup.cardio && !activeWorkoutWarmup.technique.length && (
-                  <div style={mutedTextStyle}>Ingen uppvärmning inlagd för passet ännu.</div>
-                )}
+                </div>
               </div>
 
           {isRunningWorkoutActive ? (
@@ -9901,6 +10091,10 @@ function TrainingApp() {
               exerciseTextSections.secondaryText ||
               selectedExercise?.mediaUrl
             )
+            const alternativesInfoKey = `${infoKey}:alternatives`
+            const commentInfoKey = `${infoKey}:comment`
+            const isAlternativesExpanded = !!expandedInfo[alternativesInfoKey]
+            const isCommentExpanded = !!expandedInfo[commentInfoKey]
 
             return (
               <div
@@ -9916,131 +10110,152 @@ function TrainingApp() {
                     : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
                 }
                 >
-                <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpandedInfo((prev) => ({
-                      ...prev,
-                      [infoKey]: !prev[infoKey],
-                    }))
-                  }
-                  style={{
-                    ...exerciseHeaderButtonStyle,
-                    marginBottom: hasExerciseDetails && isInfoExpanded ? "14px" : "10px",
-                    cursor: hasExerciseDetails ? "pointer" : "default",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>
-                      {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
-                    </h3>
-                    <div style={exerciseHeaderHintStyle}>
-                      {hasExerciseDetails
-                        ? isInfoExpanded
-                          ? "Dölj beskrivning och video"
-                          : "Tryck för att se beskrivning och video"
-                        : "Ingen extra information tillagd ännu"}
+                <div style={activeLiftHeroStyle}>
+                  <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
+                  <h3 style={activeLiftTitleStyle}>
+                    {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
+                  </h3>
+                  {!isProtocol &&
+                    selectedExercise?.executionSide &&
+                    selectedExercise.executionSide !== "standard" && (
+                    <div style={activeLiftSideHintStyle}>
+                      {getExerciseExecutionSideHint(
+                        selectedExercise.executionSide,
+                        selectedExercise?.type || exercise.type
+                      )}
                     </div>
-                    {!isProtocol &&
-                      selectedExercise?.executionSide &&
-                      selectedExercise.executionSide !== "standard" && (
-                      <div style={{ ...exerciseHeaderHintStyle, marginTop: "4px", color: "#991b1b" }}>
-                        {getExerciseExecutionSideHint(
-                          selectedExercise.executionSide,
-                          selectedExercise?.type || exercise.type
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {hasExerciseDetails && (
-                    <div style={exerciseHeaderIconStyle}>{isInfoExpanded ? "−" : "+"}</div>
                   )}
-                </button>
+                </div>
 
-                {hasExerciseDetails && isInfoExpanded && (
-                  <div style={exerciseDetailsPanelStyle}>
-                    {!selectedExercise?.isBase && (
-                      <div style={alternativeSelectionMetaStyle}>
-                        Alternativ till {exercise.displayName || exercise.name}
-                      </div>
-                    )}
+                {(hasExerciseDetails || exerciseOptions.length > 1) && (
+                  <div style={activeLiftSupportGridStyle(isMobile)}>
+                    {hasExerciseDetails && (
+                      <div style={activeLiftSupportPanelStyle}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedInfo((prev) => ({
+                              ...prev,
+                              [infoKey]: !prev[infoKey],
+                            }))
+                          }
+                          style={activeLiftSupportButtonStyle}
+                        >
+                          <span>
+                            <span style={activeLiftSupportKickerStyle}>Stöd</span>
+                            <span style={activeLiftSupportTitleStyle}>Instruktion / video</span>
+                          </span>
+                          <span style={activeLiftSupportIconStyle}>{isInfoExpanded ? "−" : "+"}</span>
+                        </button>
 
-                    {exerciseTextSections.primaryText && (
-                      <div>
-                        <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
-                        <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
-                      </div>
-                    )}
+                        {isInfoExpanded && (
+                          <div style={activeLiftComposerStyle}>
+                            {!selectedExercise?.isBase && (
+                              <div style={alternativeSelectionMetaStyle}>
+                                Alternativ till {exercise.displayName || exercise.name}
+                              </div>
+                            )}
 
-                    {exerciseTextSections.secondaryText && (
-                      <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
-                        <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
-                        <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
-                      </div>
-                    )}
+                            {exerciseTextSections.primaryText && (
+                              <div>
+                                <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
+                                <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
+                              </div>
+                            )}
 
-                    {selectedExercise?.mediaUrl && (
-                      <div
-                        style={{
-                          ...exerciseMediaWrapStyle,
-                          marginTop:
-                            exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
-                        }}
-                      >
-                        <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
-                        {isVideoUrl(selectedExercise.mediaUrl) ? (
-                          <video
-                            src={selectedExercise.mediaUrl}
-                            controls
-                            playsInline
-                            style={exerciseMediaStyle}
-                          />
-                        ) : (
-                          <img
-                            src={selectedExercise.mediaUrl}
-                            alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
-                            style={exerciseMediaStyle}
-                          />
+                            {exerciseTextSections.secondaryText && (
+                              <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
+                                <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
+                                <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
+                              </div>
+                            )}
+
+                            {selectedExercise?.mediaUrl && (
+                              <div
+                                style={{
+                                  ...exerciseMediaWrapStyle,
+                                  marginTop:
+                                    exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
+                                }}
+                              >
+                                <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
+                                {isVideoUrl(selectedExercise.mediaUrl) ? (
+                                  <video
+                                    src={selectedExercise.mediaUrl}
+                                    controls
+                                    playsInline
+                                    style={exerciseMediaStyle}
+                                  />
+                                ) : (
+                                  <img
+                                    src={selectedExercise.mediaUrl}
+                                    alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
+                                    style={exerciseMediaStyle}
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {exerciseOptions.length > 1 && (
-                  <div style={alternativeSelectionCardStyle}>
-                    <div style={alternativeSelectionTitleStyle}>Alternativa övningar</div>
-                    <div style={alternativeSelectionHintStyle}>Välj vilken variant du kör idag.</div>
-                    <div style={alternativeSelectionOptionListStyle}>
-                      {exerciseOptions.map((option) => {
-                        const isSelectedOption = selectedExercise?.optionKey === option.optionKey
+                    {exerciseOptions.length > 1 && (
+                      <div style={activeLiftSupportPanelStyle}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedInfo((prev) => ({
+                              ...prev,
+                              [alternativesInfoKey]: !prev[alternativesInfoKey],
+                            }))
+                          }
+                          style={activeLiftSupportButtonStyle}
+                        >
+                          <span>
+                            <span style={activeLiftSupportKickerStyle}>Valfritt</span>
+                            <span style={activeLiftSupportTitleStyle}>Alternativa övningar</span>
+                          </span>
+                          <span style={activeLiftSupportIconStyle}>{isAlternativesExpanded ? "−" : "+"}</span>
+                        </button>
 
-                        return (
-                          <button
-                            key={option.optionKey}
-                            type="button"
-                            onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
-                            style={{
-                              ...alternativeSelectionOptionStyle,
-                              borderColor: isSelectedOption ? playerAccent : playerLine,
-                              backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
-                              color: isSelectedOption ? playerAccent : playerInk,
-                            }}
-                          >
-                            <div style={alternativeSelectionOptionNameStyle}>
-                              {option.displayName || option.name}
+                        {isAlternativesExpanded && (
+                          <div style={alternativeSelectionCardStyle}>
+                            <div style={alternativeSelectionHintStyle}>
+                              Vald: {selectedExercise?.displayName || selectedExercise?.name}
                             </div>
-                            <div style={alternativeSelectionOptionMetaStyle}>
-                              {option.isBase
-                                ? "Originalövning"
-                                : `Alternativ till ${exercise.displayName || exercise.name}`}
+                            <div style={alternativeSelectionOptionListStyle}>
+                              {exerciseOptions.map((option) => {
+                                const isSelectedOption = selectedExercise?.optionKey === option.optionKey
+
+                                return (
+                                  <button
+                                    key={option.optionKey}
+                                    type="button"
+                                    onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
+                                    style={{
+                                      ...alternativeSelectionOptionStyle,
+                                      borderColor: isSelectedOption ? playerAccent : playerLine,
+                                      backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
+                                      color: isSelectedOption ? playerAccent : playerInk,
+                                    }}
+                                  >
+                                    <div style={alternativeSelectionOptionNameStyle}>
+                                      {option.displayName || option.name}
+                                    </div>
+                                    <div style={alternativeSelectionOptionMetaStyle}>
+                                      {option.isBase
+                                        ? "Originalövning"
+                                        : `Alternativ till ${exercise.displayName || exercise.name}`}
+                                    </div>
+                                  </button>
+                                )
+                              })}
                             </div>
-                          </button>
-                        )
-                      })}
-                    </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -10334,9 +10549,9 @@ function TrainingApp() {
                           onClick={() => handleToggleSetType(i, j)}
                           style={{
                             ...setTypeToggleStyle,
-                            backgroundColor: set.set_type === "warmup" ? "#fff7ed" : "#eef4ff",
-                            borderColor: set.set_type === "warmup" ? "#fdba74" : "#bfdbfe",
-                            color: set.set_type === "warmup" ? "#b45309" : "#1d4ed8",
+                            backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
+                            borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
+                            color: set.set_type === "warmup" ? playerAccent : playerPaper,
                           }}
                         >
                           {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
@@ -10345,7 +10560,7 @@ function TrainingApp() {
 
                       {set.set_type === "warmup" && (
                         <div style={setInputHintStyle}>
-                          Det här setet sparas som uppvärmning och räknas inte in i statistik eller rekommenderade vikter.
+                          Uppvärmningsset räknas inte i statistik.
                         </div>
                       )}
 
@@ -10436,40 +10651,34 @@ function TrainingApp() {
                   ))}
 
                 {isWorkoutActive && (
-                  <div style={exerciseCommentCardStyle}>
-                    <div style={exerciseCommentTitleStyle}>Kommentar på övningen</div>
-                    <textarea
-                      rows={3}
-                      placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
-                      value={exerciseComments[i] || ""}
-                      onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
-                      onBlur={() => handleExerciseCommentSave(i)}
-                      style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "88px" }}
-                    />
-                  </div>
-                )}
-
-                {exercise.info.length > 0 && (
-                  <div style={infoBoxStyle}>
+                  <div style={activeLiftSupportPanelStyle}>
                     <button
                       type="button"
                       onClick={() =>
                         setExpandedInfo((prev) => ({
                           ...prev,
-                          [infoKey]: !prev[infoKey],
+                          [commentInfoKey]: !prev[commentInfoKey],
                         }))
                       }
-                      style={infoToggleButtonStyle}
+                      style={activeLiftSupportButtonStyle}
                     >
-                      <span>Att tänka på</span>
-                      <span>{isInfoExpanded ? "−" : "+"}</span>
+                      <span>
+                        <span style={activeLiftSupportKickerStyle}>Efter seten</span>
+                        <span style={activeLiftSupportTitleStyle}>Kommentar på övningen</span>
+                      </span>
+                      <span style={activeLiftSupportIconStyle}>{isCommentExpanded ? "−" : "+"}</span>
                     </button>
 
-                    {isInfoExpanded && (
-                      <div style={{ marginTop: "8px" }}>
-                        {exercise.info.map((item, index) => (
-                          <div key={index} style={infoRowStyle}>• {item}</div>
-                        ))}
+                    {isCommentExpanded && (
+                      <div style={activeLiftComposerStyle}>
+                        <textarea
+                          rows={3}
+                          placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
+                          value={exerciseComments[i] || ""}
+                          onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
+                          onBlur={() => handleExerciseCommentSave(i)}
+                          style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "88px" }}
+                        />
                       </div>
                     )}
                   </div>
@@ -10940,6 +11149,17 @@ const compactFieldLabelStyle = {
   color: "#18202b",
 }
 
+const fieldLabelStyle = {
+  display: "grid",
+  gap: "7px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
 const feedbackComposerCardStyle = {
   marginBottom: "16px",
   padding: "18px",
@@ -11118,46 +11338,6 @@ const exerciseDescriptionStyle = {
   fontWeight: "700",
 }
 
-const exerciseHeaderButtonStyle = {
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "12px",
-  padding: 0,
-  border: "none",
-  background: "transparent",
-  textAlign: "left",
-}
-
-const exerciseHeaderHintStyle = {
-  fontSize: "12px",
-  color: "#6b7280",
-  fontWeight: "700",
-}
-
-const exerciseHeaderIconStyle = {
-  width: "34px",
-  height: "34px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
-  fontSize: "22px",
-  fontWeight: "700",
-  flexShrink: 0,
-}
-
-const exerciseDetailsPanelStyle = {
-  marginBottom: "14px",
-  padding: "14px",
-  borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurfaceAlt,
-}
-
 const exerciseDetailsLabelStyle = {
   marginBottom: "6px",
   fontSize: "12px",
@@ -11178,13 +11358,6 @@ const exerciseMediaStyle = {
   borderRadius: "16px",
   border: "1px solid #e5e7eb",
   backgroundColor: "#111827",
-}
-
-const subheadingStyle = {
-  margin: "0 0 6px 0",
-  fontSize: "14px",
-  fontWeight: "800",
-  color: "#18202b",
 }
 
 const mutedTextStyle = {
@@ -11226,11 +11399,11 @@ const exerciseCarouselStatusStyle = {
 
 const exerciseCarouselViewportStyle = {
   width: "100%",
-  overflowX: "auto",
+  overflowX: "hidden",
   WebkitOverflowScrolling: "touch",
   scrollSnapType: "x mandatory",
   overscrollBehaviorX: "contain",
-  paddingBottom: "4px",
+  paddingBottom: 0,
 }
 
 const exerciseCarouselTrackStyle = {
@@ -11255,6 +11428,102 @@ const activeWorkoutExerciseCardStyle = {
   background:
     "radial-gradient(circle at 96% 6%, rgba(217, 74, 31, 0.16), transparent 26%), rgba(255, 255, 255, 0.24)",
   boxShadow: "0 20px 42px rgba(26, 24, 20, 0.08)",
+}
+
+const activeWarmupScreenStyle = {
+  display: "grid",
+  gap: "14px",
+}
+
+const activeWarmupTitleStyle = {
+  margin: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(42px, 12vw, 68px)",
+  lineHeight: 0.88,
+  fontWeight: 650,
+  fontStyle: "italic",
+  letterSpacing: "-0.06em",
+  color: playerInk,
+}
+
+const activeWarmupLeadStyle = {
+  maxWidth: "420px",
+  fontSize: "15px",
+  lineHeight: 1.45,
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
+const activeWarmupGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const activeWarmupBlockStyle = {
+  padding: "15px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.64)",
+}
+
+const activeWarmupBlockLabelStyle = {
+  marginBottom: "8px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWarmupBlockTextStyle = {
+  fontSize: "17px",
+  lineHeight: 1.35,
+  fontWeight: 900,
+  color: playerInk,
+}
+
+const activeWarmupStepsStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const activeWarmupStepStyle = {
+  display: "grid",
+  gridTemplateColumns: "28px minmax(0, 1fr)",
+  gap: "10px",
+  alignItems: "start",
+  fontSize: "14px",
+  lineHeight: 1.35,
+  fontWeight: 800,
+  color: playerInk,
+}
+
+const activeLiftHeroStyle = {
+  marginBottom: "14px",
+}
+
+const activeLiftTitleStyle = {
+  margin: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(44px, 13vw, 76px)",
+  lineHeight: 0.86,
+  fontWeight: 650,
+  fontStyle: "italic",
+  letterSpacing: "-0.07em",
+  color: playerInk,
+}
+
+const activeLiftSideHintStyle = {
+  marginTop: "10px",
+  display: "inline-flex",
+  padding: "7px 10px",
+  borderRadius: "999px",
+  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  color: playerAccent,
+  fontSize: "12px",
+  fontWeight: 900,
 }
 
 const activeWorkoutFinishTitleStyle = {
@@ -11314,23 +11583,23 @@ const activeLiftDataMetaStyle = {
 
 const activeLiftLogHeaderStyle = (isMobile) => ({
   display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 0.8fr) minmax(180px, 0.6fr)",
+  gap: "8px",
+  gridTemplateColumns: isMobile ? "minmax(0, 1fr) minmax(118px, 0.7fr)" : "minmax(220px, 0.8fr) minmax(180px, 0.6fr)",
   alignItems: "stretch",
-  marginBottom: "10px",
+  margin: "14px 0 10px",
 })
 
 const activeLiftRestButtonStyle = {
   ...restStopwatchCardStyle,
-  minHeight: "96px",
+  minHeight: "82px",
   display: "grid",
-  gap: "5px",
+  gap: "3px",
   alignContent: "center",
 }
 
 const activeLiftAddSetButtonStyle = {
-  minHeight: "96px",
-  padding: "18px",
+  minHeight: "82px",
+  padding: "14px",
   borderRadius: "20px",
   border: `1px solid ${playerAccent}`,
   background: playerAccent,
@@ -11340,6 +11609,13 @@ const activeLiftAddSetButtonStyle = {
   fontWeight: 900,
   boxShadow: "0 16px 30px rgba(217, 74, 31, 0.18)",
 }
+
+const activeLiftSupportGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "8px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  marginBottom: "12px",
+})
 
 const activeLiftSupportPanelStyle = {
   marginBottom: "12px",
@@ -11412,40 +11688,11 @@ const targetSectionLabelStyle = {
   marginBottom: "8px",
 }
 
-const infoBoxStyle = {
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
-  borderRadius: "16px",
-  padding: "10px 12px",
-  marginBottom: "14px",
-}
-
-
-const infoRowStyle = {
-  fontSize: "13px",
-  color: "#566173",
-  lineHeight: 1.6,
-}
-
-const infoToggleButtonStyle = {
-  width: "100%",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  border: "none",
-  backgroundColor: "transparent",
-  padding: 0,
-  fontSize: "14px",
-  fontWeight: "800",
-  color: "#18202b",
-  cursor: "pointer",
-}
-
 const activeSetCardStyle = {
-  marginBottom: "10px",
-  padding: "14px",
-  borderRadius: "18px",
-  backgroundColor: "rgba(255, 255, 255, 0.46)",
+  marginBottom: "8px",
+  padding: "13px",
+  borderRadius: "20px",
+  backgroundColor: "rgba(243, 239, 230, 0.72)",
   border: `1px solid ${playerLine}`,
 }
 
@@ -11469,13 +11716,6 @@ const alternativeSelectionCardStyle = {
   borderRadius: "20px",
   backgroundColor: "rgba(243, 239, 230, 0.58)",
   border: `1px solid ${playerLine}`,
-}
-
-const alternativeSelectionTitleStyle = {
-  marginBottom: "4px",
-  fontSize: "13px",
-  fontWeight: "800",
-  color: playerInk,
 }
 
 const alternativeSelectionHintStyle = {
@@ -11547,9 +11787,9 @@ const setHeaderRowStyle = {
 const setTypeToggleStyle = {
   padding: "7px 10px",
   borderRadius: "999px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: "#eef4ff",
-  color: "#1d4ed8",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: playerInk,
+  color: playerPaper,
   cursor: "pointer",
   fontSize: "12px",
   fontWeight: "800",
@@ -11710,6 +11950,37 @@ const playerRunningHubCardTitleStyle = {
   fontWeight: 900,
   color: playerInk,
 }
+
+const playerRunningRegistrationPageStyle = {
+  padding: "18px",
+  borderRadius: "26px",
+  border: `1px solid ${playerLine}`,
+  background:
+    "radial-gradient(circle at 90% 8%, rgba(217, 74, 31, 0.18), transparent 28%), rgba(243, 239, 230, 0.66)",
+  display: "grid",
+  gap: "14px",
+}
+
+const playerRunningRegistrationHeaderStyle = {
+  display: "grid",
+  gap: "6px",
+}
+
+const playerRunningRegistrationTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(32px, 9vw, 52px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  fontStyle: "italic",
+  letterSpacing: "-0.06em",
+  color: playerInk,
+}
+
+const playerRunningRegistrationGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
 
 const playerRecommendedPassSectionStyle = {
   display: "grid",
