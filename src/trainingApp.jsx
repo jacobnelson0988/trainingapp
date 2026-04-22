@@ -7645,6 +7645,7 @@ function TrainingApp() {
   const showAdminBottomNav = profile?.role === "head_admin" && isMobile && globalView === "app"
   const showPlayerBottomNav =
     profile?.role === "player" && isMobile && globalView !== "gdpr" && !isWorkoutActive
+  const usePlayerRedesignShell = profile?.role === "player" && globalView === "app"
   const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
   const statisticsPlayers =
     profile?.role === "head_admin"
@@ -7702,6 +7703,7 @@ function TrainingApp() {
     <div
       style={{
         ...pageStyle,
+        ...(usePlayerRedesignShell ? playerShellPageStyle(isMobile) : {}),
         position: "relative",
         padding: isMobile
           ? `max(14px, env(safe-area-inset-top)) 12px ${
@@ -7713,48 +7715,102 @@ function TrainingApp() {
           : pageStyle.padding,
       }}
     >
-      <div
-        style={{
-          ...headerStyle,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : headerStyle.alignItems,
-          marginBottom: isMobile ? "14px" : headerStyle.marginBottom,
-          gap: isMobile ? "12px" : headerStyle.gap,
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          <p style={eyebrowStyle}>
-            {profile?.role === "head_admin"
-              ? "Huvudadmin"
-              : profile?.role === "coach"
-              ? "Coachläge"
-              : "Spelarläge"}
-          </p>
-          <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
-            Starkare Gurra
-          </h1>
-          <p
-            style={{
-              ...appSubtitleStyle,
-              maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
-              fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
-            }}
-          >
-            {playerHeaderSubtitle}
-          </p>
-        </div>
+      {!usePlayerRedesignShell && (
+        <div
+          style={{
+            ...headerStyle,
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : headerStyle.alignItems,
+            marginBottom: isMobile ? "14px" : headerStyle.marginBottom,
+            gap: isMobile ? "12px" : headerStyle.gap,
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <p style={eyebrowStyle}>
+              {profile?.role === "head_admin"
+                ? "Huvudadmin"
+                : profile?.role === "coach"
+                ? "Coachläge"
+                : "Spelarläge"}
+            </p>
+            <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
+              Starkare Gurra
+            </h1>
+            <p
+              style={{
+                ...appSubtitleStyle,
+                maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
+                fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
+              }}
+            >
+              {playerHeaderSubtitle}
+            </p>
+          </div>
 
-        <div style={headerActionsWrapStyle(isMobile)}>
+          <div style={headerActionsWrapStyle(isMobile)}>
+            <div style={menuWrapStyle}>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                aria-label="Öppna meny"
+                style={menuButtonStyle}
+              >
+                <span style={menuIconLineStyle} />
+                <span style={menuIconLineStyle} />
+                <span style={menuIconLineStyle} />
+              </button>
+
+              {isMenuOpen && (
+                <div style={menuDropdownStyle(isMobile)}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigateGlobalView("account")
+                    }}
+                    style={menuItemButtonStyle}
+                  >
+                    Mitt konto
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigateGlobalView("gdpr")
+                    }}
+                    style={menuItemButtonStyle}
+                  >
+                    Integritet
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await supabase.auth.signOut()
+                      window.location.reload()
+                    }}
+                    style={menuItemButtonStyle}
+                  >
+                    Logga ut
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {usePlayerRedesignShell && (
+        <div style={playerShellMenuWrapStyle(isMobile)}>
           <div style={menuWrapStyle}>
             <button
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
               aria-label="Öppna meny"
-              style={menuButtonStyle}
+              style={playerShellMenuButtonStyle}
             >
-              <span style={menuIconLineStyle} />
-              <span style={menuIconLineStyle} />
-              <span style={menuIconLineStyle} />
+              <span style={playerShellMenuIconLineStyle} />
+              <span style={playerShellMenuIconLineStyle} />
+              <span style={playerShellMenuIconLineStyle} />
             </button>
 
             {isMenuOpen && (
@@ -7793,7 +7849,7 @@ function TrainingApp() {
             )}
           </div>
         </div>
-      </div>
+      )}
 
       {globalView === "account" && (
         <div
@@ -7940,30 +7996,32 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      <div
-        style={{
-          ...feedbackActionBarStyle,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
-          <div style={mutedTextStyle}>
-            Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsFeedbackOpen((prev) => !prev)}
-          style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+      {!usePlayerRedesignShell && (
+        <div
+          style={{
+            ...feedbackActionBarStyle,
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
+          }}
         >
-          {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
-        </button>
-      </div>
+          <div style={{ flex: 1 }}>
+            <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
+            <div style={mutedTextStyle}>
+              Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
+            </div>
+          </div>
 
-      {isFeedbackOpen && (
+          <button
+            type="button"
+            onClick={() => setIsFeedbackOpen((prev) => !prev)}
+            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+          >
+            {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
+          </button>
+        </div>
+      )}
+
+      {isFeedbackOpen && !usePlayerRedesignShell && (
         <div style={feedbackComposerCardStyle}>
           <div style={cardTitleStyle}>Skriv feedback</div>
           <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
@@ -9487,7 +9545,7 @@ function TrainingApp() {
         <div style={coachBottomNavWrapStyle}>
           <div
             style={{
-              ...coachBottomNavStyle,
+              ...(usePlayerRedesignShell ? playerBottomNavStyle : coachBottomNavStyle),
               gridTemplateColumns: `repeat(${playerBottomTabs.length}, minmax(0, 1fr))`,
             }}
           >
@@ -9502,18 +9560,32 @@ function TrainingApp() {
                   onClick={() => navigatePlayerSection(tab.key)}
                   style={{
                     ...coachBottomNavButtonStyle,
-                    color: isActive ? "#b61e24" : "#6b7280",
+                    color: usePlayerRedesignShell
+                      ? isActive
+                        ? playerAccent
+                        : playerInkSoft
+                      : isActive
+                      ? "#b61e24"
+                      : "#6b7280",
                   }}
                 >
                   <span
                     style={{
-                      ...coachBottomNavIconWrapStyle,
-                      backgroundColor: isActive ? "#fff1f1" : "transparent",
+                      ...(usePlayerRedesignShell ? playerBottomNavIconWrapStyle : coachBottomNavIconWrapStyle),
+                      backgroundColor: usePlayerRedesignShell
+                        ? isActive
+                          ? "rgba(217, 74, 31, 0.12)"
+                          : "transparent"
+                        : isActive
+                        ? "#fff1f1"
+                        : "transparent",
                     }}
                   >
                     {renderCoachBottomNavIcon(tab.icon, isActive)}
                   </span>
-                  <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                  <span style={usePlayerRedesignShell ? playerBottomNavLabelStyle : coachBottomNavLabelStyle}>
+                    {tab.label}
+                  </span>
                 </button>
               )
             })}
@@ -10571,6 +10643,46 @@ const playerAccent = "#d94a1f"
 const playerLine = "rgba(26, 24, 20, 0.14)"
 const playerDisplayFont = '"Fraunces", Georgia, serif'
 const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
+
+const playerShellPageStyle = (isMobile) => ({
+  maxWidth: isMobile ? "100%" : "760px",
+  background:
+    "radial-gradient(circle at 18% -6%, rgba(217, 74, 31, 0.16), transparent 34%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
+  color: playerInk,
+  fontFamily: '"Roboto", sans-serif',
+  boxShadow: isMobile ? "none" : "0 30px 70px rgba(26, 24, 20, 0.08)",
+})
+
+const playerShellMenuWrapStyle = (isMobile) => ({
+  position: "fixed",
+  top: isMobile ? "max(14px, env(safe-area-inset-top))" : "24px",
+  right: isMobile ? "14px" : "calc((100vw - min(760px, 100vw)) / 2 + 22px)",
+  zIndex: 35,
+})
+
+const playerShellMenuButtonStyle = {
+  width: "48px",
+  height: "48px",
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "5px",
+  padding: 0,
+  borderRadius: "999px",
+  border: "1px solid rgba(26, 24, 20, 0.18)",
+  backgroundColor: "rgba(26, 24, 20, 0.92)",
+  color: playerPaper,
+  cursor: "pointer",
+  boxShadow: "0 18px 36px rgba(26, 24, 20, 0.22)",
+}
+
+const playerShellMenuIconLineStyle = {
+  width: "20px",
+  height: "2px",
+  borderRadius: "999px",
+  backgroundColor: playerPaper,
+}
 
 const appTitleStyle = {
   margin: "0 0 8px 0",
@@ -11855,10 +11967,7 @@ const dangerActionButtonStyle = {
 const playerTodayPageStyle = {
   display: "grid",
   gap: "16px",
-  padding: "4px",
-  borderRadius: "30px",
-  background:
-    "radial-gradient(circle at 15% 0%, rgba(217, 74, 31, 0.13), transparent 28%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
+  padding: "0 4px 6px",
 }
 
 const playerTodayMetaRowStyle = {
@@ -11866,7 +11975,7 @@ const playerTodayMetaRowStyle = {
   alignItems: "flex-start",
   justifyContent: "space-between",
   gap: "14px",
-  padding: "8px 6px 0",
+  padding: "8px 62px 0 6px",
 }
 
 const playerTodayMonoLabelStyle = {
@@ -12587,6 +12696,13 @@ const coachBottomNavStyle = {
   pointerEvents: "auto",
 }
 
+const playerBottomNavStyle = {
+  ...coachBottomNavStyle,
+  borderTop: "1px solid rgba(26, 24, 20, 0.08)",
+  background: "rgba(243, 239, 230, 0.94)",
+  boxShadow: "0 -18px 38px rgba(26, 24, 20, 0.12)",
+}
+
 const coachBottomNavButtonStyle = {
   border: "none",
   background: "transparent",
@@ -12610,11 +12726,23 @@ const coachBottomNavIconWrapStyle = {
   justifyContent: "center",
 }
 
+const playerBottomNavIconWrapStyle = {
+  ...coachBottomNavIconWrapStyle,
+  borderRadius: "999px",
+}
+
 const coachBottomNavLabelStyle = {
   fontSize: "11px",
   fontWeight: "800",
   lineHeight: 1.1,
   textAlign: "center",
+}
+
+const playerBottomNavLabelStyle = {
+  ...coachBottomNavLabelStyle,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  letterSpacing: "0.02em",
 }
 
 export default TrainingApp
