@@ -1166,6 +1166,7 @@ function TrainingApp() {
   const [coachView, setCoachView] = useState("home")
   const [playerView, setPlayerView] = useState("overview")
   const [playerOverviewPanel, setPlayerOverviewPanel] = useState(null)
+  const [playerPassFamily, setPlayerPassFamily] = useState(null)
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseId, setSelectedPlayerStatsExerciseId] = useState("")
@@ -7501,6 +7502,40 @@ function TrainingApp() {
       }
     })
     .filter(Boolean)
+  const playerWorkoutEntriesByFamily = {
+    strength: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "gym"),
+    running: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "running"),
+    prehab: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "prehab"),
+  }
+  const playerFamilyCounts = {
+    strength: playerWorkoutEntriesByFamily.strength.length,
+    running: playerWorkoutEntriesByFamily.running.length,
+    prehab: playerWorkoutEntriesByFamily.prehab.length,
+  }
+  const displayedGroupedWorkoutEntries = groupedVisibleWorkoutEntries.filter((group) => {
+    if (playerPassFamily === "strength") {
+      return group.workoutKind === "gym_individual" || group.workoutKind === "gym_shared"
+    }
+    if (playerPassFamily === "running") return group.workoutKind === "running"
+    if (playerPassFamily === "prehab") return group.workoutKind === "prehab"
+    return true
+  })
+  const playerPassFamilyTitle =
+    playerPassFamily === "strength"
+      ? "Styrka"
+      : playerPassFamily === "running"
+      ? "Löpning"
+      : playerPassFamily === "prehab"
+      ? "Prehab"
+      : "Välj träning"
+  const playerPassFamilyDescription =
+    playerPassFamily === "strength"
+      ? "Rekommenderade styrkepass först, men du väljer själv vad du kör idag."
+      : playerPassFamily === "running"
+      ? "Välj ett färdigt intervallpass, skapa ett enkelt eget intervallpass eller logga fri distans."
+      : playerPassFamily === "prehab"
+      ? "Skadeförebyggande pass samlade för snabb start."
+      : "Börja med träningsfamilj och gå vidare därifrån."
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmup = {
@@ -7579,14 +7614,7 @@ function TrainingApp() {
           ([, workout]) => String(workout.id) === String(primaryTodayCalendarEntry.workout_template_id)
         )
       : null
-  const fallbackWorkoutEntry = sortedVisibleWorkoutEntries[0] || null
-  const primaryHomeWorkoutKey = primaryTodayWorkoutEntry?.[0] || fallbackWorkoutEntry?.[0] || null
-  const primaryHomeWorkout = primaryTodayWorkoutEntry?.[1] || fallbackWorkoutEntry?.[1] || null
-  const primaryHomeSource = primaryTodayCalendarEntry
-    ? `I kalendern${formatCalendarTime(primaryTodayCalendarEntry.starts_at) ? ` · ${formatCalendarTime(primaryTodayCalendarEntry.starts_at)}` : ""}`
-    : primaryHomeWorkout
-    ? "Rekommenderat"
-    : "Ingen aktivitet idag"
+  const primaryHomeWorkout = primaryTodayWorkoutEntry?.[1] || null
   const primaryHomeTitle = primaryTodayCalendarEntry?.title || primaryHomeWorkout?.label || "Lugnt idag"
   const primaryHomeSubtitle = primaryHomeWorkout
     ? primaryHomeWorkout.workoutKind === "running"
@@ -7599,10 +7627,37 @@ function TrainingApp() {
     : primaryTodayCalendarEntry
     ? "Egen aktivitet"
     : "Inget pass planerat"
+  const todayCalendarSummary = primaryTodayCalendarEntry
+    ? `${primaryTodayCalendarEntry.title}${
+        formatCalendarTime(primaryTodayCalendarEntry.starts_at)
+          ? ` · ${formatCalendarTime(primaryTodayCalendarEntry.starts_at)}`
+          : ""
+      }`
+    : "Planera eller se veckan"
   const weekCompletionCount = completedWorkoutSessions.filter(
     (session) => getDateInputValueFromTimestamp(session.created_at) >= calendarWeekStart
   ).length
   const todayWeekIndex = (new Date().getDay() + 6) % 7
+  const activeWorkoutCurrentExercise =
+    !isRunningWorkoutActive && activeExerciseIndex > 0 && activeExerciseIndex <= activeWorkoutExercises.length
+      ? activeWorkoutExercises[activeExerciseIndex - 1]
+      : null
+  const activeWorkoutFocusTitle = isRunningWorkoutActive
+    ? activeWorkoutData?.label || "Löppass"
+    : isWarmupSlideActive
+    ? "Värm upp."
+    : isFinishSlideActive
+    ? "Spara passet."
+    : activeWorkoutCurrentExercise?.displayName || activeWorkoutCurrentExercise?.name || "Nästa övning"
+  const activeWorkoutFocusMeta = isRunningWorkoutActive
+    ? buildRunningSummary({
+        running_type: activeWorkoutData?.runningType,
+        interval_time: activeWorkoutData?.runningConfig?.interval_time,
+        intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
+        running_distance: activeWorkoutData?.runningConfig?.running_distance,
+        running_time: activeWorkoutData?.runningConfig?.running_time,
+      })
+    : activeWorkoutProgressSummary
 
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
@@ -7688,6 +7743,33 @@ function TrainingApp() {
 
     navigateGlobalView("app")
     setPlayerView(tabKey)
+  }
+  const openPlayerPassFamily = (familyKey) => {
+    setPlayerPassFamily(familyKey)
+    setPlayerOverviewPanel(null)
+    navigatePlayerSection("pass")
+  }
+  const openRunningDraftPanel = (panelKey) => {
+    const nextDraft = {
+      log_date: runningDraft.log_date || getTodayDateInputValue(),
+      free_activity_type: panelKey === "running" ? "" : "running",
+      custom_activity_title: "",
+      running_type: panelKey === "ownInterval" ? "intervals" : "distance",
+      interval_time: "",
+      intervals_count: "",
+      running_distance: "",
+      running_time: "",
+      average_pulse: "",
+      comment: "",
+    }
+
+    setRunningDraft((prev) => ({
+      ...prev,
+      ...nextDraft,
+    }))
+    setPendingFreeActivityCalendarEvent(null)
+    setPlayerOverviewPanel(panelKey)
+    setPlayerView("overview")
   }
   const togglePlayerOverviewPanel = (panelKey) => {
     setPlayerOverviewPanel((current) => (current === panelKey ? null : panelKey))
@@ -8727,141 +8809,125 @@ function TrainingApp() {
                 <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (primaryTodayCalendarEntry) {
-                    handleOpenCalendarEntry(primaryTodayCalendarEntry)
-                    return
-                  }
-
-                  if (primaryHomeWorkoutKey) {
-                    startWorkout(primaryHomeWorkoutKey)
-                    return
-                  }
-
-                  navigatePlayerSection("pass")
-                }}
-                style={playerTodayPrimaryCardStyle}
-              >
-                <div style={playerTodayPrimaryCardTopStyle}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={playerTodaySourceRowStyle}>
-                      {primaryTodayCalendarEntry && <span style={playerTodayAccentDotStyle} />}
-                      <span>{primaryHomeSource}</span>
-                    </div>
-                    <div style={playerTodayWorkoutTitleStyle}>{primaryHomeTitle}</div>
-                    <div style={playerTodayWorkoutSubtitleStyle}>{primaryHomeSubtitle}</div>
+              {primaryTodayCalendarEntry && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenCalendarEntry(primaryTodayCalendarEntry)}
+                  style={playerTodayCalendarCardStyle}
+                >
+                  <div style={playerTodaySourceRowStyle}>
+                    <span style={playerTodayAccentDotStyle} />
+                    <span>I kalendern</span>
                   </div>
-                  <div style={playerTodayPlayButtonStyle}>▶</div>
+                  <div style={playerTodayWorkoutTitleStyle}>{primaryHomeTitle}</div>
+                  <div style={playerTodayWorkoutSubtitleStyle}>{primaryHomeSubtitle}</div>
+                  <div style={playerHomeCalendarActionStyle}>Öppna aktivitet →</div>
+                </button>
+              )}
+
+              <div style={playerHomeSectionHeaderStyle}>
+                <div>
+                  <div style={playerTodayMonoLabelStyle}>Välj träning</div>
+                  <div style={playerHomeSectionTitleStyle}>Vad ska du köra?</div>
                 </div>
-                <div style={playerTodayStatsRowStyle}>
-                  <div style={playerTodayStatStyle}>
-                    <span>Övningar</span>
-                    <strong>{primaryHomeWorkout?.workoutKind === "running" ? "Löp" : primaryHomeWorkout?.exercises?.length || "-"}</strong>
-                  </div>
-                  <div style={playerTodayStatStyle}>
-                    <span>Pass</span>
-                    <strong>{Object.keys(visibleWorkouts).length}</strong>
-                  </div>
-                  <div style={playerTodayStatStyle}>
-                    <span>Senast</span>
-                    <strong>{primaryHomeWorkoutKey ? formatDaysSince(latestPassDates[primaryHomeWorkoutKey]) : "-"}</strong>
-                  </div>
-                </div>
-              </button>
+                <div style={playerHomeSectionMetaStyle}>{Object.keys(visibleWorkouts).length} pass</div>
+              </div>
 
-              <div style={playerTodayQuickActionsGridStyle(isMobile)}>
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => navigatePlayerSection("pass")}
-                    style={playerTodayQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Välj pass</div>
-                      <div style={playerTodayQuickActionArrowStyle}>→</div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      A · B · C · löp
-                    </div>
-                  </button>
-                </div>
-
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => navigatePlayerSection("stats")}
-                    style={playerTodayQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Statistik</div>
-                      <div style={playerTodayQuickActionArrowStyle}>→</div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Din progression
-                    </div>
-                  </button>
-                </div>
-
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("history")}
-                    style={playerTodayQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Historik</div>
-                    <div style={playerTodayQuickActionArrowStyle}>
-                      {playerOverviewPanel === "history" ? "−" : "+"}
-                    </div>
-                  </div>
-                  <div style={playerQuickActionTextStyle}>
-                    Tidigare pass
+              <div style={playerTrainingMenuGridStyle(isMobile)}>
+                <button
+                  type="button"
+                  onClick={() => openPlayerPassFamily("strength")}
+                  style={playerHomeTrainingCardStyle("ink")}
+                >
+                  <div style={playerHomeTrainingKickerStyle}>Rekommenderat</div>
+                  <div style={playerHomeTrainingTitleStyle}>Styrka</div>
+                  <div style={playerHomeTrainingTextStyle}>
+                    {playerFamilyCounts.strength
+                      ? `${playerFamilyCounts.strength} pass att välja mellan`
+                      : "Inga styrkepass tilldelade ännu"}
                   </div>
                 </button>
 
-                </div>
-
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("running")}
-                    style={playerTodayQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Egen aktivitet</div>
-                      <div style={playerTodayQuickActionArrowStyle}>
-                        {playerOverviewPanel === "running" ? "−" : "+"}
-                      </div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Logga annat
-                    </div>
-                  </button>
-
-                </div>
-
-                <div style={playerTodayWeekCardStyle}>
-                  <div style={playerTodayWeekHeaderStyle}>
-                    <div style={playerTodayMonoLabelStyle}>Denna vecka</div>
-                    <div style={playerTodayWeekCountStyle}>{weekCompletionCount} loggade</div>
+                <button
+                  type="button"
+                  onClick={() => openPlayerPassFamily("running")}
+                  style={playerHomeTrainingCardStyle("accent")}
+                >
+                  <div style={playerHomeTrainingKickerStyle}>Fritt och snabbt</div>
+                  <div style={playerHomeTrainingTitleStyle}>Löpning</div>
+                  <div style={playerHomeTrainingTextStyle}>
+                    Intervaller, egen intervall och fri distans
                   </div>
-                  <div style={playerTodayWeekGridStyle}>
-                    {["M", "T", "O", "T", "F", "L", "S"].map((day, index) => (
-                      <div
-                        key={`${day}-${index}`}
-                        style={{
-                          ...playerTodayWeekCellStyle,
-                          ...(index === todayWeekIndex ? playerTodayWeekCellTodayStyle : {}),
-                          ...(index < Math.min(weekCompletionCount, 7) ? playerTodayWeekCellDoneStyle : {}),
-                        }}
-                      >
-                        {day}
-                      </div>
-                    ))}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openPlayerPassFamily("prehab")}
+                  style={playerHomeTrainingCardStyle("paper")}
+                >
+                  <div style={playerHomeTrainingKickerStyle}>Hållbarhet</div>
+                  <div style={playerHomeTrainingTitleStyle}>Prehab</div>
+                  <div style={playerHomeTrainingTextStyle}>
+                    {playerFamilyCounts.prehab ? `${playerFamilyCounts.prehab} pass` : "Skadeförebyggande"}
                   </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigatePlayerSection("calendar")}
+                  style={playerHomeTrainingCardStyle("paper")}
+                >
+                  <div style={playerHomeTrainingKickerStyle}>Kalender</div>
+                  <div style={playerHomeTrainingTitleStyle}>Planera</div>
+                  <div style={playerHomeTrainingTextStyle}>{todayCalendarSummary}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openRunningDraftPanel("running")}
+                  style={playerHomeTrainingCardStyle("paper")}
+                >
+                  <div style={playerHomeTrainingKickerStyle}>Eget</div>
+                  <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
+                  <div style={playerHomeTrainingTextStyle}>Fotboll, innebandy, racket eller annat</div>
+                </button>
+              </div>
+
+              <div style={playerHomeToolsRowStyle(isMobile)}>
+                <button type="button" onClick={() => togglePlayerOverviewPanel("history")} style={playerHomeToolButtonStyle}>
+                  Historik
+                </button>
+                <button type="button" onClick={() => navigatePlayerSection("stats")} style={playerHomeToolButtonStyle}>
+                  Statistik
+                </button>
+                <button type="button" onClick={() => navigatePlayerSection("messages")} style={playerHomeToolButtonStyle}>
+                  {unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden"}
+                </button>
+                <button type="button" onClick={() => navigatePlayerSection("account")} style={playerHomeToolButtonStyle}>
+                  Konto
+                </button>
+              </div>
+
+              <div style={playerTodayWeekCardStyle}>
+                <div style={playerTodayWeekHeaderStyle}>
+                  <div style={playerTodayMonoLabelStyle}>Denna vecka</div>
+                  <div style={playerTodayWeekCountStyle}>{weekCompletionCount} loggade</div>
                 </div>
+                <div style={playerTodayWeekGridStyle}>
+                  {["M", "T", "O", "T", "F", "L", "S"].map((day, index) => (
+                    <div
+                      key={`${day}-${index}`}
+                      style={{
+                        ...playerTodayWeekCellStyle,
+                        ...(index === todayWeekIndex ? playerTodayWeekCellTodayStyle : {}),
+                        ...(index < Math.min(weekCompletionCount, 7) ? playerTodayWeekCellDoneStyle : {}),
+                      }}
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+              </div>
 
                 {playerOverviewPanel === "history" && (
                   <div style={playerOverviewPanelRowStyle}>
@@ -8999,13 +9065,23 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {playerOverviewPanel === "running" && (
+                {["running", "ownInterval", "distance"].includes(playerOverviewPanel) && (
                   <div style={playerOverviewPanelRowStyle}>
                     <div style={playerOverviewPanelStyle}>
                       <div>
-                        <div style={playerOverviewPanelTitleStyle}>Egen aktivitet</div>
+                        <div style={playerOverviewPanelTitleStyle}>
+                          {playerOverviewPanel === "ownInterval"
+                            ? "Skapa eget intervallpass"
+                            : playerOverviewPanel === "distance"
+                            ? "Logga distans"
+                            : "Egen aktivitet"}
+                        </div>
                         <div style={playerOverviewPanelTextStyle}>
-                          Spara träning du gör i andra sporter utanför lagpassen.
+                          {playerOverviewPanel === "ownInterval"
+                            ? "Spara ett enkelt intervallpass med tid per intervall och antal intervaller."
+                            : playerOverviewPanel === "distance"
+                            ? "Distans är fri: fyll i datum, kilometer, tid och puls efter passet."
+                            : "Spara träning du gör i andra sporter utanför lagpassen."}
                         </div>
                       </div>
 
@@ -9039,18 +9115,24 @@ function TrainingApp() {
                             onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
                             style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
                           />
-                          <select
-                            value={runningDraft.free_activity_type}
-                            onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
-                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                          >
-                            <option value="">Välj aktivitet</option>
-                            {FREE_ACTIVITY_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                          {playerOverviewPanel === "running" ? (
+                            <select
+                              value={runningDraft.free_activity_type}
+                              onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
+                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                            >
+                              <option value="">Välj aktivitet</option>
+                              {FREE_ACTIVITY_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div style={playerFixedDraftTypeStyle}>
+                              {playerOverviewPanel === "ownInterval" ? "Löpning · Intervaller" : "Löpning · Distans"}
+                            </div>
+                          )}
                           {!runningDraft.free_activity_type ? (
                             <div
                               style={{
@@ -9060,7 +9142,7 @@ function TrainingApp() {
                             >
                               Börja med att välja aktivitet. Då visas rätt fält direkt under.
                             </div>
-                          ) : runningDraft.free_activity_type === "running" ? (
+                          ) : runningDraft.free_activity_type === "running" && playerOverviewPanel === "running" ? (
                             <select
                               value={runningDraft.running_type}
                               onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
@@ -9184,14 +9266,19 @@ function TrainingApp() {
                             cursor: isSavingRunningSession ? "default" : "pointer",
                           }}
                         >
-                          {isSavingRunningSession ? "Sparar..." : "Spara aktivitet"}
+                          {isSavingRunningSession
+                            ? "Sparar..."
+                            : playerOverviewPanel === "ownInterval"
+                            ? "Spara intervallpass"
+                            : playerOverviewPanel === "distance"
+                            ? "Spara distans"
+                            : "Spara aktivitet"}
                         </button>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-            </div>
           )}
 
           {!isWorkoutActive && playerView === "calendar" && (
@@ -9230,12 +9317,28 @@ function TrainingApp() {
           {!isWorkoutActive && playerView === "pass" && (
             <>
               <div style={playerPageIntroStyle}>
-                <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
-                  Dina pass
-                </h2>
-                <p style={mutedTextStyle}>
-                  Välj passet du vill köra. Du ser när du körde det senast innan du startar.
-                </p>
+                <div style={playerTodayMonoLabelStyle}>Passval</div>
+                <h2 style={playerPassPageTitleStyle}>{playerPassFamilyTitle}</h2>
+                <p style={playerPassPageTextStyle}>{playerPassFamilyDescription}</p>
+                <div style={playerPassFamilyTabsStyle}>
+                  {[
+                    ["strength", "Styrka"],
+                    ["running", "Löpning"],
+                    ["prehab", "Prehab"],
+                  ].map(([familyKey, label]) => (
+                    <button
+                      key={familyKey}
+                      type="button"
+                      onClick={() => setPlayerPassFamily(familyKey)}
+                      style={{
+                        ...playerPassFamilyTabStyle,
+                        ...(playerPassFamily === familyKey ? playerPassFamilyTabActiveStyle : {}),
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {Object.keys(visibleWorkouts).length === 0 ? (
@@ -9244,7 +9347,59 @@ function TrainingApp() {
                 </p>
               ) : (
                 <div style={pickerGridStyle}>
-                  {groupedVisibleWorkoutEntries.map((group) => (
+                  {!playerPassFamily && (
+                    <div style={playerTrainingMenuGridStyle(isMobile)}>
+                      <button type="button" onClick={() => setPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
+                        <div style={playerHomeTrainingKickerStyle}>Rekommenderat</div>
+                        <div style={playerHomeTrainingTitleStyle}>Styrka</div>
+                        <div style={playerHomeTrainingTextStyle}>{playerFamilyCounts.strength} pass</div>
+                      </button>
+                      <button type="button" onClick={() => setPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
+                        <div style={playerHomeTrainingKickerStyle}>Fritt</div>
+                        <div style={playerHomeTrainingTitleStyle}>Löpning</div>
+                        <div style={playerHomeTrainingTextStyle}>Intervaller och distans</div>
+                      </button>
+                      <button type="button" onClick={() => setPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
+                        <div style={playerHomeTrainingKickerStyle}>Hållbarhet</div>
+                        <div style={playerHomeTrainingTitleStyle}>Prehab</div>
+                        <div style={playerHomeTrainingTextStyle}>{playerFamilyCounts.prehab} pass</div>
+                      </button>
+                    </div>
+                  )}
+
+                  {playerPassFamily === "running" && (
+                    <section style={playerRunningHubStyle}>
+                      <div>
+                        <div style={playerTodayMonoLabelStyle}>Löphubb</div>
+                        <div style={playerRunningHubTitleStyle}>Välj hur löpningen ska loggas.</div>
+                      </div>
+                      <div style={playerRunningHubGridStyle(isMobile)}>
+                        <button type="button" onClick={() => setPlayerPassFamily("running")} style={playerRunningHubCardStyle}>
+                          <div style={playerHomeTrainingKickerStyle}>Coachpass</div>
+                          <div style={playerRunningHubCardTitleStyle}>Färdiga intervallpass</div>
+                          <div style={playerHomeTrainingTextStyle}>
+                            {playerFamilyCounts.running ? `${playerFamilyCounts.running} pass nedan` : "Inga färdiga löppass ännu"}
+                          </div>
+                        </button>
+                        <button type="button" onClick={() => openRunningDraftPanel("ownInterval")} style={playerRunningHubCardStyle}>
+                          <div style={playerHomeTrainingKickerStyle}>Eget upplägg</div>
+                          <div style={playerRunningHubCardTitleStyle}>Skapa intervall</div>
+                          <div style={playerHomeTrainingTextStyle}>Tid per intervall och antal intervaller</div>
+                        </button>
+                        <button type="button" onClick={() => openRunningDraftPanel("distance")} style={playerRunningHubCardStyle}>
+                          <div style={playerHomeTrainingKickerStyle}>Fri löpning</div>
+                          <div style={playerRunningHubCardTitleStyle}>Logga distans</div>
+                          <div style={playerHomeTrainingTextStyle}>Datum, kilometer, tid och puls</div>
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                  {displayedGroupedWorkoutEntries.length === 0 && playerPassFamily !== "running" && (
+                    <div style={playerHistoryEmptyStyle}>Inga pass finns i den här kategorin ännu.</div>
+                  )}
+
+                  {displayedGroupedWorkoutEntries.map((group) => (
                     <section
                       key={group.workoutKind}
                       style={{
@@ -9557,7 +9712,12 @@ function TrainingApp() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => navigatePlayerSection(tab.key)}
+                  onClick={() => {
+                    if (tab.key === "pass") {
+                      setPlayerPassFamily(null)
+                    }
+                    navigatePlayerSection(tab.key)
+                  }}
                   style={{
                     ...coachBottomNavButtonStyle,
                     color: usePlayerRedesignShell
@@ -9597,6 +9757,14 @@ function TrainingApp() {
 
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
+          <div style={activeWorkoutFocusHeroStyle}>
+            <div style={playerTodayMonoLabelStyle}>
+              {isRunningWorkoutActive ? "Aktivt löppass" : "Aktuell övning"}
+            </div>
+            <div style={activeWorkoutFocusTitleStyle}>{activeWorkoutFocusTitle}</div>
+            <div style={activeWorkoutFocusMetaStyle}>{activeWorkoutFocusMeta}</div>
+          </div>
+
           <div style={activeWorkoutPageMetaRowStyle(isMobile)}>
             <div style={activeWorkoutPageMetaCardStyle}>
               <div style={activeWorkoutPageMetaLabelStyle}>Pass</div>
@@ -10831,6 +10999,29 @@ const activeWorkoutPageWrapStyle = {
     "radial-gradient(circle at top left, rgba(217, 74, 31, 0.12), transparent 30%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
 }
 
+const activeWorkoutFocusHeroStyle = {
+  marginBottom: "12px",
+  padding: "14px 4px 2px",
+}
+
+const activeWorkoutFocusTitleStyle = {
+  marginTop: "8px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(34px, 10vw, 58px)",
+  lineHeight: 0.92,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const activeWorkoutFocusMetaStyle = {
+  marginTop: "8px",
+  fontSize: "14px",
+  lineHeight: 1.45,
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
 const activeWorkoutPageMetaRowStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
@@ -11582,6 +11773,93 @@ const pickerGridStyle = {
   width: "100%",
 }
 
+const playerPassPageTitleStyle = {
+  margin: "8px 0 6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(42px, 11vw, 68px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  fontStyle: "italic",
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerPassPageTextStyle = {
+  margin: 0,
+  maxWidth: "560px",
+  fontSize: "15px",
+  lineHeight: 1.55,
+  fontWeight: 700,
+  color: playerInkSoft,
+}
+
+const playerPassFamilyTabsStyle = {
+  display: "flex",
+  gap: "8px",
+  marginTop: "14px",
+  flexWrap: "wrap",
+}
+
+const playerPassFamilyTabStyle = {
+  padding: "10px 13px",
+  borderRadius: "999px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.2)",
+  color: playerInkSoft,
+  cursor: "pointer",
+  fontSize: "13px",
+  fontWeight: 900,
+}
+
+const playerPassFamilyTabActiveStyle = {
+  backgroundColor: playerInk,
+  borderColor: playerInk,
+  color: playerPaper,
+}
+
+const playerRunningHubStyle = {
+  padding: "18px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  background:
+    "radial-gradient(circle at 88% 8%, rgba(217, 74, 31, 0.2), transparent 28%), rgba(255, 255, 255, 0.26)",
+  display: "grid",
+  gap: "14px",
+}
+
+const playerRunningHubTitleStyle = {
+  marginTop: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(26px, 7vw, 42px)",
+  lineHeight: 0.95,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerRunningHubGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+})
+
+const playerRunningHubCardStyle = {
+  minHeight: "116px",
+  padding: "15px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.34)",
+  color: playerInk,
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const playerRunningHubCardTitleStyle = {
+  fontSize: "18px",
+  fontWeight: 900,
+  color: playerInk,
+}
+
 const passCategorySectionStyle = {
   padding: "14px",
   borderRadius: "24px",
@@ -12023,11 +12301,9 @@ const playerTodayPrimaryCardStyle = {
   boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
 }
 
-const playerTodayPrimaryCardTopStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "18px",
+const playerTodayCalendarCardStyle = {
+  ...playerTodayPrimaryCardStyle,
+  backgroundColor: playerInk,
 }
 
 const playerTodaySourceRowStyle = {
@@ -12067,70 +12343,114 @@ const playerTodayWorkoutSubtitleStyle = {
   color: "rgba(243, 239, 230, 0.68)",
 }
 
-const playerTodayPlayButtonStyle = {
-  width: "54px",
-  height: "54px",
-  borderRadius: "999px",
-  backgroundColor: playerAccent,
-  color: playerPaper,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "18px",
-  flexShrink: 0,
-  boxShadow: "0 12px 24px rgba(217, 74, 31, 0.28)",
+const playerHomeCalendarActionStyle = {
+  marginTop: "16px",
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "rgba(243, 239, 230, 0.72)",
 }
 
-const playerTodayStatsRowStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "14px",
-  marginTop: "20px",
-  paddingTop: "16px",
-  borderTop: "1px solid rgba(243, 239, 230, 0.14)",
+const playerHomeSectionHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "4px 6px 0",
 }
 
-const playerTodayStatStyle = {
-  display: "grid",
-  gap: "4px",
-  minWidth: 0,
+const playerHomeSectionTitleStyle = {
+  marginTop: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 8vw, 46px)",
+  lineHeight: 0.95,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerHomeSectionMetaStyle = {
   fontFamily: playerMonoFont,
   fontSize: "10px",
-  letterSpacing: "0.08em",
+  fontWeight: 700,
+  letterSpacing: "0.1em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.56)",
+  color: playerInkSoft,
+  whiteSpace: "nowrap",
 }
 
-const playerTodayQuickActionsGridStyle = (isMobile) => ({
+const playerTrainingMenuGridStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
+})
+
+const playerHomeTrainingCardStyle = (variant = "paper") => {
+  const isDark = variant === "ink"
+  const isAccent = variant === "accent"
+
+  return {
+    minHeight: variant === "ink" ? "142px" : "122px",
+    width: "100%",
+    padding: "16px",
+    borderRadius: "22px",
+    border: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : playerLine}`,
+    background: isDark
+      ? playerInk
+      : isAccent
+      ? `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`
+      : "rgba(255, 255, 255, 0.28)",
+    color: isDark || isAccent ? playerPaper : playerInk,
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
+  }
+}
+
+const playerHomeTrainingKickerStyle = {
+  marginBottom: "12px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  opacity: 0.68,
+}
+
+const playerHomeTrainingTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 7vw, 36px)",
+  lineHeight: 0.95,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+}
+
+const playerHomeTrainingTextStyle = {
+  marginTop: "10px",
+  fontSize: "13px",
+  lineHeight: 1.35,
+  fontWeight: 700,
+  opacity: 0.72,
+}
+
+const playerHomeToolsRowStyle = (isMobile) => ({
+  display: "grid",
+  gap: "8px",
   gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
 })
 
-const playerTodayQuickActionCardStyle = {
-  minHeight: "104px",
-  width: "100%",
-  padding: "14px",
-  borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  background: "rgba(255, 255, 255, 0.24)",
-  textAlign: "left",
-  cursor: "pointer",
-  boxShadow: "none",
-}
-
-const playerTodayQuickActionArrowStyle = {
-  width: "30px",
-  height: "30px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
+const playerHomeToolButtonStyle = {
+  minHeight: "44px",
+  padding: "10px 12px",
   borderRadius: "999px",
-  backgroundColor: playerInk,
-  color: playerPaper,
-  fontSize: "17px",
-  fontWeight: "900",
-  flexShrink: 0,
+  border: `1px solid ${playerLine}`,
+  background: "rgba(255, 255, 255, 0.22)",
+  color: playerInk,
+  cursor: "pointer",
+  fontSize: "13px",
+  fontWeight: 900,
 }
 
 const playerTodayWeekCardStyle = {
@@ -12247,78 +12567,12 @@ const playerTodaySecondaryButtonStyle = {
   boxShadow: "none",
 }
 
-const playerQuickActionTopRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "10px",
-}
-
-const playerQuickActionTitleStyle = {
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "#111827",
-}
-
-const playerQuickActionTextStyle = {
-  fontSize: "13px",
-  lineHeight: 1.5,
-  color: "#6b7280",
-}
-
-const playerSummaryGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-})
-
-const playerSummaryCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowSm,
-}
-
-const playerSummaryLabelStyle = {
-  marginBottom: "8px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#6b7280",
-}
-
-const playerSummaryTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#111827",
-  marginBottom: "6px",
-}
-
-const playerSummaryMetaStyle = {
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#6b7280",
-}
-
 const playerOverviewPanelStyle = {
   padding: "18px",
   borderRadius: "22px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
   boxShadow: uiShadowMd,
-}
-
-const playerOverviewPanelHeaderStyle = {
-  marginBottom: "14px",
-}
-
-const playerQuickActionBlockStyle = {
-  display: "grid",
-  gap: "12px",
-  minWidth: 0,
 }
 
 const playerOverviewPanelRowStyle = {
@@ -12343,6 +12597,19 @@ const playerOverviewPanelTextStyle = {
   fontSize: "14px",
   lineHeight: 1.6,
   color: "#566173",
+}
+
+const playerFixedDraftTypeStyle = {
+  minHeight: "48px",
+  display: "flex",
+  alignItems: "center",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.34)",
+  color: playerInk,
+  fontSize: "14px",
+  fontWeight: 900,
 }
 
 const playerHistorySectionLabelStyle = {
