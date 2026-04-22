@@ -207,9 +207,6 @@ const normalizeExerciseExecutionSide = (value) => {
 const getExerciseMeasurementLabel = (exerciseType) =>
   exerciseType === "seconds_only" ? "Sekunder" : "Reps"
 
-const getExerciseMeasurementShortLabel = (exerciseType) =>
-  exerciseType === "seconds_only" ? "sek" : "reps"
-
 const getExercisePerSideSuffix = (executionSide, exerciseType = "reps_only") => {
   if (executionSide === "single_leg") {
     return exerciseType === "seconds_only" ? "per ben" : "per ben"
@@ -220,12 +217,6 @@ const getExercisePerSideSuffix = (executionSide, exerciseType = "reps_only") => 
   }
 
   return ""
-}
-
-const getExerciseMeasurementLabelWithSide = (exerciseType, executionSide) => {
-  const baseLabel = getExerciseMeasurementLabel(exerciseType)
-  const suffix = getExercisePerSideSuffix(executionSide, exerciseType)
-  return suffix ? `${baseLabel} (${suffix})` : baseLabel
 }
 
 const getExerciseMeasurementPlaceholder = (exerciseType, executionSide) => {
@@ -7437,7 +7428,9 @@ function TrainingApp() {
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
   const playerWorkoutEntriesByFamily = {
-    strength: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "gym"),
+    strength: sortedVisibleWorkoutEntries.filter(
+      ([, workout]) => workout.workoutKind === "gym" && workout.gymPassType !== "shared"
+    ),
     running: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "running"),
     prehab: sortedVisibleWorkoutEntries.filter(([, workout]) => workout.workoutKind === "prehab"),
   }
@@ -7726,17 +7719,28 @@ function TrainingApp() {
   const renderPlayerPassDetails = (key, workout, variant = "default") => (
     <div style={variant === "featured" ? playerFeaturedPassDetailsStyle : playerShelfPassDetailsStyle}>
       <div style={passPreviewContentCardStyle}>
+        <div style={passPreviewMetaStripStyle}>
+          <span>{getPlayerPassDisplayType(workout)}</span>
+          <span>{getPlayerPassSummary(workout)}</span>
+          <span>{formatDaysSince(latestPassDates[key])}</span>
+        </div>
+
         {workout.info && (
-          <div style={{ marginBottom: "14px" }}>
-            <div style={passPreviewStatLabelStyle}>Info om passet</div>
+          <div style={passPreviewInfoBlockStyle}>
+            <div style={passPreviewStatLabelStyle}>Inför start</div>
             <div style={passPreviewInfoTextStyle}>{workout.info}</div>
           </div>
         )}
 
-        <div style={passPreviewStatLabelStyle}>
-          {workout.workoutKind === "running" ? "Löppass" : "Innehåll"}
+        <div style={passPreviewSectionHeaderStyle}>
+          <div>
+            <div style={passPreviewStatLabelStyle}>
+              {workout.workoutKind === "running" ? "Löppass" : "Passupplägg"}
+            </div>
+            <div style={passPreviewExerciseCountStyle}>{workout.label}</div>
+          </div>
+          <div style={passPreviewCountPillStyle}>{getPlayerPassSummary(workout)}</div>
         </div>
-        <div style={passPreviewExerciseCountStyle}>{getPlayerPassSummary(workout)}</div>
 
         {workout.workoutKind !== "running" && workout.exercises.length > 0 && (
           <div style={passPreviewListWrapStyle}>
@@ -7760,7 +7764,7 @@ function TrainingApp() {
 
       <button
         onClick={() => startWorkout(key)}
-        style={{ ...buttonStyle, ...playerPassStartButtonStyle, width: isMobile ? "100%" : "auto" }}
+        style={{ ...buttonStyle, ...playerPassStartButtonStyle, width: "100%" }}
       >
         Starta pass
       </button>
@@ -9369,25 +9373,18 @@ function TrainingApp() {
                 <div style={playerTodayMonoLabelStyle}>Passval</div>
                 <h2 style={playerPassPageTitleStyle}>{playerPassFamilyTitle}</h2>
                 <p style={playerPassPageTextStyle}>{playerPassFamilyDescription}</p>
-                <div style={playerPassFamilyTabsStyle}>
-                  {[
-                    ["strength", "Styrka"],
-                    ["running", "Löpning"],
-                    ["prehab", "Prehab"],
-                  ].map(([familyKey, label]) => (
-                    <button
-                      key={familyKey}
-                      type="button"
-                      onClick={() => setPlayerPassFamily(familyKey)}
-                      style={{
-                        ...playerPassFamilyTabStyle,
-                        ...(playerPassFamily === familyKey ? playerPassFamilyTabActiveStyle : {}),
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                {playerPassFamily && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlayerPassFamily(null)
+                      setSelectedWorkout(null)
+                    }}
+                    style={playerPassBackButtonStyle}
+                  >
+                    ← Tillbaka
+                  </button>
+                )}
               </div>
 
               {Object.keys(visibleWorkouts).length === 0 ? (
@@ -9475,7 +9472,7 @@ function TrainingApp() {
                       <div style={playerPassSectionHeaderStyle}>
                         <div>
                           <div style={playerTodayMonoLabelStyle}>Övriga pass</div>
-                          <div style={playerShelfSectionTitleStyle}>Hylla</div>
+                          <div style={playerShelfSectionTitleStyle}>Fler pass</div>
                         </div>
                         <div style={playerPassSectionCountStyle}>
                           {shelfPlayerPassEntries.length} pass
@@ -9890,6 +9887,11 @@ function TrainingApp() {
               : "Ingen historik ännu"
             const isTargetRequestComposerOpen =
               activeTargetChangeRequestDraft?.composer_key === targetRequestComposerKey
+            const canRequestTargetChange =
+              selectedExercise?.type === "weight_reps" &&
+              resolvedCurrentTargetWeight != null &&
+              currentRepRangeBucket &&
+              profile?.individual_goals_enabled !== false
             const exerciseTextSections = getExerciseTextSections({
               description: selectedExercise?.description,
               guide: exercise.guide,
@@ -10022,9 +10024,9 @@ function TrainingApp() {
                             onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
                             style={{
                               ...alternativeSelectionOptionStyle,
-                              borderColor: isSelectedOption ? "#1d4ed8" : "#dbe5ef",
-                              backgroundColor: isSelectedOption ? "#eff6ff" : "#ffffff",
-                              color: isSelectedOption ? "#1d4ed8" : "#18202b",
+                              borderColor: isSelectedOption ? playerAccent : playerLine,
+                              backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
+                              color: isSelectedOption ? playerAccent : playerInk,
                             }}
                           >
                             <div style={alternativeSelectionOptionNameStyle}>
@@ -10058,156 +10060,50 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {!isProtocol &&
-                  !isLoadingPlayerTargets &&
-                  ((currentTarget &&
-                    (currentTarget.target_reps != null ||
-                      resolvedCurrentTargetWeight != null ||
-                      String(currentTarget.target_comment || "").trim() ||
-                      currentTarget.target_reps_mode === "max")) ||
-                    (profile?.individual_goals_enabled === false && latestExerciseTopSet)) && (
-                  <div style={targetBoxStyle}>
-                    <div style={targetBoxHeaderStyle}>
-                      <div style={targetBoxTitleStyle}>
-                        {profile?.individual_goals_enabled === false
-                          ? "Rekommendation från historik"
-                          : "Individuella mål"}
-                      </div>
-                      {latestExerciseTopSet && (
-                        <div style={targetHistoryBadgeStyle}>Senaste passet</div>
-                      )}
-                    </div>
+                {!isProtocol && !isLoadingPlayerTargets && canRequestTargetChange && (
+                  <div style={activeLiftSupportPanelStyle}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isTargetRequestComposerOpen) {
+                          setActiveTargetChangeRequestDraft(null)
+                          return
+                        }
 
-                    {latestExerciseTopSet ? (
-                      <div style={latestSummaryWrapStyle}>
-                        <div style={latestSummaryLabelStyle}>Senast gjorde du</div>
-                        <div style={latestSummaryValueStyle}>
-                          {formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)}
-                        </div>
-                        <div style={latestSummaryMetaStyle}>
-                          Set {latestExerciseTopSet.set_number}
-                          {latestExerciseDate ? ` • ${formatDate(latestExerciseDate)}` : ""}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={emptyTargetStyle}>Ingen historik ännu</div>
-                    )}
+                        setActiveTargetChangeRequestDraft({
+                          composer_key: targetRequestComposerKey,
+                          exercise_id: selectedExercise?.exerciseId || exercise.exerciseId,
+                          exercise_name:
+                            selectedExercise?.displayName ||
+                            selectedExercise?.name ||
+                            exercise.displayName ||
+                            exercise.name,
+                          rep_range_key: currentRepRangeBucket.key,
+                          request_type: "increase",
+                          comment: "",
+                          current_target_weight: resolvedCurrentTargetWeight,
+                          latest_logged_weight: latestExerciseTopSet?.weight
+                            ? parseLoggedNumber(latestExerciseTopSet.weight)
+                            : null,
+                          latest_logged_reps_text:
+                            latestExerciseTopSet?.reps != null && latestExerciseTopSet?.reps !== ""
+                              ? `${latestExerciseTopSet.reps} reps`
+                              : latestExerciseTopSet?.seconds
+                              ? `${latestExerciseTopSet.seconds} sek`
+                              : null,
+                        })
+                      }}
+                      style={activeLiftSupportButtonStyle}
+                    >
+                      <span>
+                        <span style={activeLiftSupportKickerStyle}>Stöd</span>
+                        <span style={activeLiftSupportTitleStyle}>Begär ändring av målvikt</span>
+                      </span>
+                      <span style={activeLiftSupportIconStyle}>{isTargetRequestComposerOpen ? "−" : "+"}</span>
+                    </button>
 
-                    <div style={targetSectionDividerStyle} />
-                    <div style={targetSectionLabelStyle}>
-                      {profile?.individual_goals_enabled === false ? "Rekommenderat idag" : "Dagens mål"}
-                    </div>
-
-                    <>
-                      {profile?.individual_goals_enabled === false ? (
-                        <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>
-                            {selectedExercise?.type === "seconds_only"
-                              ? "Tid"
-                              : selectedExercise?.type === "weight_reps"
-                              ? "Senaste arbetsset"
-                              : "Reps"}
-                          </span>
-                          <span style={targetValueStyle}>
-                            {formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)}
-                          </span>
-                        </div>
-                      ) : selectedExercise?.type === "seconds_only" ? (
-                        <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>
-                            {getExerciseMeasurementLabelWithSide(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                          </span>
-                          <span style={targetValueStyle}>
-                            {currentTarget.target_reps_mode === "max"
-                              ? "max"
-                              : `${formatRepTargetValue(currentTarget)} ${getExerciseMeasurementShortLabel(
-                                  selectedExercise?.type || exercise.type
-                                )}`}
-                          </span>
-                        </div>
-                      ) : (
-                        <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>
-                            {getExerciseMeasurementLabelWithSide(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                          </span>
-                          <span style={targetValueStyle}>
-                            {formatRepTargetValue(currentTarget)}
-                          </span>
-                        </div>
-                      )}
-
-                      {selectedExercise?.type === "weight_reps" && resolvedCurrentTargetWeight != null && (
-                        <div style={targetRowStyle}>
-                          <span style={targetLabelStyle}>Vikt</span>
-                          <span style={targetValueStyle}>
-                            {resolvedCurrentTargetWeight} kg
-                          </span>
-                        </div>
-                      )}
-
-                      {currentTarget.target_comment && (
-                        <div style={{ ...targetCommentStyle, marginTop: "8px" }}>
-                          <strong>Kommentar:</strong> {currentTarget.target_comment}
-                        </div>
-                      )}
-
-                      {selectedExercise?.type === "weight_reps" &&
-                        resolvedCurrentTargetWeight != null &&
-                        currentRepRangeBucket &&
-                        profile?.individual_goals_enabled !== false && (
-                          <div style={{ marginTop: "10px" }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (isTargetRequestComposerOpen) {
-                                  setActiveTargetChangeRequestDraft(null)
-                                  return
-                                }
-
-                                setActiveTargetChangeRequestDraft({
-                                  composer_key: targetRequestComposerKey,
-                                  exercise_id: selectedExercise?.exerciseId || exercise.exerciseId,
-                                  exercise_name:
-                                    selectedExercise?.displayName ||
-                                    selectedExercise?.name ||
-                                    exercise.displayName ||
-                                    exercise.name,
-                                  rep_range_key: currentRepRangeBucket.key,
-                                  request_type: "increase",
-                                  comment: "",
-                                  current_target_weight: resolvedCurrentTargetWeight,
-                                  latest_logged_weight: latestExerciseTopSet?.weight
-                                    ? parseLoggedNumber(latestExerciseTopSet.weight)
-                                    : null,
-                                  latest_logged_reps_text:
-                                    latestExerciseTopSet?.reps != null && latestExerciseTopSet?.reps !== ""
-                                      ? `${latestExerciseTopSet.reps} reps`
-                                      : latestExerciseTopSet?.seconds
-                                      ? `${latestExerciseTopSet.seconds} sek`
-                                      : null,
-                                })
-                              }}
-                              style={{ ...secondaryButtonStyle, width: "100%" }}
-                            >
-                              {isTargetRequestComposerOpen ? "Stäng begäran" : "Begär ändring av målvikt"}
-                            </button>
-
-                            {isTargetRequestComposerOpen && (
-                              <div
-                                style={{
-                                  marginTop: "10px",
-                                  padding: "12px",
-                                  borderRadius: "14px",
-                                  border: "1px solid #e5e7eb",
-                                  backgroundColor: "#ffffff",
-                                }}
-                              >
+                    {isTargetRequestComposerOpen && (
+                      <div style={activeLiftComposerStyle}>
                                 <div style={{ ...targetSectionLabelStyle, marginBottom: "8px" }}>
                                   Skicka till tränaren
                                 </div>
@@ -10343,9 +10239,6 @@ function TrainingApp() {
                                 </div>
                               </div>
                             )}
-                          </div>
-                        )}
-                    </>
                   </div>
                 )}
 
@@ -10735,7 +10628,6 @@ const uiSurface = "var(--ghf-surface)"
 const uiSurfaceAlt = "var(--ghf-surface-alt)"
 const uiBorder = "var(--ghf-line)"
 const uiBorderStrong = "var(--ghf-line-strong)"
-const uiBorderSoft = "var(--ghf-line-soft)"
 const uiShadowSm = "var(--ghf-shadow-sm)"
 const uiShadowMd = "var(--ghf-shadow-md)"
 const uiShadowLg = "var(--ghf-shadow-lg)"
@@ -11359,9 +11251,10 @@ const exerciseSwipeCardStyle = {
 
 const activeWorkoutExerciseCardStyle = {
   border: `1px solid ${playerLine}`,
-  borderRadius: "24px",
-  backgroundColor: "rgba(255, 255, 255, 0.34)",
-  boxShadow: "none",
+  borderRadius: "28px",
+  background:
+    "radial-gradient(circle at 96% 6%, rgba(217, 74, 31, 0.16), transparent 26%), rgba(255, 255, 255, 0.24)",
+  boxShadow: "0 20px 42px rgba(26, 24, 20, 0.08)",
 }
 
 const activeWorkoutFinishTitleStyle = {
@@ -11387,10 +11280,10 @@ const activeLiftDataGridStyle = (isMobile) => ({
 })
 
 const activeLiftDataCardStyle = {
-  padding: "14px",
-  borderRadius: "18px",
+  padding: "15px",
+  borderRadius: "20px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.34)",
+  backgroundColor: "rgba(243, 239, 230, 0.58)",
 }
 
 const activeLiftDataLabelStyle = {
@@ -11448,69 +11341,66 @@ const activeLiftAddSetButtonStyle = {
   boxShadow: "0 16px 30px rgba(217, 74, 31, 0.18)",
 }
 
-const targetBoxStyle = {
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
-  borderRadius: "18px",
-  padding: "14px 16px",
-  marginBottom: "14px",
+const activeLiftSupportPanelStyle = {
+  marginBottom: "12px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(26, 24, 20, 0.04)",
+  overflow: "hidden",
 }
 
-const targetBoxHeaderStyle = {
+const activeLiftSupportButtonStyle = {
+  width: "100%",
+  minHeight: "66px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "10px",
+  gap: "12px",
+  padding: "14px 16px",
+  border: "none",
+  backgroundColor: "transparent",
+  color: playerInk,
+  textAlign: "left",
+  cursor: "pointer",
 }
 
-const targetBoxTitleStyle = {
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "#1f3b57",
+const activeLiftSupportKickerStyle = {
+  display: "block",
+  marginBottom: "4px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
 }
 
-const targetHistoryBadgeStyle = {
+const activeLiftSupportTitleStyle = {
+  display: "block",
+  fontSize: "15px",
+  fontWeight: 900,
+  color: playerInk,
+}
+
+const activeLiftSupportIconStyle = {
+  width: "34px",
+  height: "34px",
   display: "inline-flex",
-  padding: "5px 9px",
+  alignItems: "center",
+  justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: uiSurface,
-  color: "#46607a",
-  fontSize: "12px",
-  fontWeight: "800",
-  border: `1px solid ${uiBorder}`,
+  backgroundColor: playerInk,
+  color: playerPaper,
+  fontSize: "22px",
+  lineHeight: 1,
 }
 
-const latestSummaryWrapStyle = {
-  padding: "12px 14px",
-  borderRadius: "16px",
-  backgroundColor: uiSurface,
-  border: `1px solid ${uiBorder}`,
-}
-
-const latestSummaryLabelStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  color: "#46607a",
-  marginBottom: "6px",
-}
-
-const latestSummaryValueStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
-}
-
-const latestSummaryMetaStyle = {
-  fontSize: "12px",
-  color: "#6b7280",
-  marginTop: "4px",
-}
-
-const targetSectionDividerStyle = {
-  height: "1px",
-  backgroundColor: uiBorderSoft,
-  margin: "12px 0",
+const activeLiftComposerStyle = {
+  margin: "0 12px 12px",
+  padding: "14px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.72)",
 }
 
 const targetSectionLabelStyle = {
@@ -11520,42 +11410,6 @@ const targetSectionLabelStyle = {
   textTransform: "uppercase",
   letterSpacing: "0.04em",
   marginBottom: "8px",
-}
-
-const targetRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
-  marginBottom: "6px",
-  fontSize: "14px",
-}
-
-const targetLabelStyle = {
-  color: "#46607a",
-  fontWeight: "700",
-}
-
-const targetValueStyle = {
-  color: "#18202b",
-  fontWeight: "800",
-}
-
-const targetCommentStyle = {
-  fontSize: "14px",
-  color: "#334155",
-  lineHeight: 1.5,
-}
-
-const emptyTargetStyle = {
-  fontSize: "14px",
-  color: "#9ca3af",
-  fontStyle: "italic",
-}
-
-const latestRowStyle = {
-  fontSize: "13px",
-  color: "#334155",
-  lineHeight: 1.6,
 }
 
 const infoBoxStyle = {
@@ -11598,7 +11452,7 @@ const activeSetCardStyle = {
 const setInputHintStyle = {
   marginTop: "8px",
   fontSize: "12px",
-  color: "#6b7280",
+  color: playerInkSoft,
 }
 
 const exerciseCommentCardStyle = {
@@ -11611,23 +11465,23 @@ const exerciseCommentCardStyle = {
 
 const alternativeSelectionCardStyle = {
   marginBottom: "12px",
-  padding: "12px",
-  borderRadius: "16px",
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
+  padding: "14px",
+  borderRadius: "20px",
+  backgroundColor: "rgba(243, 239, 230, 0.58)",
+  border: `1px solid ${playerLine}`,
 }
 
 const alternativeSelectionTitleStyle = {
   marginBottom: "4px",
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: playerInk,
 }
 
 const alternativeSelectionHintStyle = {
   marginBottom: "10px",
   fontSize: "12px",
-  color: "#64748b",
+  color: playerInkSoft,
 }
 
 const alternativeSelectionOptionListStyle = {
@@ -11639,7 +11493,7 @@ const alternativeSelectionOptionStyle = {
   width: "100%",
   padding: "12px",
   borderRadius: "14px",
-  border: "1px solid #dbe5ef",
+  border: `1px solid ${playerLine}`,
   textAlign: "left",
   cursor: "pointer",
 }
@@ -11652,7 +11506,7 @@ const alternativeSelectionOptionNameStyle = {
 const alternativeSelectionOptionMetaStyle = {
   marginTop: "4px",
   fontSize: "12px",
-  color: "#64748b",
+  color: playerInkSoft,
 }
 
 const alternativeSelectionMetaStyle = {
@@ -11670,7 +11524,7 @@ const exerciseCommentTitleStyle = {
   marginBottom: "8px",
   fontSize: "13px",
   fontWeight: "800",
-  color: "#374151",
+  color: playerInk,
 }
 const setLabelStyle = {
   fontFamily: playerMonoFont,
@@ -11801,28 +11655,17 @@ const playerPassPageTextStyle = {
   color: playerInkSoft,
 }
 
-const playerPassFamilyTabsStyle = {
-  display: "flex",
-  gap: "8px",
-  marginTop: "14px",
-  flexWrap: "wrap",
-}
-
-const playerPassFamilyTabStyle = {
-  padding: "10px 13px",
+const playerPassBackButtonStyle = {
+  marginTop: "16px",
+  padding: "11px 14px",
   borderRadius: "999px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.2)",
-  color: playerInkSoft,
+  backgroundColor: "rgba(26, 24, 20, 0.06)",
+  color: playerInk,
   cursor: "pointer",
   fontSize: "13px",
   fontWeight: 900,
-}
-
-const playerPassFamilyTabActiveStyle = {
-  backgroundColor: playerInk,
-  borderColor: playerInk,
-  color: playerPaper,
+  width: "fit-content",
 }
 
 const playerRunningHubStyle = {
@@ -11983,7 +11826,8 @@ const playerFeaturedPassDetailsStyle = {
   borderRadius: "0 0 24px 24px",
   border: `1px solid ${playerLine}`,
   borderTop: "none",
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
+  background:
+    "linear-gradient(180deg, rgba(243, 239, 230, 0.86), rgba(235, 224, 208, 0.72))",
 }
 
 const playerShelfPassSectionStyle = {
@@ -12074,16 +11918,58 @@ const playerPassStartButtonStyle = {
 }
 
 const passPreviewContentCardStyle = {
-  padding: "14px",
-  borderRadius: "14px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+  padding: "16px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.66)",
   marginBottom: "14px",
+}
+
+const passPreviewMetaStripStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "7px",
+  marginBottom: "14px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const passPreviewInfoBlockStyle = {
+  marginBottom: "14px",
+  padding: "12px",
+  borderRadius: "16px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.24)",
+}
+
+const passPreviewSectionHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginBottom: "12px",
+}
+
+const passPreviewCountPillStyle = {
+  flexShrink: 0,
+  padding: "7px 10px",
+  borderRadius: "999px",
+  backgroundColor: playerInk,
+  color: playerPaper,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
 }
 
 const passPreviewStatLabelStyle = {
   fontSize: "11px",
-  color: "#46607a",
+  color: playerInkSoft,
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -12092,16 +11978,18 @@ const passPreviewStatLabelStyle = {
 
 const passPreviewInfoTextStyle = {
   fontSize: "14px",
-  color: "#18202b",
+  color: playerInk,
   fontWeight: "700",
   lineHeight: 1.5,
 }
 
 const passPreviewExerciseCountStyle = {
-  fontSize: "22px",
-  color: "#18202b",
-  fontWeight: "900",
-  marginBottom: "10px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 7vw, 36px)",
+  lineHeight: 0.95,
+  color: playerInk,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
 }
 
 const passPreviewListWrapStyle = {
@@ -12118,11 +12006,9 @@ const passPreviewListItemStyle = {
   gridTemplateColumns: "28px minmax(0, 1fr)",
   alignItems: "center",
   gap: "10px",
-  padding: "9px 10px",
-  borderRadius: "14px",
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
-  color: "#18202b",
+  padding: "10px 0",
+  borderBottom: `1px solid ${playerLine}`,
+  color: playerInk,
   fontSize: "13px",
   fontWeight: "800",
 }
@@ -12134,8 +12020,8 @@ const passPreviewExerciseIndexStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
+  backgroundColor: "rgba(26, 24, 20, 0.08)",
+  color: playerInkSoft,
   fontSize: "12px",
   fontWeight: "800",
 }
