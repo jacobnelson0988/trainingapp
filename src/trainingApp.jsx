@@ -11043,10 +11043,10 @@ const activeWorkoutFocusHeroStyle = {
 const activeWorkoutFocusTitleStyle = {
   marginTop: "8px",
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(34px, 10vw, 58px)",
-  lineHeight: 0.92,
+  fontSize: "clamp(28px, 8vw, 44px)",
+  lineHeight: 0.96,
   fontWeight: 650,
-  letterSpacing: "-0.05em",
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 
@@ -11411,7 +11411,7 @@ const exerciseCarouselTrackStyle = {
   gridAutoFlow: "column",
   gridAutoColumns: "100%",
   gap: "12px",
-  alignItems: "stretch",
+  alignItems: "start",
 }
 
 const exerciseSwipeCardStyle = {
@@ -11420,6 +11420,7 @@ const exerciseSwipeCardStyle = {
   scrollSnapAlign: "start",
   scrollSnapStop: "always",
   marginBottom: 0,
+  alignSelf: "start",
 }
 
 const activeWorkoutExerciseCardStyle = {
@@ -11438,11 +11439,11 @@ const activeWarmupScreenStyle = {
 const activeWarmupTitleStyle = {
   margin: 0,
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(42px, 12vw, 68px)",
-  lineHeight: 0.88,
+  fontSize: "clamp(34px, 9vw, 48px)",
+  lineHeight: 0.94,
   fontWeight: 650,
   fontStyle: "italic",
-  letterSpacing: "-0.06em",
+  letterSpacing: "-0.05em",
   color: playerInk,
 }
 
@@ -11507,11 +11508,11 @@ const activeLiftHeroStyle = {
 const activeLiftTitleStyle = {
   margin: 0,
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(44px, 13vw, 76px)",
-  lineHeight: 0.86,
+  fontSize: "clamp(32px, 8.5vw, 52px)",
+  lineHeight: 0.96,
   fontWeight: 650,
   fontStyle: "italic",
-  letterSpacing: "-0.07em",
+  letterSpacing: "-0.045em",
   color: playerInk,
 }
 
