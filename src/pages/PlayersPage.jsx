@@ -59,11 +59,6 @@ function PlayersPage({
   inputStyle,
   activeWorkouts,
   assignedPassCodes,
-  isLoadingTargets,
-  targetDrafts,
-  handleTargetDraftChange,
-  handleSaveTargets,
-  isSavingTargets,
   selectedPlayerHistory,
   selectedPlayerCompletedSessions,
   isLoadingSelectedPlayerHistory,
@@ -90,28 +85,12 @@ function PlayersPage({
 }) {
   const [searchValue, setSearchValue] = useState("")
   const [selectedCompletedSessionId, setSelectedCompletedSessionId] = useState("")
-  const [selectedTargetExerciseByPass, setSelectedTargetExerciseByPass] = useState({})
-  const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
   const [activeEditorSection, setActiveEditorSection] = useState("passes")
   const [activeUtilityPanel, setActiveUtilityPanel] = useState("")
   const [selectedExerciseGoalId, setSelectedExerciseGoalId] = useState("")
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
-
-  const handleSelectedTargetExerciseChange = (passKey, exerciseName) => {
-    setSelectedTargetExerciseByPass((prev) => ({
-      ...prev,
-      [passKey]: exerciseName,
-    }))
-  }
-
-  const handleSelectedWorkoutChange = (playerId, passKey) => {
-    setSelectedWorkoutByPlayer((prev) => ({
-      ...prev,
-      [playerId]: passKey,
-    }))
-  }
 
   const filteredPlayers = players.filter((player) => {
     if (!showArchivedPlayers && player.is_archived) {
@@ -304,7 +283,6 @@ function PlayersPage({
       <div style={editorSectionTabsStyle(isMobile)}>
         {renderEditorSectionButton("overview", "Översikt")}
         {renderEditorSectionButton("passes", "Pass")}
-        {renderEditorSectionButton("targets", "Passmål")}
         {renderEditorSectionButton("weights", "Målvikt")}
         {renderEditorSectionButton("history", "Historik")}
       </div>
@@ -458,233 +436,6 @@ function PlayersPage({
             </button>
           ))}
         </div>
-      </div>
-      )}
-
-      {activeEditorSection === "targets" && (
-      <div style={editorSectionCardStyle}>
-        <div style={sectionHeaderCompactStyle}>
-          <div style={sectionTitleCompactStyle}>Passmål och avvikelser</div>
-          <div style={sectionMetaCompactStyle}>Ändra reps eller teknikfokus för ett specifikt pass</div>
-        </div>
-        <div style={{ ...archivedInfoCardStyle, marginBottom: "14px" }}>
-          Målvikt ändras i fliken <strong>Målvikt</strong>. Den här vyn styr bara passets repsupplägg
-          eller en kommentar när en spelare ska avvika från standardpasset.
-          <button
-            type="button"
-            onClick={() => setActiveEditorSection("weights")}
-            style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto", marginTop: "10px" }}
-          >
-            Öppna målvikt per övning
-          </button>
-        </div>
-        {isLoadingTargets ? (
-          <p style={mutedTextStyle}>Laddar individuella mål...</p>
-        ) : assignedPassCodes.length === 0 ? (
-          <p style={mutedTextStyle}>Tilldela minst ett pass för att kunna sätta mål på övningarna.</p>
-        ) : player.individual_goals_enabled === false ? (
-          <div style={archivedInfoCardStyle}>
-            Individuella mål är avstängda för den här spelaren. Rekommendationer i passet baseras nu bara
-            på tidigare lyft och historik.
-          </div>
-        ) : (
-          <div>
-            {(() => {
-              const selectedPassKey =
-                Object.prototype.hasOwnProperty.call(selectedWorkoutByPlayer, player.id)
-                  ? selectedWorkoutByPlayer[player.id]
-                  : ""
-              const passExercises = selectedPassKey ? activeWorkouts[selectedPassKey]?.exercises || [] : []
-              const selectedExerciseName =
-                selectedTargetExerciseByPass[selectedPassKey] ||
-                passExercises[0]?.name ||
-                ""
-              const selectedExercise = passExercises.find((exercise) => exercise.name === selectedExerciseName)
-              const draft = selectedExercise
-                ? {
-                    target_reps_mode: selectedExercise.defaultRepsMode || "fixed",
-                    ...((targetDrafts[selectedPassKey] || {})[selectedExercise.name] || {}),
-                  }
-                : null
-
-              return (
-                <div
-                  style={{
-                    marginBottom: "16px",
-                    padding: "16px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "16px",
-                    backgroundColor: "#ffffff",
-                  }}
-                >
-                  <div style={{ marginBottom: "12px" }}>
-                    <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      Välj pass
-                    </div>
-                    <select
-                      value={selectedPassKey}
-                      onChange={(e) => handleSelectedWorkoutChange(player.id, e.target.value)}
-                      style={{ ...inputStyle, width: "100%" }}
-                    >
-                      <option value="">Välj pass</option>
-                      {assignedPassCodes.map((passKey) => (
-                        <option key={passKey} value={passKey}>
-                          {activeWorkouts[passKey]?.label || passKey}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {!selectedPassKey ? (
-                    <div style={mutedTextStyle}>Välj ett pass för att visa och redigera individuella mål.</div>
-                  ) : (
-                    <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "14px" }}>
-                      {(activeWorkouts[selectedPassKey]?.exercises || []).length} övningar. Välj en övning och sätt bara individuella reps, vikt eller kommentar här.
-                    </div>
-                  )}
-
-                  {selectedPassKey && passExercises.length === 0 ? (
-                    <div style={mutedTextStyle}>Det här passet har inga styrkeövningar att sätta individuella mål på.</div>
-                  ) : selectedPassKey ? (
-                    <>
-                      <div
-                        style={{
-                          marginBottom: "14px",
-                          padding: "14px",
-                          borderRadius: "14px",
-                          border: "1px solid #dbe5ef",
-                          backgroundColor: "#f8fafc",
-                        }}
-                      >
-                        <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                          Välj övning
-                        </div>
-                        <select
-                          value={selectedExerciseName}
-                          onChange={(e) => handleSelectedTargetExerciseChange(selectedPassKey, e.target.value)}
-                          style={{ ...inputStyle, width: "100%" }}
-                        >
-                          {passExercises.map((exercise) => (
-                            <option key={`${selectedPassKey}-${exercise.name}`} value={exercise.name}>
-                              {getExerciseDisplayName(exercise)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {selectedExercise && draft && (
-                        <div
-                          key={`${selectedPassKey}-${selectedExercise.name}`}
-                          style={{
-                            border: "1px solid #e2e8f0",
-                            borderRadius: "14px",
-                            padding: "14px",
-                            marginBottom: "10px",
-                            backgroundColor: "#ffffff",
-                          }}
-                        >
-                          <div style={{ marginBottom: "10px" }}>
-                            <strong>{getExerciseDisplayName(selectedExercise)}</strong>
-                            <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
-                              Den här rutan används bara för avvikelser från standardpasset. Lämna fälten tomma om spelaren ska följa passets vanliga upplägg.
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              flexWrap: "wrap",
-                              marginBottom: "8px",
-                              flexDirection: isMobile ? "column" : "row",
-                            }}
-                          >
-                            <input
-                              type="text"
-                              placeholder="Reps eller range"
-                              disabled={draft.target_reps_mode === "max"}
-                              value={draft.target_reps ?? ""}
-                              onChange={(e) =>
-                                handleTargetDraftChange(selectedPassKey, selectedExercise.name, "target_reps", e.target.value)
-                              }
-                              style={{ ...inputStyle, width: isMobile ? "100%" : undefined, opacity: draft.target_reps_mode === "max" ? 0.5 : 1 }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleTargetDraftChange(
-                                  selectedPassKey,
-                                  selectedExercise.name,
-                                  "target_reps_mode",
-                                  draft.target_reps_mode === "max" ? "fixed" : "max"
-                                )
-                              }
-                              style={{
-                                width: isMobile ? "100%" : "auto",
-                                padding: "10px 14px",
-                                borderRadius: "10px",
-                                border: "1px solid #d1d5db",
-                                backgroundColor: draft.target_reps_mode === "max" ? "#111827" : "#ffffff",
-                                color: draft.target_reps_mode === "max" ? "#ffffff" : "#111827",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "700",
-                              }}
-                            >
-                              {draft.target_reps_mode === "max" ? "MAX" : "Fast"}
-                            </button>
-                          </div>
-
-                          {draft.target_reps_mode !== "max" && (
-                            <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>
-                              Skriv till exempel <strong>8</strong> eller <strong>6-10</strong>.
-                            </div>
-                          )}
-
-                          {selectedExercise.type === "weight_reps" && (
-                            <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>
-                              Målvikt styrs av övningen och repsintervallet i spelarens övningsmål, inte här i passavvikelsen.
-                            </div>
-                          )}
-
-                          <input
-                            type="text"
-                            placeholder="Kommentar / teknikfokus"
-                            value={draft.target_comment ?? ""}
-                            onChange={(e) =>
-                              handleTargetDraftChange(selectedPassKey, selectedExercise.name, "target_comment", e.target.value)
-                            }
-                            style={{ ...inputStyle, width: "100%" }}
-                          />
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              )
-            })()}
-
-            <button
-              type="button"
-              onClick={handleSaveTargets}
-              disabled={isSavingTargets}
-              style={{
-                width: isMobile ? "100%" : "auto",
-                padding: "10px 14px",
-                borderRadius: "10px",
-                border: "none",
-                backgroundColor: "#111827",
-                color: "#ffffff",
-                cursor: isSavingTargets ? "default" : "pointer",
-                fontSize: "14px",
-                fontWeight: "700",
-                opacity: isSavingTargets ? 0.7 : 1,
-              }}
-            >
-              {isSavingTargets ? "Sparar..." : "Spara passavvikelser"}
-            </button>
-      </div>
-        )}
       </div>
       )}
 

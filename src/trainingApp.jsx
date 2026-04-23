@@ -1190,9 +1190,6 @@ function TrainingApp() {
   const [passExerciseDrafts, setPassExerciseDrafts] = useState({})
   const [warmupTemplates, setWarmupTemplates] = useState([])
   const [isSavingWarmupTemplate, setIsSavingWarmupTemplate] = useState(false)
-  const [targetDrafts, setTargetDrafts] = useState({})
-  const [isLoadingTargets, setIsLoadingTargets] = useState(false)
-  const [isSavingTargets, setIsSavingTargets] = useState(false)
   const [playerTargets, setPlayerTargets] = useState({})
   const [isLoadingPlayerTargets, setIsLoadingPlayerTargets] = useState(false)
   const [expandedInfo, setExpandedInfo] = useState({})
@@ -1409,7 +1406,6 @@ function TrainingApp() {
       loadPlayerTargets(selectedPlayer.id)
       loadSelectedPlayerHistoryAndGoals(selectedPlayer.id)
     } else {
-      setTargetDrafts({})
       setSelectedPlayerAssignedPasses([])
       setSelectedPlayerHistory([])
       setSelectedPlayerExerciseGoals({})
@@ -3158,50 +3154,26 @@ function TrainingApp() {
   }
 
   const loadPlayerTargets = async (playerId) => {
-    setIsLoadingTargets(true)
-
     const { data, error } = await supabase
       .from("player_exercise_targets")
-      .select(
-        "pass_name, exercise_name, target_sets, target_reps, target_reps_min, target_reps_max, target_reps_text, target_reps_mode, target_comment"
-      )
+      .select("pass_name")
       .eq("player_id", playerId)
 
     if (error) {
       console.error(error)
-      setTargetDrafts({})
       setSelectedPlayerAssignedPasses([])
-      setIsLoadingTargets(false)
       return
     }
 
-    const draftMap = {}
     const assignedPasses = new Set()
 
     ;(data || []).forEach((row) => {
       if (!row.pass_name) return
 
       assignedPasses.add(row.pass_name)
-
-      if (row.exercise_name === PASS_ASSIGNMENT_EXERCISE_NAME) {
-        return
-      }
-
-      if (!draftMap[row.pass_name]) {
-        draftMap[row.pass_name] = {}
-      }
-
-      draftMap[row.pass_name][row.exercise_name] = {
-        target_sets: row.target_sets ?? "",
-        target_reps: getRepTargetInputValue(row),
-        target_reps_mode: row.target_reps_mode || "fixed",
-        target_comment: row.target_comment ?? "",
-      }
     })
 
-    setTargetDrafts(draftMap)
     setSelectedPlayerAssignedPasses(Array.from(assignedPasses))
-    setIsLoadingTargets(false)
   }
 
   const loadPassAssignmentPlayerIdsByPass = async (playerIdsOverride = null) => {
@@ -5898,65 +5870,6 @@ function TrainingApp() {
     setDeletingTeamId(null)
   }
 
-  const handleTargetDraftChange = (passName, exerciseName, field, value) => {
-    setTargetDrafts((prev) => ({
-      ...prev,
-      [passName]: {
-        ...(prev[passName] || {}),
-        [exerciseName]: {
-          ...((prev[passName] || {})[exerciseName] || {}),
-          [field]: value,
-        },
-      },
-    }))
-  }
-
-  const handleSaveTargets = async () => {
-    if (!selectedPlayer) return
-
-    setIsSavingTargets(true)
-
-    const rows = selectedPlayerAssignedPasses.flatMap((passName) => {
-      const exercises = activeWorkouts[passName]?.exercises || []
-
-      return exercises.map((exercise) => {
-        const draft = targetDrafts[passName]?.[exercise.name] || {}
-        const repTargetPayload = parseRepTargetInput(draft.target_reps, draft.target_reps_mode)
-
-        return {
-          player_id: selectedPlayer.id,
-          pass_name: passName,
-          exercise_name: exercise.name,
-          target_sets: draft.target_sets === "" ? null : Number(draft.target_sets),
-          ...repTargetPayload,
-          target_weight: null,
-          target_comment: draft.target_comment || null,
-        }
-      })
-    })
-
-    if (rows.length === 0) {
-      setStatus("Det finns inga övningar med individuella mål i de tilldelade passen")
-      setIsSavingTargets(false)
-      return
-    }
-
-    const { error } = await supabase
-      .from("player_exercise_targets")
-      .upsert(rows, { onConflict: "player_id,pass_name,exercise_name" })
-
-    if (error) {
-      console.error(error)
-      setStatus("Kunde inte spara individuella mål")
-      setIsSavingTargets(false)
-      return
-    }
-
-    setStatus("Individuella mål sparade ✅")
-    setIsSavingTargets(false)
-    await loadPlayerTargets(selectedPlayer.id)
-  }
-
   const buildPassAssignmentRowsForPlayer = (playerId, passName) => {
     const exercises = activeWorkouts[passName]?.exercises || []
 
@@ -6141,40 +6054,8 @@ function TrainingApp() {
   const handleAssignAllPassesToPlayer = async () => {
     if (!selectedPlayer) return
 
-    const passRows = Object.entries(activeWorkouts).flatMap(([passName, workout]) =>
-      [
-        {
-          player_id: selectedPlayer.id,
-          pass_name: passName,
-          exercise_name: PASS_ASSIGNMENT_EXERCISE_NAME,
-          target_sets: null,
-          target_reps: null,
-          target_reps_min: null,
-          target_reps_max: null,
-          target_reps_text: null,
-          target_reps_mode: "fixed",
-          target_weight: null,
-          target_comment: null,
-        },
-        ...(workout.exercises || []).map((exercise) => {
-          const draft = targetDrafts[passName]?.[exercise.name] || {}
-          const repTargetPayload = parseRepTargetInput(
-            draft.target_reps,
-            draft.target_reps_mode || exercise.defaultRepsMode || "fixed"
-          )
-
-          return {
-            player_id: selectedPlayer.id,
-            pass_name: passName,
-            exercise_name: exercise.name,
-            target_sets:
-              draft.target_sets === "" || draft.target_sets == null ? null : Number(draft.target_sets),
-            ...repTargetPayload,
-            target_weight: null,
-            target_comment: draft.target_comment || null,
-          }
-        }),
-      ]
+    const passRows = Object.keys(activeWorkouts).flatMap((passName) =>
+      buildPassAssignmentRowsForPlayer(selectedPlayer.id, passName)
     )
 
     if (passRows.length === 0) {
@@ -8293,11 +8174,6 @@ function TrainingApp() {
                 inputStyle={inputStyle}
                 activeWorkouts={activeWorkouts}
                 assignedPassCodes={selectedPlayerAssignedPasses}
-                isLoadingTargets={isLoadingTargets}
-                targetDrafts={targetDrafts}
-                handleTargetDraftChange={handleTargetDraftChange}
-                handleSaveTargets={handleSaveTargets}
-                isSavingTargets={isSavingTargets}
                 selectedPlayerHistory={selectedPlayerHistory}
                 selectedPlayerCompletedSessions={selectedPlayerCompletedSessions}
                 isLoadingSelectedPlayerHistory={isLoadingSelectedPlayerHistory}
