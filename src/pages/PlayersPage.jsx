@@ -94,6 +94,7 @@ function PlayersPage({
   const [selectedWorkoutByPlayer, setSelectedWorkoutByPlayer] = useState({})
   const [activeEditorSection, setActiveEditorSection] = useState("passes")
   const [activeUtilityPanel, setActiveUtilityPanel] = useState("")
+  const [selectedExerciseGoalId, setSelectedExerciseGoalId] = useState("")
   const getExerciseDisplayName = (exercise) => exercise?.displayName || exercise?.display_name || exercise?.name || ""
   const allPassKeys = Object.keys(activeWorkouts)
   const assignedPassSet = new Set(assignedPassCodes || [])
@@ -183,6 +184,16 @@ function PlayersPage({
       return firstSessionId
     })
   }, [selectedPlayer?.id, selectedPlayerCompletedSessions])
+
+  useEffect(() => {
+    const firstExerciseId = assignedExerciseEntries?.[0]?.exercise_id || ""
+    setSelectedExerciseGoalId((current) => {
+      if (current && assignedExerciseEntries?.some((entry) => entry.exercise_id === current)) {
+        return current
+      }
+      return firstExerciseId
+    })
+  }, [selectedPlayer?.id, assignedExerciseEntries])
 
   useEffect(() => {
     if (activeUtilityPanel === "requests" && openRequestCount === 0) {
@@ -294,7 +305,8 @@ function PlayersPage({
         {renderEditorSectionButton("overview", "Översikt")}
         {renderEditorSectionButton("passes", "Pass")}
         {renderEditorSectionButton("targets", "Passmål")}
-        {renderEditorSectionButton("history", "Målvikt")}
+        {renderEditorSectionButton("weights", "Målvikt")}
+        {renderEditorSectionButton("history", "Historik")}
       </div>
 
       {activeEditorSection === "overview" && (
@@ -460,7 +472,7 @@ function PlayersPage({
           eller en kommentar när en spelare ska avvika från standardpasset.
           <button
             type="button"
-            onClick={() => setActiveEditorSection("history")}
+            onClick={() => setActiveEditorSection("weights")}
             style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto", marginTop: "10px" }}
           >
             Öppna målvikt per övning
@@ -679,8 +691,8 @@ function PlayersPage({
       {activeEditorSection === "history" && (
       <div style={editorSectionCardStyle}>
         <div style={sectionHeaderCompactStyle}>
-          <div style={sectionTitleCompactStyle}>Målvikt per övning</div>
-          <div style={sectionMetaCompactStyle}>Sätt kg per repsintervall. Samma målvikt följer övningen i alla pass.</div>
+          <div style={sectionTitleCompactStyle}>Genomförda pass</div>
+          <div style={sectionMetaCompactStyle}>Bläddra i samma kortvy som spelaren ser</div>
         </div>
         {player.individual_goals_enabled === false ? (
           <div style={archivedInfoCardStyle}>
@@ -691,11 +703,6 @@ function PlayersPage({
         ) : (
           <div>
             <div style={historyViewerCardStyle}>
-              <div style={sectionHeaderCompactStyle}>
-                <div style={sectionTitleCompactStyle}>Genomförda pass</div>
-                <div style={sectionMetaCompactStyle}>Bläddra i samma kortvy som spelaren ser</div>
-              </div>
-
               {selectedPlayerCompletedSessions.length === 0 ? (
                 <p style={mutedTextStyle}>Ingen passhistorik finns ännu för spelaren.</p>
               ) : (
@@ -767,79 +774,79 @@ function PlayersPage({
                             ) : null}
                           </div>
                         ) : (
-                            <div style={historyExerciseCardsViewportStyle}>
-                              <div style={historyExerciseCardsTrackStyle}>
-                                {selectedSession.exercises.map((exercise) => {
-                                  const protocolConfig =
-                                    exercise.protocolConfig || getExerciseProtocolConfig(exercise)
+                          <div style={historyExerciseCardsViewportStyle}>
+                            <div style={historyExerciseCardsTrackStyle}>
+                              {selectedSession.exercises.map((exercise) => {
+                                const protocolConfig =
+                                  exercise.protocolConfig || getExerciseProtocolConfig(exercise)
 
-                                  return (
-                                    <div key={`${selectedSession.session_id}-${exercise.name}`} style={historyExerciseCardStyle}>
-                                      <div style={historyExerciseCardTitleStyle}>{exercise.displayName}</div>
-                                      <div style={historyExerciseCardSubStyle}>
-                                        {protocolConfig ? `${exercise.sets.length} block klara` : `${exercise.sets.length} set loggade`}
-                                      </div>
-
-                                      <div style={historySetListStyle}>
-                                        {exercise.sets.map((setEntry, setIndex) => {
-                                          const protocolStep = protocolConfig
-                                            ? getExerciseProtocolStep(exercise, setEntry.setNumber || setIndex + 1)
-                                            : null
-
-                                          return (
-                                            <div
-                                              key={`${selectedSession.session_id}-${exercise.name}-${setEntry.setNumber || setIndex}`}
-                                              style={historySetCardStyle}
-                                            >
-                                              <div style={historySetTitleStyle}>
-                                                {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
-                                              </div>
-
-                                              {setEntry.setType === "warmup" && (
-                                                <div style={historySetWarmupBadgeStyle}>Uppvärmning</div>
-                                              )}
-
-                                              {protocolStep ? (
-                                                <div style={{ display: "grid", gap: "6px" }}>
-                                                  <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
-                                                    {protocolStep.summary}
-                                                  </div>
-                                                  <div style={historySetMetaValueStyle}>Klart</div>
-                                                  {setEntry.comment && (
-                                                    <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
-                                                      Kommentar: {setEntry.comment}
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              ) : (
-                                                <div style={historySetMetaGridStyle}>
-                                                  <div style={historySetMetaItemStyle}>
-                                                    <div style={historySetMetaLabelStyle}>Vikt</div>
-                                                    <div style={historySetMetaValueStyle}>
-                                                      {setEntry.weight ? `${setEntry.weight} kg` : "—"}
-                                                    </div>
-                                                  </div>
-                                                  <div style={historySetMetaItemStyle}>
-                                                    <div style={historySetMetaLabelStyle}>Reps</div>
-                                                    <div style={historySetMetaValueStyle}>{setEntry.reps || "—"}</div>
-                                                  </div>
-                                                  <div style={historySetMetaItemStyle}>
-                                                    <div style={historySetMetaLabelStyle}>Tid</div>
-                                                    <div style={historySetMetaValueStyle}>
-                                                      {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              )}
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
+                                return (
+                                  <div key={`${selectedSession.session_id}-${exercise.name}`} style={historyExerciseCardStyle}>
+                                    <div style={historyExerciseCardTitleStyle}>{exercise.displayName}</div>
+                                    <div style={historyExerciseCardSubStyle}>
+                                      {protocolConfig ? `${exercise.sets.length} block klara` : `${exercise.sets.length} set loggade`}
                                     </div>
-                                  )
-                                })}
-                              </div>
+
+                                    <div style={historySetListStyle}>
+                                      {exercise.sets.map((setEntry, setIndex) => {
+                                        const protocolStep = protocolConfig
+                                          ? getExerciseProtocolStep(exercise, setEntry.setNumber || setIndex + 1)
+                                          : null
+
+                                        return (
+                                          <div
+                                            key={`${selectedSession.session_id}-${exercise.name}-${setEntry.setNumber || setIndex}`}
+                                            style={historySetCardStyle}
+                                          >
+                                            <div style={historySetTitleStyle}>
+                                              {protocolStep?.label || `Set ${setEntry.setNumber || setIndex + 1}`}
+                                            </div>
+
+                                            {setEntry.setType === "warmup" && (
+                                              <div style={historySetWarmupBadgeStyle}>Uppvärmning</div>
+                                            )}
+
+                                            {protocolStep ? (
+                                              <div style={{ display: "grid", gap: "6px" }}>
+                                                <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                                                  {protocolStep.summary}
+                                                </div>
+                                                <div style={historySetMetaValueStyle}>Klart</div>
+                                                {setEntry.comment && (
+                                                  <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                                                    Kommentar: {setEntry.comment}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <div style={historySetMetaGridStyle}>
+                                                <div style={historySetMetaItemStyle}>
+                                                  <div style={historySetMetaLabelStyle}>Vikt</div>
+                                                  <div style={historySetMetaValueStyle}>
+                                                    {setEntry.weight ? `${setEntry.weight} kg` : "—"}
+                                                  </div>
+                                                </div>
+                                                <div style={historySetMetaItemStyle}>
+                                                  <div style={historySetMetaLabelStyle}>Reps</div>
+                                                  <div style={historySetMetaValueStyle}>{setEntry.reps || "—"}</div>
+                                                </div>
+                                                <div style={historySetMetaItemStyle}>
+                                                  <div style={historySetMetaLabelStyle}>Tid</div>
+                                                  <div style={historySetMetaValueStyle}>
+                                                    {setEntry.seconds ? `${setEntry.seconds} sek` : "—"}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )
+                              })}
                             </div>
+                          </div>
                         )}
                       </div>
                     )
@@ -847,239 +854,286 @@ function PlayersPage({
                 </>
               )}
             </div>
+          </div>
+        )}
+      </div>
+      )}
 
+      {activeEditorSection === "weights" && (
+      <div style={editorSectionCardStyle}>
+        <div style={sectionHeaderCompactStyle}>
+          <div style={sectionTitleCompactStyle}>Målvikt per övning</div>
+          <div style={sectionMetaCompactStyle}>Sätt kg per repsintervall. Samma målvikt följer övningen i alla pass.</div>
+        </div>
+        {player.individual_goals_enabled === false ? (
+          <div style={archivedInfoCardStyle}>
+            Personliga övningsmål är avstängda. Träningsrekommendationer byggs nu i stället på spelarens egen historik.
+          </div>
+        ) : isLoadingSelectedPlayerHistory ? (
+          <p style={mutedTextStyle}>Laddar historik...</p>
+        ) : (
+          <div>
             {assignedExerciseEntries.length === 0 ? (
               <p style={mutedTextStyle}>Spelaren har inga tilldelade styrkeövningar ännu.</p>
             ) : (
-            <div style={{ display: "grid", gap: "12px", marginBottom: "14px" }}>
-              {assignedExerciseEntries.map((entry) => {
-                const draft = exerciseGoalDrafts[entry.exercise_id] || {}
-                const existingGoal =
-                  selectedPlayerExerciseGoals[entry.exercise_id] ||
-                  (Object.values(draft.rep_range_weights || {}).some(
-                    (value) => value !== "" && value != null
-                  )
-                    ? { rep_range_weights: draft.rep_range_weights }
-                    : null)
-                const hasHistory = Boolean(entry.latest_entry || entry.best_weight_entry || entry.entry_count > 0)
+            <>
+            <div
+              style={{
+                marginBottom: "14px",
+                padding: "14px",
+                borderRadius: "14px",
+                border: "1px solid #dbe5ef",
+                backgroundColor: "#f8fafc",
+              }}
+            >
+              <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Välj övning
+              </div>
+              <select
+                value={selectedExerciseGoalId}
+                onChange={(e) => setSelectedExerciseGoalId(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              >
+                {assignedExerciseEntries.map((entry) => (
+                  <option key={entry.exercise_id} value={entry.exercise_id}>
+                    {entry.exercise_display_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                return (
+            {(() => {
+              const entry = assignedExerciseEntries.find((item) => item.exercise_id === selectedExerciseGoalId) || assignedExerciseEntries[0]
+              if (!entry) return null
+
+              const draft = exerciseGoalDrafts[entry.exercise_id] || {}
+              const existingGoal =
+                selectedPlayerExerciseGoals[entry.exercise_id] ||
+                (Object.values(draft.rep_range_weights || {}).some(
+                  (value) => value !== "" && value != null
+                )
+                  ? { rep_range_weights: draft.rep_range_weights }
+                  : null)
+              const hasHistory = Boolean(entry.latest_entry || entry.best_weight_entry || entry.entry_count > 0)
+
+              return (
+                <div
+                  key={entry.exercise_id}
+                  style={{
+                    padding: "14px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    backgroundColor: "#ffffff",
+                    marginBottom: "14px",
+                  }}
+                >
                   <div
-                    key={entry.exercise_id}
                     style={{
-                      padding: "14px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "14px",
-                      backgroundColor: "#ffffff",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "flex-start" : "center",
+                      gap: "10px",
+                      flexDirection: isMobile ? "column" : "row",
+                      marginBottom: "10px",
                     }}
                   >
+                    <div>
+                      <div style={{ marginBottom: "4px", fontWeight: "800", color: "#18202b" }}>
+                        {entry.exercise_display_name}
+                      </div>
+                      <div style={{ fontSize: "13px", color: "#64748b" }}>
+                        {entry.entry_count} loggade pass
+                        {entry.latest_entry?.created_at
+                          ? ` • senast ${new Date(entry.latest_entry.created_at).toLocaleDateString("sv-SE")}`
+                          : ""}
+                      </div>
+                      <div style={exercisePassBadgeWrapStyle}>
+                        {entry.pass_labels.map((passLabel) => (
+                          <div key={`${entry.exercise_id}-${passLabel}`} style={exercisePassBadgeStyle}>
+                            {passLabel}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: isMobile ? "flex-start" : "center",
-                        gap: "10px",
-                        flexDirection: isMobile ? "column" : "row",
-                        marginBottom: "10px",
+                        display: "inline-flex",
+                        padding: "5px 10px",
+                        borderRadius: "999px",
+                        backgroundColor: existingGoal ? "#ecfdf3" : "#f3f4f6",
+                        color: existingGoal ? "#166534" : "#4b5563",
+                        fontSize: "12px",
+                        fontWeight: "800",
                       }}
                     >
-                      <div>
-                        <div style={{ marginBottom: "4px", fontWeight: "800", color: "#18202b" }}>
-                          {entry.exercise_display_name}
-                        </div>
-                        <div style={{ fontSize: "13px", color: "#64748b" }}>
-                          {entry.entry_count} loggade pass
-                          {entry.latest_entry?.created_at
-                            ? ` • senast ${new Date(entry.latest_entry.created_at).toLocaleDateString("sv-SE")}`
-                            : ""}
-                        </div>
-                        <div style={exercisePassBadgeWrapStyle}>
-                          {entry.pass_labels.map((passLabel) => (
-                            <div key={`${entry.exercise_id}-${passLabel}`} style={exercisePassBadgeStyle}>
-                              {passLabel}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      {existingGoal ? "Befintligt mål" : "Förslag från historik"}
+                    </div>
+                  </div>
 
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "10px",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <div style={historyStatCardStyle}>
+                      <div style={historyStatLabelStyle}>Senaste pass</div>
+                      <div style={historyStatValueStyle}>
+                        {entry.latest_entry?.top_weight != null
+                          ? `${entry.latest_entry.top_weight} kg`
+                          : entry.latest_entry?.top_reps
+                          ? `${entry.latest_entry.top_reps} reps`
+                          : entry.latest_entry?.top_seconds
+                          ? `${entry.latest_entry.top_seconds} sek`
+                          : "Ingen logg"}
+                      </div>
+                      <div style={historyStatMetaStyle}>
+                        {[
+                          `Set: ${entry.latest_entry?.set_count || 0}`,
+                          entry.latest_entry?.top_reps ? `Reps: ${entry.latest_entry.top_reps}` : null,
+                          entry.latest_entry?.top_seconds ? `Tid: ${entry.latest_entry.top_seconds} sek` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </div>
+                    </div>
+
+                    <div style={historyStatCardStyle}>
+                      <div style={historyStatLabelStyle}>Bästa noterade vikt</div>
+                      <div style={historyStatValueStyle}>
+                        {entry.best_weight_entry?.top_weight != null
+                          ? `${entry.best_weight_entry.top_weight} kg`
+                          : "Ingen logg"}
+                      </div>
+                      <div style={historyStatMetaStyle}>
+                        {[
+                          `Set: ${entry.best_weight_entry?.set_count || 0}`,
+                          entry.best_weight_entry?.top_reps ? `Reps: ${entry.best_weight_entry.top_reps}` : null,
+                          entry.best_weight_entry?.top_seconds
+                            ? `Tid: ${entry.best_weight_entry.top_seconds} sek`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" • ") || "Ingen vikt registrerad ännu"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "8px",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <input
+                      type="number"
+                      placeholder="Mål set"
+                      value={draft.target_sets ?? ""}
+                      onChange={(e) =>
+                        handleExerciseGoalDraftChange(entry.exercise_id, "target_sets", e.target.value)
+                      }
+                      style={{ ...inputStyle, width: "100%" }}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Mål reps"
+                      value={draft.target_reps ?? ""}
+                      onChange={(e) =>
+                        handleExerciseGoalDraftChange(entry.exercise_id, "target_reps", e.target.value)
+                      }
+                      style={{ ...inputStyle, width: "100%" }}
+                    />
+                  </div>
+
+                  {entry.exercise_type === "weight_reps" ? (
+                    <div style={{ marginBottom: "10px" }}>
                       <div
                         style={{
-                          display: "inline-flex",
-                          padding: "5px 10px",
-                          borderRadius: "999px",
-                          backgroundColor: existingGoal ? "#ecfdf3" : "#f3f4f6",
-                          color: existingGoal ? "#166534" : "#4b5563",
-                          fontSize: "12px",
+                          marginBottom: "8px",
+                          fontSize: "13px",
                           fontWeight: "800",
+                          color: "#18202b",
                         }}
                       >
-                        {existingGoal ? "Befintligt mål" : "Förslag från historik"}
+                        Målvikter per repsintervall
                       </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: "10px",
-                        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      <div style={historyStatCardStyle}>
-                        <div style={historyStatLabelStyle}>Senaste pass</div>
-                        <div style={historyStatValueStyle}>
-                          {entry.latest_entry?.top_weight != null
-                            ? `${entry.latest_entry.top_weight} kg`
-                            : entry.latest_entry?.top_reps
-                            ? `${entry.latest_entry.top_reps} reps`
-                            : entry.latest_entry?.top_seconds
-                            ? `${entry.latest_entry.top_seconds} sek`
-                            : "Ingen logg"}
-                        </div>
-                        <div style={historyStatMetaStyle}>
-                          {[
-                            `Set: ${entry.latest_entry?.set_count || 0}`,
-                            entry.latest_entry?.top_reps ? `Reps: ${entry.latest_entry.top_reps}` : null,
-                            entry.latest_entry?.top_seconds ? `Tid: ${entry.latest_entry.top_seconds} sek` : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </div>
-                      </div>
-
-                      <div style={historyStatCardStyle}>
-                        <div style={historyStatLabelStyle}>Bästa noterade vikt</div>
-                        <div style={historyStatValueStyle}>
-                          {entry.best_weight_entry?.top_weight != null
-                            ? `${entry.best_weight_entry.top_weight} kg`
-                            : "Ingen logg"}
-                        </div>
-                        <div style={historyStatMetaStyle}>
-                          {[
-                            `Set: ${entry.best_weight_entry?.set_count || 0}`,
-                            entry.best_weight_entry?.top_reps ? `Reps: ${entry.best_weight_entry.top_reps}` : null,
-                            entry.best_weight_entry?.top_seconds
-                              ? `Tid: ${entry.best_weight_entry.top_seconds} sek`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ") || "Ingen vikt registrerad ännu"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: "8px",
-                        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <input
-                        type="number"
-                        placeholder="Mål set"
-                        value={draft.target_sets ?? ""}
-                        onChange={(e) =>
-                          handleExerciseGoalDraftChange(entry.exercise_id, "target_sets", e.target.value)
-                        }
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
-                      <input
-                        type="number"
-                        placeholder="Mål reps"
-                        value={draft.target_reps ?? ""}
-                        onChange={(e) =>
-                          handleExerciseGoalDraftChange(entry.exercise_id, "target_reps", e.target.value)
-                        }
-                        style={{ ...inputStyle, width: "100%" }}
-                      />
-                    </div>
-
-                    {entry.exercise_type === "weight_reps" ? (
-                      <div style={{ marginBottom: "10px" }}>
-                        <div
-                          style={{
-                            marginBottom: "8px",
-                            fontSize: "13px",
-                            fontWeight: "800",
-                            color: "#18202b",
-                          }}
-                        >
-                          Målvikter per repsintervall
-                        </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: "8px",
-                            gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))",
-                          }}
-                        >
-                          {repRangeOptions.map((option) => (
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: "8px",
+                          gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))",
+                        }}
+                      >
+                        {repRangeOptions.map((option) => (
+                          <div
+                            key={`${entry.exercise_id}-${option.key}`}
+                            style={{
+                              padding: "10px",
+                              borderRadius: "12px",
+                              border: "1px solid #e2e8f0",
+                              backgroundColor: "#f8fafc",
+                            }}
+                          >
                             <div
-                              key={`${entry.exercise_id}-${option.key}`}
                               style={{
-                                padding: "10px",
-                                borderRadius: "12px",
-                                border: "1px solid #e2e8f0",
-                                backgroundColor: "#f8fafc",
+                                marginBottom: "6px",
+                                fontSize: "12px",
+                                fontWeight: "800",
+                                color: "#64748b",
                               }}
                             >
-                              <div
-                                style={{
-                                  marginBottom: "6px",
-                                  fontSize: "12px",
-                                  fontWeight: "800",
-                                  color: "#64748b",
-                                }}
-                              >
-                                {option.label}
-                              </div>
-                              <input
-                                type="number"
-                                placeholder="kg"
-                                value={draft.rep_range_weights?.[option.key] ?? ""}
-                                onChange={(e) =>
-                                  handleExerciseGoalRepRangeWeightDraftChange(
-                                    entry.exercise_id,
-                                    option.key,
-                                    e.target.value
-                                  )
-                                }
-                                style={{ ...inputStyle, width: "100%" }}
-                              />
+                              {option.label}
                             </div>
-                          ))}
-                        </div>
+                            <input
+                              type="number"
+                              placeholder="kg"
+                              value={draft.rep_range_weights?.[option.key] ?? ""}
+                              onChange={(e) =>
+                                handleExerciseGoalRepRangeWeightDraftChange(
+                                  entry.exercise_id,
+                                  option.key,
+                                  e.target.value
+                                )
+                              }
+                              style={{ ...inputStyle, width: "100%" }}
+                            />
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <div style={exerciseGoalInfoStyle}>
-                        Den här övningen använder inte målvikter. Mål sätts i stället via set, reps eller kommentar.
-                      </div>
-                    )}
+                    </div>
+                  ) : (
+                    <div style={exerciseGoalInfoStyle}>
+                      Den här övningen använder inte målvikter. Mål sätts i stället via set, reps eller kommentar.
+                    </div>
+                  )}
 
-                    <input
-                      type="text"
-                      placeholder="Kommentar"
-                      value={draft.comment ?? ""}
-                      onChange={(e) =>
-                        handleExerciseGoalDraftChange(entry.exercise_id, "comment", e.target.value)
-                      }
-                      style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
-                    />
+                  <input
+                    type="text"
+                    placeholder="Kommentar"
+                    value={draft.comment ?? ""}
+                    onChange={(e) =>
+                      handleExerciseGoalDraftChange(entry.exercise_id, "comment", e.target.value)
+                    }
+                    style={{ ...inputStyle, width: "100%", marginBottom: "10px" }}
+                  />
 
-                    <button
-                      type="button"
-                      onClick={() => handlePrefillExerciseGoalFromHistory(entry.exercise_id)}
-                      disabled={!hasHistory}
-                      style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto" }}
-                    >
-                      Fyll från historik
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => handlePrefillExerciseGoalFromHistory(entry.exercise_id)}
+                    disabled={!hasHistory}
+                    style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto" }}
+                  >
+                    Fyll från historik
+                  </button>
+                </div>
+              )
+            })()}
+            </>
             )}
 
             <button
