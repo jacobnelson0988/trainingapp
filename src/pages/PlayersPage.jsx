@@ -293,8 +293,8 @@ function PlayersPage({
       <div style={editorSectionTabsStyle(isMobile)}>
         {renderEditorSectionButton("overview", "Översikt")}
         {renderEditorSectionButton("passes", "Pass")}
-        {renderEditorSectionButton("targets", "Mål")}
-        {renderEditorSectionButton("history", "Historik")}
+        {renderEditorSectionButton("targets", "Passmål")}
+        {renderEditorSectionButton("history", "Målvikt")}
       </div>
 
       {activeEditorSection === "overview" && (
@@ -452,8 +452,19 @@ function PlayersPage({
       {activeEditorSection === "targets" && (
       <div style={editorSectionCardStyle}>
         <div style={sectionHeaderCompactStyle}>
-          <div style={sectionTitleCompactStyle}>Individuella mål per övning</div>
-          <div style={sectionMetaCompactStyle}>Visa mindre först, välj sedan pass och övning</div>
+          <div style={sectionTitleCompactStyle}>Passmål och avvikelser</div>
+          <div style={sectionMetaCompactStyle}>Ändra reps eller teknikfokus för ett specifikt pass</div>
+        </div>
+        <div style={{ ...archivedInfoCardStyle, marginBottom: "14px" }}>
+          Målvikt ändras i fliken <strong>Målvikt</strong>. Den här vyn styr bara passets repsupplägg
+          eller en kommentar när en spelare ska avvika från standardpasset.
+          <button
+            type="button"
+            onClick={() => setActiveEditorSection("history")}
+            style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto", marginTop: "10px" }}
+          >
+            Öppna målvikt per övning
+          </button>
         </div>
         {isLoadingTargets ? (
           <p style={mutedTextStyle}>Laddar individuella mål...</p>
@@ -668,8 +679,8 @@ function PlayersPage({
       {activeEditorSection === "history" && (
       <div style={editorSectionCardStyle}>
         <div style={sectionHeaderCompactStyle}>
-          <div style={sectionTitleCompactStyle}>Historik och övningsmål</div>
-          <div style={sectionMetaCompactStyle}>Tilldelade övningar samlas i en lista med mål per repsintervall.</div>
+          <div style={sectionTitleCompactStyle}>Målvikt per övning</div>
+          <div style={sectionMetaCompactStyle}>Sätt kg per repsintervall. Samma målvikt följer övningen i alla pass.</div>
         </div>
         {player.individual_goals_enabled === false ? (
           <div style={archivedInfoCardStyle}>
