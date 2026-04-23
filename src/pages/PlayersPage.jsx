@@ -1022,36 +1022,11 @@ function PlayersPage({
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: "8px",
-                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    <input
-                      type="number"
-                      placeholder="Mål set"
-                      value={draft.target_sets ?? ""}
-                      onChange={(e) =>
-                        handleExerciseGoalDraftChange(entry.exercise_id, "target_sets", e.target.value)
-                      }
-                      style={{ ...inputStyle, width: "100%" }}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Mål reps"
-                      value={draft.target_reps ?? ""}
-                      onChange={(e) =>
-                        handleExerciseGoalDraftChange(entry.exercise_id, "target_reps", e.target.value)
-                      }
-                      style={{ ...inputStyle, width: "100%" }}
-                    />
-                  </div>
-
                   {entry.exercise_type === "weight_reps" ? (
                     <div style={{ marginBottom: "10px" }}>
+                      <div style={{ ...exerciseGoalInfoStyle, marginBottom: "10px" }}>
+                        Set och reps styrs av passet. Här ändrar du bara målvikten inom respektive repsintervall.
+                      </div>
                       <div
                         style={{
                           marginBottom: "8px",
