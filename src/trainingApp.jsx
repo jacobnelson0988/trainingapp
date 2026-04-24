@@ -8985,7 +8985,6 @@ function TrainingApp() {
               <div style={playerTodayMetaRowStyle}>
                 <div>
                   <div style={playerTodayMonoLabelStyle}>{formatTodayLabel()}</div>
-                  <div style={playerTodayTitleStyle}>Idag.</div>
                 </div>
                 <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
               </div>
@@ -12561,17 +12560,6 @@ const playerTodayMonoLabelStyle = {
   letterSpacing: "0.16em",
   textTransform: "uppercase",
   color: playerInkSoft,
-}
-
-const playerTodayTitleStyle = {
-  marginTop: "12px",
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(48px, 13vw, 74px)",
-  lineHeight: 0.9,
-  fontWeight: 650,
-  fontStyle: "italic",
-  letterSpacing: "-0.05em",
-  color: playerInk,
 }
 
 const playerTodayTeamPillStyle = {
