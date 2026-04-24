@@ -29,6 +29,15 @@ const normalizeExerciseSearchValue = (value) =>
     .replace(/[\s\-_]+/g, "")
     .replace(/[^a-z0-9]/g, "")
 
+const normalizeCalendarMatchValue = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[åä]/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9 ]/g, "")
+
 const parseExerciseAliases = (value) => {
   const seen = new Set()
 
@@ -7542,7 +7551,58 @@ function TrainingApp() {
     (session) => session.workout_kind === "running" && session.running_origin !== "assigned"
   )
   const todayDateInput = getTodayDateInputValue()
-  const todaysPlayerCalendarEntries = calendarEntries.filter(
+  const playerCalendarEntries =
+    profile?.role === "player"
+      ? calendarEntries.map((entry) => {
+          const currentStatus = entry.current_user_link?.completion_status
+
+          if (
+            currentStatus === "completed" ||
+            currentStatus === "cancelled" ||
+            !entry.current_user_link?.id
+          ) {
+            return entry
+          }
+
+          const entryDate = getDateInputValueFromTimestamp(entry.starts_at)
+          const matchedWorkout =
+            entry.activity_kind === "template_workout"
+              ? Object.entries(activeWorkouts || {}).find(
+                  ([, workout]) => String(workout.id || "") === String(entry.workout_template_id || "")
+                )
+              : null
+
+          const candidateNames = [entry.title, matchedWorkout?.[0] || "", matchedWorkout?.[1]?.label || ""]
+            .map((value) => normalizeCalendarMatchValue(value))
+            .filter(Boolean)
+
+          const matchedSession = completedWorkoutSessions.find((session) => {
+            if (getDateInputValueFromTimestamp(session.created_at) !== entryDate) return false
+
+            const sessionNames = [session.pass_name, session.session_label]
+              .map((value) => normalizeCalendarMatchValue(value))
+              .filter(Boolean)
+
+            return candidateNames.some((candidate) => sessionNames.includes(candidate))
+          })
+
+          if (!matchedSession) {
+            return entry
+          }
+
+          return {
+            ...entry,
+            current_user_link: {
+              ...entry.current_user_link,
+              completion_status: "completed",
+              completed_at: entry.current_user_link.completed_at || matchedSession.created_at,
+              linked_workout_session_id:
+                entry.current_user_link.linked_workout_session_id || matchedSession.session_id,
+            },
+          }
+        })
+      : calendarEntries
+  const todaysPlayerCalendarEntries = playerCalendarEntries.filter(
     (entry) =>
       !entry.is_cancelled &&
       getDateInputValueFromTimestamp(entry.starts_at) === todayDateInput &&
@@ -9379,7 +9439,7 @@ function TrainingApp() {
               role={profile.role}
               isMobile={isMobile}
               teamName={teamName}
-              entries={calendarEntries}
+              entries={playerCalendarEntries}
               players={[]}
               workouts={activeWorkouts}
               weekStart={calendarWeekStart}
