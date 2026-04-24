@@ -102,6 +102,17 @@ const formatPlayerWeekRange = (days) => {
   })}`
 }
 
+const getIsoWeekNumber = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+
+  const normalized = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNumber = normalized.getUTCDay() || 7
+  normalized.setUTCDate(normalized.getUTCDate() + 4 - dayNumber)
+  const yearStart = new Date(Date.UTC(normalized.getUTCFullYear(), 0, 1))
+  return Math.ceil((((normalized - yearStart) / 86400000) + 1) / 7)
+}
+
 const formatTime = (value) =>
   new Date(value).toLocaleTimeString("sv-SE", {
     hour: "2-digit",
@@ -291,6 +302,7 @@ function CalendarPage({
   }, [weekStart])
 
   const weekRangeLabel = useMemo(() => formatPlayerWeekRange(weekDays), [weekDays])
+  const weekNumber = useMemo(() => getIsoWeekNumber(weekDays[0]?.key), [weekDays])
 
   const entriesByDay = useMemo(() => {
     const grouped = {}
@@ -637,7 +649,10 @@ function CalendarPage({
           <div style={playerCalendarToolbarStyle(isMobile)}>
             <div>
               <div style={playerCalendarWeekLabelStyle}>Veckovy</div>
-              <div style={playerCalendarWeekRangeStyle}>{weekRangeLabel}</div>
+              <div style={playerCalendarWeekRangeRowStyle}>
+                <div style={playerCalendarWeekRangeStyle}>{weekRangeLabel}</div>
+                <div style={playerCalendarWeekNumberStyle}>Vecka {weekNumber}</div>
+              </div>
             </div>
             <div style={playerCalendarNavRowStyle(isMobile)}>
               <button type="button" onClick={onPreviousWeek} style={playerCalendarSecondaryButtonStyle}>
@@ -652,17 +667,9 @@ function CalendarPage({
             </div>
           </div>
 
-          <div style={playerCalendarSummaryRowStyle(isMobile)}>
-            <div style={playerCalendarSummaryCardStyle}>
-              <div style={playerCalendarSummaryLabelStyle}>I veckan</div>
-              <div style={playerCalendarSummaryValueStyle}>{totalEntriesCount}</div>
-              <div style={playerCalendarSummaryTextStyle}>planerade aktiviteter</div>
-            </div>
-            <div style={playerCalendarSummaryCardStyle}>
-              <div style={playerCalendarSummaryLabelStyle}>Egen planering</div>
-              <div style={playerCalendarSummaryValueStyle}>7 dagar</div>
-              <div style={playerCalendarSummaryTextStyle}>visas alltid, även när de är tomma</div>
-            </div>
+          <div style={playerCalendarSummaryInlineStyle}>
+            <span>{totalEntriesCount} aktiviteter i veckan</span>
+            <span>7 dagar visas alltid</span>
           </div>
         </div>
 
@@ -702,12 +709,7 @@ function CalendarPage({
                   </div>
 
                   {dayEntries.length === 0 ? (
-                    <div style={playerCalendarEmptyDayStyle}>
-                      <div style={playerCalendarEmptyTitleStyle}>Inget planerat ännu.</div>
-                      <div style={playerCalendarEmptyTextStyle}>
-                        Dagen är fri. Lägg till en egen aktivitet om du vill använda kalendern för planering.
-                      </div>
-                    </div>
+                    <div style={playerCalendarEmptyDayStyle}>Tom dag</div>
                   ) : (
                     <div style={playerCalendarEntryListStyle}>
                       {dayEntries.map((entry) => {
@@ -1372,18 +1374,18 @@ const formActionsStyle = {
 
 const playerCalendarPageStyle = {
   display: "grid",
-  gap: "22px",
+  gap: "16px",
 }
 
 const playerCalendarHeroStyle = {
   display: "grid",
-  gap: "18px",
-  padding: "24px",
-  borderRadius: "32px",
+  gap: "14px",
+  padding: "18px",
+  borderRadius: "24px",
   background:
     "radial-gradient(circle at top left, rgba(217, 74, 31, 0.18) 0%, rgba(247, 239, 229, 0.96) 38%, rgba(255, 251, 246, 0.98) 100%)",
   border: "1px solid rgba(164, 106, 60, 0.14)",
-  boxShadow: "0 24px 44px rgba(15, 23, 42, 0.08)",
+  boxShadow: "0 16px 30px rgba(15, 23, 42, 0.06)",
 }
 
 const playerCalendarHeroTopRowStyle = (isMobile) => ({
@@ -1403,18 +1405,18 @@ const playerCalendarMonoLabelStyle = {
 }
 
 const playerCalendarTitleStyle = {
-  marginTop: "10px",
-  fontSize: "clamp(36px, 6vw, 60px)",
-  lineHeight: 0.92,
+  marginTop: "8px",
+  fontSize: "clamp(28px, 4.5vw, 42px)",
+  lineHeight: 0.96,
   fontWeight: 900,
   color: "#1c1917",
 }
 
 const playerCalendarTextStyle = {
-  marginTop: "14px",
-  maxWidth: "640px",
-  fontSize: "16px",
-  lineHeight: 1.65,
+  marginTop: "8px",
+  maxWidth: "560px",
+  fontSize: "14px",
+  lineHeight: 1.55,
   color: "#5b6475",
 }
 
@@ -1423,9 +1425,9 @@ const playerCalendarToolbarStyle = (isMobile) => ({
   justifyContent: "space-between",
   alignItems: isMobile ? "stretch" : "center",
   flexDirection: isMobile ? "column" : "row",
-  gap: "14px",
-  padding: "18px 20px",
-  borderRadius: "22px",
+  gap: "12px",
+  padding: "14px 16px",
+  borderRadius: "18px",
   backgroundColor: "rgba(255, 255, 255, 0.62)",
   border: "1px solid rgba(164, 106, 60, 0.12)",
 })
@@ -1439,52 +1441,42 @@ const playerCalendarWeekLabelStyle = {
 }
 
 const playerCalendarWeekRangeStyle = {
-  marginTop: "6px",
-  fontSize: "26px",
+  marginTop: "4px",
+  fontSize: "22px",
   fontWeight: 900,
   color: "#1f2937",
 }
 
+const playerCalendarWeekRangeRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
+}
+
+const playerCalendarWeekNumberStyle = {
+  padding: "5px 10px",
+  borderRadius: "999px",
+  backgroundColor: "#fff4ea",
+  color: "#9a3412",
+  fontSize: "12px",
+  fontWeight: 800,
+}
+
 const playerCalendarNavRowStyle = (isMobile) => ({
   display: "flex",
-  gap: "10px",
+  gap: "8px",
   flexWrap: "wrap",
   width: isMobile ? "100%" : "auto",
 })
 
-const playerCalendarSummaryRowStyle = (isMobile) => ({
-  display: "grid",
+const playerCalendarSummaryInlineStyle = {
+  display: "flex",
   gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-})
-
-const playerCalendarSummaryCardStyle = {
-  padding: "16px 18px",
-  borderRadius: "20px",
-  backgroundColor: "rgba(28, 25, 23, 0.95)",
-  color: "#f7f3ee",
-}
-
-const playerCalendarSummaryLabelStyle = {
-  fontSize: "11px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: "rgba(247, 243, 238, 0.72)",
-}
-
-const playerCalendarSummaryValueStyle = {
-  marginTop: "10px",
-  fontSize: "32px",
-  fontWeight: 900,
-  lineHeight: 1,
-}
-
-const playerCalendarSummaryTextStyle = {
-  marginTop: "8px",
+  flexWrap: "wrap",
   fontSize: "14px",
   lineHeight: 1.5,
-  color: "rgba(247, 243, 238, 0.8)",
+  color: "#6b7280",
 }
 
 const playerCalendarComposeWrapStyle = {
@@ -1533,17 +1525,17 @@ const playerCalendarLoadingStyle = {
 
 const playerCalendarWeekListStyle = {
   display: "grid",
-  gap: "18px",
+  gap: "12px",
 }
 
 const playerCalendarDaySectionStyle = {
   display: "grid",
-  gap: "14px",
-  padding: "18px",
-  borderRadius: "26px",
+  gap: "10px",
+  padding: "14px",
+  borderRadius: "20px",
   backgroundColor: "#fffdfa",
   border: "1px solid rgba(164, 106, 60, 0.14)",
-  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.05)",
+  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.04)",
 }
 
 const playerCalendarDayHeaderStyle = {
@@ -1562,56 +1554,46 @@ const playerCalendarDayKickerStyle = {
 }
 
 const playerCalendarDayTitleStyle = {
-  marginTop: "5px",
-  fontSize: "22px",
+  marginTop: "3px",
+  fontSize: "18px",
   fontWeight: 900,
   color: "#1f2937",
   textTransform: "capitalize",
 }
 
 const playerCalendarDayCountStyle = {
-  minWidth: "40px",
-  height: "40px",
+  minWidth: "34px",
+  height: "34px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
   backgroundColor: "#fff0e5",
   color: "#b45309",
-  fontSize: "13px",
+  fontSize: "12px",
   fontWeight: 900,
 }
 
 const playerCalendarEmptyDayStyle = {
-  padding: "18px",
-  borderRadius: "20px",
+  padding: "10px 12px",
+  borderRadius: "14px",
   backgroundColor: "#f8f2ea",
   border: "1px dashed rgba(164, 106, 60, 0.22)",
-}
-
-const playerCalendarEmptyTitleStyle = {
-  fontSize: "16px",
-  fontWeight: 800,
-  color: "#1f2937",
-}
-
-const playerCalendarEmptyTextStyle = {
-  marginTop: "6px",
-  fontSize: "14px",
-  lineHeight: 1.55,
-  color: "#6b7280",
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#7c6f63",
 }
 
 const playerCalendarEntryListStyle = {
   display: "grid",
-  gap: "12px",
+  gap: "8px",
 }
 
 const playerCalendarEntryCardStyle = {
-  padding: "18px",
-  borderRadius: "22px",
+  padding: "14px",
+  borderRadius: "16px",
   border: "1px solid rgba(164, 106, 60, 0.14)",
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+  boxShadow: "0 6px 16px rgba(15, 23, 42, 0.03)",
 }
 
 const playerCalendarEntryTopRowStyle = {
@@ -1652,65 +1634,65 @@ const playerCalendarStatusStyle = {
 }
 
 const playerCalendarEntryTitleStyle = {
-  marginTop: "12px",
-  fontSize: "24px",
+  marginTop: "8px",
+  fontSize: "18px",
   fontWeight: 900,
-  lineHeight: 1.05,
+  lineHeight: 1.08,
   color: "#1c1917",
 }
 
 const playerCalendarEntryMetaStyle = {
-  marginTop: "8px",
-  fontSize: "14px",
+  marginTop: "6px",
+  fontSize: "13px",
   fontWeight: 700,
   color: "#5b6475",
 }
 
 const playerCalendarEntryDescriptionStyle = {
-  marginTop: "10px",
-  fontSize: "14px",
-  lineHeight: 1.6,
+  marginTop: "8px",
+  fontSize: "13px",
+  lineHeight: 1.45,
   color: "#4b5563",
 }
 
 const playerCalendarEntryActionRowStyle = (isMobile) => ({
   display: "flex",
-  gap: "8px",
+  gap: "6px",
   flexWrap: "wrap",
-  marginTop: "14px",
+  marginTop: "10px",
   flexDirection: isMobile ? "column" : "row",
 })
 
 const playerCalendarPrimaryButtonStyle = {
   border: "none",
-  borderRadius: "16px",
-  padding: "13px 18px",
+  borderRadius: "14px",
+  padding: "10px 14px",
   backgroundColor: "#d94a1f",
   color: "#fffdf8",
-  fontSize: "14px",
+  fontSize: "13px",
   fontWeight: 800,
   cursor: "pointer",
-  boxShadow: "0 12px 28px rgba(217, 74, 31, 0.22)",
+  boxShadow: "0 8px 18px rgba(217, 74, 31, 0.18)",
 }
 
 const playerCalendarSecondaryButtonStyle = {
   border: "1px solid rgba(164, 106, 60, 0.18)",
-  borderRadius: "16px",
-  padding: "13px 18px",
+  borderRadius: "14px",
+  padding: "10px 14px",
   backgroundColor: "#ffffff",
   color: "#1f2937",
-  fontSize: "14px",
+  fontSize: "13px",
   fontWeight: 800,
   cursor: "pointer",
 }
 
 const playerCalendarDangerButtonStyle = {
   border: "1px solid #f3c6c6",
-  borderRadius: "16px",
-  padding: "13px 18px",
+  borderRadius: "14px",
+  padding: "10px 14px",
   backgroundColor: "#fff5f5",
   color: "#b91c1c",
-  fontSize: "14px",
+  fontSize: "13px",
   fontWeight: 800,
   cursor: "pointer",
 }
