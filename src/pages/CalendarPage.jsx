@@ -626,7 +626,6 @@ function CalendarPage({
 
   if (role === "player") {
     const hasComposeView = isCreateOpen || Boolean(editingEntry)
-    const totalEntriesCount = (entries || []).filter((entry) => entry?.is_cancelled !== true).length
 
     return (
       <div style={playerCalendarPageStyle}>
@@ -667,10 +666,6 @@ function CalendarPage({
             </div>
           </div>
 
-          <div style={playerCalendarSummaryInlineStyle}>
-            <span>{totalEntriesCount} aktiviteter i veckan</span>
-            <span>7 dagar visas alltid</span>
-          </div>
         </div>
 
         {hasComposeView ? (
@@ -1469,15 +1464,6 @@ const playerCalendarNavRowStyle = (isMobile) => ({
   flexWrap: "wrap",
   width: isMobile ? "100%" : "auto",
 })
-
-const playerCalendarSummaryInlineStyle = {
-  display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
-  fontSize: "14px",
-  lineHeight: 1.5,
-  color: "#6b7280",
-}
 
 const playerCalendarComposeWrapStyle = {
   display: "grid",
