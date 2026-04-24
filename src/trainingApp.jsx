@@ -7635,9 +7635,37 @@ function TrainingApp() {
           : ""
       }`
     : "Planera eller se veckan"
-  const weekCompletionCount = completedWorkoutSessions.filter(
-    (session) => getDateInputValueFromTimestamp(session.created_at) >= calendarWeekStart
-  ).length
+  const currentWeekStart = getWeekStartDateInputValue()
+  const playerHomeWeekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(`${currentWeekStart}T00:00:00`)
+    date.setDate(date.getDate() + index)
+    return getDateInputValueFromTimestamp(date)
+  })
+  const weekDayStateByDate = playerHomeWeekDays.reduce((acc, dateKey) => {
+    const hasCompletedSession = completedWorkoutSessions.some(
+      (session) => getDateInputValueFromTimestamp(session.created_at) === dateKey
+    )
+    const dayCalendarEntries = playerCalendarEntries.filter(
+      (entry) => !entry.is_cancelled && getDateInputValueFromTimestamp(entry.starts_at) === dateKey
+    )
+    const hasCompletedCalendarEntry = dayCalendarEntries.some(
+      (entry) => entry.current_user_link?.completion_status === "completed"
+    )
+    const hasPlannedCalendarEntry = dayCalendarEntries.some((entry) => {
+      const status = entry.current_user_link?.completion_status || "planned"
+      return status !== "completed" && status !== "cancelled" && status !== "skipped"
+    })
+
+    acc[dateKey] = hasCompletedSession || hasCompletedCalendarEntry
+      ? "completed"
+      : hasPlannedCalendarEntry
+      ? "planned"
+      : "empty"
+
+    return acc
+  }, {})
+  const weekCompletedDayCount = Object.values(weekDayStateByDate).filter((value) => value === "completed").length
+  const weekPlannedDayCount = Object.values(weekDayStateByDate).filter((value) => value === "planned").length
   const todayWeekIndex = (new Date().getDay() + 6) % 7
   const activeWorkoutCurrentExercise =
     !isRunningWorkoutActive && activeExerciseIndex > 0 && activeExerciseIndex <= activeWorkoutExercises.length
@@ -9064,21 +9092,28 @@ function TrainingApp() {
               <div style={playerTodayWeekCardStyle}>
                 <div style={playerTodayWeekHeaderStyle}>
                   <div style={playerTodayMonoLabelStyle}>Denna vecka</div>
-                  <div style={playerTodayWeekCountStyle}>{weekCompletionCount} loggade</div>
+                  <div style={playerTodayWeekCountStyle}>
+                    {weekCompletedDayCount} genomforda · {weekPlannedDayCount} planerade
+                  </div>
                 </div>
                 <div style={playerTodayWeekGridStyle}>
-                  {["M", "T", "O", "T", "F", "L", "S"].map((day, index) => (
+                  {["M", "T", "O", "T", "F", "L", "S"].map((day, index) => {
+                    const dayState = weekDayStateByDate[playerHomeWeekDays[index]] || "empty"
+
+                    return (
                     <div
                       key={`${day}-${index}`}
                       style={{
                         ...playerTodayWeekCellStyle,
                         ...(index === todayWeekIndex ? playerTodayWeekCellTodayStyle : {}),
-                        ...(index < Math.min(weekCompletionCount, 7) ? playerTodayWeekCellDoneStyle : {}),
+                        ...(dayState === "planned" ? playerTodayWeekCellPlannedStyle : {}),
+                        ...(dayState === "completed" ? playerTodayWeekCellDoneStyle : {}),
                       }}
                     >
                       {day}
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -12762,6 +12797,12 @@ const playerTodayWeekCellStyle = {
 
 const playerTodayWeekCellTodayStyle = {
   borderColor: playerAccent,
+  color: playerAccent,
+}
+
+const playerTodayWeekCellPlannedStyle = {
+  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  borderColor: "rgba(217, 74, 31, 0.28)",
   color: playerAccent,
 }
 
