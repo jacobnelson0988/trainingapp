@@ -75,6 +75,33 @@ const formatDayLabel = (value) =>
     day: "numeric",
   })
 
+const formatPlayerDayTitle = (value) =>
+  new Date(value).toLocaleDateString("sv-SE", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  })
+
+const formatPlayerWeekRange = (days) => {
+  if (!Array.isArray(days) || days.length === 0) return ""
+
+  const firstDate = new Date(days[0].key)
+  const lastDate = new Date(days[days.length - 1].key)
+  const sameMonth = firstDate.getMonth() === lastDate.getMonth()
+
+  if (sameMonth) {
+    return `${firstDate.getDate()}-${lastDate.getDate()} ${lastDate.toLocaleDateString("sv-SE", {
+      month: "long",
+    })}`
+  }
+
+  return `${firstDate.getDate()} ${firstDate.toLocaleDateString("sv-SE", {
+    month: "short",
+  })} - ${lastDate.getDate()} ${lastDate.toLocaleDateString("sv-SE", {
+    month: "short",
+  })}`
+}
+
 const formatTime = (value) =>
   new Date(value).toLocaleTimeString("sv-SE", {
     hour: "2-digit",
@@ -263,6 +290,8 @@ function CalendarPage({
     })
   }, [weekStart])
 
+  const weekRangeLabel = useMemo(() => formatPlayerWeekRange(weekDays), [weekDays])
+
   const entriesByDay = useMemo(() => {
     const grouped = {}
     weekDays.forEach((day) => {
@@ -342,18 +371,31 @@ function CalendarPage({
     setIsCreateOpen((prev) => !prev)
   }
 
+  const handlePlayerSkip = async (entry) => {
+    const playerLinkId = entry?.current_user_link?.id
+    if (!playerLinkId) return
+
+    const confirmed = window.confirm(
+      `Är du säker på att du vill hoppa över "${entry.title}"?`
+    )
+
+    if (!confirmed) return
+
+    await onUpdateEntryStatus(playerLinkId, "skipped")
+  }
+
   const renderActivityForm = () => (
-    <div style={formCardStyle}>
-      <div style={formTitleRowStyle}>
+    <div style={role === "player" ? playerFormCardStyle : formCardStyle}>
+      <div style={role === "player" ? playerFormTitleRowStyle : formTitleRowStyle}>
         <div>
-          <div style={formTitleStyle}>
+          <div style={role === "player" ? playerFormTitleStyle : formTitleStyle}>
             {editingEntry
               ? "Redigera aktivitet"
               : role === "coach"
               ? "Ny aktivitet"
               : "Lägg till aktivitet"}
           </div>
-          <div style={formTextStyle}>
+          <div style={role === "player" ? playerFormTextStyle : formTextStyle}>
             {editingEntry
               ? "Ändringarna gäller den här kalenderposten direkt."
               : role === "coach"
@@ -362,12 +404,12 @@ function CalendarPage({
           </div>
         </div>
 
-        <button type="button" onClick={resetDraft} style={ghostButtonStyle}>
+        <button type="button" onClick={resetDraft} style={role === "player" ? playerGhostButtonStyle : ghostButtonStyle}>
           Stäng
         </button>
       </div>
 
-      <div style={formGridStyle(isMobile)}>
+      <div style={role === "player" ? playerFormGridStyle(isMobile) : formGridStyle(isMobile)}>
         <label style={fieldStyle}>
           <span style={fieldLabelStyle}>Typ</span>
           <select
@@ -569,6 +611,236 @@ function CalendarPage({
       </div>
     </div>
   )
+
+  if (role === "player") {
+    const hasComposeView = isCreateOpen || Boolean(editingEntry)
+    const totalEntriesCount = (entries || []).filter((entry) => entry?.is_cancelled !== true).length
+
+    return (
+      <div style={playerCalendarPageStyle}>
+        <div style={playerCalendarHeroStyle}>
+          <div style={playerCalendarHeroTopRowStyle(isMobile)}>
+            <div>
+              <div style={playerCalendarMonoLabelStyle}>Kalender</div>
+              <div style={playerCalendarTitleStyle}>Planera veckan.</div>
+              <div style={playerCalendarTextStyle}>
+                Se lagda pass, fyll tomma dagar med egna aktiviteter och håll koll på veckan utan att lämna spelarläget.
+              </div>
+            </div>
+            {!hasComposeView ? (
+              <button type="button" onClick={handleOpenCreate} style={playerCalendarPrimaryButtonStyle}>
+                Ny aktivitet
+              </button>
+            ) : null}
+          </div>
+
+          <div style={playerCalendarToolbarStyle(isMobile)}>
+            <div>
+              <div style={playerCalendarWeekLabelStyle}>Veckovy</div>
+              <div style={playerCalendarWeekRangeStyle}>{weekRangeLabel}</div>
+            </div>
+            <div style={playerCalendarNavRowStyle(isMobile)}>
+              <button type="button" onClick={onPreviousWeek} style={playerCalendarSecondaryButtonStyle}>
+                Föregående
+              </button>
+              <button type="button" onClick={onGoToToday} style={playerCalendarSecondaryButtonStyle}>
+                Idag
+              </button>
+              <button type="button" onClick={onNextWeek} style={playerCalendarSecondaryButtonStyle}>
+                Nästa
+              </button>
+            </div>
+          </div>
+
+          <div style={playerCalendarSummaryRowStyle(isMobile)}>
+            <div style={playerCalendarSummaryCardStyle}>
+              <div style={playerCalendarSummaryLabelStyle}>I veckan</div>
+              <div style={playerCalendarSummaryValueStyle}>{totalEntriesCount}</div>
+              <div style={playerCalendarSummaryTextStyle}>planerade aktiviteter</div>
+            </div>
+            <div style={playerCalendarSummaryCardStyle}>
+              <div style={playerCalendarSummaryLabelStyle}>Egen planering</div>
+              <div style={playerCalendarSummaryValueStyle}>7 dagar</div>
+              <div style={playerCalendarSummaryTextStyle}>visas alltid, även när de är tomma</div>
+            </div>
+          </div>
+        </div>
+
+        {hasComposeView ? (
+          <div style={playerCalendarComposeWrapStyle}>
+            <button type="button" onClick={resetDraft} style={playerCalendarBackButtonStyle}>
+              ← Tillbaka till veckan
+            </button>
+            <div style={playerCalendarComposeIntroStyle}>
+              <div style={playerCalendarMonoLabelStyle}>{editingEntry ? "Redigera" : "Ny aktivitet"}</div>
+              <div style={playerCalendarComposeTitleStyle}>
+                {editingEntry ? "Ändra din aktivitet." : "Lägg in något i kalendern."}
+              </div>
+              <div style={playerCalendarComposeTextStyle}>
+                Skapa en egen aktivitet direkt i veckan. Tränarplanerade pass ligger kvar som fasta planeringsobjekt.
+              </div>
+            </div>
+            {renderActivityForm()}
+          </div>
+        ) : isLoading ? (
+          <div style={playerCalendarLoadingStyle}>Laddar kalender...</div>
+        ) : (
+          <div style={playerCalendarWeekListStyle}>
+            {weekDays.map((day) => {
+              const dayEntries = entriesByDay[day.key] || []
+
+              return (
+                <section key={day.key} style={playerCalendarDaySectionStyle}>
+                  <div style={playerCalendarDayHeaderStyle}>
+                    <div>
+                      <div style={playerCalendarDayKickerStyle}>
+                        {new Date(day.key).toLocaleDateString("sv-SE", { weekday: "short" })}
+                      </div>
+                      <div style={playerCalendarDayTitleStyle}>{formatPlayerDayTitle(day.key)}</div>
+                    </div>
+                    <div style={playerCalendarDayCountStyle}>{dayEntries.length}</div>
+                  </div>
+
+                  {dayEntries.length === 0 ? (
+                    <div style={playerCalendarEmptyDayStyle}>
+                      <div style={playerCalendarEmptyTitleStyle}>Inget planerat ännu.</div>
+                      <div style={playerCalendarEmptyTextStyle}>
+                        Dagen är fri. Lägg till en egen aktivitet om du vill använda kalendern för planering.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={playerCalendarEntryListStyle}>
+                      {dayEntries.map((entry) => {
+                        const status = entry.current_user_link?.completion_status || "planned"
+                        const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
+                        const isOwnedByPlayer = entry?.current_user_link?.assignment_source === "self"
+                        const canEditEntry = getCanEditEntry(entry, role)
+                        const primaryActionLabel =
+                          entry.activity_kind === "template_workout" ? "Starta pass" : "Öppna"
+
+                        return (
+                          <article
+                            key={entry.id}
+                            style={{
+                              ...playerCalendarEntryCardStyle,
+                              background: isOwnedByPlayer
+                                ? "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(251,244,238,0.96) 100%)"
+                                : "linear-gradient(180deg, rgba(255,248,244,0.96) 0%, rgba(255,255,255,0.98) 100%)",
+                            }}
+                          >
+                            <div style={playerCalendarEntryTopRowStyle}>
+                              <div style={playerCalendarEntrySourceWrapStyle}>
+                                <span style={playerCalendarSourceDotStyle(isOwnedByPlayer)} />
+                                <span style={playerCalendarEntrySourceStyle}>
+                                  {isOwnedByPlayer ? "Egen aktivitet" : "Coachplanerat"}
+                                </span>
+                              </div>
+                              <div
+                                style={{
+                                  ...playerCalendarStatusStyle,
+                                  backgroundColor: statusTheme.background,
+                                  color: statusTheme.color,
+                                }}
+                              >
+                                {statusLabelMap[status] || "Planerad"}
+                              </div>
+                            </div>
+
+                            <div style={playerCalendarEntryTitleStyle}>{entry.title}</div>
+                            <div style={playerCalendarEntryMetaStyle}>
+                              {formatTime(entry.starts_at)}-{formatTime(entry.ends_at)}
+                              {entry.location ? ` • ${entry.location}` : ""}
+                            </div>
+
+                            {entry.description ? (
+                              <div style={playerCalendarEntryDescriptionStyle}>{entry.description}</div>
+                            ) : null}
+
+                            <div style={playerCalendarEntryActionRowStyle(isMobile)}>
+                              <button
+                                type="button"
+                                onClick={() => onOpenEntry(entry)}
+                                style={{
+                                  ...playerCalendarPrimaryButtonStyle,
+                                  width: isMobile ? "100%" : "auto",
+                                }}
+                              >
+                                {primaryActionLabel}
+                              </button>
+
+                              {entry.current_user_link && entry.current_user_link.completion_status === "skipped" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "planned")}
+                                  disabled={updatingEntryStatusId === entry.current_user_link.id}
+                                  style={{
+                                    ...playerCalendarSecondaryButtonStyle,
+                                    width: isMobile ? "100%" : "auto",
+                                    opacity: updatingEntryStatusId === entry.current_user_link.id ? 0.7 : 1,
+                                  }}
+                                >
+                                  Återställ
+                                </button>
+                              ) : null}
+
+                              {entry.current_user_link &&
+                              entry.current_user_link.completion_status !== "completed" &&
+                              entry.current_user_link.completion_status !== "skipped" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePlayerSkip(entry)}
+                                  disabled={updatingEntryStatusId === entry.current_user_link.id}
+                                  style={{
+                                    ...playerCalendarSecondaryButtonStyle,
+                                    width: isMobile ? "100%" : "auto",
+                                    opacity: updatingEntryStatusId === entry.current_user_link.id ? 0.7 : 1,
+                                  }}
+                                >
+                                  Hoppa över
+                                </button>
+                              ) : null}
+
+                              {canEditEntry ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(entry)}
+                                  style={{
+                                    ...playerCalendarSecondaryButtonStyle,
+                                    width: isMobile ? "100%" : "auto",
+                                  }}
+                                >
+                                  Redigera
+                                </button>
+                              ) : null}
+
+                              {canEditEntry ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onCancelActivity(entry)}
+                                  disabled={isCancellingActivity}
+                                  style={{
+                                    ...playerCalendarDangerButtonStyle,
+                                    width: isMobile ? "100%" : "auto",
+                                    opacity: isCancellingActivity ? 0.7 : 1,
+                                  }}
+                                >
+                                  Ta bort
+                                </button>
+                              ) : null}
+                            </div>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -1096,6 +1368,399 @@ const formActionsStyle = {
   flexWrap: "wrap",
   gap: "8px",
   marginTop: "16px",
+}
+
+const playerCalendarPageStyle = {
+  display: "grid",
+  gap: "22px",
+}
+
+const playerCalendarHeroStyle = {
+  display: "grid",
+  gap: "18px",
+  padding: "24px",
+  borderRadius: "32px",
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.18) 0%, rgba(247, 239, 229, 0.96) 38%, rgba(255, 251, 246, 0.98) 100%)",
+  border: "1px solid rgba(164, 106, 60, 0.14)",
+  boxShadow: "0 24px 44px rgba(15, 23, 42, 0.08)",
+}
+
+const playerCalendarHeroTopRowStyle = (isMobile) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: isMobile ? "stretch" : "flex-start",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "16px",
+})
+
+const playerCalendarMonoLabelStyle = {
+  fontSize: "12px",
+  fontWeight: 800,
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
+  color: "#8f1d1d",
+}
+
+const playerCalendarTitleStyle = {
+  marginTop: "10px",
+  fontSize: "clamp(36px, 6vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 900,
+  color: "#1c1917",
+}
+
+const playerCalendarTextStyle = {
+  marginTop: "14px",
+  maxWidth: "640px",
+  fontSize: "16px",
+  lineHeight: 1.65,
+  color: "#5b6475",
+}
+
+const playerCalendarToolbarStyle = (isMobile) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: isMobile ? "stretch" : "center",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "14px",
+  padding: "18px 20px",
+  borderRadius: "22px",
+  backgroundColor: "rgba(255, 255, 255, 0.62)",
+  border: "1px solid rgba(164, 106, 60, 0.12)",
+})
+
+const playerCalendarWeekLabelStyle = {
+  fontSize: "12px",
+  fontWeight: 800,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#7c6f63",
+}
+
+const playerCalendarWeekRangeStyle = {
+  marginTop: "6px",
+  fontSize: "26px",
+  fontWeight: 900,
+  color: "#1f2937",
+}
+
+const playerCalendarNavRowStyle = (isMobile) => ({
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  width: isMobile ? "100%" : "auto",
+})
+
+const playerCalendarSummaryRowStyle = (isMobile) => ({
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const playerCalendarSummaryCardStyle = {
+  padding: "16px 18px",
+  borderRadius: "20px",
+  backgroundColor: "rgba(28, 25, 23, 0.95)",
+  color: "#f7f3ee",
+}
+
+const playerCalendarSummaryLabelStyle = {
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "rgba(247, 243, 238, 0.72)",
+}
+
+const playerCalendarSummaryValueStyle = {
+  marginTop: "10px",
+  fontSize: "32px",
+  fontWeight: 900,
+  lineHeight: 1,
+}
+
+const playerCalendarSummaryTextStyle = {
+  marginTop: "8px",
+  fontSize: "14px",
+  lineHeight: 1.5,
+  color: "rgba(247, 243, 238, 0.8)",
+}
+
+const playerCalendarComposeWrapStyle = {
+  display: "grid",
+  gap: "16px",
+}
+
+const playerCalendarBackButtonStyle = {
+  border: "none",
+  backgroundColor: "transparent",
+  color: "#1f2937",
+  fontSize: "14px",
+  fontWeight: 800,
+  cursor: "pointer",
+  padding: 0,
+  justifySelf: "start",
+}
+
+const playerCalendarComposeIntroStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const playerCalendarComposeTitleStyle = {
+  fontSize: "34px",
+  lineHeight: 1,
+  fontWeight: 900,
+  color: "#1c1917",
+}
+
+const playerCalendarComposeTextStyle = {
+  maxWidth: "640px",
+  fontSize: "15px",
+  lineHeight: 1.6,
+  color: "#5b6475",
+}
+
+const playerCalendarLoadingStyle = {
+  padding: "32px 24px",
+  borderRadius: "24px",
+  border: "1px solid rgba(164, 106, 60, 0.14)",
+  backgroundColor: "#fffdfa",
+  color: "#6b7280",
+  fontSize: "15px",
+}
+
+const playerCalendarWeekListStyle = {
+  display: "grid",
+  gap: "18px",
+}
+
+const playerCalendarDaySectionStyle = {
+  display: "grid",
+  gap: "14px",
+  padding: "18px",
+  borderRadius: "26px",
+  backgroundColor: "#fffdfa",
+  border: "1px solid rgba(164, 106, 60, 0.14)",
+  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.05)",
+}
+
+const playerCalendarDayHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "center",
+}
+
+const playerCalendarDayKickerStyle = {
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "#8b7e73",
+}
+
+const playerCalendarDayTitleStyle = {
+  marginTop: "5px",
+  fontSize: "22px",
+  fontWeight: 900,
+  color: "#1f2937",
+  textTransform: "capitalize",
+}
+
+const playerCalendarDayCountStyle = {
+  minWidth: "40px",
+  height: "40px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "999px",
+  backgroundColor: "#fff0e5",
+  color: "#b45309",
+  fontSize: "13px",
+  fontWeight: 900,
+}
+
+const playerCalendarEmptyDayStyle = {
+  padding: "18px",
+  borderRadius: "20px",
+  backgroundColor: "#f8f2ea",
+  border: "1px dashed rgba(164, 106, 60, 0.22)",
+}
+
+const playerCalendarEmptyTitleStyle = {
+  fontSize: "16px",
+  fontWeight: 800,
+  color: "#1f2937",
+}
+
+const playerCalendarEmptyTextStyle = {
+  marginTop: "6px",
+  fontSize: "14px",
+  lineHeight: 1.55,
+  color: "#6b7280",
+}
+
+const playerCalendarEntryListStyle = {
+  display: "grid",
+  gap: "12px",
+}
+
+const playerCalendarEntryCardStyle = {
+  padding: "18px",
+  borderRadius: "22px",
+  border: "1px solid rgba(164, 106, 60, 0.14)",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+}
+
+const playerCalendarEntryTopRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "center",
+  flexWrap: "wrap",
+}
+
+const playerCalendarEntrySourceWrapStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+}
+
+const playerCalendarSourceDotStyle = (isOwnedByPlayer) => ({
+  width: "10px",
+  height: "10px",
+  borderRadius: "999px",
+  backgroundColor: isOwnedByPlayer ? "#d97706" : "#b91c1c",
+})
+
+const playerCalendarEntrySourceStyle = {
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "#7c6f63",
+}
+
+const playerCalendarStatusStyle = {
+  padding: "6px 10px",
+  borderRadius: "999px",
+  fontSize: "11px",
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+}
+
+const playerCalendarEntryTitleStyle = {
+  marginTop: "12px",
+  fontSize: "24px",
+  fontWeight: 900,
+  lineHeight: 1.05,
+  color: "#1c1917",
+}
+
+const playerCalendarEntryMetaStyle = {
+  marginTop: "8px",
+  fontSize: "14px",
+  fontWeight: 700,
+  color: "#5b6475",
+}
+
+const playerCalendarEntryDescriptionStyle = {
+  marginTop: "10px",
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#4b5563",
+}
+
+const playerCalendarEntryActionRowStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "14px",
+  flexDirection: isMobile ? "column" : "row",
+})
+
+const playerCalendarPrimaryButtonStyle = {
+  border: "none",
+  borderRadius: "16px",
+  padding: "13px 18px",
+  backgroundColor: "#d94a1f",
+  color: "#fffdf8",
+  fontSize: "14px",
+  fontWeight: 800,
+  cursor: "pointer",
+  boxShadow: "0 12px 28px rgba(217, 74, 31, 0.22)",
+}
+
+const playerCalendarSecondaryButtonStyle = {
+  border: "1px solid rgba(164, 106, 60, 0.18)",
+  borderRadius: "16px",
+  padding: "13px 18px",
+  backgroundColor: "#ffffff",
+  color: "#1f2937",
+  fontSize: "14px",
+  fontWeight: 800,
+  cursor: "pointer",
+}
+
+const playerCalendarDangerButtonStyle = {
+  border: "1px solid #f3c6c6",
+  borderRadius: "16px",
+  padding: "13px 18px",
+  backgroundColor: "#fff5f5",
+  color: "#b91c1c",
+  fontSize: "14px",
+  fontWeight: 800,
+  cursor: "pointer",
+}
+
+const playerFormCardStyle = {
+  padding: "22px",
+  borderRadius: "28px",
+  border: "1px solid rgba(164, 106, 60, 0.14)",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,242,234,0.96) 100%)",
+  boxShadow: "0 18px 34px rgba(15, 23, 42, 0.06)",
+}
+
+const playerFormTitleRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
+}
+
+const playerFormTitleStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+  fontWeight: 900,
+  color: "#1c1917",
+}
+
+const playerFormTextStyle = {
+  marginTop: "8px",
+  fontSize: "15px",
+  lineHeight: 1.65,
+  color: "#5b6475",
+  maxWidth: "580px",
+}
+
+const playerFormGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "14px",
+  marginTop: "18px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const playerGhostButtonStyle = {
+  border: "none",
+  backgroundColor: "transparent",
+  color: "#7c6f63",
+  fontSize: "13px",
+  fontWeight: 800,
+  cursor: "pointer",
+  padding: "2px 0",
 }
 
 export default CalendarPage
