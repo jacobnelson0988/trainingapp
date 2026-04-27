@@ -634,9 +634,6 @@ function CalendarPage({
             <div>
               <div style={playerCalendarMonoLabelStyle}>Kalender</div>
               <div style={playerCalendarTitleStyle}>Planera veckan.</div>
-              <div style={playerCalendarTextStyle}>
-                Se lagda pass, fyll tomma dagar med egna aktiviteter och håll koll på veckan utan att lämna spelarläget.
-              </div>
             </div>
             {!hasComposeView ? (
               <button type="button" onClick={handleOpenCreate} style={playerCalendarPrimaryButtonStyle}>

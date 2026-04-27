@@ -128,11 +128,7 @@ function MessagesPage({
     <div style={pageWrapStyle}>
       <div style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
-        <div style={pageEyebrowStyle}>Tränarvy</div>
-        <div style={introTitleStyle}>Meddelanden</div>
-        <div style={introTextStyle}>
-          Samla all kommunikation i ett tydligt flöde med samma kortlogik som resten av tränarvyn.
-        </div>
+          <div style={introTitleStyle}>Meddelanden</div>
         </div>
       </div>
 

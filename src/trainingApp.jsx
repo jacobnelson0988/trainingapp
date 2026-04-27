@@ -7472,20 +7472,6 @@ function TrainingApp() {
       : playerPassFamily === "prehab"
       ? "Prehab"
       : "Välj träning"
-  const playerPassFamilyDescription =
-    playerPassFamily === "strength"
-      ? "Rekommenderade styrkepass först, men du väljer själv vad du kör idag."
-    : playerPassFamily === "running"
-      ? playerRunningView === "assigned"
-        ? "Välj ett coachat intervallpass och öppna registreringen därifrån."
-        : playerRunningView === "ownInterval"
-        ? "Registrera ett eget enkelt intervallpass utan att skapa en ny mall."
-        : playerRunningView === "distance"
-        ? "Logga fri distans i efterhand med kilometer, tid och puls."
-        : "Välj ett färdigt intervallpass, skapa ett enkelt eget intervallpass eller logga fri distans."
-      : playerPassFamily === "prehab"
-      ? "Skadeförebyggande pass samlade för snabb start."
-      : "Börja med träningsfamilj och gå vidare därifrån."
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmup = {
@@ -7960,7 +7946,7 @@ function TrainingApp() {
       ? "Skapa lag, lägg till tränare och få överblick över alla användare."
       : profile?.role === "coach"
       ? "Bygg pass, följ spelare och håll ihop träningen."
-      : "Dina pass, meddelanden och historik på ett ställe."
+      : ""
 
   return (
     <div
@@ -7996,18 +7982,22 @@ function TrainingApp() {
                 ? "Coachläge"
                 : "Spelarläge"}
             </p>
-            <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
-              Starkare Gurra
-            </h1>
-            <p
-              style={{
-                ...appSubtitleStyle,
-                maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
-                fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
-              }}
-            >
-              {playerHeaderSubtitle}
-            </p>
+            {profile?.role !== "player" ? (
+              <>
+                <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
+                  Starkare Gurra
+                </h1>
+                <p
+                  style={{
+                    ...appSubtitleStyle,
+                    maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
+                    fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
+                  }}
+                >
+                  {playerHeaderSubtitle}
+                </p>
+              </>
+            ) : null}
           </div>
 
           <div style={headerActionsWrapStyle(isMobile)}>
@@ -8126,7 +8116,6 @@ function TrainingApp() {
           <div style={accountHeaderStyle(isMobile)}>
             <div>
               <div style={sectionTitleStyle}>Mitt konto</div>
-              <p style={mutedTextStyle}>Här hanterar du uppgifter som gäller ditt eget konto.</p>
             </div>
 
             <button
@@ -9008,7 +8997,6 @@ function TrainingApp() {
               <div style={playerHomeSectionHeaderStyle}>
                 <div>
                   <div style={playerTodayMonoLabelStyle}>Välj träning</div>
-                  <div style={playerHomeSectionTitleStyle}>Vad ska du köra?</div>
                 </div>
                 <div style={playerHomeSectionMetaStyle}>{Object.keys(visibleWorkouts).length} pass</div>
               </div>
@@ -9506,7 +9494,6 @@ function TrainingApp() {
               <div style={playerPageIntroStyle}>
                 <div style={playerTodayMonoLabelStyle}>Passval</div>
                 <h2 style={playerPassPageTitleStyle}>{playerPassFamilyTitle}</h2>
-                <p style={playerPassPageTextStyle}>{playerPassFamilyDescription}</p>
                 {playerPassFamily && (
                   <button
                     type="button"
