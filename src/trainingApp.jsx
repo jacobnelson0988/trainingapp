@@ -1175,6 +1175,7 @@ function TrainingApp() {
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseIds, setSelectedPlayerStatsExerciseIds] = useState([])
+  const [playerStatsPickerValue, setPlayerStatsPickerValue] = useState("")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [globalView, setGlobalView] = useState(getInitialGlobalView)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -1328,6 +1329,7 @@ function TrainingApp() {
       setCompletedWorkoutSessions([])
       setPlayerExerciseProgress([])
       setSelectedPlayerStatsExerciseIds([])
+      setPlayerStatsPickerValue("")
       return
     }
 
@@ -3500,6 +3502,7 @@ function TrainingApp() {
     if (!userId) {
       setPlayerExerciseProgress([])
       setSelectedPlayerStatsExerciseIds([])
+      setPlayerStatsPickerValue("")
       return
     }
 
@@ -3518,6 +3521,7 @@ function TrainingApp() {
       console.error(error)
       setPlayerExerciseProgress([])
       setSelectedPlayerStatsExerciseIds([])
+      setPlayerStatsPickerValue("")
       setIsLoadingPlayerExerciseProgress(false)
       return
     }
@@ -3526,6 +3530,9 @@ function TrainingApp() {
     setPlayerExerciseProgress(nextProgress)
     setSelectedPlayerStatsExerciseIds((current) =>
       current.filter((exerciseId) => nextProgress.some((entry) => entry.exercise_id === exerciseId))
+    )
+    setPlayerStatsPickerValue((current) =>
+      nextProgress.some((entry) => entry.exercise_id === current && entry.is_relevant_for_player_stats) ? current : ""
     )
     setIsLoadingPlayerExerciseProgress(false)
   }
@@ -7449,12 +7456,23 @@ function TrainingApp() {
       selectablePlayerStatsExercises.find((entry) => entry.exercise_id === exerciseId) || null
     )
     .filter(Boolean)
+  const unselectedPlayerStatsExercises = selectablePlayerStatsExercises.filter(
+    (entry) => !selectedPlayerStatsExerciseIds.includes(entry.exercise_id)
+  )
   const handleTogglePlayerStatsExercise = (exerciseId) => {
     setSelectedPlayerStatsExerciseIds((current) =>
       current.includes(exerciseId)
         ? current.filter((entry) => entry !== exerciseId)
         : [...current, exerciseId]
     )
+  }
+  const handleAddPlayerStatsExercise = (exerciseId) => {
+    if (!exerciseId) return
+
+    setSelectedPlayerStatsExerciseIds((current) =>
+      current.includes(exerciseId) ? current : [...current, exerciseId]
+    )
+    setPlayerStatsPickerValue("")
   }
   const navigateCoachSection = (tabKey) => {
     setCoachView(tabKey)
@@ -9084,8 +9102,8 @@ function TrainingApp() {
               ) : (
                 <div style={playerStatsLayoutStyle}>
                   <div style={playerStatsSelectorWrapStyle}>
-                    <details style={playerStatsSelectorStyle}>
-                      <summary style={playerStatsSelectorSummaryStyle}>
+                    <div style={playerStatsSelectorStyle}>
+                      <div style={playerStatsSelectorHeaderStyle}>
                         <div>
                           <div style={playerStatsSelectorLabelStyle}>Välj övningar</div>
                           <div style={playerStatsSelectorTextStyle}>
@@ -9095,39 +9113,32 @@ function TrainingApp() {
                           </div>
                         </div>
                         <span style={playerStatsSelectorSummaryHintStyle}>Flera val</span>
-                      </summary>
-
-                      <div style={playerStatsSelectorMenuStyle}>
-                        {selectablePlayerStatsExercises.map((entry) => {
-                          const isSelected = selectedPlayerStatsExerciseIds.includes(entry.exercise_id)
-
-                          return (
-                            <label
-                              key={entry.exercise_id}
-                              style={{
-                                ...playerStatsSelectorOptionStyle,
-                                backgroundColor: isSelected ? "#fff6f6" : uiSurface,
-                                borderColor: isSelected ? "#b61e24" : uiBorder,
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleTogglePlayerStatsExercise(entry.exercise_id)}
-                              />
-                              <div style={{ minWidth: 0 }}>
-                                <div style={playerStatsExerciseTitleStyle}>{entry.exercise_display_name}</div>
-                                <div style={playerStatsExerciseMetaStyle}>
-                                  {entry.has_weight_data
-                                    ? `Bästa vikt ${entry.best_weight_entry?.top_weight ?? "-"} kg`
-                                    : `Bästa max ${entry.best_rep_entry?.top_reps ?? "-"} reps`}
-                                </div>
-                              </div>
-                            </label>
-                          )
-                        })}
                       </div>
-                    </details>
+
+                      <div style={playerStatsSelectorControlsStyle}>
+                        <select
+                          value={playerStatsPickerValue}
+                          onChange={(event) => {
+                            const nextExerciseId = event.target.value
+                            setPlayerStatsPickerValue(nextExerciseId)
+                            handleAddPlayerStatsExercise(nextExerciseId)
+                          }}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        >
+                          <option value="">Välj övning</option>
+                          {unselectedPlayerStatsExercises.map((entry) => (
+                            <option key={entry.exercise_id} value={entry.exercise_id}>
+                              {entry.exercise_display_name}
+                            </option>
+                          ))}
+                        </select>
+                        <div style={playerStatsSelectorHelperStyle}>
+                          {unselectedPlayerStatsExercises.length === 0
+                            ? "Alla tillgängliga övningar är redan valda."
+                            : "Välj en övning i listan för att lägga till den direkt."}
+                        </div>
+                      </div>
+                    </div>
 
                     {selectedPlayerStatsExercises.length > 0 ? (
                       <div style={playerStatsSelectedChipsStyle}>
@@ -11817,21 +11828,20 @@ const playerStatsSelectorWrapStyle = {
 }
 
 const playerStatsSelectorStyle = {
+  display: "grid",
+  gap: "12px",
+  padding: "18px",
   borderRadius: "22px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
   boxShadow: uiShadowMd,
-  overflow: "hidden",
 }
 
-const playerStatsSelectorSummaryStyle = {
-  listStyle: "none",
+const playerStatsSelectorHeaderStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "12px",
-  padding: "18px",
-  cursor: "pointer",
 }
 
 const playerStatsSelectorLabelStyle = {
@@ -11862,21 +11872,17 @@ const playerStatsSelectorSummaryHintStyle = {
   whiteSpace: "nowrap",
 }
 
-const playerStatsSelectorMenuStyle = {
+const playerStatsSelectorControlsStyle = {
   display: "grid",
   gap: "10px",
-  padding: "0 18px 18px",
+  gridTemplateColumns: "1fr",
+  alignItems: "center",
 }
 
-const playerStatsSelectorOptionStyle = {
-  display: "grid",
-  gridTemplateColumns: "18px minmax(0, 1fr)",
-  alignItems: "start",
-  gap: "12px",
-  padding: "14px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  cursor: "pointer",
+const playerStatsSelectorHelperStyle = {
+  fontSize: "13px",
+  color: "#566173",
+  lineHeight: 1.5,
 }
 
 const playerStatsExerciseTitleStyle = {
