@@ -794,25 +794,50 @@ const buildPlayerExerciseProgress = (rows, exercises) =>
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
       const weightEntries = entriesAscending.filter((entry) => entry.top_weight != null)
+      const repEntries = entriesAscending.filter((entry) => entry.top_reps != null)
       const latestEntry = exerciseHistory.entries[0] || null
       const bestWeightEntry =
         weightEntries.reduce((bestEntry, currentEntry) => {
           if (!bestEntry) return currentEntry
           return currentEntry.top_weight > bestEntry.top_weight ? currentEntry : bestEntry
         }, null) || null
+      const bestRepEntry =
+        repEntries.reduce((bestEntry, currentEntry) => {
+          if (!bestEntry) return currentEntry
+          return Number(currentEntry.top_reps || 0) > Number(bestEntry.top_reps || 0) ? currentEntry : bestEntry
+        }, null) || null
+      const exerciseType = matchedExercise?.exercise_type || "reps_only"
+      const defaultRepsMode = matchedExercise?.default_reps_mode || matchedExercise?.defaultRepsMode || "fixed"
+      const isRelevantForPlayerStats =
+        exerciseType !== "seconds_only" &&
+        (weightEntries.length > 0 || (defaultRepsMode === "max" && repEntries.length > 0))
 
       return {
         exercise_id: matchedExercise?.id || exerciseHistory.exercise_name,
         exercise_name: exerciseHistory.exercise_name,
         exercise_display_name: matchedExercise ? getExerciseDisplayName(matchedExercise) : exerciseHistory.exercise_name,
+        exercise_type: exerciseType,
+        default_reps_mode: defaultRepsMode,
         latest_entry: latestEntry,
         best_weight_entry: bestWeightEntry,
+        best_rep_entry: bestRepEntry,
         entry_count: exerciseHistory.entries.length,
+        has_weight_data: weightEntries.length > 0,
+        has_rep_data: repEntries.length > 0,
+        is_relevant_for_player_stats: isRelevantForPlayerStats,
         weight_entries: weightEntries.map((entry) => ({
           created_at: entry.created_at,
           top_weight: entry.top_weight,
           top_reps: entry.top_reps,
           pass_name: entry.pass_name || null,
+          workout_kind: entry.workout_kind || null,
+        })),
+        rep_entries: repEntries.map((entry) => ({
+          created_at: entry.created_at,
+          top_weight: entry.top_weight,
+          top_reps: entry.top_reps,
+          pass_name: entry.pass_name || null,
+          workout_kind: entry.workout_kind || null,
         })),
       }
     })
@@ -1149,7 +1174,7 @@ function TrainingApp() {
   const [playerOverviewPanel, setPlayerOverviewPanel] = useState(null)
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
-  const [selectedPlayerStatsExerciseId, setSelectedPlayerStatsExerciseId] = useState("")
+  const [selectedPlayerStatsExerciseIds, setSelectedPlayerStatsExerciseIds] = useState([])
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [globalView, setGlobalView] = useState(getInitialGlobalView)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -1302,7 +1327,7 @@ function TrainingApp() {
     if (!user || profile?.role !== "player") {
       setCompletedWorkoutSessions([])
       setPlayerExerciseProgress([])
-      setSelectedPlayerStatsExerciseId("")
+      setSelectedPlayerStatsExerciseIds([])
       return
     }
 
@@ -3474,7 +3499,7 @@ function TrainingApp() {
   const loadPlayerExerciseProgress = async (userId) => {
     if (!userId) {
       setPlayerExerciseProgress([])
-      setSelectedPlayerStatsExerciseId("")
+      setSelectedPlayerStatsExerciseIds([])
       return
     }
 
@@ -3492,17 +3517,16 @@ function TrainingApp() {
     if (error) {
       console.error(error)
       setPlayerExerciseProgress([])
-      setSelectedPlayerStatsExerciseId("")
+      setSelectedPlayerStatsExerciseIds([])
       setIsLoadingPlayerExerciseProgress(false)
       return
     }
 
     const nextProgress = buildPlayerExerciseProgress(data || [], exercisesFromDB)
     setPlayerExerciseProgress(nextProgress)
-    setSelectedPlayerStatsExerciseId((current) => {
-      if (current && nextProgress.some((entry) => entry.exercise_id === current)) return current
-      return nextProgress[0]?.exercise_id || ""
-    })
+    setSelectedPlayerStatsExerciseIds((current) =>
+      current.filter((exerciseId) => nextProgress.some((entry) => entry.exercise_id === exerciseId))
+    )
     setIsLoadingPlayerExerciseProgress(false)
   }
 
@@ -7414,10 +7438,24 @@ function TrainingApp() {
   const playerFirstName = profile?.full_name?.trim()?.split(" ")[0] || "spelare"
   const latestAssignedSession = assignedCompletedSessions[0] || null
   const latestOwnRunningSession = ownRunningSessions[0] || null
-  const selectedPlayerStatsExercise =
-    playerExerciseProgress.find((entry) => entry.exercise_id === selectedPlayerStatsExerciseId) ||
-    playerExerciseProgress[0] ||
-    null
+  const selectablePlayerStatsExercises = playerExerciseProgress
+    .filter((entry) => entry.is_relevant_for_player_stats)
+    .slice()
+    .sort((a, b) =>
+      String(a.exercise_display_name || "").localeCompare(String(b.exercise_display_name || ""), "sv")
+    )
+  const selectedPlayerStatsExercises = selectedPlayerStatsExerciseIds
+    .map((exerciseId) =>
+      selectablePlayerStatsExercises.find((entry) => entry.exercise_id === exerciseId) || null
+    )
+    .filter(Boolean)
+  const handleTogglePlayerStatsExercise = (exerciseId) => {
+    setSelectedPlayerStatsExerciseIds((current) =>
+      current.includes(exerciseId)
+        ? current.filter((entry) => entry !== exerciseId)
+        : [...current, exerciseId]
+    )
+  }
   const navigateCoachSection = (tabKey) => {
     setCoachView(tabKey)
     if (tabKey !== "players") {
@@ -9039,91 +9077,139 @@ function TrainingApp() {
 
               {isLoadingPlayerExerciseProgress ? (
                 <div style={playerStatsEmptyStyle}>Laddar statistik...</div>
-              ) : playerExerciseProgress.length === 0 ? (
-                <div style={playerStatsEmptyStyle}>Ingen statistik ännu. Logga några pass först.</div>
+              ) : selectablePlayerStatsExercises.length === 0 ? (
+                <div style={playerStatsEmptyStyle}>
+                  Ingen relevant statistik ännu. Bara viktövningar och maxrepsövningar visas här.
+                </div>
               ) : (
-                <div style={playerStatsLayoutStyle(isMobile)}>
-                  <div style={playerStatsExerciseListStyle}>
-                    {playerExerciseProgress.map((entry) => {
-                      const isSelected = selectedPlayerStatsExercise?.exercise_id === entry.exercise_id
-
-                      return (
-                        <button
-                          key={entry.exercise_id}
-                          type="button"
-                          onClick={() => setSelectedPlayerStatsExerciseId(entry.exercise_id)}
-                          style={{
-                            ...playerStatsExerciseButtonStyle,
-                            borderColor: isSelected ? "#b61e24" : playerStatsExerciseButtonStyle.borderColor,
-                            backgroundColor: isSelected ? "#fff6f6" : playerStatsExerciseButtonStyle.backgroundColor,
-                          }}
-                        >
-                          <div style={playerStatsExerciseTitleStyle}>{entry.exercise_display_name}</div>
-                          <div style={playerStatsExerciseMetaStyle}>
-                            {entry.best_weight_entry?.top_weight != null
-                              ? `Bästa vikt ${entry.best_weight_entry.top_weight} kg`
-                              : `${entry.entry_count} loggade pass`}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {selectedPlayerStatsExercise && (
-                    <div style={playerStatsCardStyle}>
-                      <div style={playerStatsHeaderStyle(isMobile)}>
+                <div style={playerStatsLayoutStyle}>
+                  <div style={playerStatsSelectorWrapStyle}>
+                    <details style={playerStatsSelectorStyle}>
+                      <summary style={playerStatsSelectorSummaryStyle}>
                         <div>
-                          <div style={playerStatsTitleStyle}>{selectedPlayerStatsExercise.exercise_display_name}</div>
-                          <div style={playerStatsTextStyle}>
-                            {selectedPlayerStatsExercise.weight_entries.length > 0
-                              ? "Viktutveckling över tid"
-                              : "Här ser du dina senaste loggningar för övningen"}
+                          <div style={playerStatsSelectorLabelStyle}>Välj övningar</div>
+                          <div style={playerStatsSelectorTextStyle}>
+                            {selectedPlayerStatsExerciseIds.length === 0
+                              ? "Ingen övning vald"
+                              : `${selectedPlayerStatsExerciseIds.length} valda`}
                           </div>
                         </div>
-                        <div style={playerStatsSummaryPillStyle}>
-                          {selectedPlayerStatsExercise.best_weight_entry?.top_weight != null
-                            ? `${selectedPlayerStatsExercise.best_weight_entry.top_weight} kg bäst`
-                            : `${selectedPlayerStatsExercise.entry_count} pass`}
-                        </div>
-                      </div>
+                        <span style={playerStatsSelectorSummaryHintStyle}>Flera val</span>
+                      </summary>
 
-                      {selectedPlayerStatsExercise.weight_entries.length > 0 ? (
-                        <div style={playerChartWrapStyle}>
-                          <PlayerProgressChart entries={selectedPlayerStatsExercise.weight_entries} />
-                        </div>
-                      ) : (
-                        <div style={playerStatsEmptyInlineStyle}>
-                          Ingen vikt loggad ännu för den här övningen. Fortsätt logga så visas grafen här.
-                        </div>
-                      )}
+                      <div style={playerStatsSelectorMenuStyle}>
+                        {selectablePlayerStatsExercises.map((entry) => {
+                          const isSelected = selectedPlayerStatsExerciseIds.includes(entry.exercise_id)
 
-                      <div style={playerStatsRecentListStyle}>
-                        {(selectedPlayerStatsExercise.weight_entries.length > 0
-                          ? selectedPlayerStatsExercise.weight_entries.slice().reverse()
-                          : [selectedPlayerStatsExercise.latest_entry].filter(Boolean)
-                        )
-                          .slice(0, 6)
-                          .map((entry) => (
-                            <div
-                              key={`${selectedPlayerStatsExercise.exercise_id}-${entry.created_at}`}
-                              style={playerStatsRecentItemStyle}
+                          return (
+                            <label
+                              key={entry.exercise_id}
+                              style={{
+                                ...playerStatsSelectorOptionStyle,
+                                backgroundColor: isSelected ? "#fff6f6" : uiSurface,
+                                borderColor: isSelected ? "#b61e24" : uiBorder,
+                              }}
                             >
-                              <div>
-                                <div style={playerStatsRecentDateStyle}>{formatDate(entry.created_at)}</div>
-                                <div style={playerStatsRecentMetaStyle}>
-                                  {formatLoggedPassName(entry.pass_name, {
-                                    workoutKind: entry.workout_kind,
-                                    runningOrigin: entry.running_origin,
-                                  }) || "Pass"}
-                                  {entry.top_reps != null ? ` • ${entry.top_reps} reps` : ""}
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleTogglePlayerStatsExercise(entry.exercise_id)}
+                              />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={playerStatsExerciseTitleStyle}>{entry.exercise_display_name}</div>
+                                <div style={playerStatsExerciseMetaStyle}>
+                                  {entry.has_weight_data
+                                    ? `Bästa vikt ${entry.best_weight_entry?.top_weight ?? "-"} kg`
+                                    : `Bästa max ${entry.best_rep_entry?.top_reps ?? "-"} reps`}
                                 </div>
                               </div>
-                              <div style={playerStatsRecentValueStyle}>
-                                {entry.top_weight != null ? `${entry.top_weight} kg` : "Loggat"}
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </details>
+
+                    {selectedPlayerStatsExercises.length > 0 ? (
+                      <div style={playerStatsSelectedChipsStyle}>
+                        {selectedPlayerStatsExercises.map((entry) => (
+                          <button
+                            key={`chip-${entry.exercise_id}`}
+                            type="button"
+                            onClick={() => handleTogglePlayerStatsExercise(entry.exercise_id)}
+                            style={playerStatsSelectedChipStyle}
+                          >
+                            {entry.exercise_display_name} ×
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {selectedPlayerStatsExercises.length === 0 ? (
+                    <div style={playerStatsEmptyStyle}>Välj en eller flera övningar för att visa statistik.</div>
+                  ) : (
+                    <div style={playerStatsCardsStackStyle}>
+                      {selectedPlayerStatsExercises.map((exerciseProgress) => {
+                        const recentEntries =
+                          exerciseProgress.has_weight_data
+                            ? exerciseProgress.weight_entries.slice().reverse()
+                            : exerciseProgress.rep_entries.slice().reverse()
+
+                        return (
+                          <div key={exerciseProgress.exercise_id} style={playerStatsCardStyle}>
+                            <div style={playerStatsHeaderStyle(isMobile)}>
+                              <div>
+                                <div style={playerStatsTitleStyle}>{exerciseProgress.exercise_display_name}</div>
+                                <div style={playerStatsTextStyle}>
+                                  {exerciseProgress.has_weight_data
+                                    ? "Viktutveckling över tid"
+                                    : "Maxreps och senaste loggningar"}
+                                </div>
+                              </div>
+                              <div style={playerStatsSummaryPillStyle}>
+                                {exerciseProgress.has_weight_data
+                                  ? `${exerciseProgress.best_weight_entry?.top_weight ?? "-"} kg bäst`
+                                  : `${exerciseProgress.best_rep_entry?.top_reps ?? "-"} reps bäst`}
                               </div>
                             </div>
-                          ))}
-                      </div>
+
+                            {exerciseProgress.has_weight_data ? (
+                              <div style={playerChartWrapStyle}>
+                                <PlayerProgressChart entries={exerciseProgress.weight_entries} />
+                              </div>
+                            ) : (
+                              <div style={playerStatsEmptyInlineStyle}>
+                                Den här övningen följs som maxreps, så här visas repshistorik i stället för viktgraf.
+                              </div>
+                            )}
+
+                            <div style={playerStatsRecentListStyle}>
+                              {recentEntries.slice(0, 6).map((entry) => (
+                                <div
+                                  key={`${exerciseProgress.exercise_id}-${entry.created_at}`}
+                                  style={playerStatsRecentItemStyle}
+                                >
+                                  <div>
+                                    <div style={playerStatsRecentDateStyle}>{formatDate(entry.created_at)}</div>
+                                    <div style={playerStatsRecentMetaStyle}>
+                                      {formatLoggedPassName(entry.pass_name, {
+                                        workoutKind: entry.workout_kind,
+                                        runningOrigin: entry.running_origin,
+                                      }) || "Pass"}
+                                      {entry.top_reps != null ? ` • ${entry.top_reps} reps` : ""}
+                                    </div>
+                                  </div>
+                                  <div style={playerStatsRecentValueStyle}>
+                                    {exerciseProgress.has_weight_data
+                                      ? `${entry.top_weight} kg`
+                                      : `${entry.top_reps ?? "-"} reps`}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -11718,26 +11804,78 @@ const playerPageIntroStyle = {
   marginBottom: "4px",
 }
 
-const playerStatsLayoutStyle = (isMobile) => ({
+const playerStatsLayoutStyle = {
   display: "grid",
   gap: "14px",
-  gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
+  gridTemplateColumns: "1fr",
   width: "100%",
-})
-
-const playerStatsExerciseListStyle = {
-  display: "grid",
-  gap: "10px",
-  alignContent: "start",
 }
 
-const playerStatsExerciseButtonStyle = {
-  width: "100%",
+const playerStatsSelectorWrapStyle = {
+  display: "grid",
+  gap: "12px",
+}
+
+const playerStatsSelectorStyle = {
+  borderRadius: "22px",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: uiSurface,
+  boxShadow: uiShadowMd,
+  overflow: "hidden",
+}
+
+const playerStatsSelectorSummaryStyle = {
+  listStyle: "none",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "18px",
+  cursor: "pointer",
+}
+
+const playerStatsSelectorLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "900",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "#566173",
+  marginBottom: "4px",
+}
+
+const playerStatsSelectorTextStyle = {
+  fontSize: "15px",
+  fontWeight: "800",
+  color: "#18202b",
+}
+
+const playerStatsSelectorSummaryHintStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#b61e24",
+  fontSize: "12px",
+  fontWeight: "800",
+  whiteSpace: "nowrap",
+}
+
+const playerStatsSelectorMenuStyle = {
+  display: "grid",
+  gap: "10px",
+  padding: "0 18px 18px",
+}
+
+const playerStatsSelectorOptionStyle = {
+  display: "grid",
+  gridTemplateColumns: "18px minmax(0, 1fr)",
+  alignItems: "start",
+  gap: "12px",
   padding: "14px",
   borderRadius: "18px",
   border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  textAlign: "left",
   cursor: "pointer",
 }
 
@@ -11751,6 +11889,31 @@ const playerStatsExerciseTitleStyle = {
 const playerStatsExerciseMetaStyle = {
   fontSize: "13px",
   color: "#566173",
+}
+
+const playerStatsSelectedChipsStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+}
+
+const playerStatsSelectedChipStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "10px 14px",
+  borderRadius: "999px",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: "#fff6f6",
+  color: "#18202b",
+  fontSize: "13px",
+  fontWeight: "800",
+  cursor: "pointer",
+}
+
+const playerStatsCardsStackStyle = {
+  display: "grid",
+  gap: "14px",
 }
 
 const playerStatsCardStyle = {
