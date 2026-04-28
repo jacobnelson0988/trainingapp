@@ -12749,9 +12749,12 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
       ? `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`
       : "rgba(255, 255, 255, 0.28)",
     color: isDark || isAccent ? playerPaper : playerInk,
-    textAlign: "left",
+    textAlign: "center",
     cursor: "pointer",
     boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   }
 }
 
@@ -12771,6 +12774,8 @@ const playerHomeTrainingTitleStyle = {
   lineHeight: 0.95,
   fontWeight: 700,
   letterSpacing: "-0.04em",
+  textAlign: "center",
+  maxWidth: "100%",
 }
 
 const playerHomeTrainingTextStyle = {
