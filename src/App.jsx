@@ -18,19 +18,6 @@ const loginShellStyle = {
   maxWidth: "460px",
 }
 
-const loginEyebrowStyle = {
-  display: "inline-flex",
-  width: "fit-content",
-  padding: "7px 12px",
-  borderRadius: "999px",
-  backgroundColor: "rgba(198, 40, 40, 0.10)",
-  color: "#991b1b",
-  fontSize: "12px",
-  fontWeight: "900",
-  letterSpacing: "0.1em",
-  textTransform: "uppercase",
-}
-
 const loginAuthCardStyle = {
   padding: "28px",
   borderRadius: "30px",
@@ -304,7 +291,6 @@ function App() {
         <section style={loginAuthCardStyle}>
           <div style={loginAuthHeaderStyle}>
             <div style={loginAuthKickerStyle}>Logga in</div>
-            <div style={loginEyebrowStyle}>Gustavsbergs Handboll</div>
             <h2 style={loginAuthTitleStyle}>Välkommen tillbaka.</h2>
             <p style={loginAuthTextStyle}>Använd ditt användarnamn och lösenord för att öppna appen.</p>
           </div>
@@ -321,7 +307,6 @@ function App() {
                 onChange={(e) => setUsername(e.target.value)}
                 style={loginInputStyle}
                 autoComplete="username"
-                placeholder="t.ex. jac.nel2"
               />
             </div>
 
@@ -336,7 +321,6 @@ function App() {
                 onChange={(e) => setPassword(e.target.value)}
                 style={loginInputStyle}
                 autoComplete="current-password"
-                placeholder="Ditt lösenord"
               />
             </div>
 
