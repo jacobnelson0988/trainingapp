@@ -13392,7 +13392,7 @@ const coachBottomNavWrapStyle = {
   right: 0,
   bottom: 0,
   zIndex: 30,
-  padding: "0 12px calc(10px + env(safe-area-inset-bottom))",
+  padding: "0 12px",
   pointerEvents: "none",
 }
 
@@ -13400,7 +13400,7 @@ const coachBottomNavStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
   gap: "6px",
-  padding: "10px 8px 8px",
+  padding: "10px 8px calc(8px + env(safe-area-inset-bottom))",
   borderTop: `1px solid ${uiBorder}`,
   borderRadius: "22px 22px 0 0",
   background: "rgba(255, 255, 255, 0.98)",
