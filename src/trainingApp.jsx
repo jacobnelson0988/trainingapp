@@ -9056,7 +9056,6 @@ function TrainingApp() {
                   onClick={() => openPlayerPassFamily("strength")}
                   style={playerHomeTrainingCardStyle("ink")}
                 >
-                  <div style={playerHomeTrainingKickerStyle}>Rekommenderat</div>
                   <div style={playerHomeTrainingTitleStyle}>Styrka</div>
                   <div style={playerHomeTrainingTextStyle}>
                     {playerFamilyCounts.strength
@@ -9070,7 +9069,6 @@ function TrainingApp() {
                   onClick={() => openPlayerPassFamily("running")}
                   style={playerHomeTrainingCardStyle("accent")}
                 >
-                  <div style={playerHomeTrainingKickerStyle}>Fritt och snabbt</div>
                   <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                   <div style={playerHomeTrainingTextStyle}>
                     Intervaller, egen intervall och fri distans
@@ -9082,7 +9080,6 @@ function TrainingApp() {
                   onClick={() => openPlayerPassFamily("prehab")}
                   style={playerHomeTrainingCardStyle("paper")}
                 >
-                  <div style={playerHomeTrainingKickerStyle}>Hållbarhet</div>
                   <div style={playerHomeTrainingTitleStyle}>Prehab</div>
                   <div style={playerHomeTrainingTextStyle}>
                     {playerFamilyCounts.prehab ? `${playerFamilyCounts.prehab} pass` : "Skadeförebyggande"}
@@ -9094,7 +9091,6 @@ function TrainingApp() {
                   onClick={() => navigatePlayerSection("calendar")}
                   style={playerHomeTrainingCardStyle("paper")}
                 >
-                  <div style={playerHomeTrainingKickerStyle}>Kalender</div>
                   <div style={playerHomeTrainingTitleStyle}>Planera</div>
                   <div style={playerHomeTrainingTextStyle}>{todayCalendarSummary}</div>
                 </button>
@@ -9104,7 +9100,6 @@ function TrainingApp() {
                   onClick={() => openRunningDraftPanel("running")}
                   style={playerHomeTrainingCardStyle("paper")}
                 >
-                  <div style={playerHomeTrainingKickerStyle}>Eget</div>
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
                   <div style={playerHomeTrainingTextStyle}>Fotboll, innebandy, racket eller annat</div>
                 </button>
