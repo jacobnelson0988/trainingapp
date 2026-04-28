@@ -9024,9 +9024,6 @@ function TrainingApp() {
               )}
 
               <div style={playerTodayMetaRowStyle}>
-                <div>
-                  <div style={playerTodayMonoLabelStyle}>{formatTodayLabel()}</div>
-                </div>
                 <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
               </div>
 
@@ -9048,7 +9045,7 @@ function TrainingApp() {
 
               <div style={playerHomeSectionHeaderStyle}>
                 <div>
-                  <div style={playerTodayMonoLabelStyle}>Välj träning</div>
+                  <div style={playerTodayMonoLabelStyle}>{formatTodayLabel()}</div>
                 </div>
                 <div style={playerHomeSectionMetaStyle}>{Object.keys(visibleWorkouts).length} pass</div>
               </div>
@@ -12631,10 +12628,7 @@ const playerTodayPageStyle = {
 }
 
 const playerTodayMetaRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "14px",
+  display: "block",
   padding: "8px 62px 0 6px",
 }
 
@@ -12648,16 +12642,15 @@ const playerTodayMonoLabelStyle = {
 }
 
 const playerTodayTeamPillStyle = {
-  padding: "8px 10px",
-  borderRadius: "999px",
-  border: `1px solid ${playerLine}`,
-  color: playerInkSoft,
-  fontSize: "12px",
-  fontWeight: 800,
-  maxWidth: "42%",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(34px, 8.8vw, 54px)",
+  lineHeight: 0.92,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+  maxWidth: "100%",
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
 }
 
 const playerTodayPrimaryCardStyle = {
