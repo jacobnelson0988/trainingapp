@@ -13,30 +13,9 @@ const loginPageStyle = {
   fontFamily: "Roboto, sans-serif",
 }
 
-const loginShellStyle = (isMobile) => ({
+const loginShellStyle = {
   width: "100%",
-  maxWidth: "1040px",
-  display: "grid",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(360px, 0.95fr)",
-  gap: isMobile ? "16px" : "22px",
-  alignItems: "stretch",
-})
-
-const loginHeroStyle = {
-  padding: "28px",
-  borderRadius: "30px",
-  border: "1px solid rgba(24, 32, 43, 0.08)",
-  background:
-    "radial-gradient(circle at 84% 18%, rgba(198, 40, 40, 0.18), transparent 24%), linear-gradient(180deg, rgba(255,255,255,0.76), rgba(245, 238, 228, 0.94))",
-  boxShadow: "0 24px 60px rgba(24, 32, 43, 0.10)",
-  display: "grid",
-  alignContent: "space-between",
-  gap: "28px",
-}
-
-const loginHeroTopStyle = {
-  display: "grid",
-  gap: "16px",
+  maxWidth: "460px",
 }
 
 const loginEyebrowStyle = {
@@ -52,66 +31,12 @@ const loginEyebrowStyle = {
   textTransform: "uppercase",
 }
 
-const loginHeroTitleStyle = {
-  margin: 0,
-  fontFamily: 'Georgia, "Times New Roman", serif',
-  fontSize: "clamp(44px, 8vw, 78px)",
-  lineHeight: 0.9,
-  fontWeight: "700",
-  letterSpacing: "-0.06em",
-  color: "#15181f",
-}
-
-const loginHeroTextStyle = {
-  margin: 0,
-  maxWidth: "38ch",
-  fontSize: "16px",
-  lineHeight: 1.6,
-  color: "#4b5563",
-}
-
-const loginHighlightsGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
-})
-
-const loginHighlightCardStyle = {
-  padding: "16px 14px",
-  borderRadius: "22px",
-  border: "1px solid rgba(24, 32, 43, 0.08)",
-  backgroundColor: "rgba(255, 255, 255, 0.68)",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.06)",
-}
-
-const loginHighlightLabelStyle = {
-  marginBottom: "8px",
-  fontSize: "11px",
-  fontWeight: "900",
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "#6b7280",
-}
-
-const loginHighlightTitleStyle = {
-  margin: "0 0 6px",
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#15181f",
-}
-
-const loginHighlightTextStyle = {
-  margin: 0,
-  fontSize: "13px",
-  lineHeight: 1.5,
-  color: "#6b7280",
-}
-
 const loginAuthCardStyle = {
   padding: "28px",
   borderRadius: "30px",
   border: "1px solid rgba(24, 32, 43, 0.08)",
-  background: "rgba(255, 255, 255, 0.92)",
+  background:
+    "radial-gradient(circle at 88% 12%, rgba(198, 40, 40, 0.12), transparent 22%), rgba(255, 255, 255, 0.92)",
   boxShadow: "0 24px 60px rgba(24, 32, 43, 0.10)",
   display: "grid",
   alignContent: "start",
@@ -293,7 +218,6 @@ function App() {
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
   const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const isMobile = typeof window !== "undefined" ? window.innerWidth <= 768 : false
   const isSuccessMessage = message.includes("✅")
 
   useEffect(() => {
@@ -376,38 +300,11 @@ function App() {
 
   return (
     <div style={loginPageStyle}>
-      <div style={loginShellStyle(isMobile)}>
-        <section style={loginHeroStyle}>
-          <div style={loginHeroTopStyle}>
-            <div style={loginEyebrowStyle}>Gustavsbergs Handboll</div>
-            <h1 style={loginHeroTitleStyle}>Starkare Gurra</h1>
-            <p style={loginHeroTextStyle}>
-              Samma app för pass, kalender, historik och statistik. Logga in och fortsätt direkt i ditt flöde.
-            </p>
-          </div>
-
-          <div style={loginHighlightsGridStyle(isMobile)}>
-            <div style={loginHighlightCardStyle}>
-              <div style={loginHighlightLabelStyle}>Pass</div>
-              <h2 style={loginHighlightTitleStyle}>Välj snabbt.</h2>
-              <p style={loginHighlightTextStyle}>Styrka, löpning och prehab ligger redo när du kommer in.</p>
-            </div>
-            <div style={loginHighlightCardStyle}>
-              <div style={loginHighlightLabelStyle}>Kalender</div>
-              <h2 style={loginHighlightTitleStyle}>Planera veckan.</h2>
-              <p style={loginHighlightTextStyle}>Se vad tränaren lagt in och bygg på med egna aktiviteter.</p>
-            </div>
-            <div style={loginHighlightCardStyle}>
-              <div style={loginHighlightLabelStyle}>Utveckling</div>
-              <h2 style={loginHighlightTitleStyle}>Följ framsteg.</h2>
-              <p style={loginHighlightTextStyle}>Historik och statistik finns nära utan att kännas rörigt.</p>
-            </div>
-          </div>
-        </section>
-
+      <div style={loginShellStyle}>
         <section style={loginAuthCardStyle}>
           <div style={loginAuthHeaderStyle}>
             <div style={loginAuthKickerStyle}>Logga in</div>
+            <div style={loginEyebrowStyle}>Gustavsbergs Handboll</div>
             <h2 style={loginAuthTitleStyle}>Välkommen tillbaka.</h2>
             <p style={loginAuthTextStyle}>Använd ditt användarnamn och lösenord för att öppna appen.</p>
           </div>
