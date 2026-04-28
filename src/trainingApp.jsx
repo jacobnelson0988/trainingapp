@@ -11009,7 +11009,7 @@ const pageStyle = {
   boxSizing: "border-box",
   margin: "0 auto",
   minHeight: "100vh",
-  fontFamily: "Roboto, sans-serif",
+  fontFamily: '"Manrope", sans-serif',
   overflowX: "hidden",
 }
 
@@ -11025,7 +11025,7 @@ const playerInk = "#1a1814"
 const playerInkSoft = "#6f6659"
 const playerAccent = "#d94a1f"
 const playerLine = "rgba(26, 24, 20, 0.14)"
-const playerDisplayFont = '"Fraunces", Georgia, serif'
+const playerDisplayFont = '"Manrope", sans-serif'
 const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
 
 const playerShellPageStyle = (isMobile) => ({
@@ -11033,7 +11033,7 @@ const playerShellPageStyle = (isMobile) => ({
   background:
     "radial-gradient(circle at 18% -6%, rgba(217, 74, 31, 0.16), transparent 34%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
   color: playerInk,
-  fontFamily: '"Roboto", sans-serif',
+  fontFamily: '"Manrope", sans-serif',
   boxShadow: isMobile ? "none" : "0 30px 70px rgba(26, 24, 20, 0.08)",
 })
 
@@ -11619,11 +11619,10 @@ const activeWarmupScreenStyle = {
 const activeWarmupTitleStyle = {
   margin: 0,
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(34px, 9vw, 48px)",
+  fontSize: "clamp(32px, 8.5vw, 44px)",
   lineHeight: 0.94,
-  fontWeight: 650,
-  fontStyle: "italic",
-  letterSpacing: "-0.05em",
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 
@@ -11688,11 +11687,10 @@ const activeLiftHeroStyle = {
 const activeLiftTitleStyle = {
   margin: 0,
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(32px, 8.5vw, 52px)",
+  fontSize: "clamp(30px, 8vw, 46px)",
   lineHeight: 0.96,
-  fontWeight: 650,
-  fontStyle: "italic",
-  letterSpacing: "-0.045em",
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 
@@ -12059,11 +12057,10 @@ const pickerGridStyle = {
 const playerPassPageTitleStyle = {
   margin: "8px 0 6px",
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(42px, 11vw, 68px)",
-  lineHeight: 0.9,
-  fontWeight: 650,
-  fontStyle: "italic",
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 
@@ -12149,11 +12146,10 @@ const playerRunningRegistrationHeaderStyle = {
 
 const playerRunningRegistrationTitleStyle = {
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(32px, 9vw, 52px)",
-  lineHeight: 0.9,
-  fontWeight: 650,
-  fontStyle: "italic",
-  letterSpacing: "-0.06em",
+  fontSize: "clamp(30px, 8vw, 46px)",
+  lineHeight: 0.94,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 
@@ -12647,10 +12643,10 @@ const playerTodayMonoLabelStyle = {
 
 const playerTodayTeamPillStyle = {
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(34px, 8.8vw, 54px)",
-  lineHeight: 0.92,
-  fontWeight: 650,
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(32px, 8vw, 48px)",
+  lineHeight: 0.94,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
   maxWidth: "100%",
   whiteSpace: "normal",
@@ -12697,8 +12693,8 @@ const playerTodayAccentDotStyle = {
 const playerTodayWorkoutTitleStyle = {
   marginTop: "12px",
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(30px, 8vw, 44px)",
-  fontWeight: 650,
+  fontSize: "clamp(28px, 7vw, 40px)",
+  fontWeight: 700,
   lineHeight: 0.98,
   letterSpacing: "-0.04em",
   color: playerPaper,
@@ -12789,10 +12785,10 @@ const playerHomeTrainingKickerStyle = {
 
 const playerHomeTrainingTitleStyle = {
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(24px, 7vw, 36px)",
+  fontSize: "clamp(22px, 6.5vw, 32px)",
   lineHeight: 0.95,
-  fontWeight: 650,
-  letterSpacing: "-0.05em",
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
 }
 
 const playerHomeTrainingTextStyle = {
@@ -12984,10 +12980,10 @@ const playerActivityPanelKickerStyle = {
 
 const playerActivityPanelTitleStyle = {
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(24px, 7vw, 34px)",
+  fontSize: "clamp(22px, 6.5vw, 30px)",
   lineHeight: 0.96,
-  fontWeight: 650,
-  letterSpacing: "-0.05em",
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 
