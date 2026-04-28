@@ -9612,175 +9612,180 @@ function TrainingApp() {
                 </button>
               </div>
 
-              <div style={playerOverviewPanelStyle}>
+              <div style={playerActivityPanelStyle}>
+                <div style={playerActivityPanelIntroStyle}>
+                  <div style={playerActivityPanelKickerStyle}>
+                    {playerOverviewPanel === "ownInterval"
+                      ? "Intervaller"
+                      : playerOverviewPanel === "distance"
+                      ? "Distans"
+                      : "Valfri aktivitet"}
+                  </div>
+                  <div style={playerActivityPanelTitleStyle}>
+                    {playerOverviewPanel === "ownInterval"
+                      ? "Spara ett eget intervallpass."
+                      : playerOverviewPanel === "distance"
+                      ? "Logga fri löpning."
+                      : "Registrera träning utanför lagpassen."}
+                  </div>
+                </div>
+
                 <div style={playerAccordionContentStyle}>
                   {pendingFreeActivityCalendarEvent?.id ? (
-                    <div
-                      style={{
-                        marginBottom: "12px",
-                        padding: "12px 14px",
-                        borderRadius: "14px",
-                        backgroundColor: "#fff7ed",
-                        border: "1px solid #fed7aa",
-                        color: "#9a3412",
-                        fontSize: "13px",
-                        fontWeight: 700,
-                      }}
-                    >
+                    <div style={playerActivityNoticeStyle}>
                       Loggar från kalendern: {pendingFreeActivityCalendarEvent.title}
                     </div>
                   ) : null}
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: "10px",
-                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                    }}
-                  >
-                    <input
-                      type="date"
-                      value={runningDraft.log_date}
-                      onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
-                      style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                    />
+                  <div style={playerActivityFormGridStyle(isMobile)}>
+                    <div style={playerActivityFieldStyle}>
+                      <div style={playerActivityFieldLabelStyle}>Datum</div>
+                      <input
+                        type="date"
+                        value={runningDraft.log_date}
+                        onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
+                        style={playerActivityInputStyle}
+                      />
+                    </div>
                     {playerOverviewPanel !== "ownInterval" && playerOverviewPanel !== "distance" ? (
-                      <select
-                        value={runningDraft.free_activity_type}
-                        onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
-                        style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                      >
-                        <option value="">Välj aktivitet</option>
-                        {FREE_ACTIVITY_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div style={playerActivityFieldStyle}>
+                        <div style={playerActivityFieldLabelStyle}>Aktivitet</div>
+                        <select
+                          value={runningDraft.free_activity_type}
+                          onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
+                          style={playerActivityInputStyle}
+                        >
+                          <option value="">Välj aktivitet</option>
+                          {FREE_ACTIVITY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     ) : (
-                      <div style={playerFixedDraftTypeStyle}>
-                        {playerOverviewPanel === "ownInterval" ? "Löpning · Intervaller" : "Löpning · Distans"}
+                      <div style={playerActivityFieldStyle}>
+                        <div style={playerActivityFieldLabelStyle}>Aktivitet</div>
+                        <div style={playerActivityFixedTypeStyle}>
+                          {playerOverviewPanel === "ownInterval" ? "Löpning · Intervaller" : "Löpning · Distans"}
+                        </div>
                       </div>
                     )}
                     {!runningDraft.free_activity_type ? (
-                      <div
-                        style={{
-                          ...mutedTextStyle,
-                          gridColumn: isMobile ? "auto" : "span 2",
-                        }}
-                      >
+                      <div style={playerActivityHintStyle(isMobile)}>
                         Börja med att välja aktivitet. Då visas rätt fält direkt under.
                       </div>
                     ) : runningDraft.free_activity_type === "running" &&
                       playerOverviewPanel !== "ownInterval" &&
                       playerOverviewPanel !== "distance" ? (
-                      <select
-                        value={runningDraft.running_type}
-                        onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
-                        style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                      >
-                        <option value="distance">Distans</option>
-                        <option value="intervals">Intervaller</option>
-                      </select>
+                      <div style={playerActivityFieldStyle}>
+                        <div style={playerActivityFieldLabelStyle}>Upplägg</div>
+                        <select
+                          value={runningDraft.running_type}
+                          onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
+                          style={playerActivityInputStyle}
+                        >
+                          <option value="distance">Distans</option>
+                          <option value="intervals">Intervaller</option>
+                        </select>
+                      </div>
                     ) : (
-                      <input
-                        type="text"
-                        placeholder="Tid/duration, t.ex. 75 min"
-                        value={runningDraft.running_time}
-                        onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                        style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                      />
+                      <div style={playerActivityFieldStyle}>
+                        <div style={playerActivityFieldLabelStyle}>Tid</div>
+                        <input
+                          type="text"
+                          placeholder="t.ex. 75 min"
+                          value={runningDraft.running_time}
+                          onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                          style={playerActivityInputStyle}
+                        />
+                      </div>
                     )}
 
                     {runningDraft.free_activity_type === "running" && runningDraft.running_type === "intervals" ? (
                       <>
-                        <input
-                          type="text"
-                          placeholder="Tid/intervall, t.ex. 45 sek"
-                          value={runningDraft.interval_time}
-                          onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                        />
-                        <input
-                          type="number"
-                          placeholder="Antal intervaller"
-                          value={runningDraft.intervals_count}
-                          onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                        />
+                        <div style={playerActivityFieldStyle}>
+                          <div style={playerActivityFieldLabelStyle}>Tid per intervall</div>
+                          <input
+                            type="text"
+                            placeholder="t.ex. 45 sek"
+                            value={runningDraft.interval_time}
+                            onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </div>
+                        <div style={playerActivityFieldStyle}>
+                          <div style={playerActivityFieldLabelStyle}>Antal intervaller</div>
+                          <input
+                            type="number"
+                            placeholder="Antal"
+                            value={runningDraft.intervals_count}
+                            onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </div>
                       </>
                     ) : runningDraft.free_activity_type === "running" ? (
                       <>
-                        <input
-                          type="text"
-                          placeholder="Distans i km"
-                          value={runningDraft.running_distance}
-                          onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Tid, t.ex. 24:30"
-                          value={runningDraft.running_time}
-                          onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                        />
-                        <input
-                          type="number"
-                          placeholder="Snittpuls"
-                          value={runningDraft.average_pulse}
-                          onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
-                          style={{
-                            ...inputStyle,
-                            width: "100%",
-                            backgroundColor: "#ffffff",
-                            color: "#111827",
-                            gridColumn: isMobile ? "auto" : "span 2",
-                          }}
-                        />
+                        <div style={playerActivityFieldStyle}>
+                          <div style={playerActivityFieldLabelStyle}>Distans</div>
+                          <input
+                            type="text"
+                            placeholder="t.ex. 6,2 km"
+                            value={runningDraft.running_distance}
+                            onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </div>
+                        <div style={playerActivityFieldStyle}>
+                          <div style={playerActivityFieldLabelStyle}>Tid</div>
+                          <input
+                            type="text"
+                            placeholder="t.ex. 24:30"
+                            value={runningDraft.running_time}
+                            onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </div>
+                        <div style={playerActivityFieldFullStyle}>
+                          <div style={playerActivityFieldLabelStyle}>Snittpuls</div>
+                          <input
+                            type="number"
+                            placeholder="Puls"
+                            value={runningDraft.average_pulse}
+                            onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </div>
                       </>
                     ) : null}
                     {runningDraft.free_activity_type === "custom" && (
-                      <input
-                        type="text"
-                        placeholder="Vad gjorde du?"
-                        value={runningDraft.custom_activity_title}
-                        onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
-                        style={{
-                          ...inputStyle,
-                          width: "100%",
-                          backgroundColor: "#ffffff",
-                          color: "#111827",
-                          gridColumn: isMobile ? "auto" : "span 2",
-                        }}
-                      />
+                      <div style={playerActivityFieldFullStyle}>
+                        <div style={playerActivityFieldLabelStyle}>Rubrik</div>
+                        <input
+                          type="text"
+                          placeholder="Vad gjorde du?"
+                          value={runningDraft.custom_activity_title}
+                          onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
+                          style={playerActivityInputStyle}
+                        />
+                      </div>
                     )}
                     {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
-                      <div
-                        style={{
-                          ...mutedTextStyle,
-                          marginTop: "-2px",
-                          gridColumn: isMobile ? "auto" : "span 2",
-                        }}
-                      >
+                      <div style={playerActivityHintStyle(isMobile)}>
                         Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
                       </div>
                     )}
                     {runningDraft.free_activity_type ? (
-                      <textarea
-                        rows={3}
-                        placeholder="Kommentar, t.ex. hur det kändes eller vad du tränade"
-                        value={runningDraft.comment}
-                        onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
-                        style={{
-                          ...inputStyle,
-                          width: "100%",
-                          minHeight: "96px",
-                          resize: "vertical",
-                          backgroundColor: "#ffffff",
-                          color: "#111827",
-                          gridColumn: isMobile ? "auto" : "span 2",
-                        }}
-                      />
+                      <div style={playerActivityFieldFullStyle}>
+                        <div style={playerActivityFieldLabelStyle}>Kommentar</div>
+                        <textarea
+                          rows={4}
+                          placeholder="Hur kändes passet eller vad gjorde du?"
+                          value={runningDraft.comment}
+                          onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
+                          style={playerActivityTextareaStyle}
+                        />
+                      </div>
                     ) : null}
                   </div>
 
@@ -9789,9 +9794,8 @@ function TrainingApp() {
                     onClick={handleSaveRunningSession}
                     disabled={isSavingRunningSession}
                     style={{
-                      ...buttonStyle,
+                      ...playerActivitySubmitButtonStyle,
                       width: isMobile ? "100%" : "auto",
-                      marginTop: "12px",
                       opacity: isSavingRunningSession ? 0.7 : 1,
                       cursor: isSavingRunningSession ? "default" : "pointer",
                     }}
@@ -12954,6 +12958,122 @@ const playerAccordionContentStyle = {
   marginTop: "14px",
   display: "grid",
   gap: "14px",
+}
+
+const playerActivityPanelStyle = {
+  padding: "20px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  background: "linear-gradient(180deg, rgba(255, 248, 238, 0.78) 0%, rgba(255, 255, 255, 0.34) 100%)",
+  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
+}
+
+const playerActivityPanelIntroStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const playerActivityPanelKickerStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerActivityPanelTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 7vw, 34px)",
+  lineHeight: 0.96,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerActivityNoticeStyle = {
+  padding: "13px 15px",
+  borderRadius: "16px",
+  border: "1px solid rgba(217, 74, 31, 0.22)",
+  backgroundColor: "rgba(217, 74, 31, 0.08)",
+  color: "#9a3412",
+  fontSize: "13px",
+  fontWeight: 800,
+}
+
+const playerActivityFormGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const playerActivityFieldStyle = {
+  display: "grid",
+  gap: "8px",
+  padding: "12px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  background: "rgba(255, 255, 255, 0.34)",
+}
+
+const playerActivityFieldFullStyle = {
+  ...playerActivityFieldStyle,
+  gridColumn: "1 / -1",
+}
+
+const playerActivityFieldLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerActivityInputStyle = {
+  ...inputStyle,
+  width: "100%",
+  minWidth: 0,
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.58)",
+  color: playerInk,
+  boxShadow: "none",
+}
+
+const playerActivityTextareaStyle = {
+  ...playerActivityInputStyle,
+  minHeight: "116px",
+  resize: "vertical",
+  fontFamily: "inherit",
+}
+
+const playerActivityHintStyle = (isMobile) => ({
+  gridColumn: isMobile ? "auto" : "span 2",
+  padding: "6px 2px 0",
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: playerInkSoft,
+  fontWeight: 700,
+})
+
+const playerActivityFixedTypeStyle = {
+  minHeight: "48px",
+  display: "flex",
+  alignItems: "center",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.46)",
+  color: playerInk,
+  fontSize: "14px",
+  fontWeight: 900,
+}
+
+const playerActivitySubmitButtonStyle = {
+  ...buttonStyle,
+  marginTop: "4px",
+  padding: "14px 18px",
+  borderRadius: "18px",
 }
 
 const playerOverviewPanelTitleStyle = {
