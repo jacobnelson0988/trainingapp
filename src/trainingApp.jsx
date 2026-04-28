@@ -38,6 +38,39 @@ const normalizeCalendarMatchValue = (value) =>
     .replace(/\s+/g, " ")
     .replace(/[^a-z0-9 ]/g, "")
 
+const normalizeLagetSeFeedInput = (value) => {
+  const raw = String(value || "").trim()
+
+  if (!raw) return ""
+
+  if (/^webcal:\/\//i.test(raw)) {
+    return raw.replace(/^webcal:\/\//i, "https://")
+  }
+
+  if (/^https?:\/\/cal\.laget\.se\/.+\.ics(?:\?.*)?$/i.test(raw)) {
+    return raw
+  }
+
+  if (/^https?:\/\/(?:www\.)?laget\.se\/[^/]+/i.test(raw)) {
+    try {
+      const url = new URL(raw)
+      const slug = url.pathname.split("/").filter(Boolean)[0]
+
+      if (slug) {
+        return `https://cal.laget.se/${slug}.ics`
+      }
+    } catch {
+      return raw
+    }
+  }
+
+  if (/^[a-z0-9_-]+$/i.test(raw)) {
+    return `https://cal.laget.se/${raw}.ics`
+  }
+
+  return raw
+}
+
 const parseExerciseAliases = (value) => {
   const seen = new Set()
 
@@ -1239,6 +1272,11 @@ function TrainingApp() {
   const [isSubmittingCalendar, setIsSubmittingCalendar] = useState(false)
   const [isSavingCalendarActivity, setIsSavingCalendarActivity] = useState(false)
   const [isCancellingCalendarActivity, setIsCancellingCalendarActivity] = useState(false)
+  const [calendarImportSource, setCalendarImportSource] = useState(null)
+  const [calendarImportFeedUrl, setCalendarImportFeedUrl] = useState("")
+  const [calendarImportEnabled, setCalendarImportEnabled] = useState(true)
+  const [isSavingCalendarImportSource, setIsSavingCalendarImportSource] = useState(false)
+  const [isSyncingCalendarImportSource, setIsSyncingCalendarImportSource] = useState(false)
   const [updatingCalendarEventPlayerId, setUpdatingCalendarEventPlayerId] = useState(null)
   const [activeCalendarEventPlayerId, setActiveCalendarEventPlayerId] = useState(null)
   const [pendingFreeActivityCalendarEvent, setPendingFreeActivityCalendarEvent] = useState(null)
@@ -1276,6 +1314,7 @@ function TrainingApp() {
     average_pulse: "",
   })
   const exerciseCarouselRef = useRef(null)
+  const calendarAutoSyncInFlightRef = useRef(false)
 
   useEffect(() => {
     loadUser()
@@ -1346,6 +1385,17 @@ function TrainingApp() {
       loadPlayers()
     }
   }, [profile])
+
+  useEffect(() => {
+    if (profile?.role === "coach" && profile?.team_id) {
+      loadCalendarImportSource(profile.team_id)
+      return
+    }
+
+    setCalendarImportSource(null)
+    setCalendarImportFeedUrl("")
+    setCalendarImportEnabled(true)
+  }, [profile?.role, profile?.team_id])
 
   useEffect(() => {
     if (profile?.role === "head_admin") {
@@ -3829,6 +3879,152 @@ function TrainingApp() {
     }
   }
 
+  const loadCalendarImportSource = async (teamId = profile?.team_id) => {
+    if (profile?.role !== "coach" || !teamId) {
+      setCalendarImportSource(null)
+      setCalendarImportFeedUrl("")
+      setCalendarImportEnabled(true)
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from("external_calendar_sources")
+      .select("id, team_id, created_by, provider, feed_url, is_enabled, last_synced_at, last_sync_status, last_sync_error")
+      .eq("team_id", teamId)
+      .eq("provider", "laget_se")
+      .maybeSingle()
+
+    if (error) {
+      console.error(error)
+      setCalendarImportSource(null)
+      return null
+    }
+
+    setCalendarImportSource(data || null)
+    setCalendarImportFeedUrl(data?.feed_url || "")
+    setCalendarImportEnabled(data?.is_enabled ?? true)
+    return data || null
+  }
+
+  const invokeLagetSeCalendarSync = async ({ force = false, silent = false } = {}) => {
+    if (!user || !profile || !["coach", "player"].includes(profile.role)) {
+      return { ok: false, skipped: "unauthorized" }
+    }
+
+    if (calendarAutoSyncInFlightRef.current) {
+      return { ok: true, skipped: "in_flight" }
+    }
+
+    const accessToken = await ensureFreshSession()
+    if (!accessToken) {
+      return { ok: false, skipped: "missing_session" }
+    }
+
+    calendarAutoSyncInFlightRef.current = true
+    if (force) {
+      setIsSyncingCalendarImportSource(true)
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-laget-se-calendar", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: {
+          force,
+        },
+      })
+
+      if (error) {
+        console.error(error)
+        if (!silent) {
+          setStatus(await getFunctionErrorMessage(error, "Kunde inte synka laget.se-kalendern"))
+        }
+        return { ok: false, error }
+      }
+
+      if (data?.error) {
+        if (!silent) {
+          setStatus(data.error)
+        }
+        return { ok: false, data }
+      }
+
+      if (profile.role === "coach") {
+        await loadCalendarImportSource()
+      }
+
+      if (!silent) {
+        if (data?.skipped === "no_source") {
+          setStatus("Ingen laget.se-kalender är ansluten ännu")
+        } else if (data?.skipped === "fresh") {
+          setStatus("laget.se-kalendern är redan uppdaterad")
+        } else if (data?.synced) {
+          const summary = [
+            data?.stats?.created ? `${data.stats.created} nya` : null,
+            data?.stats?.updated ? `${data.stats.updated} uppdaterade` : null,
+            data?.stats?.cancelled ? `${data.stats.cancelled} inställda` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+
+          setStatus(summary ? `laget.se synkad ✅ ${summary}` : "laget.se synkad ✅")
+        }
+      }
+
+      return data || { ok: true }
+    } finally {
+      calendarAutoSyncInFlightRef.current = false
+      if (force) {
+        setIsSyncingCalendarImportSource(false)
+      }
+    }
+  }
+
+  const handleSaveCalendarImportSource = async () => {
+    if (profile?.role !== "coach" || !profile?.team_id || !user?.id) {
+      setStatus("Kunde inte spara laget.se-kalendern")
+      return
+    }
+
+    const normalizedFeedUrl = normalizeLagetSeFeedInput(calendarImportFeedUrl)
+
+    if (!normalizedFeedUrl) {
+      setStatus("Klistra in en kalenderlänk från laget.se först")
+      return
+    }
+
+    setIsSavingCalendarImportSource(true)
+
+    const { data, error } = await supabase
+      .from("external_calendar_sources")
+      .upsert(
+        {
+          team_id: profile.team_id,
+          created_by: user.id,
+          provider: "laget_se",
+          feed_url: normalizedFeedUrl,
+          is_enabled: calendarImportEnabled,
+        },
+        { onConflict: "team_id,provider" }
+      )
+      .select("id, team_id, created_by, provider, feed_url, is_enabled, last_synced_at, last_sync_status, last_sync_error")
+      .single()
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara laget.se-kalendern")
+      setIsSavingCalendarImportSource(false)
+      return
+    }
+
+    setCalendarImportSource(data)
+    setCalendarImportFeedUrl(data.feed_url || normalizedFeedUrl)
+    setCalendarImportEnabled(data.is_enabled ?? true)
+    setStatus("laget.se-kalender sparad ✅")
+    setIsSavingCalendarImportSource(false)
+  }
+
   const buildCalendarEntriesFromRows = (rows) =>
     (rows || [])
       .map((row) => {
@@ -3866,6 +4062,10 @@ function TrainingApp() {
           starts_at: row.starts_at,
           ends_at: row.ends_at,
           is_cancelled: row.is_cancelled === true,
+          is_external: row.is_external === true,
+          external_provider: row.external_provider || null,
+          external_source_id: row.external_source_id || null,
+          external_event_uid: row.external_event_uid || null,
           player_links: playerLinks,
           current_user_link: playerLinks.find((link) => link.player_id === user?.id) || null,
           summary,
@@ -3880,6 +4080,8 @@ function TrainingApp() {
     }
 
     setIsLoadingCalendar(true)
+
+    await invokeLagetSeCalendarSync({ force: false, silent: true })
 
     const { startIso, endIso } = getCalendarWeekRange()
 
@@ -3897,6 +4099,10 @@ function TrainingApp() {
         starts_at,
         ends_at,
         is_cancelled,
+        is_external,
+        external_provider,
+        external_source_id,
+        external_event_uid,
         calendar_event_players (
           id,
           player_id,
@@ -4112,6 +4318,11 @@ function TrainingApp() {
       return { ok: false }
     }
 
+    if (entry.is_external) {
+      setStatus("Importerade laget.se-pass kan inte redigeras i appen")
+      return { ok: false }
+    }
+
     setIsSavingCalendarActivity(true)
 
     const { error: updateError } = await supabase
@@ -4195,6 +4406,11 @@ function TrainingApp() {
   const handleCancelCalendarActivity = async (entry) => {
     if (!entry?.id) return { ok: false }
 
+    if (entry.is_external) {
+      setStatus("Importerade laget.se-pass kan inte ändras i appen")
+      return { ok: false }
+    }
+
     const confirmLabel =
       profile?.role === "coach"
         ? `Vill du ställa in "${entry.title}"?`
@@ -4257,6 +4473,11 @@ function TrainingApp() {
 
   const handleOpenCalendarEntry = async (entry) => {
     if (!entry) return
+
+    if (entry.is_external && entry.activity_kind === "handball") {
+      navigatePlayerSection("calendar")
+      return
+    }
 
     if (entry.activity_kind === "template_workout") {
       const matchedWorkout = Object.entries(activeWorkouts || {}).find(
@@ -7573,6 +7794,10 @@ function TrainingApp() {
       ? calendarEntries.map((entry) => {
           const currentStatus = entry.current_user_link?.completion_status
 
+          if (entry.is_external && entry.activity_kind === "handball") {
+            return entry
+          }
+
           if (
             currentStatus === "completed" ||
             currentStatus === "cancelled" ||
@@ -7652,6 +7877,10 @@ function TrainingApp() {
           : ""
       }`
     : "Planera eller se veckan"
+  const primaryHomeActionLabel =
+    primaryTodayCalendarEntry?.is_external && primaryTodayCalendarEntry?.activity_kind === "handball"
+      ? "Se i kalendern →"
+      : "Öppna aktivitet →"
   const currentWeekStart = getWeekStartDateInputValue()
   const playerHomeWeekDays = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(`${currentWeekStart}T00:00:00`)
@@ -8468,6 +8697,15 @@ function TrainingApp() {
                 onCancelActivity={handleCancelCalendarActivity}
                 onOpenEntry={handleOpenCalendarEntry}
                 onUpdateEntryStatus={handleUpdateCalendarEventPlayerStatus}
+                externalCalendarSource={calendarImportSource}
+                externalCalendarFeedUrl={calendarImportFeedUrl}
+                onExternalCalendarFeedUrlChange={setCalendarImportFeedUrl}
+                externalCalendarEnabled={calendarImportEnabled}
+                onExternalCalendarEnabledChange={setCalendarImportEnabled}
+                onSaveExternalCalendarSource={handleSaveCalendarImportSource}
+                isSavingExternalCalendarSource={isSavingCalendarImportSource}
+                onSyncExternalCalendar={() => invokeLagetSeCalendarSync({ force: true, silent: false })}
+                isSyncingExternalCalendar={isSyncingCalendarImportSource}
               />
             )}
 
@@ -9039,7 +9277,7 @@ function TrainingApp() {
                   </div>
                   <div style={playerTodayWorkoutTitleStyle}>{primaryHomeTitle}</div>
                   <div style={playerTodayWorkoutSubtitleStyle}>{primaryHomeSubtitle}</div>
-                  <div style={playerHomeCalendarActionStyle}>Öppna aktivitet →</div>
+                  <div style={playerHomeCalendarActionStyle}>{primaryHomeActionLabel}</div>
                 </button>
               )}
 
@@ -9167,6 +9405,15 @@ function TrainingApp() {
               onCancelActivity={handleCancelCalendarActivity}
               onOpenEntry={handleOpenCalendarEntry}
               onUpdateEntryStatus={handleUpdateCalendarEventPlayerStatus}
+              externalCalendarSource={null}
+              externalCalendarFeedUrl=""
+              onExternalCalendarFeedUrlChange={() => {}}
+              externalCalendarEnabled={false}
+              onExternalCalendarEnabledChange={() => {}}
+              onSaveExternalCalendarSource={() => {}}
+              isSavingExternalCalendarSource={false}
+              onSyncExternalCalendar={() => {}}
+              isSyncingExternalCalendar={false}
             />
           )}
 

@@ -36,3 +36,8 @@ import_map = "./functions/delete-user/deno.json"
 verify_jwt = false
 enabled = true
 entrypoint = "./functions/list-player-logins/index.ts"
+
+[functions.sync-laget-se-calendar]
+verify_jwt = false
+enabled = true
+entrypoint = "./functions/sync-laget-se-calendar/index.ts"
