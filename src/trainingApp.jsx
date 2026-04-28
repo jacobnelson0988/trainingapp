@@ -12738,7 +12738,7 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
   const isAccent = variant === "accent"
 
   return {
-    minHeight: variant === "ink" ? "142px" : "122px",
+    minHeight: "122px",
     width: "100%",
     padding: "16px",
     borderRadius: "22px",
