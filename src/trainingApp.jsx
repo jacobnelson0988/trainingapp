@@ -7741,11 +7741,10 @@ function TrainingApp() {
     { key: "pass", label: "Pass", icon: "pass" },
     { key: "stats", label: "Statistik", icon: "stats" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
-    { key: "account", label: "Konto", icon: "account" },
   ]
   const showAdminBottomNav = profile?.role === "head_admin" && isMobile && globalView === "app"
   const showPlayerBottomNav =
-    profile?.role === "player" && isMobile && globalView !== "gdpr" && !isWorkoutActive
+    profile?.role === "player" && isMobile && globalView === "app" && !isWorkoutActive
   const usePlayerRedesignShell = profile?.role === "player" && globalView === "app"
   const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
   const statisticsPlayers =
