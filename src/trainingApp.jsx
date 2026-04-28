@@ -4298,7 +4298,7 @@ function TrainingApp() {
       comment: entry.description || "",
     })
     setPlayerOverviewPanel("running")
-    setPlayerView("overview")
+    setPlayerView("activity")
     setStatus(`Förifyllde aktivitet från kalendern: ${entry.title}`)
   }
 
@@ -7862,7 +7862,7 @@ function TrainingApp() {
     }))
     setPendingFreeActivityCalendarEvent(null)
     setPlayerOverviewPanel(panelKey)
-    setPlayerView("overview")
+    setPlayerView("activity")
   }
   const getPlayerPassDisplayType = (workout) => {
     if (workout.workoutKind === "running") return getWorkoutKindLabel(workout.workoutKind)
@@ -9155,220 +9155,6 @@ function TrainingApp() {
                   })}
                 </div>
               </div>
-
-                {["running", "ownInterval", "distance"].includes(playerOverviewPanel) && (
-                  <div style={playerOverviewPanelRowStyle}>
-                    <div style={playerOverviewPanelStyle}>
-                      <div>
-                        <div style={playerOverviewPanelTitleStyle}>
-                          {playerOverviewPanel === "ownInterval"
-                            ? "Skapa eget intervallpass"
-                            : playerOverviewPanel === "distance"
-                            ? "Logga distans"
-                            : "Egen aktivitet"}
-                        </div>
-                        <div style={playerOverviewPanelTextStyle}>
-                          {playerOverviewPanel === "ownInterval"
-                            ? "Spara ett enkelt intervallpass med tid per intervall och antal intervaller."
-                            : playerOverviewPanel === "distance"
-                            ? "Distans är fri: fyll i datum, kilometer, tid och puls efter passet."
-                            : "Spara träning du gör i andra sporter utanför lagpassen."}
-                        </div>
-                      </div>
-
-                      <div style={playerAccordionContentStyle}>
-                        {pendingFreeActivityCalendarEvent?.id ? (
-                          <div
-                            style={{
-                              marginBottom: "12px",
-                              padding: "12px 14px",
-                              borderRadius: "14px",
-                              backgroundColor: "#fff7ed",
-                              border: "1px solid #fed7aa",
-                              color: "#9a3412",
-                              fontSize: "13px",
-                              fontWeight: 700,
-                            }}
-                          >
-                            Loggar från kalendern: {pendingFreeActivityCalendarEvent.title}
-                          </div>
-                        ) : null}
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: "10px",
-                            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                          }}
-                        >
-                          <input
-                            type="date"
-                            value={runningDraft.log_date}
-                            onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
-                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                          />
-                          {playerOverviewPanel === "running" ? (
-                            <select
-                              value={runningDraft.free_activity_type}
-                              onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            >
-                              <option value="">Välj aktivitet</option>
-                              {FREE_ACTIVITY_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <div style={playerFixedDraftTypeStyle}>
-                              {playerOverviewPanel === "ownInterval" ? "Löpning · Intervaller" : "Löpning · Distans"}
-                            </div>
-                          )}
-                          {!runningDraft.free_activity_type ? (
-                            <div
-                              style={{
-                                ...mutedTextStyle,
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            >
-                              Börja med att välja aktivitet. Då visas rätt fält direkt under.
-                            </div>
-                          ) : runningDraft.free_activity_type === "running" && playerOverviewPanel === "running" ? (
-                            <select
-                              value={runningDraft.running_type}
-                              onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            >
-                              <option value="distance">Distans</option>
-                              <option value="intervals">Intervaller</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              placeholder="Tid/duration, t.ex. 75 min"
-                              value={runningDraft.running_time}
-                              onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            />
-                          )}
-
-                          {runningDraft.free_activity_type === "running" && runningDraft.running_type === "intervals" ? (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Tid/intervall, t.ex. 45 sek"
-                                value={runningDraft.interval_time}
-                                onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                              <input
-                                type="number"
-                                placeholder="Antal intervaller"
-                                value={runningDraft.intervals_count}
-                                onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                            </>
-                          ) : runningDraft.free_activity_type === "running" ? (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Distans i km"
-                                value={runningDraft.running_distance}
-                                onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                              <input
-                                type="text"
-                                placeholder="Tid, t.ex. 24:30"
-                                value={runningDraft.running_time}
-                                onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                              <input
-                                type="number"
-                                placeholder="Snittpuls"
-                                value={runningDraft.average_pulse}
-                                onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
-                                style={{
-                                  ...inputStyle,
-                                  width: "100%",
-                                  backgroundColor: "#ffffff",
-                                  color: "#111827",
-                                  gridColumn: isMobile ? "auto" : "span 2",
-                                }}
-                              />
-                            </>
-                          ) : null}
-                          {runningDraft.free_activity_type === "custom" && (
-                            <input
-                              type="text"
-                              placeholder="Vad gjorde du?"
-                              value={runningDraft.custom_activity_title}
-                              onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
-                              style={{
-                                ...inputStyle,
-                                width: "100%",
-                                backgroundColor: "#ffffff",
-                                color: "#111827",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            />
-                          )}
-                          {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
-                            <div
-                              style={{
-                                ...mutedTextStyle,
-                                marginTop: "-2px",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            >
-                              Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
-                            </div>
-                          )}
-                          {runningDraft.free_activity_type ? (
-                            <textarea
-                              rows={3}
-                              placeholder="Kommentar, t.ex. hur det kändes eller vad du tränade"
-                              value={runningDraft.comment}
-                              onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
-                              style={{
-                                ...inputStyle,
-                                width: "100%",
-                                minHeight: "96px",
-                                resize: "vertical",
-                                backgroundColor: "#ffffff",
-                                color: "#111827",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            />
-                          ) : null}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleSaveRunningSession}
-                          disabled={isSavingRunningSession}
-                          style={{
-                            ...buttonStyle,
-                            width: isMobile ? "100%" : "auto",
-                            marginTop: "12px",
-                            opacity: isSavingRunningSession ? 0.7 : 1,
-                            cursor: isSavingRunningSession ? "default" : "pointer",
-                          }}
-                        >
-                          {isSavingRunningSession
-                            ? "Sparar..."
-                            : playerOverviewPanel === "ownInterval"
-                            ? "Spara intervallpass"
-                            : playerOverviewPanel === "distance"
-                            ? "Spara distans"
-                            : "Spara aktivitet"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
           )}
 
@@ -9804,6 +9590,223 @@ function TrainingApp() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {!isWorkoutActive && playerView === "activity" && (
+            <>
+              <div style={playerPageIntroStyle}>
+                <div style={playerTodayMonoLabelStyle}>Egen aktivitet</div>
+                <h2 style={playerPassPageTitleStyle}>
+                  {playerOverviewPanel === "ownInterval"
+                    ? "Skapa eget intervallpass"
+                    : playerOverviewPanel === "distance"
+                    ? "Logga distans"
+                    : "Logga aktivitet"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => navigatePlayerSection("overview")}
+                  style={playerPassBackButtonStyle}
+                >
+                  ← Tillbaka
+                </button>
+              </div>
+
+              <div style={playerOverviewPanelStyle}>
+                <div style={playerAccordionContentStyle}>
+                  {pendingFreeActivityCalendarEvent?.id ? (
+                    <div
+                      style={{
+                        marginBottom: "12px",
+                        padding: "12px 14px",
+                        borderRadius: "14px",
+                        backgroundColor: "#fff7ed",
+                        border: "1px solid #fed7aa",
+                        color: "#9a3412",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Loggar från kalendern: {pendingFreeActivityCalendarEvent.title}
+                    </div>
+                  ) : null}
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "10px",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                    }}
+                  >
+                    <input
+                      type="date"
+                      value={runningDraft.log_date}
+                      onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
+                      style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                    />
+                    {playerOverviewPanel !== "ownInterval" && playerOverviewPanel !== "distance" ? (
+                      <select
+                        value={runningDraft.free_activity_type}
+                        onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
+                        style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                      >
+                        <option value="">Välj aktivitet</option>
+                        {FREE_ACTIVITY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div style={playerFixedDraftTypeStyle}>
+                        {playerOverviewPanel === "ownInterval" ? "Löpning · Intervaller" : "Löpning · Distans"}
+                      </div>
+                    )}
+                    {!runningDraft.free_activity_type ? (
+                      <div
+                        style={{
+                          ...mutedTextStyle,
+                          gridColumn: isMobile ? "auto" : "span 2",
+                        }}
+                      >
+                        Börja med att välja aktivitet. Då visas rätt fält direkt under.
+                      </div>
+                    ) : runningDraft.free_activity_type === "running" &&
+                      playerOverviewPanel !== "ownInterval" &&
+                      playerOverviewPanel !== "distance" ? (
+                      <select
+                        value={runningDraft.running_type}
+                        onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
+                        style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                      >
+                        <option value="distance">Distans</option>
+                        <option value="intervals">Intervaller</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="Tid/duration, t.ex. 75 min"
+                        value={runningDraft.running_time}
+                        onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                        style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                      />
+                    )}
+
+                    {runningDraft.free_activity_type === "running" && runningDraft.running_type === "intervals" ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Tid/intervall, t.ex. 45 sek"
+                          value={runningDraft.interval_time}
+                          onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Antal intervaller"
+                          value={runningDraft.intervals_count}
+                          onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                      </>
+                    ) : runningDraft.free_activity_type === "running" ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Distans i km"
+                          value={runningDraft.running_distance}
+                          onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Tid, t.ex. 24:30"
+                          value={runningDraft.running_time}
+                          onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Snittpuls"
+                          value={runningDraft.average_pulse}
+                          onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
+                          style={{
+                            ...inputStyle,
+                            width: "100%",
+                            backgroundColor: "#ffffff",
+                            color: "#111827",
+                            gridColumn: isMobile ? "auto" : "span 2",
+                          }}
+                        />
+                      </>
+                    ) : null}
+                    {runningDraft.free_activity_type === "custom" && (
+                      <input
+                        type="text"
+                        placeholder="Vad gjorde du?"
+                        value={runningDraft.custom_activity_title}
+                        onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
+                        style={{
+                          ...inputStyle,
+                          width: "100%",
+                          backgroundColor: "#ffffff",
+                          color: "#111827",
+                          gridColumn: isMobile ? "auto" : "span 2",
+                        }}
+                      />
+                    )}
+                    {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
+                      <div
+                        style={{
+                          ...mutedTextStyle,
+                          marginTop: "-2px",
+                          gridColumn: isMobile ? "auto" : "span 2",
+                        }}
+                      >
+                        Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
+                      </div>
+                    )}
+                    {runningDraft.free_activity_type ? (
+                      <textarea
+                        rows={3}
+                        placeholder="Kommentar, t.ex. hur det kändes eller vad du tränade"
+                        value={runningDraft.comment}
+                        onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
+                        style={{
+                          ...inputStyle,
+                          width: "100%",
+                          minHeight: "96px",
+                          resize: "vertical",
+                          backgroundColor: "#ffffff",
+                          color: "#111827",
+                          gridColumn: isMobile ? "auto" : "span 2",
+                        }}
+                      />
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveRunningSession}
+                    disabled={isSavingRunningSession}
+                    style={{
+                      ...buttonStyle,
+                      width: isMobile ? "100%" : "auto",
+                      marginTop: "12px",
+                      opacity: isSavingRunningSession ? 0.7 : 1,
+                      cursor: isSavingRunningSession ? "default" : "pointer",
+                    }}
+                  >
+                    {isSavingRunningSession
+                      ? "Sparar..."
+                      : playerOverviewPanel === "ownInterval"
+                      ? "Spara intervallpass"
+                      : playerOverviewPanel === "distance"
+                      ? "Spara distans"
+                      : "Spara aktivitet"}
+                  </button>
                 </div>
               </div>
             </>
