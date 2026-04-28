@@ -9057,11 +9057,6 @@ function TrainingApp() {
                   style={playerHomeTrainingCardStyle("ink")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Styrka</div>
-                  <div style={playerHomeTrainingTextStyle}>
-                    {playerFamilyCounts.strength
-                      ? `${playerFamilyCounts.strength} pass att välja mellan`
-                      : "Inga styrkepass tilldelade ännu"}
-                  </div>
                 </button>
 
                 <button
@@ -9070,9 +9065,6 @@ function TrainingApp() {
                   style={playerHomeTrainingCardStyle("accent")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Löpning</div>
-                  <div style={playerHomeTrainingTextStyle}>
-                    Intervaller, egen intervall och fri distans
-                  </div>
                 </button>
 
                 <button
@@ -9081,9 +9073,6 @@ function TrainingApp() {
                   style={playerHomeTrainingCardStyle("paper")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Prehab</div>
-                  <div style={playerHomeTrainingTextStyle}>
-                    {playerFamilyCounts.prehab ? `${playerFamilyCounts.prehab} pass` : "Skadeförebyggande"}
-                  </div>
                 </button>
 
                 <button
@@ -9092,7 +9081,6 @@ function TrainingApp() {
                   style={playerHomeTrainingCardStyle("paper")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Kalender</div>
-                  <div style={playerHomeTrainingTextStyle}>Planera eller se veckan</div>
                 </button>
 
                 <button
@@ -9101,7 +9089,6 @@ function TrainingApp() {
                   style={playerHomeTrainingCardStyle("paper")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
-                  <div style={playerHomeTrainingTextStyle}>Fotboll, innebandy, racket eller annat</div>
                 </button>
               </div>
 
