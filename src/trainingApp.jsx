@@ -9188,6 +9188,7 @@ function TrainingApp() {
                       setPlayerPassFamily(null)
                       setPlayerRunningView(null)
                       setSelectedWorkout(null)
+                      navigatePlayerSection("overview")
                     }}
                     style={playerPassBackButtonStyle}
                   >
