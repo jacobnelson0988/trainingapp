@@ -701,7 +701,7 @@ function CalendarPage({
                   </div>
 
                   {dayEntries.length === 0 ? (
-                    <div style={playerCalendarEmptyDayStyle}>Tom dag</div>
+                    <div style={playerCalendarEmptyDayStyle} />
                   ) : (
                     <div style={playerCalendarEntryListStyle}>
                       {dayEntries.map((entry) => {
