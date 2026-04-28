@@ -9091,8 +9091,8 @@ function TrainingApp() {
                   onClick={() => navigatePlayerSection("calendar")}
                   style={playerHomeTrainingCardStyle("paper")}
                 >
-                  <div style={playerHomeTrainingTitleStyle}>Planera</div>
-                  <div style={playerHomeTrainingTextStyle}>{todayCalendarSummary}</div>
+                  <div style={playerHomeTrainingTitleStyle}>Kalender</div>
+                  <div style={playerHomeTrainingTextStyle}>Planera eller se veckan</div>
                 </button>
 
                 <button
