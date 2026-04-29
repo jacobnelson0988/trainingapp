@@ -9640,9 +9640,6 @@ function TrainingApp() {
                           <div style={playerTodayMonoLabelStyle}>
                             {playerPassFamily === "running" ? "Färdiga pass" : "Rekommenderat nu"}
                           </div>
-                          <div style={playerPassSectionTitleStyle}>
-                            {playerPassFamily === "running" ? "Intervaller att köra." : "Börja här."}
-                          </div>
                         </div>
                         <div style={playerPassSectionCountStyle}>
                           {recommendedPlayerPassEntries.length} val
@@ -9661,9 +9658,6 @@ function TrainingApp() {
                         <div>
                           <div style={playerTodayMonoLabelStyle}>
                             {playerPassFamily === "running" ? "Coachpass" : "Övriga pass"}
-                          </div>
-                          <div style={playerShelfSectionTitleStyle}>
-                            {playerPassFamily === "running" ? "Välj intervall" : "Fler pass"}
                           </div>
                         </div>
                         <div style={playerPassSectionCountStyle}>
