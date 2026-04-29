@@ -7719,7 +7719,7 @@ function TrainingApp() {
         : playerRunningView === "ownInterval"
         ? "Skapa intervallpass"
         : playerRunningView === "distance"
-        ? "Logga distans"
+        ? "Distanspass"
         : "Löpning"
       : playerPassFamily === "prehab"
       ? "Prehab"
@@ -9503,7 +9503,7 @@ function TrainingApp() {
                           style={playerRunningHubCardStyle("distance")}
                         >
                           <div style={playerRunningHubCardKickerStyle("distance")}>Fri löpning</div>
-                          <div style={playerRunningHubCardTitleStyle("distance")}>Logga distans</div>
+                          <div style={playerRunningHubCardTitleStyle("distance")}>Distanspass</div>
                           <div style={playerRunningHubCardTextStyle("distance")}>Datum, kilometer, tid och puls</div>
                         </button>
                       </div>
@@ -9574,7 +9574,6 @@ function TrainingApp() {
                     <section style={playerRunningRegistrationPageStyle}>
                       <div style={playerRunningRegistrationHeaderStyle}>
                         <div style={playerTodayMonoLabelStyle}>Fri löpning</div>
-                        <div style={playerRunningRegistrationTitleStyle}>Distans efter känsla.</div>
                       </div>
                       <div style={playerRunningRegistrationGridStyle(isMobile)}>
                         <label style={fieldLabelStyle}>
