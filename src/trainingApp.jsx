@@ -7717,7 +7717,7 @@ function TrainingApp() {
       ? playerRunningView === "assigned"
         ? "Färdiga intervallpass"
         : playerRunningView === "ownInterval"
-        ? "Skapa intervall"
+        ? "Skapa intervallpass"
         : playerRunningView === "distance"
         ? "Logga distans"
         : "Löpning"
@@ -9494,7 +9494,7 @@ function TrainingApp() {
                           style={playerRunningHubCardStyle("ownInterval")}
                         >
                           <div style={playerRunningHubCardKickerStyle("ownInterval")}>Eget upplägg</div>
-                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Skapa intervall</div>
+                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Skapa intervallpass</div>
                           <div style={playerRunningHubCardTextStyle("ownInterval")}>Tid per intervall och antal intervaller</div>
                         </button>
                         <button
@@ -9514,7 +9514,6 @@ function TrainingApp() {
                     <section style={playerRunningRegistrationPageStyle}>
                       <div style={playerRunningRegistrationHeaderStyle}>
                         <div style={playerTodayMonoLabelStyle}>Eget upplägg</div>
-                        <div style={playerRunningRegistrationTitleStyle}>Intervaller, enkelt loggat.</div>
                       </div>
                       <div style={playerRunningRegistrationGridStyle(isMobile)}>
                         <label style={fieldLabelStyle}>
@@ -12241,6 +12240,7 @@ const inputStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
   border: `1px solid ${uiBorderStrong}`,
+  fontFamily: "inherit",
   fontSize: "14px",
   minWidth: "120px",
   backgroundColor: uiSurface,
