@@ -9472,10 +9472,6 @@ function TrainingApp() {
 
                   {playerPassFamily === "running" && !playerRunningView && (
                     <section style={playerRunningHubStyle}>
-                      <div>
-                        <div style={playerTodayMonoLabelStyle}>Löphubb</div>
-                        <div style={playerRunningHubTitleStyle}>Välj hur löpningen ska loggas.</div>
-                      </div>
                       <div style={playerRunningHubGridStyle(isMobile)}>
                         <button
                           type="button"
@@ -12322,23 +12318,8 @@ const playerPassBackButtonStyle = {
 }
 
 const playerRunningHubStyle = {
-  padding: "18px",
-  borderRadius: "24px",
-  border: `1px solid ${playerLine}`,
-  background:
-    "radial-gradient(circle at 88% 8%, rgba(217, 74, 31, 0.2), transparent 28%), rgba(255, 255, 255, 0.26)",
   display: "grid",
-  gap: "14px",
-}
-
-const playerRunningHubTitleStyle = {
-  marginTop: "6px",
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(26px, 7vw, 42px)",
-  lineHeight: 0.95,
-  fontWeight: 650,
-  letterSpacing: "-0.05em",
-  color: playerInk,
+  gap: "12px",
 }
 
 const playerRunningHubGridStyle = (isMobile) => ({
