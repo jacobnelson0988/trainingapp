@@ -9477,22 +9477,34 @@ function TrainingApp() {
                         <div style={playerRunningHubTitleStyle}>Välj hur löpningen ska loggas.</div>
                       </div>
                       <div style={playerRunningHubGridStyle(isMobile)}>
-                        <button type="button" onClick={() => openPlayerRunningView("assigned")} style={playerRunningHubCardStyle}>
-                          <div style={playerHomeTrainingKickerStyle}>Coachpass</div>
-                          <div style={playerRunningHubCardTitleStyle}>Färdiga intervallpass</div>
-                          <div style={playerHomeTrainingTextStyle}>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("assigned")}
+                          style={playerRunningHubCardStyle("assigned")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("assigned")}>Coachpass</div>
+                          <div style={playerRunningHubCardTitleStyle("assigned")}>Färdiga intervallpass</div>
+                          <div style={playerRunningHubCardTextStyle("assigned")}>
                             {playerFamilyCounts.running ? `${playerFamilyCounts.running} pass nedan` : "Inga färdiga löppass ännu"}
                           </div>
                         </button>
-                        <button type="button" onClick={() => openPlayerRunningView("ownInterval")} style={playerRunningHubCardStyle}>
-                          <div style={playerHomeTrainingKickerStyle}>Eget upplägg</div>
-                          <div style={playerRunningHubCardTitleStyle}>Skapa intervall</div>
-                          <div style={playerHomeTrainingTextStyle}>Tid per intervall och antal intervaller</div>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("ownInterval")}
+                          style={playerRunningHubCardStyle("ownInterval")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("ownInterval")}>Eget upplägg</div>
+                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Skapa intervall</div>
+                          <div style={playerRunningHubCardTextStyle("ownInterval")}>Tid per intervall och antal intervaller</div>
                         </button>
-                        <button type="button" onClick={() => openPlayerRunningView("distance")} style={playerRunningHubCardStyle}>
-                          <div style={playerHomeTrainingKickerStyle}>Fri löpning</div>
-                          <div style={playerRunningHubCardTitleStyle}>Logga distans</div>
-                          <div style={playerHomeTrainingTextStyle}>Datum, kilometer, tid och puls</div>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("distance")}
+                          style={playerRunningHubCardStyle("distance")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("distance")}>Fri löpning</div>
+                          <div style={playerRunningHubCardTitleStyle("distance")}>Logga distans</div>
+                          <div style={playerRunningHubCardTextStyle("distance")}>Datum, kilometer, tid och puls</div>
                         </button>
                       </div>
                     </section>
@@ -12336,22 +12348,56 @@ const playerRunningHubGridStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
 })
 
-const playerRunningHubCardStyle = {
+const playerRunningHubCardStyle = (variant = "assigned") => ({
   minHeight: "116px",
   padding: "15px",
   borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.34)",
-  color: playerInk,
+  border:
+    variant === "assigned"
+      ? "1px solid rgba(17, 24, 39, 0.18)"
+      : variant === "ownInterval"
+      ? "1px solid rgba(184, 88, 34, 0.22)"
+      : "1px solid rgba(111, 102, 89, 0.22)",
+  background:
+    variant === "assigned"
+      ? "linear-gradient(135deg, #191611 0%, #2b241d 100%)"
+      : variant === "ownInterval"
+      ? "linear-gradient(135deg, rgba(220, 107, 44, 0.22) 0%, rgba(255, 245, 233, 0.88) 100%)"
+      : "linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(245, 237, 223, 0.96) 100%)",
+  color: variant === "assigned" ? "#f8f4ed" : playerInk,
   textAlign: "left",
   cursor: "pointer",
-}
+  boxShadow:
+    variant === "assigned"
+      ? "0 16px 34px rgba(24, 18, 12, 0.18)"
+      : variant === "ownInterval"
+      ? "0 12px 28px rgba(201, 99, 45, 0.14)"
+      : "0 10px 24px rgba(75, 58, 38, 0.08)",
+  display: "grid",
+  alignContent: "space-between",
+  gap: "10px",
+})
 
-const playerRunningHubCardTitleStyle = {
+const playerRunningHubCardKickerStyle = (variant = "assigned") => ({
+  ...playerHomeTrainingKickerStyle,
+  color:
+    variant === "assigned"
+      ? "rgba(248, 244, 237, 0.72)"
+      : variant === "ownInterval"
+      ? "#9a4a1d"
+      : "#6f6659",
+})
+
+const playerRunningHubCardTitleStyle = (variant = "assigned") => ({
   fontSize: "18px",
   fontWeight: 900,
-  color: playerInk,
-}
+  color: variant === "assigned" ? "#f8f4ed" : playerInk,
+})
+
+const playerRunningHubCardTextStyle = (variant = "assigned") => ({
+  ...playerHomeTrainingTextStyle,
+  color: variant === "assigned" ? "rgba(248, 244, 237, 0.82)" : playerInkSoft,
+})
 
 const playerRunningRegistrationPageStyle = {
   padding: "18px",
