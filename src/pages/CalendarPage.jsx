@@ -288,6 +288,7 @@ function CalendarPage({
   const [editingEntry, setEditingEntry] = useState(null)
   const [draft, setDraft] = useState(() => createEmptyDraft(role))
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [expandedPlayerDayKey, setExpandedPlayerDayKey] = useState(null)
 
   const workoutOptions = useMemo(
     () =>
@@ -700,22 +701,30 @@ function CalendarPage({
           <div style={playerCalendarWeekListStyle}>
             {weekDays.map((day) => {
               const dayEntries = entriesByDay[day.key] || []
+              const isExpanded = expandedPlayerDayKey === day.key
 
               return (
                 <section key={day.key} style={playerCalendarDaySectionStyle}>
-                  <div style={playerCalendarDayHeaderStyle}>
-                    <div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedPlayerDayKey((current) => (current === day.key ? null : day.key))}
+                    style={playerCalendarDayHeaderButtonStyle}
+                  >
+                    <div style={playerCalendarDayHeaderStyle}>
                       <div style={playerCalendarDayKickerStyle}>
                         {new Date(day.key).toLocaleDateString("sv-SE", { weekday: "short" })}
                       </div>
                       <div style={playerCalendarDayTitleStyle}>{formatPlayerDayTitle(day.key)}</div>
                     </div>
-                    <div style={playerCalendarDayCountStyle}>{dayEntries.length}</div>
-                  </div>
+                    <div style={playerCalendarDayHeaderMetaStyle}>
+                      <div style={playerCalendarDayCountStyle}>{dayEntries.length}</div>
+                      <div style={playerCalendarDayChevronStyle(isExpanded)} aria-hidden="true">
+                        ▾
+                      </div>
+                    </div>
+                  </button>
 
-                  {dayEntries.length === 0 ? (
-                    <div style={playerCalendarEmptyDayStyle} />
-                  ) : (
+                  {isExpanded && dayEntries.length > 0 ? (
                     <div style={playerCalendarEntryListStyle}>
                       {dayEntries.map((entry) => {
                         const status = entry.current_user_link?.completion_status || "planned"
@@ -862,7 +871,7 @@ function CalendarPage({
                         )
                       })}
                     </div>
-                  )}
+                  ) : null}
                 </section>
               )
             })}
@@ -1675,23 +1684,42 @@ const playerCalendarWeekListStyle = {
 
 const playerCalendarDaySectionStyle = {
   display: "grid",
-  gap: "10px",
-  padding: "14px",
-  borderRadius: "20px",
+  gap: "8px",
+  padding: "11px 13px",
+  borderRadius: "18px",
   backgroundColor: "#fffdfa",
   border: "1px solid rgba(164, 106, 60, 0.14)",
-  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.04)",
+  boxShadow: "0 6px 14px rgba(15, 23, 42, 0.035)",
+}
+
+const playerCalendarDayHeaderButtonStyle = {
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  textAlign: "left",
+  cursor: "pointer",
 }
 
 const playerCalendarDayHeaderStyle = {
+  display: "grid",
+  gap: "2px",
+  minWidth: 0,
+}
+
+const playerCalendarDayHeaderMetaStyle = {
   display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
   alignItems: "center",
+  gap: "10px",
+  flex: "0 0 auto",
 }
 
 const playerCalendarDayKickerStyle = {
-  fontSize: "11px",
+  fontSize: "10px",
   fontWeight: 800,
   letterSpacing: "0.16em",
   textTransform: "uppercase",
@@ -1699,16 +1727,16 @@ const playerCalendarDayKickerStyle = {
 }
 
 const playerCalendarDayTitleStyle = {
-  marginTop: "3px",
-  fontSize: "18px",
+  marginTop: "1px",
+  fontSize: "16px",
   fontWeight: 900,
   color: "#1f2937",
   textTransform: "capitalize",
 }
 
 const playerCalendarDayCountStyle = {
-  minWidth: "34px",
-  height: "34px",
+  minWidth: "30px",
+  height: "30px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1719,14 +1747,17 @@ const playerCalendarDayCountStyle = {
   fontWeight: 900,
 }
 
+const playerCalendarDayChevronStyle = (isExpanded) => ({
+  color: "#8b7e73",
+  fontSize: "16px",
+  fontWeight: 900,
+  lineHeight: 1,
+  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+  transition: "transform 160ms ease",
+})
+
 const playerCalendarEmptyDayStyle = {
-  padding: "10px 12px",
-  borderRadius: "14px",
-  backgroundColor: "#f8f2ea",
-  border: "1px dashed rgba(164, 106, 60, 0.22)",
-  fontSize: "13px",
-  fontWeight: 700,
-  color: "#7c6f63",
+  display: "none",
 }
 
 const playerCalendarEntryListStyle = {
@@ -1735,8 +1766,8 @@ const playerCalendarEntryListStyle = {
 }
 
 const playerCalendarEntryCardStyle = {
-  padding: "14px",
-  borderRadius: "16px",
+  padding: "12px",
+  borderRadius: "14px",
   border: "1px solid rgba(164, 106, 60, 0.14)",
   boxShadow: "0 6px 16px rgba(15, 23, 42, 0.03)",
 }
@@ -1779,8 +1810,8 @@ const playerCalendarStatusStyle = {
 }
 
 const playerCalendarEntryTitleStyle = {
-  marginTop: "8px",
-  fontSize: "18px",
+  marginTop: "7px",
+  fontSize: "16px",
   fontWeight: 900,
   lineHeight: 1.08,
   color: "#1c1917",
@@ -1788,14 +1819,14 @@ const playerCalendarEntryTitleStyle = {
 
 const playerCalendarEntryMetaStyle = {
   marginTop: "6px",
-  fontSize: "13px",
+  fontSize: "12px",
   fontWeight: 700,
   color: "#5b6475",
 }
 
 const playerCalendarEntryDescriptionStyle = {
   marginTop: "8px",
-  fontSize: "13px",
+  fontSize: "12px",
   lineHeight: 1.45,
   color: "#4b5563",
 }
