@@ -221,6 +221,7 @@ Rekommenderat fokus:
 2. säkra att alla relevanta Supabase-migrationer är i synk
 3. fortsätta förbättra tränarens aktivitet-, statistik- och passflöden
 4. jobba strukturerat igenom öppna poster i `FEEDBACK.md`
+5. lägga till edge-baserad swipe-back i spelarvyn för snabbare och mer naturlig mobilnavigation mellan redesignade sidor
 
 ---
 
