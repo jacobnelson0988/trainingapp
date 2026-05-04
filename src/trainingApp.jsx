@@ -8060,6 +8060,7 @@ function TrainingApp() {
   const useManagementRedesignRole = profile?.role === "coach" || profile?.role === "head_admin"
   const useManagementRedesignShell =
     useManagementRedesignRole && globalView === "app"
+  const useManagementHomeLayout = useManagementRedesignShell && coachView === "home"
   const resolvedCardTitleStyle = useManagementRedesignRole ? managementCardTitleStyle : cardTitleStyle
   const resolvedMutedTextStyle = useManagementRedesignRole ? managementMutedTextStyle : mutedTextStyle
   const resolvedInputStyle = useManagementRedesignRole ? managementInputStyle : inputStyle
@@ -9138,20 +9139,36 @@ function TrainingApp() {
 
           <div
             style={{
-              ...(useManagementRedesignShell ? managementViewportPanelStyle : cardStyle),
+              ...(useManagementHomeLayout
+                ? managementHomeViewportStyle
+                : useManagementRedesignShell
+                ? managementViewportPanelStyle
+                : cardStyle),
               padding: isMobile
-                ? useManagementRedesignShell
+                ? useManagementHomeLayout
+                  ? "0"
+                  : useManagementRedesignShell
                   ? "18px 16px"
                   : "16px 14px"
+                : useManagementHomeLayout
+                ? "0"
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle.padding
                 : cardStyle.padding,
               borderRadius: isMobile
-                ? "24px"
+                ? useManagementHomeLayout
+                  ? "0"
+                  : "24px"
+                : useManagementHomeLayout
+                ? "0"
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle.borderRadius
                 : cardStyle.borderRadius,
               marginBottom: isMobile
+                ? useManagementHomeLayout
+                  ? "16px"
+                  : "16px"
+                : useManagementHomeLayout
                 ? "16px"
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle.marginBottom
@@ -11857,6 +11874,16 @@ const managementViewportPanelStyle = {
     "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 28%), linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(243, 239, 230, 0.82))",
   boxShadow: "0 22px 44px rgba(26, 24, 20, 0.08)",
   backdropFilter: "blur(16px)",
+}
+
+const managementHomeViewportStyle = {
+  marginBottom: "16px",
+  padding: 0,
+  borderRadius: 0,
+  border: "none",
+  background: "transparent",
+  boxShadow: "none",
+  backdropFilter: "none",
 }
 
 const managementCardTitleStyle = {

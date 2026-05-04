@@ -75,7 +75,6 @@ function CoachHomePage({
   return (
     <>
       <div style={headerBlockStyle}>
-        <div style={sectionLabelStyle}>Tränare</div>
         <div style={headerTitleStyle}>{teamName || "Översikt"}</div>
       </div>
 
@@ -103,16 +102,6 @@ function CoachHomePage({
 const headerBlockStyle = {
   marginBottom: "14px",
   padding: "4px 4px 2px",
-}
-
-const sectionLabelStyle = {
-  marginBottom: "10px",
-  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
-  fontSize: "10px",
-  fontWeight: "700",
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "#6f6659",
 }
 
 const headerTitleStyle = {
