@@ -8113,49 +8113,63 @@ function TrainingApp() {
   }
   const renderPlayerPassDetails = (key, workout, variant = "default") => (
     <div style={variant === "featured" ? playerFeaturedPassDetailsStyle : playerShelfPassDetailsStyle}>
-      <div style={passPreviewContentCardStyle}>
-        <div style={passPreviewMetaStripStyle}>
-          <span>{getPlayerPassDisplayType(workout)}</span>
-          <span>{getPlayerPassSummary(workout)}</span>
-          <span>{formatDaysSince(latestPassDates[key])}</span>
-        </div>
-
-        {workout.info && (
-          <div style={passPreviewInfoBlockStyle}>
-            <div style={passPreviewStatLabelStyle}>Inför start</div>
-            <div style={passPreviewInfoTextStyle}>{workout.info}</div>
-          </div>
-        )}
-
-        <div style={passPreviewSectionHeaderStyle}>
-          <div>
-            <div style={passPreviewStatLabelStyle}>
-              {workout.workoutKind === "running" ? "Löppass" : "Passupplägg"}
+      {workout.workoutKind === "running" ? (
+        <div style={runningPassPreviewPanelStyle}>
+          {workout.info ? (
+            <div style={runningPassPreviewInstructionStyle}>
+              <div style={passPreviewStatLabelStyle}>Instruktion</div>
+              <div style={passPreviewInfoTextStyle}>{workout.info}</div>
             </div>
-            <div style={passPreviewExerciseCountStyle}>{workout.label}</div>
-          </div>
-          <div style={passPreviewCountPillStyle}>{getPlayerPassSummary(workout)}</div>
-        </div>
-
-        {workout.workoutKind !== "running" && workout.exercises.length > 0 && (
-          <div style={passPreviewListWrapStyle}>
-            <div style={passPreviewExerciseStackStyle}>
-              {workout.exercises.map((exercise, exerciseIndex) => (
-                <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                  <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
-                  <span style={passPreviewExerciseNameStyle}>
-                    {exercise.displayName || exercise.name}
-                  </span>
-                </div>
-              ))}
+          ) : (
+            <div style={runningPassPreviewInstructionStyle}>
+              <div style={passPreviewStatLabelStyle}>Instruktion</div>
+              <div style={passPreviewInfoTextStyle}>Öppna passet och följ upplägget direkt i loggningen.</div>
             </div>
+          )}
+        </div>
+      ) : (
+        <div style={passPreviewContentCardStyle}>
+          <div style={passPreviewMetaStripStyle}>
+            <span>{getPlayerPassDisplayType(workout)}</span>
+            <span>{getPlayerPassSummary(workout)}</span>
+            <span>{formatDaysSince(latestPassDates[key])}</span>
           </div>
-        )}
 
-        {workout.workoutKind !== "running" && workout.exercises.length === 0 && (
-          <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
-        )}
-      </div>
+          {workout.info && (
+            <div style={passPreviewInfoBlockStyle}>
+              <div style={passPreviewStatLabelStyle}>Inför start</div>
+              <div style={passPreviewInfoTextStyle}>{workout.info}</div>
+            </div>
+          )}
+
+          <div style={passPreviewSectionHeaderStyle}>
+            <div>
+              <div style={passPreviewStatLabelStyle}>Passupplägg</div>
+              <div style={passPreviewExerciseCountStyle}>{workout.label}</div>
+            </div>
+            <div style={passPreviewCountPillStyle}>{getPlayerPassSummary(workout)}</div>
+          </div>
+
+          {workout.exercises.length > 0 && (
+            <div style={passPreviewListWrapStyle}>
+              <div style={passPreviewExerciseStackStyle}>
+                {workout.exercises.map((exercise, exerciseIndex) => (
+                  <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
+                    <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
+                    <span style={passPreviewExerciseNameStyle}>
+                      {exercise.displayName || exercise.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {workout.exercises.length === 0 && (
+            <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
+          )}
+        </div>
+      )}
 
       <button
         onClick={() => startWorkout(key)}
@@ -12663,6 +12677,18 @@ const passPreviewContentCardStyle = {
   border: `1px solid ${playerLine}`,
   backgroundColor: "rgba(243, 239, 230, 0.66)",
   marginBottom: "14px",
+}
+
+const runningPassPreviewPanelStyle = {
+  marginBottom: "14px",
+  padding: "16px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.66)",
+}
+
+const runningPassPreviewInstructionStyle = {
+  padding: "12px 0 2px",
 }
 
 const passPreviewMetaStripStyle = {
