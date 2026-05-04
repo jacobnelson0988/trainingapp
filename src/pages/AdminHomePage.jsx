@@ -57,6 +57,7 @@ function AdminHomePage({
             onClick={() => setCoachView(card.key)}
             style={navCardStyle(card.tone)}
           >
+            <div style={navAccentBarStyle(card.tone)} />
             <div style={navTitleStyle(card.tone)}>{card.title}</div>
             <div style={navTextStyle(card.tone)}>{card.text}</div>
           </button>
@@ -102,28 +103,41 @@ const navCardStyle = (tone = 0) => {
     padding: "18px",
     borderRadius: "22px",
     border: `1px solid ${navBorderByTone[tone] || navBorderByTone[0]}`,
-    background: navBackgroundByTone[tone] || navBackgroundByTone[0],
+    background: "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(243,239,230,0.9))",
     textAlign: "left",
     cursor: "pointer",
-    boxShadow: tone >= 4 ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "0 14px 28px rgba(26, 24, 20, 0.06)",
+    boxShadow:
+      tone >= 4
+        ? "0 18px 34px rgba(217, 74, 31, 0.14)"
+        : "0 14px 28px rgba(26, 24, 20, 0.06)",
     display: "grid",
     alignContent: "space-between",
     gap: "8px",
+    position: "relative",
+    overflow: "hidden",
   }
 }
 
 const navTitleStyle = (tone = 0) => ({
   fontSize: "18px",
   fontWeight: "800",
-  color: tone >= 4 ? "#f3efe6" : "#1a1814",
+  color: "#1a1814",
   overflowWrap: "anywhere",
 })
 
 const navTextStyle = (tone = 0) => ({
   fontSize: "14px",
   lineHeight: 1.5,
-  color: tone >= 4 ? "rgba(243, 239, 230, 0.76)" : tone >= 2 ? "#5f5448" : "#6f6659",
+  color: tone >= 3 ? "#4b3327" : "#6f6659",
   overflowWrap: "anywhere",
+})
+
+const navAccentBarStyle = (tone = 0) => ({
+  position: "absolute",
+  inset: "0 auto 0 0",
+  width: tone >= 4 ? "12px" : tone >= 2 ? "10px" : "8px",
+  borderRadius: "22px 0 0 22px",
+  background: navBackgroundByTone[tone] || navBackgroundByTone[0],
 })
 
 const navBackgroundByTone = {
