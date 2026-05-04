@@ -9299,18 +9299,18 @@ function TrainingApp() {
 
                 <button
                   type="button"
-                  onClick={() => navigatePlayerSection("calendar")}
-                  style={playerHomeTrainingCardStyle("paper")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Kalender</div>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => openRunningDraftPanel("running")}
                   style={playerHomeTrainingCardStyle("accent")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigatePlayerSection("calendar")}
+                  style={playerHomeTrainingCardStyle("paper")}
+                >
+                  <div style={playerHomeTrainingTitleStyle}>Kalender</div>
                 </button>
               </div>
 
