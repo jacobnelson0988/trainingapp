@@ -9,6 +9,7 @@ function AdminHomePage({
   totalTeams,
   organizationLabel,
   isMobile,
+  uiVariant,
 }) {
   const cards = [
     {
@@ -108,19 +109,21 @@ const headerStyle = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: "12px",
-  marginBottom: "14px",
+  marginBottom: "16px",
 }
 
 const titleStyle = {
-  fontSize: "28px",
-  fontWeight: "900",
-  color: "#111827",
+  fontSize: "clamp(30px, 8vw, 40px)",
+  lineHeight: 0.94,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const subStyle = {
   marginTop: "4px",
   fontSize: "14px",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const avatarStyle = {
@@ -130,9 +133,9 @@ const avatarStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#fff1f1",
-  border: "1px solid rgba(182, 30, 36, 0.14)",
-  color: "#b61e24",
+  backgroundColor: "rgba(26, 24, 20, 0.92)",
+  border: "1px solid rgba(26, 24, 20, 0.08)",
+  color: "#f3efe6",
   fontSize: "13px",
   fontWeight: "900",
   flexShrink: 0,
@@ -147,9 +150,9 @@ const statsGridStyle = (isMobile, count) => ({
 
 const statCardStyle = {
   padding: "14px 16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+  borderRadius: "20px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  backgroundColor: "rgba(255, 255, 255, 0.32)",
 }
 
 const statLabelStyle = {
@@ -158,37 +161,38 @@ const statLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const statValueStyle = {
   fontSize: "30px",
   lineHeight: 1,
-  fontWeight: "900",
-  color: "#111827",
+  fontWeight: "800",
+  color: "#1a1814",
 }
 
 const introCardStyle = {
   marginBottom: "14px",
-  padding: "16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowMd,
+  padding: "18px",
+  borderRadius: "24px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background:
+    "radial-gradient(circle at 84% 16%, rgba(217, 74, 31, 0.14), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.34), rgba(243,239,230,0.78))",
+  boxShadow: "0 20px 38px rgba(26, 24, 20, 0.08)",
 }
 
 const introTitleStyle = {
   marginBottom: "6px",
-  fontSize: "15px",
-  fontWeight: "900",
-  color: "#111827",
+  fontSize: "18px",
+  fontWeight: "800",
+  color: "#1a1814",
 }
 
 const introTextStyle = {
   margin: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const navGridStyle = (isMobile) => ({
@@ -199,25 +203,25 @@ const navGridStyle = (isMobile) => ({
 
 const navCardStyle = {
   minHeight: "132px",
-  padding: "16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
+  padding: "18px",
+  borderRadius: "22px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.34), rgba(243,239,230,0.76))",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: uiShadowSm,
+  boxShadow: "0 14px 28px rgba(26, 24, 20, 0.06)",
 }
 
 const navTitleStyle = {
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "#111827",
+  fontSize: "18px",
+  fontWeight: "800",
+  color: "#1a1814",
 }
 
 const navTextStyle = {
-  fontSize: "13px",
+  fontSize: "14px",
   lineHeight: 1.5,
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const topRowStyle = {

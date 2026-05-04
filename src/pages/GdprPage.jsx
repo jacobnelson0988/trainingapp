@@ -5,17 +5,24 @@ function GdprPage({
   mutedTextStyle,
   secondaryButtonStyle,
   buttonStyle,
+  uiVariant,
   onBack,
   onOpenAccount,
 }) {
+  const isManagementRedesign = uiVariant === "coach"
+
   return (
     <div
       style={{
         padding: isMobile ? "16px 14px" : "24px",
-        borderRadius: isMobile ? "20px" : "24px",
-        border: "1px solid #e2e8f0",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 18px 36px rgba(24, 32, 43, 0.06)",
+        borderRadius: isMobile ? "24px" : "28px",
+        border: isManagementRedesign ? "1px solid rgba(26, 24, 20, 0.12)" : "1px solid #e2e8f0",
+        background: isManagementRedesign
+          ? "radial-gradient(circle at 84% 16%, rgba(217, 74, 31, 0.14), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.34), rgba(243,239,230,0.78))"
+          : "#ffffff",
+        boxShadow: isManagementRedesign
+          ? "0 20px 38px rgba(26, 24, 20, 0.08)"
+          : "0 18px 36px rgba(24, 32, 43, 0.06)",
       }}
     >
       <div
@@ -30,7 +37,7 @@ function GdprPage({
       >
         <div>
           <div style={eyebrowStyle}>Integritet</div>
-          <h2 style={titleStyle}>GDPR och personuppgifter</h2>
+          <h2 style={titleStyle(isManagementRedesign)}>GDPR och personuppgifter</h2>
           <p style={{ ...mutedTextStyle, marginBottom: 0 }}>
             Här ser du kortfattat vilken data appen lagrar och vilka rättigheter spelare, tränare och
             huvudadmin har kring arkivering och radering.
@@ -56,24 +63,24 @@ function GdprPage({
       </div>
 
       <div style={infoGridStyle(isMobile)}>
-        <div style={infoCardStyle}>
-          <div style={infoTitleStyle}>Vilken data lagras?</div>
+        <div style={infoCardStyle(isManagementRedesign)}>
+          <div style={infoTitleStyle(isManagementRedesign)}>Vilken data lagras?</div>
           <div style={infoTextStyle}>
             Namn, användarnamn, roll, lagkoppling, träningspass, träningsloggar, kommentarer,
             individuella mål, meddelanden och feedback som skapas i appen.
           </div>
         </div>
 
-        <div style={infoCardStyle}>
-          <div style={infoTitleStyle}>Varför lagras den?</div>
+        <div style={infoCardStyle(isManagementRedesign)}>
+          <div style={infoTitleStyle(isManagementRedesign)}>Varför lagras den?</div>
           <div style={infoTextStyle}>
             För att planera träning, följa upp genomförda pass, ge individuell coaching och hålla
             kommunikationen mellan spelare, tränare och huvudadmin samlad.
           </div>
         </div>
 
-        <div style={infoCardStyle}>
-          <div style={infoTitleStyle}>Vem har åtkomst?</div>
+        <div style={infoCardStyle(isManagementRedesign)}>
+          <div style={infoTitleStyle(isManagementRedesign)}>Vem har åtkomst?</div>
           <div style={infoTextStyle}>
             Spelare ser sitt eget konto och sin träningsdata. Tränare ser sitt lag. Huvudadmin kan se
             hela organisationen. Nuvarande konto: <strong>{roleLabel(profile?.role)}</strong>
@@ -81,24 +88,24 @@ function GdprPage({
           </div>
         </div>
 
-        <div style={infoCardStyle}>
-          <div style={infoTitleStyle}>Arkivering</div>
+        <div style={infoCardStyle(isManagementRedesign)}>
+          <div style={infoTitleStyle(isManagementRedesign)}>Arkivering</div>
           <div style={infoTextStyle}>
             Arkivering döljer en spelare från aktiva listor men sparar historiken. Det passar när en
             spelare ska lämna laget utan att träningshistoriken ska försvinna.
           </div>
         </div>
 
-        <div style={infoCardStyle}>
-          <div style={infoTitleStyle}>Radering</div>
+        <div style={infoCardStyle(isManagementRedesign)}>
+          <div style={infoTitleStyle(isManagementRedesign)}>Radering</div>
           <div style={infoTextStyle}>
             Radering är permanent. Profil, träningsloggar, mål, meddelanderelationer, feedback och
             övrig spelarrelaterad data tas bort. Auth-kontot tas också bort.
           </div>
         </div>
 
-        <div style={infoCardStyle}>
-          <div style={infoTitleStyle}>Dina rättigheter</div>
+        <div style={infoCardStyle(isManagementRedesign)}>
+          <div style={infoTitleStyle(isManagementRedesign)}>Dina rättigheter</div>
           <div style={infoTextStyle}>
             Spelare kan ta bort sitt eget konto från Mitt konto. Tränare och huvudadmin kan arkivera
             eller ta bort spelare i adminvyerna när det behövs.
@@ -124,12 +131,14 @@ const eyebrowStyle = {
   marginBottom: "8px",
 }
 
-const titleStyle = {
-  fontSize: "28px",
-  fontWeight: "900",
-  color: "#18202b",
+const titleStyle = (isManagementRedesign) => ({
+  fontSize: isManagementRedesign ? "clamp(30px, 8vw, 40px)" : "28px",
+  lineHeight: isManagementRedesign ? 0.94 : 1.05,
+  fontWeight: isManagementRedesign ? "700" : "900",
+  letterSpacing: isManagementRedesign ? "-0.04em" : "normal",
+  color: isManagementRedesign ? "#1a1814" : "#18202b",
   margin: "0 0 6px 0",
-}
+})
 
 const infoGridStyle = (isMobile) => ({
   display: "grid",
@@ -137,19 +146,19 @@ const infoGridStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
 })
 
-const infoCardStyle = {
+const infoCardStyle = (isManagementRedesign) => ({
   padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#f8fbff",
-}
+  borderRadius: "20px",
+  border: isManagementRedesign ? "1px solid rgba(26, 24, 20, 0.12)" : "1px solid #dbe5ef",
+  backgroundColor: isManagementRedesign ? "rgba(255, 255, 255, 0.32)" : "#f8fbff",
+})
 
-const infoTitleStyle = {
-  fontSize: "14px",
+const infoTitleStyle = (isManagementRedesign) => ({
+  fontSize: isManagementRedesign ? "15px" : "14px",
   fontWeight: "900",
-  color: "#18202b",
+  color: isManagementRedesign ? "#1a1814" : "#18202b",
   marginBottom: "6px",
-}
+})
 
 const infoTextStyle = {
   fontSize: "14px",

@@ -8057,6 +8057,16 @@ function TrainingApp() {
   const showPlayerBottomNav =
     profile?.role === "player" && isMobile && globalView === "app" && !isWorkoutActive
   const usePlayerRedesignShell = profile?.role === "player" && globalView === "app"
+  const useManagementRedesignRole = profile?.role === "coach" || profile?.role === "head_admin"
+  const useManagementRedesignShell =
+    useManagementRedesignRole && globalView === "app"
+  const resolvedCardTitleStyle = useManagementRedesignRole ? managementCardTitleStyle : cardTitleStyle
+  const resolvedMutedTextStyle = useManagementRedesignRole ? managementMutedTextStyle : mutedTextStyle
+  const resolvedInputStyle = useManagementRedesignRole ? managementInputStyle : inputStyle
+  const resolvedButtonStyle = useManagementRedesignRole ? managementButtonStyle : buttonStyle
+  const resolvedSecondaryButtonStyle = useManagementRedesignRole
+    ? managementSecondaryButtonStyle
+    : secondaryButtonStyle
   const teamName = teams.find((team) => team.id === profile?.team_id)?.name || "Inget lag"
   const statisticsPlayers =
     profile?.role === "head_admin"
@@ -8329,7 +8339,11 @@ function TrainingApp() {
     <div
       style={{
         ...pageStyle,
-        ...(usePlayerRedesignShell ? playerShellPageStyle(isMobile) : {}),
+        ...(usePlayerRedesignShell
+          ? playerShellPageStyle(isMobile)
+          : useManagementRedesignShell
+          ? managementShellPageStyle(isMobile)
+          : {}),
         position: "relative",
         padding: isMobile
           ? `max(14px, env(safe-area-inset-top)) 12px ${
@@ -8341,7 +8355,7 @@ function TrainingApp() {
           : pageStyle.padding,
       }}
     >
-      {!usePlayerRedesignShell && (
+      {!usePlayerRedesignShell && !useManagementRedesignShell && (
         <div
           style={{
             ...headerStyle,
@@ -8429,6 +8443,58 @@ function TrainingApp() {
         </div>
       )}
 
+      {useManagementRedesignShell && (
+        <div style={managementShellMenuWrapStyle(isMobile)}>
+          <div style={menuWrapStyle}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              aria-label="Öppna meny"
+              style={managementShellMenuButtonStyle}
+            >
+              <span style={managementShellMenuIconLineStyle} />
+              <span style={managementShellMenuIconLineStyle} />
+              <span style={managementShellMenuIconLineStyle} />
+            </button>
+
+            {isMenuOpen && (
+              <div style={menuDropdownStyle(isMobile)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateGlobalView("account")
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Mitt konto
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateGlobalView("gdpr")
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Integritet
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await supabase.auth.signOut()
+                    window.location.reload()
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Logga ut
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {usePlayerRedesignShell && (
         <div style={playerShellMenuWrapStyle(isMobile)}>
           <div style={menuWrapStyle}>
@@ -8484,12 +8550,20 @@ function TrainingApp() {
       {globalView === "account" && (
         <div
           style={{
-            ...(profile?.role === "player" ? playerAccountPanelStyle : cardStyle),
+            ...(profile?.role === "player"
+              ? playerAccountPanelStyle
+              : profile?.role === "coach" || profile?.role === "head_admin"
+              ? managementAccountPanelStyle
+              : cardStyle),
             padding:
               profile?.role === "player"
                 ? isMobile
                   ? "18px 16px"
                   : playerAccountPanelStyle.padding
+                : profile?.role === "coach" || profile?.role === "head_admin"
+                ? isMobile
+                  ? "18px 16px"
+                  : managementAccountPanelStyle.padding
                 : isMobile
                 ? "16px 14px"
                 : cardStyle.padding,
@@ -8498,6 +8572,10 @@ function TrainingApp() {
                 ? isMobile
                   ? "24px"
                   : playerAccountPanelStyle.borderRadius
+                : profile?.role === "coach" || profile?.role === "head_admin"
+                ? isMobile
+                  ? "24px"
+                  : managementAccountPanelStyle.borderRadius
                 : isMobile
                 ? "20px"
                 : cardStyle.borderRadius,
@@ -8511,6 +8589,11 @@ function TrainingApp() {
                   <div style={playerTodayMonoLabelStyle}>Konto</div>
                   <div style={playerPassPageTitleStyle}>Mitt konto</div>
                 </>
+              ) : profile?.role === "coach" || profile?.role === "head_admin" ? (
+                <>
+                  <div style={managementMonoLabelStyle}>Konto</div>
+                  <div style={managementPageTitleStyle}>Mitt konto</div>
+                </>
               ) : (
                 <div style={sectionTitleStyle}>Mitt konto</div>
               )}
@@ -8520,7 +8603,11 @@ function TrainingApp() {
               type="button"
               onClick={() => navigateGlobalView("app")}
               style={{
-                ...(profile?.role === "player" ? playerAccountGhostButtonStyle : secondaryButtonStyle),
+                ...(profile?.role === "player"
+                  ? playerAccountGhostButtonStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementSecondaryButtonStyle
+                  : secondaryButtonStyle),
                 width: isMobile ? "100%" : "auto",
               }}
             >
@@ -8529,25 +8616,101 @@ function TrainingApp() {
           </div>
 
           <div style={accountGridStyle(isMobile)}>
-            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
-              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>Namn</div>
-              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountInfoCardStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountInfoCardStyle
+                  : accountInfoCardStyle
+              }
+            >
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoLabelStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoLabelStyle
+                    : accountInfoLabelStyle
+                }
+              >
+                Namn
+              </div>
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoValueStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoValueStyle
+                    : accountInfoValueStyle
+                }
+              >
                 {profile.full_name || "-"}
               </div>
             </div>
 
-            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
-              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountInfoCardStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountInfoCardStyle
+                  : accountInfoCardStyle
+              }
+            >
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoLabelStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoLabelStyle
+                    : accountInfoLabelStyle
+                }
+              >
                 Användarnamn
               </div>
-              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoValueStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoValueStyle
+                    : accountInfoValueStyle
+                }
+              >
                 @{profile.username || "-"}
               </div>
             </div>
 
-            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
-              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>Roll</div>
-              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountInfoCardStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountInfoCardStyle
+                  : accountInfoCardStyle
+              }
+            >
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoLabelStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoLabelStyle
+                    : accountInfoLabelStyle
+                }
+              >
+                Roll
+              </div>
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoValueStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoValueStyle
+                    : accountInfoValueStyle
+                }
+              >
                 {profile.role === "head_admin"
                   ? "Huvudadmin"
                   : profile.role === "coach"
@@ -8556,9 +8719,35 @@ function TrainingApp() {
               </div>
             </div>
 
-            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
-              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>Lag</div>
-              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountInfoCardStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountInfoCardStyle
+                  : accountInfoCardStyle
+              }
+            >
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoLabelStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoLabelStyle
+                    : accountInfoLabelStyle
+                }
+              >
+                Lag
+              </div>
+              <div
+                style={
+                  profile?.role === "player"
+                    ? playerAccountInfoValueStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementAccountInfoValueStyle
+                    : accountInfoValueStyle
+                }
+              >
                 {teamName}
               </div>
             </div>
@@ -8569,7 +8758,11 @@ function TrainingApp() {
               type="button"
               onClick={() => navigateGlobalView("gdpr")}
               style={{
-                ...(profile?.role === "player" ? playerAccountGhostButtonStyle : secondaryButtonStyle),
+                ...(profile?.role === "player"
+                  ? playerAccountGhostButtonStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementSecondaryButtonStyle
+                  : secondaryButtonStyle),
                 width: isMobile ? "100%" : "auto",
               }}
             >
@@ -8593,35 +8786,89 @@ function TrainingApp() {
             )}
           </div>
 
-          <div style={profile?.role === "player" ? playerAccountPasswordCardStyle : accountPasswordCardStyle}>
-            <div style={profile?.role === "player" ? playerAccountSectionTitleStyle : accountPasswordTitleStyle}>
+          <div
+            style={
+              profile?.role === "player"
+                ? playerAccountPasswordCardStyle
+                : profile?.role === "coach" || profile?.role === "head_admin"
+                ? managementAccountPasswordCardStyle
+                : accountPasswordCardStyle
+            }
+          >
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountSectionTitleStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountSectionTitleStyle
+                  : accountPasswordTitleStyle
+              }
+            >
               Byt lösenord
             </div>
-            <div style={profile?.role === "player" ? playerAccountSectionTextStyle : accountPasswordTextStyle}>
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountSectionTextStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountSectionTextStyle
+                  : accountPasswordTextStyle
+              }
+            >
               Byt lösenord direkt här. Gäller spelare, tränare och huvudadmin.
             </div>
 
             <div style={accountPasswordFormStyle(isMobile)}>
               <div style={{ width: "100%" }}>
-                <div style={profile?.role === "player" ? playerAccountFieldLabelStyle : compactFieldLabelStyle}>
+                <div
+                  style={
+                    profile?.role === "player"
+                      ? playerAccountFieldLabelStyle
+                      : profile?.role === "coach" || profile?.role === "head_admin"
+                      ? managementAccountFieldLabelStyle
+                      : compactFieldLabelStyle
+                  }
+                >
                   Nytt lösenord
                 </div>
                 <input
                   type="password"
                   value={accountPassword}
                   onChange={(e) => setAccountPassword(e.target.value)}
-                  style={{ ...(profile?.role === "player" ? playerActivityInputStyle : inputStyle), width: "100%" }}
+                  style={{
+                    ...(profile?.role === "player"
+                      ? playerActivityInputStyle
+                      : profile?.role === "coach" || profile?.role === "head_admin"
+                      ? managementInputStyle
+                      : inputStyle),
+                    width: "100%",
+                  }}
                 />
               </div>
               <div style={{ width: "100%" }}>
-                <div style={profile?.role === "player" ? playerAccountFieldLabelStyle : compactFieldLabelStyle}>
+                <div
+                  style={
+                    profile?.role === "player"
+                      ? playerAccountFieldLabelStyle
+                      : profile?.role === "coach" || profile?.role === "head_admin"
+                      ? managementAccountFieldLabelStyle
+                      : compactFieldLabelStyle
+                  }
+                >
                   Bekräfta nytt lösenord
                 </div>
                 <input
                   type="password"
                   value={accountPasswordConfirm}
                   onChange={(e) => setAccountPasswordConfirm(e.target.value)}
-                  style={{ ...(profile?.role === "player" ? playerActivityInputStyle : inputStyle), width: "100%" }}
+                  style={{
+                    ...(profile?.role === "player"
+                      ? playerActivityInputStyle
+                      : profile?.role === "coach" || profile?.role === "head_admin"
+                      ? managementInputStyle
+                      : inputStyle),
+                    width: "100%",
+                  }}
                 />
               </div>
               <button
@@ -8629,7 +8876,11 @@ function TrainingApp() {
                 onClick={handleUpdateOwnPassword}
                 disabled={isUpdatingOwnPassword}
                 style={{
-                  ...(profile?.role === "player" ? playerActivitySubmitButtonStyle : buttonStyle),
+                  ...(profile?.role === "player"
+                    ? playerActivitySubmitButtonStyle
+                    : profile?.role === "coach" || profile?.role === "head_admin"
+                    ? managementButtonStyle
+                    : buttonStyle),
                   width: isMobile ? "100%" : "auto",
                   opacity: isUpdatingOwnPassword ? 0.7 : 1,
                   cursor: isUpdatingOwnPassword ? "default" : "pointer",
@@ -8640,11 +8891,35 @@ function TrainingApp() {
             </div>
           </div>
 
-          <div style={profile?.role === "player" ? playerAccountWarningCardStyle : accountWarningCardStyle}>
-            <div style={profile?.role === "player" ? playerAccountWarningTitleStyle : accountWarningTitleStyle}>
+          <div
+            style={
+              profile?.role === "player"
+                ? playerAccountWarningCardStyle
+                : profile?.role === "coach" || profile?.role === "head_admin"
+                ? managementAccountWarningCardStyle
+                : accountWarningCardStyle
+            }
+          >
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountWarningTitleStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountWarningTitleStyle
+                  : accountWarningTitleStyle
+              }
+            >
               Radering av konto
             </div>
-            <div style={profile?.role === "player" ? playerAccountWarningTextStyle : accountWarningTextStyle}>
+            <div
+              style={
+                profile?.role === "player"
+                  ? playerAccountWarningTextStyle
+                  : profile?.role === "coach" || profile?.role === "head_admin"
+                  ? managementAccountWarningTextStyle
+                  : accountWarningTextStyle
+              }
+            >
               Om du tar bort ditt konto raderas din profil och din träningshistorik permanent. Om du
               bara ska döljas från aktiva spelarlistor använder tränare eller huvudadmin arkivering.
             </div>
@@ -8658,9 +8933,10 @@ function TrainingApp() {
           isMobile={isMobile}
           profile={profile}
           teamName={teamName}
-          mutedTextStyle={mutedTextStyle}
-          secondaryButtonStyle={secondaryButtonStyle}
-          buttonStyle={buttonStyle}
+          mutedTextStyle={resolvedMutedTextStyle}
+          secondaryButtonStyle={resolvedSecondaryButtonStyle}
+          buttonStyle={resolvedButtonStyle}
+          uiVariant={useManagementRedesignShell ? "coach" : profile?.role === "player" ? "player" : "default"}
           onBack={() => navigateGlobalView("app")}
           onOpenAccount={() => navigateGlobalView("account")}
         />
@@ -8671,14 +8947,30 @@ function TrainingApp() {
       {!usePlayerRedesignShell && (
         <div
           style={{
-            ...feedbackActionBarStyle,
+            ...(useManagementRedesignShell ? managementFeedbackActionBarStyle : feedbackActionBarStyle),
             flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
+            alignItems: isMobile
+              ? "stretch"
+              : useManagementRedesignShell
+              ? managementFeedbackActionBarStyle.alignItems
+              : feedbackActionBarStyle.alignItems,
           }}
         >
           <div style={{ flex: 1 }}>
-            <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
-            <div style={mutedTextStyle}>
+            <div
+              style={
+                useManagementRedesignShell
+                  ? {
+                      ...managementCardTitleStyle,
+                      fontSize: "clamp(24px, 4vw, 30px)",
+                      marginBottom: "6px",
+                    }
+                  : feedbackActionTitleStyle
+              }
+            >
+              Hjälp till att förbättra appen
+            </div>
+            <div style={useManagementRedesignShell ? managementMutedTextStyle : mutedTextStyle}>
               Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
             </div>
           </div>
@@ -8686,7 +8978,10 @@ function TrainingApp() {
           <button
             type="button"
             onClick={() => setIsFeedbackOpen((prev) => !prev)}
-            style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+            style={{
+              ...(useManagementRedesignShell ? managementSecondaryButtonStyle : secondaryButtonStyle),
+              width: isMobile ? "100%" : "auto",
+            }}
           >
             {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
           </button>
@@ -8694,9 +8989,14 @@ function TrainingApp() {
       )}
 
       {isFeedbackOpen && !usePlayerRedesignShell && (
-        <div style={feedbackComposerCardStyle}>
-          <div style={cardTitleStyle}>Skriv feedback</div>
-          <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
+        <div style={useManagementRedesignShell ? managementFeedbackComposerCardStyle : feedbackComposerCardStyle}>
+          <div style={useManagementRedesignShell ? managementCardTitleStyle : cardTitleStyle}>Skriv feedback</div>
+          <p
+            style={{
+              ...(useManagementRedesignShell ? managementMutedTextStyle : mutedTextStyle),
+              marginBottom: "12px",
+            }}
+          >
             Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
           </p>
           <div style={compactFieldLabelStyle}>Meddelande</div>
@@ -8705,7 +9005,12 @@ function TrainingApp() {
             value={feedbackText}
             onChange={(event) => setFeedbackText(event.target.value)}
             placeholder="Skriv kort vad du vill skicka in"
-            style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "12px" }}
+            style={{
+              ...(useManagementRedesignShell ? managementInputStyle : inputStyle),
+              ...textareaStyle,
+              width: "100%",
+              marginBottom: "12px",
+            }}
           />
           <div style={feedbackComposerActionsStyle}>
             <button
@@ -8714,7 +9019,7 @@ function TrainingApp() {
                 setIsFeedbackOpen(false)
                 setFeedbackText("")
               }}
-              style={secondaryButtonStyle}
+              style={useManagementRedesignShell ? managementSecondaryButtonStyle : secondaryButtonStyle}
             >
               Avbryt
             </button>
@@ -8723,7 +9028,7 @@ function TrainingApp() {
               onClick={handleSubmitFeedback}
               disabled={isSubmittingFeedback}
               style={{
-                ...buttonStyle,
+                ...(useManagementRedesignShell ? managementButtonStyle : buttonStyle),
                 opacity: isSubmittingFeedback ? 0.7 : 1,
                 cursor: isSubmittingFeedback ? "default" : "pointer",
               }}
@@ -8739,8 +9044,12 @@ function TrainingApp() {
           {!showCoachBottomNav && !showAdminBottomNav && (
             <div
               style={{
-                ...coachTabsWrapStyle,
-                flexWrap: isMobile ? "nowrap" : coachTabsWrapStyle.flexWrap,
+                ...(useManagementRedesignShell ? managementTabsWrapStyle : coachTabsWrapStyle),
+                flexWrap: isMobile
+                  ? "nowrap"
+                  : useManagementRedesignShell
+                  ? managementTabsWrapStyle.flexWrap
+                  : coachTabsWrapStyle.flexWrap,
                 overflowX: isMobile ? "auto" : "visible",
                 paddingBottom: isMobile ? "6px" : 0,
                 marginInline: isMobile ? "-2px" : 0,
@@ -8759,12 +9068,16 @@ function TrainingApp() {
                   type="button"
                   onClick={() => navigateCoachSection(tab.key)}
                   style={{
-                    ...coachTabButtonStyle,
+                    ...(useManagementRedesignShell ? managementTabButtonStyle : coachTabButtonStyle),
                     flex: isMobile ? "0 0 auto" : undefined,
                     whiteSpace: "nowrap",
                     minHeight: isMobile ? "44px" : undefined,
                     scrollSnapAlign: isMobile ? "start" : "none",
-                    ...(coachView === tab.key ? activeCoachTabButtonStyle : {}),
+                    ...(coachView === tab.key
+                      ? useManagementRedesignShell
+                        ? managementActiveTabButtonStyle
+                        : activeCoachTabButtonStyle
+                      : {}),
                   }}
                 >
                   {tab.label}
@@ -8775,10 +9088,24 @@ function TrainingApp() {
 
           <div
             style={{
-              ...cardStyle,
-              padding: isMobile ? "16px 14px" : cardStyle.padding,
-              borderRadius: isMobile ? "20px" : cardStyle.borderRadius,
-              marginBottom: isMobile ? "16px" : cardStyle.marginBottom,
+              ...(useManagementRedesignShell ? managementViewportPanelStyle : cardStyle),
+              padding: isMobile
+                ? useManagementRedesignShell
+                  ? "18px 16px"
+                  : "16px 14px"
+                : useManagementRedesignShell
+                ? managementViewportPanelStyle.padding
+                : cardStyle.padding,
+              borderRadius: isMobile
+                ? "24px"
+                : useManagementRedesignShell
+                ? managementViewportPanelStyle.borderRadius
+                : cardStyle.borderRadius,
+              marginBottom: isMobile
+                ? "16px"
+                : useManagementRedesignShell
+                ? managementViewportPanelStyle.marginBottom
+                : cardStyle.marginBottom,
             }}
           >
             {coachView === "home" && (
@@ -8789,6 +9116,7 @@ function TrainingApp() {
                   totalTeams={totalTeamsCount}
                   organizationLabel="Systemöversikt"
                   isMobile={isMobile}
+                  uiVariant="coach"
                 />
               ) : (
                 <CoachHomePage
@@ -8802,6 +9130,7 @@ function TrainingApp() {
                   activeSevenDayCount={activeSevenDayCount}
                   openTargetChangeRequestCount={targetChangeRequests.length}
                   isMobile={isMobile}
+                  uiVariant="coach"
                 />
               )
             )}
@@ -8845,6 +9174,7 @@ function TrainingApp() {
                 isSavingExternalCalendarSource={isSavingCalendarImportSource}
                 onSyncExternalCalendar={() => invokeLagetSeCalendarSync({ force: true, silent: false })}
                 isSyncingExternalCalendar={isSyncingCalendarImportSource}
+                uiVariant="coach"
               />
             )}
 
@@ -8876,11 +9206,12 @@ function TrainingApp() {
                 handleDeleteUser={handleDeleteUser}
                 handleArchivePlayer={handleArchivePlayer}
                 handleDeletePlayer={handleDeletePlayer}
-                cardTitleStyle={cardTitleStyle}
-                mutedTextStyle={mutedTextStyle}
-                inputStyle={inputStyle}
-                buttonStyle={buttonStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                inputStyle={resolvedInputStyle}
+                buttonStyle={resolvedButtonStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -8894,12 +9225,13 @@ function TrainingApp() {
                 handleDeleteTeam={handleDeleteTeam}
                 isCreatingTeam={isCreatingTeam}
                 deletingTeamId={deletingTeamId}
-                cardTitleStyle={cardTitleStyle}
-                inputStyle={inputStyle}
-                buttonStyle={buttonStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
-                mutedTextStyle={mutedTextStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                inputStyle={resolvedInputStyle}
+                buttonStyle={resolvedButtonStyle}
+                secondaryButtonStyle={resolvedSecondaryButtonStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -8956,12 +9288,13 @@ function TrainingApp() {
                 handleRefreshExerciseRequests={loadExerciseRequests}
                 handleSubmitExerciseRequest={handleSubmitExerciseRequest}
                 handleUpdateExerciseRequestStatus={handleUpdateExerciseRequestStatus}
-                inputStyle={inputStyle}
-                buttonStyle={buttonStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
-                mutedTextStyle={mutedTextStyle}
-                cardTitleStyle={cardTitleStyle}
+                inputStyle={resolvedInputStyle}
+                buttonStyle={resolvedButtonStyle}
+                secondaryButtonStyle={resolvedSecondaryButtonStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -8984,12 +9317,13 @@ function TrainingApp() {
                 isLoadingMessages={isLoadingMessages}
                 handleRefreshMessages={loadMessages}
                 teams={teams}
-                cardTitleStyle={cardTitleStyle}
-                mutedTextStyle={mutedTextStyle}
-                inputStyle={inputStyle}
-                buttonStyle={buttonStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                inputStyle={resolvedInputStyle}
+                buttonStyle={resolvedButtonStyle}
+                secondaryButtonStyle={resolvedSecondaryButtonStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -8998,11 +9332,12 @@ function TrainingApp() {
                 candidatePlayers={statisticsPlayers}
                 exercises={exercisesFromDB}
                 currentUserId={user?.id}
-                cardTitleStyle={cardTitleStyle}
-                mutedTextStyle={mutedTextStyle}
-                inputStyle={inputStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                inputStyle={resolvedInputStyle}
+                secondaryButtonStyle={resolvedSecondaryButtonStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -9015,11 +9350,12 @@ function TrainingApp() {
                 updatingFeedbackId={updatingFeedbackId}
                 handleRefreshFeedback={loadFeedback}
                 handleUpdateFeedbackStatus={handleUpdateFeedbackStatus}
-                cardTitleStyle={cardTitleStyle}
-                mutedTextStyle={mutedTextStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
-                buttonStyle={buttonStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                secondaryButtonStyle={resolvedSecondaryButtonStyle}
+                buttonStyle={resolvedButtonStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -9103,12 +9439,13 @@ function TrainingApp() {
                 handleSavePassAssignmentsToPlayers={handleSavePassAssignmentsToPlayers}
                 passAssignmentPlayerIdsByPass={passAssignmentPlayerIdsByPass}
                 resetPassEditorState={resetPassEditorState}
-                cardTitleStyle={cardTitleStyle}
-                secondaryButtonStyle={secondaryButtonStyle}
-                mutedTextStyle={mutedTextStyle}
-                inputStyle={inputStyle}
-                buttonStyle={buttonStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                secondaryButtonStyle={resolvedSecondaryButtonStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                inputStyle={resolvedInputStyle}
+                buttonStyle={resolvedButtonStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
 
@@ -9128,9 +9465,9 @@ function TrainingApp() {
                 handleCreateUser={handleCreatePlayer}
                 isCreatingUser={isCreatingPlayer}
                 createdUser={createdPlayer}
-                inputStyle={inputStyle}
-                buttonStyle={buttonStyle}
-                cardTitleStyle={cardTitleStyle}
+                inputStyle={resolvedInputStyle}
+                buttonStyle={resolvedButtonStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
                 isMobile={isMobile}
                 importedPlayers={importedPlayers}
                 importFileName={importFileName}
@@ -9139,6 +9476,7 @@ function TrainingApp() {
                 handleImportPlayers={handleImportPlayers}
                 isImportingPlayers={isImportingPlayers}
                 importResults={importResults}
+                uiVariant="coach"
               />
             )}
 
@@ -9160,9 +9498,9 @@ function TrainingApp() {
                 commentDrafts={commentDrafts}
                 handleCommentChange={handleCommentChange}
                 handleCommentSave={handleCommentSave}
-                mutedTextStyle={mutedTextStyle}
-                cardTitleStyle={cardTitleStyle}
-                inputStyle={inputStyle}
+                mutedTextStyle={resolvedMutedTextStyle}
+                cardTitleStyle={resolvedCardTitleStyle}
+                inputStyle={resolvedInputStyle}
                 activeWorkouts={activeWorkouts}
                 assignedPassCodes={selectedPlayerAssignedPasses}
                 isLoadingTargets={isLoadingTargets}
@@ -9191,8 +9529,9 @@ function TrainingApp() {
                 handleAssignAllPassesToPlayer={handleAssignAllPassesToPlayer}
                 handleClearAssignedPassesFromPlayer={handleClearAssignedPassesFromPlayer}
                 isUpdatingPassAssignments={isUpdatingPassAssignments}
-                buttonStyle={buttonStyle}
+                buttonStyle={resolvedButtonStyle}
                 isMobile={isMobile}
+                uiVariant="coach"
               />
             )}
           </div>
@@ -9201,7 +9540,7 @@ function TrainingApp() {
             <div style={coachBottomNavWrapStyle}>
               <div
                 style={{
-                  ...coachBottomNavStyle,
+                  ...(useManagementRedesignShell ? managementBottomNavStyle : coachBottomNavStyle),
                   gridTemplateColumns: `repeat(${coachBottomTabs.length}, minmax(0, 1fr))`,
                 }}
               >
@@ -9215,18 +9554,38 @@ function TrainingApp() {
                       onClick={() => navigateCoachSection(tab.key)}
                       style={{
                         ...coachBottomNavButtonStyle,
-                        color: isActive ? "#dc2626" : "#6b7280",
+                        color: useManagementRedesignShell
+                          ? isActive
+                            ? playerAccent
+                            : playerInkSoft
+                          : isActive
+                          ? "#dc2626"
+                          : "#6b7280",
                       }}
                     >
                       <span
                         style={{
-                          ...coachBottomNavIconWrapStyle,
-                          backgroundColor: isActive ? "#fff1f1" : "transparent",
+                          ...(useManagementRedesignShell
+                            ? managementBottomNavIconWrapStyle
+                            : coachBottomNavIconWrapStyle),
+                          backgroundColor: useManagementRedesignShell
+                            ? isActive
+                              ? "rgba(217, 74, 31, 0.12)"
+                              : "transparent"
+                            : isActive
+                            ? "#fff1f1"
+                            : "transparent",
                         }}
                       >
                         {renderCoachBottomNavIcon(tab.icon, isActive)}
                       </span>
-                      <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                      <span
+                        style={
+                          useManagementRedesignShell ? managementBottomNavLabelStyle : coachBottomNavLabelStyle
+                        }
+                      >
+                        {tab.label}
+                      </span>
                     </button>
                   )
                 })}
@@ -9238,7 +9597,7 @@ function TrainingApp() {
             <div style={coachBottomNavWrapStyle}>
               <div
                 style={{
-                  ...coachBottomNavStyle,
+                  ...(useManagementRedesignShell ? managementBottomNavStyle : coachBottomNavStyle),
                   gridTemplateColumns: `repeat(${adminBottomTabs.length}, minmax(0, 1fr))`,
                 }}
               >
@@ -9252,18 +9611,38 @@ function TrainingApp() {
                       onClick={() => navigateCoachSection(tab.key)}
                       style={{
                         ...coachBottomNavButtonStyle,
-                        color: isActive ? "#b61e24" : "#6b7280",
+                        color: useManagementRedesignShell
+                          ? isActive
+                            ? playerAccent
+                            : playerInkSoft
+                          : isActive
+                          ? "#b61e24"
+                          : "#6b7280",
                       }}
                     >
                       <span
                         style={{
-                          ...coachBottomNavIconWrapStyle,
-                          backgroundColor: isActive ? "#fff1f1" : "transparent",
+                          ...(useManagementRedesignShell
+                            ? managementBottomNavIconWrapStyle
+                            : coachBottomNavIconWrapStyle),
+                          backgroundColor: useManagementRedesignShell
+                            ? isActive
+                              ? "rgba(217, 74, 31, 0.12)"
+                              : "transparent"
+                            : isActive
+                            ? "#fff1f1"
+                            : "transparent",
                         }}
                       >
                         {renderCoachBottomNavIcon(tab.icon, isActive)}
                       </span>
-                      <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                      <span
+                        style={
+                          useManagementRedesignShell ? managementBottomNavLabelStyle : coachBottomNavLabelStyle
+                        }
+                      >
+                        {tab.label}
+                      </span>
                     </button>
                   )
                 })}
@@ -11389,6 +11768,237 @@ const playerShellMenuIconLineStyle = {
   height: "2px",
   borderRadius: "999px",
   backgroundColor: playerPaper,
+}
+
+const managementShellPageStyle = (isMobile) => ({
+  maxWidth: isMobile ? "100%" : "1120px",
+  background:
+    "radial-gradient(circle at 16% -8%, rgba(217, 74, 31, 0.14), transparent 32%), linear-gradient(180deg, #f3efe6 0%, #e9dfcf 100%)",
+  color: playerInk,
+  fontFamily: playerDisplayFont,
+  boxShadow: isMobile ? "none" : "0 30px 70px rgba(26, 24, 20, 0.08)",
+})
+
+const managementShellMenuWrapStyle = (isMobile) => ({
+  position: "fixed",
+  top: isMobile ? "max(14px, env(safe-area-inset-top))" : "24px",
+  right: isMobile ? "14px" : "calc((100vw - min(1120px, 100vw)) / 2 + 24px)",
+  zIndex: 35,
+})
+
+const managementShellMenuButtonStyle = {
+  ...playerShellMenuButtonStyle,
+  width: "50px",
+  height: "50px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(26, 24, 20, 0.94)",
+}
+
+const managementShellMenuIconLineStyle = {
+  ...playerShellMenuIconLineStyle,
+}
+
+const managementViewportPanelStyle = {
+  marginBottom: "18px",
+  padding: "22px",
+  borderRadius: "28px",
+  border: `1px solid ${playerLine}`,
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 28%), linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(243, 239, 230, 0.82))",
+  boxShadow: "0 22px 44px rgba(26, 24, 20, 0.08)",
+  backdropFilter: "blur(16px)",
+}
+
+const managementCardTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 4vw, 34px)",
+  lineHeight: 0.96,
+  fontWeight: "700",
+  letterSpacing: "-0.05em",
+  color: playerInk,
+  marginBottom: "12px",
+}
+
+const managementMutedTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.65,
+  color: playerInkSoft,
+}
+
+const managementInputStyle = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.42)",
+  color: playerInk,
+  fontFamily: playerDisplayFont,
+  fontSize: "15px",
+  lineHeight: 1.4,
+  boxShadow: "none",
+  outline: "none",
+}
+
+const managementButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "18px",
+  border: "none",
+  background: `linear-gradient(135deg, ${playerAccent} 0%, #b93617 100%)`,
+  color: playerPaper,
+  fontFamily: playerDisplayFont,
+  fontSize: "15px",
+  fontWeight: "800",
+  cursor: "pointer",
+  boxShadow: "0 16px 28px rgba(217, 74, 31, 0.2)",
+}
+
+const managementSecondaryButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.34)",
+  color: playerInk,
+  fontFamily: playerDisplayFont,
+  fontSize: "15px",
+  fontWeight: "800",
+  cursor: "pointer",
+  boxShadow: "none",
+}
+
+const managementTabsWrapStyle = {
+  display: "flex",
+  gap: "10px",
+  marginBottom: "18px",
+  flexWrap: "wrap",
+  padding: "10px",
+  borderRadius: "22px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.26)",
+  boxShadow: "0 14px 30px rgba(26, 24, 20, 0.05)",
+}
+
+const managementTabButtonStyle = {
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: `1px solid transparent`,
+  backgroundColor: "transparent",
+  color: playerInkSoft,
+  cursor: "pointer",
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+}
+
+const managementActiveTabButtonStyle = {
+  backgroundColor: playerInk,
+  color: playerPaper,
+  borderColor: playerInk,
+  boxShadow: "0 16px 24px rgba(26, 24, 20, 0.16)",
+}
+
+const managementFeedbackActionBarStyle = {
+  ...managementViewportPanelStyle,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "18px",
+}
+
+const managementFeedbackComposerCardStyle = {
+  ...managementViewportPanelStyle,
+  padding: "20px",
+}
+
+const managementAccountPanelStyle = {
+  padding: "22px",
+  borderRadius: "28px",
+  border: `1px solid ${playerLine}`,
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(243, 239, 230, 0.78))",
+  boxShadow: "0 22px 42px rgba(26, 24, 20, 0.08)",
+}
+
+const managementMonoLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+  marginBottom: "8px",
+}
+
+const managementPageTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(34px, 7vw, 48px)",
+  lineHeight: 0.94,
+  fontWeight: "700",
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const managementAccountInfoCardStyle = {
+  padding: "18px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
+}
+
+const managementAccountInfoLabelStyle = {
+  ...managementMonoLabelStyle,
+  marginBottom: "10px",
+}
+
+const managementAccountInfoValueStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "26px",
+  lineHeight: 0.96,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const managementAccountPasswordCardStyle = {
+  marginTop: "16px",
+  padding: "20px",
+  borderRadius: "22px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.3)",
+}
+
+const managementAccountSectionTitleStyle = {
+  ...managementCardTitleStyle,
+  fontSize: "clamp(26px, 5vw, 34px)",
+  marginBottom: "6px",
+}
+
+const managementAccountSectionTextStyle = {
+  ...managementMutedTextStyle,
+  marginBottom: "12px",
+}
+
+const managementAccountFieldLabelStyle = {
+  ...managementMonoLabelStyle,
+}
+
+const managementAccountWarningCardStyle = {
+  marginTop: "16px",
+  padding: "20px",
+  borderRadius: "22px",
+  border: "1px solid rgba(185, 28, 28, 0.14)",
+  backgroundColor: "rgba(185, 28, 28, 0.06)",
+}
+
+const managementAccountWarningTitleStyle = {
+  ...managementAccountSectionTitleStyle,
+  color: "#991b1b",
+}
+
+const managementAccountWarningTextStyle = {
+  ...managementMutedTextStyle,
+  color: "#7f1d1d",
 }
 
 const appTitleStyle = {
@@ -14105,6 +14715,13 @@ const playerBottomNavStyle = {
   boxShadow: "0 -18px 38px rgba(26, 24, 20, 0.12)",
 }
 
+const managementBottomNavStyle = {
+  ...coachBottomNavStyle,
+  borderTop: `1px solid ${playerLine}`,
+  background: "rgba(243, 239, 230, 0.94)",
+  boxShadow: "0 -18px 38px rgba(26, 24, 20, 0.12)",
+}
+
 const coachBottomNavButtonStyle = {
   border: "none",
   background: "transparent",
@@ -14133,6 +14750,11 @@ const playerBottomNavIconWrapStyle = {
   borderRadius: "999px",
 }
 
+const managementBottomNavIconWrapStyle = {
+  ...coachBottomNavIconWrapStyle,
+  borderRadius: "999px",
+}
+
 const coachBottomNavLabelStyle = {
   fontSize: "11px",
   fontWeight: "800",
@@ -14145,6 +14767,14 @@ const playerBottomNavLabelStyle = {
   fontFamily: playerMonoFont,
   fontSize: "10px",
   letterSpacing: "0.02em",
+}
+
+const managementBottomNavLabelStyle = {
+  ...coachBottomNavLabelStyle,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
 }
 
 export default TrainingApp

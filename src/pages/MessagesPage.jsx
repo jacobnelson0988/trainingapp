@@ -24,8 +24,10 @@ function MessagesPage({
   buttonStyle,
   secondaryButtonStyle,
   isMobile,
+  uiVariant,
 }) {
   const isPlayer = role === "player"
+  const useRedesignVariant = isPlayer || uiVariant === "coach"
   const [view, setView] = useState("inbox")
   const [selectedThreadKey, setSelectedThreadKey] = useState(null)
   const [isRecipientPickerOpen, setIsRecipientPickerOpen] = useState(false)
@@ -82,45 +84,45 @@ function MessagesPage({
   const selectedRecipients = recipients.filter((recipient) => selectedRecipientIds.includes(recipient.id))
   const totalUnreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount || 0), 0)
 
-  const resolvedPageHeaderStyle = isPlayer ? playerPageHeaderStyle : pageHeaderStyle
-  const resolvedPageHeaderCopyStyle = isPlayer ? playerPageHeaderCopyStyle : pageHeaderCopyStyle
-  const resolvedIntroTitleStyle = isPlayer ? playerIntroTitleStyle : introTitleStyle
-  const resolvedIntroStatsGridStyle = isPlayer ? playerIntroStatsGridStyle : introStatsGridStyle
-  const resolvedIntroStatCardStyle = isPlayer ? playerIntroStatCardStyle : introStatCardStyle
-  const resolvedIntroStatLabelStyle = isPlayer ? playerIntroStatLabelStyle : introStatLabelStyle
-  const resolvedIntroStatValueStyle = isPlayer ? playerIntroStatValueStyle : introStatValueStyle
-  const resolvedWrapStyle = isPlayer ? playerWrapStyle : wrapStyle
-  const resolvedHeaderStyle = isPlayer ? playerHeaderStyle : headerStyle
-  const resolvedCardStyle = isPlayer ? playerCardStyle : cardStyle
-  const resolvedInboxListStyle = isPlayer ? playerInboxListStyle : inboxListStyle
-  const resolvedInboxRowStyle = isPlayer ? playerInboxRowStyle : inboxRowStyle
-  const resolvedInboxSenderStyle = isPlayer ? playerInboxSenderStyle : inboxSenderStyle
-  const resolvedInboxSubjectStyle = isPlayer ? playerInboxSubjectStyle : inboxSubjectStyle
-  const resolvedInboxMetaStyle = isPlayer ? playerInboxMetaStyle : inboxMetaStyle
-  const resolvedUnreadBadgeStyle = isPlayer ? playerUnreadBadgeStyle : unreadBadgeStyle
-  const resolvedFieldLabelStyle = isPlayer ? playerFieldLabelStyle : fieldLabelStyle
-  const resolvedPickerButtonStyle = isPlayer ? playerPickerButtonStyle : pickerButtonStyle
-  const resolvedPickerMenuStyle = isPlayer ? playerPickerMenuStyle : pickerMenuStyle
-  const resolvedPickerEmptyStyle = isPlayer ? playerPickerEmptyStyle : pickerEmptyStyle
-  const resolvedPickerOptionStyle = isPlayer ? playerPickerOptionStyle : pickerOptionStyle
-  const resolvedPickerOptionActiveStyle = isPlayer ? playerPickerOptionActiveStyle : pickerOptionActiveStyle
-  const resolvedPickerOptionNameStyle = isPlayer ? playerPickerOptionNameStyle : pickerOptionNameStyle
-  const resolvedPickerOptionMetaStyle = isPlayer ? playerPickerOptionMetaStyle : pickerOptionMetaStyle
-  const resolvedActionsStyle = isPlayer ? playerActionsStyle : actionsStyle
-  const resolvedThreadSubjectStyle = isPlayer ? playerThreadSubjectStyle : threadSubjectStyle
-  const resolvedThreadInfoStyle = isPlayer ? playerThreadInfoStyle : threadInfoStyle
-  const resolvedChatListStyle = isPlayer ? playerChatListStyle : chatListStyle
-  const resolvedChatBubbleStyle = isPlayer ? playerChatBubbleStyle : chatBubbleStyle
-  const resolvedOwnBubbleStyle = isPlayer ? playerOwnBubbleStyle : ownBubbleStyle
-  const resolvedIncomingBubbleStyle = isPlayer ? playerIncomingBubbleStyle : incomingBubbleStyle
-  const resolvedChatAuthorStyle = isPlayer ? playerChatAuthorStyle : chatAuthorStyle
-  const resolvedChatTextStyle = isPlayer ? playerChatTextStyle : chatTextStyle
-  const resolvedChatDateStyle = isPlayer ? playerChatDateStyle : chatDateStyle
-  const resolvedCardTitleStyle = isPlayer ? playerSectionTitleStyle : cardTitleStyle
-  const resolvedMutedTextStyle = isPlayer ? playerMutedTextStyle : mutedTextStyle
-  const resolvedInputStyle = isPlayer ? { ...inputStyle, ...playerInputStyle } : inputStyle
-  const resolvedButtonStyle = isPlayer ? { ...buttonStyle, ...playerButtonStyle } : buttonStyle
-  const resolvedSecondaryButtonStyle = isPlayer
+  const resolvedPageHeaderStyle = useRedesignVariant ? playerPageHeaderStyle : pageHeaderStyle
+  const resolvedPageHeaderCopyStyle = useRedesignVariant ? playerPageHeaderCopyStyle : pageHeaderCopyStyle
+  const resolvedIntroTitleStyle = useRedesignVariant ? playerIntroTitleStyle : introTitleStyle
+  const resolvedIntroStatsGridStyle = useRedesignVariant ? playerIntroStatsGridStyle : introStatsGridStyle
+  const resolvedIntroStatCardStyle = useRedesignVariant ? playerIntroStatCardStyle : introStatCardStyle
+  const resolvedIntroStatLabelStyle = useRedesignVariant ? playerIntroStatLabelStyle : introStatLabelStyle
+  const resolvedIntroStatValueStyle = useRedesignVariant ? playerIntroStatValueStyle : introStatValueStyle
+  const resolvedWrapStyle = useRedesignVariant ? playerWrapStyle : wrapStyle
+  const resolvedHeaderStyle = useRedesignVariant ? playerHeaderStyle : headerStyle
+  const resolvedCardStyle = useRedesignVariant ? playerCardStyle : cardStyle
+  const resolvedInboxListStyle = useRedesignVariant ? playerInboxListStyle : inboxListStyle
+  const resolvedInboxRowStyle = useRedesignVariant ? playerInboxRowStyle : inboxRowStyle
+  const resolvedInboxSenderStyle = useRedesignVariant ? playerInboxSenderStyle : inboxSenderStyle
+  const resolvedInboxSubjectStyle = useRedesignVariant ? playerInboxSubjectStyle : inboxSubjectStyle
+  const resolvedInboxMetaStyle = useRedesignVariant ? playerInboxMetaStyle : inboxMetaStyle
+  const resolvedUnreadBadgeStyle = useRedesignVariant ? playerUnreadBadgeStyle : unreadBadgeStyle
+  const resolvedFieldLabelStyle = useRedesignVariant ? playerFieldLabelStyle : fieldLabelStyle
+  const resolvedPickerButtonStyle = useRedesignVariant ? playerPickerButtonStyle : pickerButtonStyle
+  const resolvedPickerMenuStyle = useRedesignVariant ? playerPickerMenuStyle : pickerMenuStyle
+  const resolvedPickerEmptyStyle = useRedesignVariant ? playerPickerEmptyStyle : pickerEmptyStyle
+  const resolvedPickerOptionStyle = useRedesignVariant ? playerPickerOptionStyle : pickerOptionStyle
+  const resolvedPickerOptionActiveStyle = useRedesignVariant ? playerPickerOptionActiveStyle : pickerOptionActiveStyle
+  const resolvedPickerOptionNameStyle = useRedesignVariant ? playerPickerOptionNameStyle : pickerOptionNameStyle
+  const resolvedPickerOptionMetaStyle = useRedesignVariant ? playerPickerOptionMetaStyle : pickerOptionMetaStyle
+  const resolvedActionsStyle = useRedesignVariant ? playerActionsStyle : actionsStyle
+  const resolvedThreadSubjectStyle = useRedesignVariant ? playerThreadSubjectStyle : threadSubjectStyle
+  const resolvedThreadInfoStyle = useRedesignVariant ? playerThreadInfoStyle : threadInfoStyle
+  const resolvedChatListStyle = useRedesignVariant ? playerChatListStyle : chatListStyle
+  const resolvedChatBubbleStyle = useRedesignVariant ? playerChatBubbleStyle : chatBubbleStyle
+  const resolvedOwnBubbleStyle = useRedesignVariant ? playerOwnBubbleStyle : ownBubbleStyle
+  const resolvedIncomingBubbleStyle = useRedesignVariant ? playerIncomingBubbleStyle : incomingBubbleStyle
+  const resolvedChatAuthorStyle = useRedesignVariant ? playerChatAuthorStyle : chatAuthorStyle
+  const resolvedChatTextStyle = useRedesignVariant ? playerChatTextStyle : chatTextStyle
+  const resolvedChatDateStyle = useRedesignVariant ? playerChatDateStyle : chatDateStyle
+  const resolvedCardTitleStyle = useRedesignVariant ? playerSectionTitleStyle : cardTitleStyle
+  const resolvedMutedTextStyle = useRedesignVariant ? playerMutedTextStyle : mutedTextStyle
+  const resolvedInputStyle = useRedesignVariant ? { ...inputStyle, ...playerInputStyle } : inputStyle
+  const resolvedButtonStyle = useRedesignVariant ? { ...buttonStyle, ...playerButtonStyle } : buttonStyle
+  const resolvedSecondaryButtonStyle = useRedesignVariant
     ? { ...secondaryButtonStyle, ...playerSecondaryButtonStyle }
     : secondaryButtonStyle
 
@@ -178,7 +180,14 @@ function MessagesPage({
       <div style={resolvedIntroStatsGridStyle(isMobile)}>
         <div style={resolvedIntroStatCardStyle}>
           <div style={resolvedIntroStatLabelStyle}>Trådar</div>
-          <div style={{ ...resolvedIntroStatValueStyle, color: isPlayer ? playerAccent : "#dc2626" }}>{threads.length}</div>
+          <div
+            style={{
+              ...resolvedIntroStatValueStyle,
+              color: useRedesignVariant ? playerAccent : "#dc2626",
+            }}
+          >
+            {threads.length}
+          </div>
         </div>
         <div style={resolvedIntroStatCardStyle}>
           <div style={resolvedIntroStatLabelStyle}>Olästa</div>
@@ -357,7 +366,9 @@ function MessagesPage({
                       <div
                         style={{
                           ...resolvedChatAuthorStyle,
-                          color: isPlayer && isOwn ? "rgba(243, 239, 230, 0.76)" : resolvedChatAuthorStyle.color,
+                          color: useRedesignVariant && isOwn
+                            ? "rgba(243, 239, 230, 0.76)"
+                            : resolvedChatAuthorStyle.color,
                         }}
                       >
                         {isOwn ? "Du" : message.sender?.full_name || "Okänd"}
@@ -365,7 +376,7 @@ function MessagesPage({
                       <div
                         style={{
                           ...resolvedChatTextStyle,
-                          color: isPlayer && isOwn ? playerPaper : resolvedChatTextStyle.color,
+                          color: useRedesignVariant && isOwn ? playerPaper : resolvedChatTextStyle.color,
                         }}
                       >
                         {message.body}
@@ -373,7 +384,9 @@ function MessagesPage({
                       <div
                         style={{
                           ...resolvedChatDateStyle,
-                          color: isPlayer && isOwn ? "rgba(243, 239, 230, 0.72)" : resolvedChatDateStyle.color,
+                          color: useRedesignVariant && isOwn
+                            ? "rgba(243, 239, 230, 0.72)"
+                            : resolvedChatDateStyle.color,
                         }}
                       >
                         {formatMessageDate(message.created_at)}

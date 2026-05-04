@@ -1184,10 +1184,12 @@ const weekGridStyle = (isMobile) => ({
 })
 
 const dayCardStyle = {
-  padding: "12px",
-  borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffefe",
+  padding: "14px",
+  borderRadius: "22px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(243,239,230,0.74) 100%)",
+  boxShadow: "0 14px 30px rgba(26, 24, 20, 0.06)",
   minHeight: "100%",
 }
 
@@ -1200,9 +1202,9 @@ const dayHeaderStyle = {
 }
 
 const dayTitleStyle = {
-  fontSize: "14px",
-  fontWeight: 900,
-  color: "#111827",
+  fontSize: "15px",
+  fontWeight: 800,
+  color: "#1a1814",
 }
 
 const dayCountStyle = {
@@ -1212,23 +1214,23 @@ const dayCountStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
-  fontSize: "12px",
-  fontWeight: 900,
+  backgroundColor: "rgba(26, 24, 20, 0.08)",
+  color: "#6f6659",
+  fontSize: "11px",
+  fontWeight: 800,
 }
 
 const emptyStateStyle = {
   padding: "24px",
-  borderRadius: "18px",
-  border: "1px dashed #d1d5db",
-  color: "#6b7280",
-  backgroundColor: "#ffffff",
+  borderRadius: "22px",
+  border: "1px dashed rgba(26, 24, 20, 0.18)",
+  color: "#6f6659",
+  backgroundColor: "rgba(255, 255, 255, 0.42)",
 }
 
 const dayEmptyStyle = {
   padding: "6px 2px 2px",
-  color: "#9ca3af",
+  color: "#8a8173",
   fontSize: "13px",
 }
 
@@ -1243,10 +1245,10 @@ const eventWrapStyle = {
 }
 
 const eventCardStyle = {
-  padding: "10px",
-  borderRadius: "14px",
-  backgroundColor: "#fcfbfb",
-  border: "1px solid #f0e7e7",
+  padding: "12px",
+  borderRadius: "18px",
+  backgroundColor: "rgba(255, 255, 255, 0.4)",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
 }
 
 const eventTopRowStyle = {
@@ -1258,21 +1260,21 @@ const eventTopRowStyle = {
 
 const eventTitleStyle = {
   fontSize: "13px",
-  fontWeight: 900,
-  color: "#111827",
+  fontWeight: 800,
+  color: "#1a1814",
 }
 
 const eventMetaStyle = {
   marginTop: "3px",
   fontSize: "12px",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const eventDescriptionStyle = {
   marginTop: "8px",
   fontSize: "12px",
   lineHeight: 1.45,
-  color: "#4b5563",
+  color: "#534b40",
 }
 
 const statusBadgeStyle = {
@@ -1289,7 +1291,7 @@ const coachMetaWrapStyle = {
 
 const coachMetaTextStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const playerChipWrapStyle = {
@@ -1302,8 +1304,8 @@ const playerChipWrapStyle = {
 const playerChipStyle = {
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#f4f4f5",
-  color: "#374151",
+  backgroundColor: "rgba(26, 24, 20, 0.08)",
+  color: "#3f382f",
   fontSize: "11px",
   fontWeight: 700,
 }
@@ -1311,7 +1313,7 @@ const playerChipStyle = {
 const playerChipMutedStyle = {
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
+  backgroundColor: "rgba(217, 74, 31, 0.1)",
   color: "#991b1b",
   fontSize: "11px",
   fontWeight: 800,
@@ -1325,11 +1327,12 @@ const playerActionsWrapStyle = {
 }
 
 const formCardStyle = {
-  padding: "16px",
-  borderRadius: "22px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffefe",
-  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)",
+  padding: "18px",
+  borderRadius: "24px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.72), rgba(243,239,230,0.82))",
+  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
 }
 
 const formTitleRowStyle = {
@@ -1340,16 +1343,18 @@ const formTitleRowStyle = {
 }
 
 const formTitleStyle = {
-  fontSize: "18px",
-  fontWeight: 900,
-  color: "#111827",
+  fontSize: "clamp(24px, 4vw, 30px)",
+  lineHeight: 0.98,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const formTextStyle = {
   marginTop: "6px",
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const formGridStyle = (isMobile) => ({
@@ -1365,19 +1370,22 @@ const fieldStyle = {
 }
 
 const fieldLabelStyle = {
-  fontSize: "13px",
-  fontWeight: 800,
-  color: "#374151",
+  fontSize: "11px",
+  fontWeight: 700,
+  color: "#6f6659",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
 }
 
 const inputStyle = {
   width: "100%",
   padding: "12px 14px",
-  borderRadius: "14px",
-  border: "1px solid #e5d9d9",
-  backgroundColor: "#ffffff",
-  color: "#111827",
-  fontSize: "14px",
+  borderRadius: "16px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  backgroundColor: "rgba(255, 255, 255, 0.48)",
+  color: "#1a1814",
+  fontSize: "15px",
+  fontFamily: '"Manrope", sans-serif',
   boxSizing: "border-box",
 }
 
@@ -1386,15 +1394,15 @@ const toggleStyle = {
   alignItems: "center",
   gap: "10px",
   fontSize: "14px",
-  color: "#374151",
+  color: "#3f382f",
   fontWeight: 700,
 }
 
 const editHintStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
-  backgroundColor: "#fff7ed",
-  border: "1px solid #fed7aa",
+  backgroundColor: "rgba(217, 74, 31, 0.08)",
+  border: "1px solid rgba(217, 74, 31, 0.14)",
   color: "#9a3412",
   fontSize: "13px",
   lineHeight: 1.5,
@@ -1406,9 +1414,9 @@ const playerSelectionStyle = {
   maxHeight: "180px",
   overflowY: "auto",
   padding: "10px",
-  borderRadius: "14px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  borderRadius: "16px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  backgroundColor: "rgba(255, 255, 255, 0.42)",
 }
 
 const playerCheckboxStyle = {
@@ -1416,18 +1424,20 @@ const playerCheckboxStyle = {
   alignItems: "center",
   gap: "10px",
   fontSize: "14px",
-  color: "#374151",
+  color: "#3f382f",
 }
 
 const primaryButtonStyle = {
   border: "none",
-  borderRadius: "14px",
+  borderRadius: "16px",
   padding: "12px 16px",
-  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
+  background: "linear-gradient(135deg, #d94a1f 0%, #b93617 100%)",
   color: "#ffffff",
-  fontSize: "14px",
+  fontSize: "15px",
   fontWeight: 800,
+  fontFamily: '"Manrope", sans-serif',
   cursor: "pointer",
+  boxShadow: "0 14px 26px rgba(217, 74, 31, 0.18)",
 }
 
 const primaryButtonCompactStyle = {
@@ -1438,13 +1448,14 @@ const primaryButtonCompactStyle = {
 }
 
 const secondaryButtonStyle = {
-  border: "1px solid #e5d9d9",
-  borderRadius: "14px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  borderRadius: "16px",
   padding: "12px 14px",
-  backgroundColor: "#ffffff",
-  color: "#374151",
-  fontSize: "14px",
+  backgroundColor: "rgba(255, 255, 255, 0.4)",
+  color: "#1a1814",
+  fontSize: "15px",
   fontWeight: 700,
+  fontFamily: '"Manrope", sans-serif',
   cursor: "pointer",
 }
 
@@ -1456,13 +1467,14 @@ const secondaryButtonStyleCompact = {
 }
 
 const dangerButtonStyle = {
-  border: "1px solid #f3c6c6",
-  borderRadius: "14px",
+  border: "1px solid rgba(185, 28, 28, 0.16)",
+  borderRadius: "16px",
   padding: "12px 14px",
-  backgroundColor: "#fff5f5",
+  backgroundColor: "rgba(185, 28, 28, 0.06)",
   color: "#b91c1c",
-  fontSize: "14px",
+  fontSize: "15px",
   fontWeight: 700,
+  fontFamily: '"Manrope", sans-serif',
   cursor: "pointer",
 }
 
@@ -1476,9 +1488,10 @@ const dangerButtonCompactStyle = {
 const ghostButtonStyle = {
   border: "none",
   backgroundColor: "transparent",
-  color: "#6b7280",
+  color: "#6f6659",
   fontSize: "13px",
   fontWeight: 800,
+  fontFamily: '"Manrope", sans-serif',
   cursor: "pointer",
   padding: "2px 0",
 }
@@ -1492,11 +1505,12 @@ const formActionsStyle = {
 
 const externalCalendarAdminCardStyle = {
   marginBottom: "16px",
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #d7dee7",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
+  padding: "18px",
+  borderRadius: "24px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.72), rgba(243,239,230,0.82))",
+  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
 }
 
 const externalCalendarAdminHeaderStyle = (isMobile) => ({

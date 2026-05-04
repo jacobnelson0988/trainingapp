@@ -14,6 +14,7 @@ function CoachHomePage({
   activeSevenDayCount,
   openTargetChangeRequestCount,
   isMobile,
+  uiVariant,
 }) {
   const cards = [
     {
@@ -151,11 +152,12 @@ const getInitials = (name) =>
 
 const heroCardStyle = {
   marginBottom: "18px",
-  padding: "20px",
-  borderRadius: "24px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
-  boxShadow: uiShadowMd,
+  padding: "22px",
+  borderRadius: "28px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background:
+    "radial-gradient(circle at 84% 16%, rgba(217, 74, 31, 0.14), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.34), rgba(243,239,230,0.78))",
+  boxShadow: "0 20px 38px rgba(26, 24, 20, 0.08)",
 }
 
 const heroHeaderRowStyle = {
@@ -167,15 +169,17 @@ const heroHeaderRowStyle = {
 }
 
 const heroTitleStyle = {
-  fontSize: "24px",
-  fontWeight: "900",
-  color: "#111827",
+  fontSize: "clamp(30px, 8vw, 40px)",
+  lineHeight: 0.94,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const heroSubStyle = {
   marginTop: "4px",
   fontSize: "14px",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const avatarStyle = {
@@ -185,9 +189,9 @@ const avatarStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#fff1f1",
-  border: "1px solid rgba(220, 38, 38, 0.15)",
-  color: "#dc2626",
+  backgroundColor: "rgba(26, 24, 20, 0.92)",
+  border: "1px solid rgba(26, 24, 20, 0.08)",
+  color: "#f3efe6",
   fontSize: "13px",
   fontWeight: "900",
   flexShrink: 0,
@@ -202,9 +206,9 @@ const statsGridStyle = (isMobile) => ({
 
 const statCardStyle = {
   padding: "14px 12px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+  borderRadius: "20px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  backgroundColor: "rgba(255, 255, 255, 0.32)",
 }
 
 const statLabelStyle = {
@@ -213,30 +217,31 @@ const statLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const statValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
-  fontWeight: "900",
-  color: "#111827",
+  fontWeight: "800",
+  color: "#1a1814",
 }
 
 const introTextStyle = {
   margin: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const sectionLabelStyle = {
   marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const navGridStyle = (isMobile) => ({
@@ -247,25 +252,25 @@ const navGridStyle = (isMobile) => ({
 
 const navCardStyle = {
   minHeight: "132px",
-  padding: "16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
+  padding: "18px",
+  borderRadius: "22px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.34), rgba(243,239,230,0.76))",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: uiShadowSm,
+  boxShadow: "0 14px 28px rgba(26, 24, 20, 0.06)",
 }
 
 const navTitleStyle = {
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "#111827",
+  fontSize: "18px",
+  fontWeight: "800",
+  color: "#1a1814",
 }
 
 const navTextStyle = {
-  fontSize: "13px",
+  fontSize: "14px",
   lineHeight: 1.5,
-  color: "#6b7280",
+  color: "#6f6659",
 }
 
 const coachNavTopRowStyle = {
