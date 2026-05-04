@@ -7723,7 +7723,7 @@ function TrainingApp() {
         : "Löpning"
       : playerPassFamily === "prehab"
       ? "Prehab"
-      : "Välj träning"
+      : "Träning"
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmup = {
@@ -9288,29 +9288,13 @@ function TrainingApp() {
                 <div style={playerHomeSectionMetaStyle}>{Object.keys(visibleWorkouts).length} pass</div>
               </div>
 
-              <div style={playerTrainingMenuGridStyle(isMobile)}>
+              <div style={playerHomePrimaryMenuListStyle}>
                 <button
                   type="button"
-                  onClick={() => openPlayerPassFamily("strength")}
+                  onClick={() => navigatePlayerSection("pass")}
                   style={playerHomeTrainingCardStyle("ink")}
                 >
-                  <div style={playerHomeTrainingTitleStyle}>Styrka</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openPlayerPassFamily("running")}
-                  style={playerHomeTrainingCardStyle("accent")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Löpning</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openPlayerPassFamily("prehab")}
-                  style={playerHomeTrainingCardStyle("paper")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Prehab</div>
+                  <div style={playerHomeTrainingTitleStyle}>Träning</div>
                 </button>
 
                 <button
@@ -9324,7 +9308,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => openRunningDraftPanel("running")}
-                  style={playerHomeTrainingCardStyle("paper")}
+                  style={playerHomeTrainingCardStyle("accent")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
                 </button>
@@ -9422,26 +9406,28 @@ function TrainingApp() {
               <div style={playerPageIntroStyle}>
                 <div style={playerTodayMonoLabelStyle}>Passval</div>
                 <h2 style={playerPassPageTitleStyle}>{playerPassFamilyTitle}</h2>
-                {playerPassFamily && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (playerPassFamily === "running" && playerRunningView) {
-                        setPlayerRunningView(null)
-                        setSelectedWorkout(null)
-                        return
-                      }
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (playerPassFamily === "running" && playerRunningView) {
+                      setPlayerRunningView(null)
+                      setSelectedWorkout(null)
+                      return
+                    }
 
+                    if (playerPassFamily) {
                       setPlayerPassFamily(null)
                       setPlayerRunningView(null)
                       setSelectedWorkout(null)
-                      navigatePlayerSection("overview")
-                    }}
-                    style={playerPassBackButtonStyle}
-                  >
-                    ← Tillbaka
-                  </button>
-                )}
+                      return
+                    }
+
+                    navigatePlayerSection("overview")
+                  }}
+                  style={playerPassBackButtonStyle}
+                >
+                  ← Tillbaka
+                </button>
               </div>
 
               {Object.keys(visibleWorkouts).length === 0 ? (
@@ -12994,6 +12980,12 @@ const playerTrainingMenuGridStyle = (isMobile) => ({
   gap: "10px",
   gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
 })
+
+const playerHomePrimaryMenuListStyle = {
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: "1fr",
+}
 
 const playerHomeTrainingCardStyle = (variant = "paper") => {
   const isDark = variant === "ink"
