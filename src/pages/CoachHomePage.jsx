@@ -11,6 +11,7 @@ function CoachHomePage({
       key: "players",
       title: "Spelare",
       text: "Hantera lag och mål.",
+      variant: "ink",
       badge: openTargetChangeRequestCount > 0 ? String(openTargetChangeRequestCount) : "",
       onClick: () => {
         setCoachView("players")
@@ -21,6 +22,7 @@ function CoachHomePage({
       key: "passBuilder",
       title: "Pass",
       text: "Skapa och redigera pass.",
+      variant: "accent",
       onClick: () => {
         setCoachView("passBuilder")
         setSelectedPlayer(null)
@@ -31,6 +33,7 @@ function CoachHomePage({
       key: "calendar",
       title: "Kalender",
       text: "Planera veckan.",
+      variant: "paper",
       onClick: () => {
         setCoachView("calendar")
         setSelectedPlayer(null)
@@ -40,6 +43,7 @@ function CoachHomePage({
       key: "exerciseBank",
       title: "Övningsbank",
       text: "Övningar, guider och media.",
+      variant: "paperWarm",
       onClick: () => {
         setCoachView("exerciseBank")
         setSelectedPlayer(null)
@@ -50,6 +54,7 @@ function CoachHomePage({
       key: "stats",
       title: "Statistik",
       text: "Följ progression över tid.",
+      variant: "paper",
       onClick: () => {
         setCoachView("stats")
         setSelectedPlayer(null)
@@ -59,6 +64,7 @@ function CoachHomePage({
       key: "messages",
       title: "Meddelanden",
       text: "Skriv till lag och tränare.",
+      variant: "paperWarm",
       onClick: () => {
         setCoachView("messages")
         setSelectedPlayer(null)
@@ -75,12 +81,12 @@ function CoachHomePage({
 
       <div style={navGridStyle(isMobile)}>
         {cards.map((card) => (
-          <button key={card.key} type="button" onClick={card.onClick} style={navCardStyle}>
+          <button key={card.key} type="button" onClick={card.onClick} style={navCardStyle(card.variant)}>
             <div style={coachNavTopRowStyle}>
-              <div style={navTitleStyle}>{card.title}</div>
+              <div style={navTitleStyle(card.variant)}>{card.title}</div>
               {card.badge ? <div style={navBadgeStyle}>{card.badge}</div> : null}
             </div>
-            <div style={navTextStyle}>{card.text}</div>
+            <div style={navTextStyle(card.variant)}>{card.text}</div>
             {card.key === "players" && openTargetChangeRequestCount > 0 ? (
               <div style={navAlertTextStyle}>
                 {openTargetChangeRequestCount} öppen{openTargetChangeRequestCount === 1 ? "" : "a"} målrequest
@@ -123,33 +129,47 @@ const navGridStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
 })
 
-const navCardStyle = {
-  minHeight: "118px",
-  padding: "18px",
-  borderRadius: "22px",
-  border: "1px solid rgba(26, 24, 20, 0.12)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.34), rgba(243,239,230,0.76))",
-  textAlign: "left",
-  cursor: "pointer",
-  boxShadow: "0 14px 28px rgba(26, 24, 20, 0.06)",
-  display: "grid",
-  alignContent: "space-between",
-  gap: "8px",
+const navCardStyle = (variant = "paper") => {
+  const isInk = variant === "ink"
+  const isAccent = variant === "accent"
+  const isWarm = variant === "paperWarm"
+
+  return {
+    minHeight: "118px",
+    padding: "18px",
+    borderRadius: "22px",
+    border: `1px solid ${
+      isInk ? "rgba(26, 24, 20, 0.9)" : isAccent ? "rgba(217, 74, 31, 0.72)" : "rgba(26, 24, 20, 0.12)"
+    }`,
+    background: isInk
+      ? "#1a1814"
+      : isAccent
+      ? "linear-gradient(135deg, #d94a1f 0%, #b93617 100%)"
+      : isWarm
+      ? "linear-gradient(180deg, rgba(255,244,236,0.92), rgba(245,233,221,0.88))"
+      : "linear-gradient(180deg, rgba(255,255,255,0.5), rgba(243,239,230,0.84))",
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: isInk || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "0 14px 28px rgba(26, 24, 20, 0.06)",
+    display: "grid",
+    alignContent: "space-between",
+    gap: "8px",
+  }
 }
 
-const navTitleStyle = {
+const navTitleStyle = (variant = "paper") => ({
   fontSize: "18px",
   fontWeight: "800",
-  color: "#1a1814",
+  color: variant === "ink" || variant === "accent" ? "#f3efe6" : "#1a1814",
   overflowWrap: "anywhere",
-}
+})
 
-const navTextStyle = {
+const navTextStyle = (variant = "paper") => ({
   fontSize: "14px",
   lineHeight: 1.5,
-  color: "#6f6659",
+  color: variant === "ink" || variant === "accent" ? "rgba(243, 239, 230, 0.76)" : "#6f6659",
   overflowWrap: "anywhere",
-}
+})
 
 const coachNavTopRowStyle = {
   display: "flex",
