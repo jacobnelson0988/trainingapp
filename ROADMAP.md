@@ -211,6 +211,46 @@ När kärnan känns stabil är nästa stora värde troligen:
 - tydligare programnivå
 - deterministisk rekommendationsmotor för progression
 
+## Fas 6.5 – Handbollsplanering för tränare
+
+Bygga en separat handbollsmodul i tränardelen där tränare kan skapa övningar, planera handbollspass och förbereda träningar utan att blanda ihop detta med gympass, löppass eller spelarnas kalenderflöde.
+
+Mål:
+Göra appen till ett mer komplett coachverktyg där tränaren kan planera både fysisk träning och handbollsträning i samma system.
+
+Ska innehålla i första version:
+
+- separat handbollsmodul i tränardelen
+- egen handbollsövningsbank
+- tränare kan skapa egna handbollsövningar
+- handbollsövningar lagras med struktur för namn, kategori, syfte, instruktion, coaching points, variationer, antal spelare, material, yta, tidsåtgång, video-url och ritning
+- enkel SVG-baserad handbollsplan
+- ritningar sparas som strukturerad JSON
+- handbollspass byggs i block
+- varje block kan ha övning, tid, kommentar, fokuspunkt och egen ritning
+- total passtid summeras automatiskt
+- handbollspass kan sparas som mallar
+- pass kan skapas fristående eller valfritt fästas till ett handbollspass i tränarkalendern, särskilt importerat från lagkalendern
+
+Viktiga ramar för v1:
+
+- påverkar inte spelarnas nuvarande kalenderflöde
+- påverkar inte gympass eller löppass
+- byggs datadrivet i Supabase med egna tabeller med prefix `handball_`
+- tränare ser i första hand bara sitt lags handbollsövningar och handbollspass
+- head_admin kan se coachskapade handbollsövningar och kopiera dem till en central bank
+- coachens originalövning blir inte global automatiskt
+
+Kan vänta till senare:
+
+- spelarläsvy för handbollspass
+- tilldelning av handbollspass till spelare
+- djup kalenderintegration
+- delning mellan tränare och föreningar
+- avancerad rit-editor
+- videouppladdning
+- AI-genererade handbollspass
+
 ---
 
 ## Nästa 2 veckor
