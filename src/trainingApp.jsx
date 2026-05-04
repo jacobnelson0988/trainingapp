@@ -2540,6 +2540,22 @@ function TrainingApp() {
     setIsSubmittingFeedback(false)
   }
 
+  const buildTargetChangeRequestDraft = (option, overrides = {}) => {
+    if (!option) return null
+
+    return {
+      composer_key: option.composer_key,
+      exercise_id: option.exercise_id,
+      exercise_name: option.exercise_name,
+      rep_range_key: option.rep_range_key,
+      request_type: overrides.request_type || "increase",
+      comment: overrides.comment || "",
+      current_target_weight: option.current_target_weight,
+      latest_logged_weight: option.latest_logged_weight,
+      latest_logged_reps_text: option.latest_logged_reps_text || null,
+    }
+  }
+
   const handleSubmitTargetChangeRequest = async () => {
     if (!user || !profile || !activeTargetChangeRequestDraft) return false
 
@@ -4641,6 +4657,7 @@ function TrainingApp() {
     setIsWorkoutActive(true)
     setExpandedInfo({})
     setLastFinishedWorkoutSummary(null)
+    setActiveTargetChangeRequestDraft(null)
     setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
     setPendingFreeActivityCalendarEvent(null)
 
@@ -4772,6 +4789,7 @@ function TrainingApp() {
       setExerciseComments({})
       setPassComment("")
       setRestStopwatchStartedAt(null)
+      setActiveTargetChangeRequestDraft(null)
       setActiveCalendarEventPlayerId(null)
       setActiveRunningInput({
         interval_time: "",
@@ -4909,6 +4927,7 @@ function TrainingApp() {
     setExerciseComments({})
     setPassComment("")
     setRestStopwatchStartedAt(null)
+    setActiveTargetChangeRequestDraft(null)
     setActiveCalendarEventPlayerId(null)
     setPlayerView("overview")
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
@@ -4951,6 +4970,7 @@ function TrainingApp() {
     setLastFinishedWorkoutSummary(null)
     setRestStopwatchStartedAt(null)
     setExpandedInfo({})
+    setActiveTargetChangeRequestDraft(null)
     setActiveCalendarEventPlayerId(null)
     setActiveRunningInput({
       interval_time: "",
@@ -7933,6 +7953,68 @@ function TrainingApp() {
         running_time: activeWorkoutData?.runningConfig?.running_time,
       })
     : activeWorkoutProgressSummary
+  const activeWorkoutTargetRequestOptions =
+    !isRunningWorkoutActive && profile?.individual_goals_enabled !== false
+      ? activeWorkoutExercises.flatMap((exercise, exerciseIndex) => {
+          const selectedExercise = getSelectedExerciseExecution(
+            exercise,
+            selectedExerciseOptionKeys[exerciseIndex]
+          )
+          const protocolConfig = getExerciseProtocolConfig(selectedExercise || exercise)
+
+          if (protocolConfig) return []
+
+          const currentTarget = mergeExerciseTargetWithPassDefaults(
+            exercise,
+            currentWorkoutTargets[exercise.name]
+          )
+          const repRangeBucket = getRepRangeBucketForTarget(currentTarget)
+          const resolvedTargetWeight = getResolvedExerciseTargetWeight({
+            exerciseId: selectedExercise?.exerciseId || exercise.exerciseId,
+            repTarget: currentTarget,
+            repTargetsByExercise: playerExerciseRepTargets,
+          })
+
+          if (
+            selectedExercise?.type !== "weight_reps" ||
+            resolvedTargetWeight == null ||
+            !repRangeBucket
+          ) {
+            return []
+          }
+
+          const latestExerciseSets = selectedExercise ? latestWorkout[selectedExercise.name] || [] : []
+          const latestExerciseTopSet = latestExerciseSets[latestExerciseSets.length - 1]
+
+          return [
+            {
+              composer_key: `${selectedExercise?.exerciseId || exercise.exerciseId}:${repRangeBucket.key}`,
+              exercise_id: selectedExercise?.exerciseId || exercise.exerciseId,
+              exercise_name:
+                selectedExercise?.displayName ||
+                selectedExercise?.name ||
+                exercise.displayName ||
+                exercise.name,
+              rep_range_key: repRangeBucket.key,
+              rep_range_label: getRepRangeLabelByKey(repRangeBucket.key),
+              current_target_weight: resolvedTargetWeight,
+              latest_logged_weight: latestExerciseTopSet?.weight
+                ? parseLoggedNumber(latestExerciseTopSet.weight)
+                : null,
+              latest_logged_reps_text:
+                latestExerciseTopSet?.reps != null && latestExerciseTopSet?.reps !== ""
+                  ? `${latestExerciseTopSet.reps} reps`
+                  : latestExerciseTopSet?.seconds
+                  ? `${latestExerciseTopSet.seconds} sek`
+                  : null,
+            },
+          ]
+        })
+      : []
+  const selectedActiveTargetRequestOption =
+    activeWorkoutTargetRequestOptions.find(
+      (option) => option.composer_key === activeTargetChangeRequestDraft?.composer_key
+    ) || null
 
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
@@ -10517,9 +10599,6 @@ function TrainingApp() {
               repTargetsByExercise: playerExerciseRepTargets,
             })
             const currentRepRangeBucket = getRepRangeBucketForTarget(currentTarget)
-            const targetRequestComposerKey = `${selectedExercise?.exerciseId || exercise.exerciseId}:${
-              currentRepRangeBucket?.key || "none"
-            }`
             const activeLiftTargetSummary =
               profile?.individual_goals_enabled === false && latestExerciseTopSet
                 ? formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)
@@ -10538,13 +10617,6 @@ function TrainingApp() {
             const activeLiftLatestSummary = latestExerciseTopSet
               ? formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)
               : "Ingen historik ännu"
-            const isTargetRequestComposerOpen =
-              activeTargetChangeRequestDraft?.composer_key === targetRequestComposerKey
-            const canRequestTargetChange =
-              selectedExercise?.type === "weight_reps" &&
-              resolvedCurrentTargetWeight != null &&
-              currentRepRangeBucket &&
-              profile?.individual_goals_enabled !== false
             const exerciseTextSections = getExerciseTextSections({
               description: selectedExercise?.description,
               guide: exercise.guide,
@@ -10735,154 +10807,6 @@ function TrainingApp() {
                         <div style={activeLiftDataMetaStyle}>{formatDate(latestExerciseDate)}</div>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {!isProtocol && !isLoadingPlayerTargets && canRequestTargetChange && (
-                  <div style={activeLiftSupportPanelStyle}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isTargetRequestComposerOpen) {
-                          setActiveTargetChangeRequestDraft(null)
-                          return
-                        }
-
-                        setActiveTargetChangeRequestDraft({
-                          composer_key: targetRequestComposerKey,
-                          exercise_id: selectedExercise?.exerciseId || exercise.exerciseId,
-                          exercise_name:
-                            selectedExercise?.displayName ||
-                            selectedExercise?.name ||
-                            exercise.displayName ||
-                            exercise.name,
-                          rep_range_key: currentRepRangeBucket.key,
-                          request_type: "increase",
-                          comment: "",
-                          current_target_weight: resolvedCurrentTargetWeight,
-                          latest_logged_weight: latestExerciseTopSet?.weight
-                            ? parseLoggedNumber(latestExerciseTopSet.weight)
-                            : null,
-                          latest_logged_reps_text:
-                            latestExerciseTopSet?.reps != null && latestExerciseTopSet?.reps !== ""
-                              ? `${latestExerciseTopSet.reps} reps`
-                              : latestExerciseTopSet?.seconds
-                              ? `${latestExerciseTopSet.seconds} sek`
-                              : null,
-                        })
-                      }}
-                      style={activeLiftSupportButtonStyle}
-                    >
-                      <span>
-                        <span style={activeLiftSupportKickerStyle}>Stöd</span>
-                        <span style={activeLiftSupportTitleStyle}>Begär ändring av målvikt</span>
-                      </span>
-                      <span style={activeLiftSupportIconStyle}>{isTargetRequestComposerOpen ? "−" : "+"}</span>
-                    </button>
-
-                    {isTargetRequestComposerOpen && (
-                      <div style={activeLiftComposerStyle}>
-                        <div style={{ ...targetSectionLabelStyle, marginBottom: "8px" }}>
-                          Skicka till tränaren
-                        </div>
-                        <div style={activeLiftComposerHintStyle}>
-                          För {getRepRangeLabelByKey(currentRepRangeBucket.key)} • nuvarande mål{" "}
-                          {resolvedCurrentTargetWeight} kg
-                        </div>
-
-                        <div style={activeLiftChoiceGridStyle(isMobile)}>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setActiveTargetChangeRequestDraft((prev) => ({
-                                        ...prev,
-                                        request_type: "increase",
-                                      }))
-                                    }
-                                    style={{
-                                      ...activeLiftChoiceButtonStyle,
-                                      ...(activeTargetChangeRequestDraft?.request_type === "increase"
-                                        ? activeLiftChoiceButtonActiveStyle
-                                        : {}),
-                                      width: "100%",
-                                    }}
-                                  >
-                                    Höj
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setActiveTargetChangeRequestDraft((prev) => ({
-                                        ...prev,
-                                        request_type: "decrease",
-                                      }))
-                                    }
-                                    style={{
-                                      ...activeLiftChoiceButtonStyle,
-                                      ...(activeTargetChangeRequestDraft?.request_type === "decrease"
-                                        ? activeLiftChoiceButtonActiveStyle
-                                        : {}),
-                                      width: "100%",
-                                    }}
-                                  >
-                                    Sänk
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setActiveTargetChangeRequestDraft((prev) => ({
-                                        ...prev,
-                                        request_type: "review",
-                                      }))
-                                    }
-                                    style={{
-                                      ...activeLiftChoiceButtonStyle,
-                                      ...(activeTargetChangeRequestDraft?.request_type === "review"
-                                        ? activeLiftChoiceButtonActiveStyle
-                                        : {}),
-                                      width: "100%",
-                                    }}
-                                  >
-                                    Se över
-                                  </button>
-                        </div>
-
-                        <textarea
-                          rows={3}
-                          value={activeTargetChangeRequestDraft?.comment || ""}
-                          onChange={(event) =>
-                            setActiveTargetChangeRequestDraft((prev) => ({
-                              ...prev,
-                              comment: event.target.value,
-                            }))
-                          }
-                          placeholder="Skriv kort varför du vill ändra målvikten"
-                          style={{ ...playerActivityTextareaStyle, width: "100%", marginBottom: "10px", minHeight: "96px" }}
-                        />
-
-                        <div style={feedbackComposerActionsStyle}>
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveTargetChangeRequestDraft(null)}
-                                    style={activeLiftSecondaryActionStyle}
-                                  >
-                                    Avbryt
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleSubmitTargetChangeRequest}
-                                    disabled={isSubmittingTargetChangeRequest}
-                                    style={{
-                                      ...playerActivitySubmitButtonStyle,
-                                      opacity: isSubmittingTargetChangeRequest ? 0.7 : 1,
-                                      cursor: isSubmittingTargetChangeRequest ? "default" : "pointer",
-                                    }}
-                                  >
-                                    {isSubmittingTargetChangeRequest ? "Skickar..." : "Skicka begäran"}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
                   </div>
                 )}
 
@@ -11139,6 +11063,156 @@ function TrainingApp() {
                 <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
                   Lägg en kort kommentar om känslan idag och spara passet.
                 </p>
+
+                {!isLoadingPlayerTargets && activeWorkoutTargetRequestOptions.length > 0 && (
+                  <div style={activeLiftSupportPanelStyle}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeTargetChangeRequestDraft) {
+                          setActiveTargetChangeRequestDraft(null)
+                          return
+                        }
+
+                        setActiveTargetChangeRequestDraft(
+                          buildTargetChangeRequestDraft(activeWorkoutTargetRequestOptions[0])
+                        )
+                      }}
+                      style={activeLiftSupportButtonStyle}
+                    >
+                      <span>
+                        <span style={activeLiftSupportKickerStyle}>Stöd</span>
+                        <span style={activeLiftSupportTitleStyle}>Begär ändring av målvikt</span>
+                      </span>
+                      <span style={activeLiftSupportIconStyle}>{activeTargetChangeRequestDraft ? "−" : "+"}</span>
+                    </button>
+
+                    {activeTargetChangeRequestDraft && selectedActiveTargetRequestOption && (
+                      <div style={activeLiftComposerStyle}>
+                        <div style={{ ...targetSectionLabelStyle, marginBottom: "8px" }}>
+                          Skicka till tränaren
+                        </div>
+
+                        <div style={{ ...playerActivityFieldStyle, marginBottom: "10px" }}>
+                          <div style={playerActivityFieldLabelStyle}>Övning</div>
+                          <select
+                            value={selectedActiveTargetRequestOption.composer_key}
+                            onChange={(event) => {
+                              const nextOption = activeWorkoutTargetRequestOptions.find(
+                                (option) => option.composer_key === event.target.value
+                              )
+                              setActiveTargetChangeRequestDraft(buildTargetChangeRequestDraft(nextOption))
+                            }}
+                            style={playerActivityInputStyle}
+                          >
+                            {activeWorkoutTargetRequestOptions.map((option) => (
+                              <option key={option.composer_key} value={option.composer_key}>
+                                {option.exercise_name} • {option.rep_range_label} • {option.current_target_weight} kg
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={activeLiftComposerHintStyle}>
+                          För {selectedActiveTargetRequestOption.rep_range_label} • nuvarande mål{" "}
+                          {selectedActiveTargetRequestOption.current_target_weight} kg
+                        </div>
+
+                        <div style={activeLiftChoiceGridStyle(isMobile)}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTargetChangeRequestDraft((prev) => ({
+                                ...prev,
+                                request_type: "increase",
+                              }))
+                            }
+                            style={{
+                              ...activeLiftChoiceButtonStyle,
+                              ...(activeTargetChangeRequestDraft?.request_type === "increase"
+                                ? activeLiftChoiceButtonActiveStyle
+                                : {}),
+                              width: "100%",
+                            }}
+                          >
+                            Höj
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTargetChangeRequestDraft((prev) => ({
+                                ...prev,
+                                request_type: "decrease",
+                              }))
+                            }
+                            style={{
+                              ...activeLiftChoiceButtonStyle,
+                              ...(activeTargetChangeRequestDraft?.request_type === "decrease"
+                                ? activeLiftChoiceButtonActiveStyle
+                                : {}),
+                              width: "100%",
+                            }}
+                          >
+                            Sänk
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTargetChangeRequestDraft((prev) => ({
+                                ...prev,
+                                request_type: "review",
+                              }))
+                            }
+                            style={{
+                              ...activeLiftChoiceButtonStyle,
+                              ...(activeTargetChangeRequestDraft?.request_type === "review"
+                                ? activeLiftChoiceButtonActiveStyle
+                                : {}),
+                              width: "100%",
+                            }}
+                          >
+                            Se över
+                          </button>
+                        </div>
+
+                        <textarea
+                          rows={3}
+                          value={activeTargetChangeRequestDraft?.comment || ""}
+                          onChange={(event) =>
+                            setActiveTargetChangeRequestDraft((prev) => ({
+                              ...prev,
+                              comment: event.target.value,
+                            }))
+                          }
+                          placeholder="Skriv kort varför du vill ändra målvikten"
+                          style={{ ...playerActivityTextareaStyle, width: "100%", marginBottom: "10px", minHeight: "96px" }}
+                        />
+
+                        <div style={feedbackComposerActionsStyle}>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTargetChangeRequestDraft(null)}
+                            style={activeLiftSecondaryActionStyle}
+                          >
+                            Avbryt
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSubmitTargetChangeRequest}
+                            disabled={isSubmittingTargetChangeRequest}
+                            style={{
+                              ...playerActivitySubmitButtonStyle,
+                              opacity: isSubmittingTargetChangeRequest ? 0.7 : 1,
+                              cursor: isSubmittingTargetChangeRequest ? "default" : "pointer",
+                            }}
+                          >
+                            {isSubmittingTargetChangeRequest ? "Skickar..." : "Skicka begäran"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div style={exerciseCommentCardStyle}>
                   <div style={exerciseCommentTitleStyle}>Kommentar på passet</div>
