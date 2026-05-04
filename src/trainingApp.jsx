@@ -9555,7 +9555,7 @@ function TrainingApp() {
                             type="date"
                             value={runningDraft.log_date}
                             onChange={(e) => handleRunningDraftChange("log_date", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={fieldLabelStyle}>
@@ -9564,7 +9564,7 @@ function TrainingApp() {
                             placeholder="t.ex. 1 min eller 45 sek"
                             value={runningDraft.interval_time}
                             onChange={(e) => handleRunningDraftChange("interval_time", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={fieldLabelStyle}>
@@ -9573,7 +9573,7 @@ function TrainingApp() {
                             placeholder="t.ex. 8"
                             value={runningDraft.intervals_count}
                             onChange={(e) => handleRunningDraftChange("intervals_count", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
@@ -9583,7 +9583,7 @@ function TrainingApp() {
                             placeholder="T.ex. känsla, vila eller total tid"
                             value={runningDraft.comment}
                             onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
-                            style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                            style={playerActivityTextareaStyle}
                           />
                         </label>
                       </div>
@@ -9615,7 +9615,7 @@ function TrainingApp() {
                             type="date"
                             value={runningDraft.log_date}
                             onChange={(e) => handleRunningDraftChange("log_date", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={fieldLabelStyle}>
@@ -9624,7 +9624,7 @@ function TrainingApp() {
                             placeholder="t.ex. 5,2"
                             value={runningDraft.running_distance}
                             onChange={(e) => handleRunningDraftChange("running_distance", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={fieldLabelStyle}>
@@ -9633,7 +9633,7 @@ function TrainingApp() {
                             placeholder="t.ex. 24:30"
                             value={runningDraft.running_time}
                             onChange={(e) => handleRunningDraftChange("running_time", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={fieldLabelStyle}>
@@ -9642,7 +9642,7 @@ function TrainingApp() {
                             placeholder="valfritt"
                             value={runningDraft.average_pulse}
                             onChange={(e) => handleRunningDraftChange("average_pulse", e.target.value)}
-                            style={{ ...inputStyle, width: "100%" }}
+                            style={playerActivityInputStyle}
                           />
                         </label>
                         <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
@@ -9652,7 +9652,7 @@ function TrainingApp() {
                             placeholder="Hur kändes passet?"
                             value={runningDraft.comment}
                             onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
-                            style={{ ...inputStyle, ...textareaStyle, width: "100%" }}
+                            style={playerActivityTextareaStyle}
                           />
                         </label>
                       </div>
@@ -13467,6 +13467,9 @@ const playerActivityFieldLabelStyle = {
 
 const playerActivityInputStyle = {
   ...inputStyle,
+  fontFamily: playerDisplayFont,
+  fontSize: "14px",
+  lineHeight: 1.45,
   width: "100%",
   minWidth: 0,
   border: `1px solid ${playerLine}`,
@@ -13479,7 +13482,6 @@ const playerActivityTextareaStyle = {
   ...playerActivityInputStyle,
   minHeight: "116px",
   resize: "vertical",
-  fontFamily: "inherit",
 }
 
 const playerActivityHintStyle = (isMobile) => ({
