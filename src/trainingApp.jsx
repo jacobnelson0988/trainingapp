@@ -8409,6 +8409,18 @@ function TrainingApp() {
                   <button
                     type="button"
                     onClick={() => {
+                      navigateGlobalView("app")
+                      setIsFeedbackOpen(true)
+                      setIsMenuOpen(false)
+                    }}
+                    style={menuItemButtonStyle}
+                  >
+                    Lämna feedback
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
                       navigateGlobalView("account")
                     }}
                     style={menuItemButtonStyle}
@@ -8459,6 +8471,18 @@ function TrainingApp() {
 
             {isMenuOpen && (
               <div style={menuDropdownStyle(isMobile)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateGlobalView("app")
+                    setIsFeedbackOpen(true)
+                    setIsMenuOpen(false)
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Lämna feedback
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -8514,6 +8538,18 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => {
+                    navigateGlobalView("app")
+                    setIsFeedbackOpen(true)
+                    setIsMenuOpen(false)
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Lämna feedback
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
                     navigateGlobalView("account")
                   }}
                   style={menuItemButtonStyle}
@@ -8544,6 +8580,115 @@ function TrainingApp() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {isFeedbackOpen && (
+        <div
+          style={
+            profile?.role === "player"
+              ? { ...playerActivityPanelStyle, marginBottom: "16px" }
+              : profile?.role === "coach" || profile?.role === "head_admin"
+              ? managementFeedbackComposerCardStyle
+              : feedbackComposerCardStyle
+          }
+        >
+          {profile?.role === "player" ? (
+            <>
+              <div style={playerActivityPanelIntroStyle}>
+                <div style={playerTodayMonoLabelStyle}>Feedback</div>
+                <div style={playerActivityPanelTitleStyle}>Hjälp oss förbättra appen.</div>
+                <div style={playerActivityHintStyle(isMobile)}>
+                  Skriv gärna vad som var otydligt, vad som gick fel eller vad du vill se härnäst.
+                </div>
+              </div>
+
+              <div style={{ ...playerActivityFieldFullStyle, marginTop: "14px" }}>
+                <div style={playerActivityFieldLabelStyle}>Meddelande</div>
+                <textarea
+                  rows={4}
+                  value={feedbackText}
+                  onChange={(event) => setFeedbackText(event.target.value)}
+                  placeholder="Skriv kort vad du vill skicka in"
+                  style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "112px" }}
+                />
+              </div>
+
+              <div style={{ ...feedbackComposerActionsStyle, marginTop: "14px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFeedbackOpen(false)
+                    setFeedbackText("")
+                  }}
+                  style={playerAccountGhostButtonStyle}
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitFeedback}
+                  disabled={isSubmittingFeedback}
+                  style={{
+                    ...playerActivitySubmitButtonStyle,
+                    opacity: isSubmittingFeedback ? 0.7 : 1,
+                    cursor: isSubmittingFeedback ? "default" : "pointer",
+                  }}
+                >
+                  {isSubmittingFeedback ? "Sparar..." : "Skicka feedback"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={useManagementRedesignShell ? managementCardTitleStyle : cardTitleStyle}>Skriv feedback</div>
+              <p
+                style={{
+                  ...(useManagementRedesignShell ? managementMutedTextStyle : mutedTextStyle),
+                  marginBottom: "12px",
+                }}
+              >
+                Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
+              </p>
+              <div style={compactFieldLabelStyle}>Meddelande</div>
+              <textarea
+                rows={4}
+                value={feedbackText}
+                onChange={(event) => setFeedbackText(event.target.value)}
+                placeholder="Skriv kort vad du vill skicka in"
+                style={{
+                  ...(useManagementRedesignShell ? managementInputStyle : inputStyle),
+                  ...textareaStyle,
+                  width: "100%",
+                  marginBottom: "12px",
+                }}
+              />
+              <div style={feedbackComposerActionsStyle}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFeedbackOpen(false)
+                    setFeedbackText("")
+                  }}
+                  style={useManagementRedesignShell ? managementSecondaryButtonStyle : secondaryButtonStyle}
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitFeedback}
+                  disabled={isSubmittingFeedback}
+                  style={{
+                    ...(useManagementRedesignShell ? managementButtonStyle : buttonStyle),
+                    opacity: isSubmittingFeedback ? 0.7 : 1,
+                    cursor: isSubmittingFeedback ? "default" : "pointer",
+                  }}
+                >
+                  {isSubmittingFeedback ? "Sparar..." : "Skicka feedback"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -8944,101 +9089,6 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      {!usePlayerRedesignShell && (
-        <div
-          style={{
-            ...(useManagementRedesignShell ? managementFeedbackActionBarStyle : feedbackActionBarStyle),
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile
-              ? "stretch"
-              : useManagementRedesignShell
-              ? managementFeedbackActionBarStyle.alignItems
-              : feedbackActionBarStyle.alignItems,
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <div
-              style={
-                useManagementRedesignShell
-                  ? {
-                      ...managementCardTitleStyle,
-                      fontSize: "clamp(24px, 4vw, 30px)",
-                      marginBottom: "6px",
-                    }
-                  : feedbackActionTitleStyle
-              }
-            >
-              Hjälp till att förbättra appen
-            </div>
-            <div style={useManagementRedesignShell ? managementMutedTextStyle : mutedTextStyle}>
-              Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsFeedbackOpen((prev) => !prev)}
-            style={{
-              ...(useManagementRedesignShell ? managementSecondaryButtonStyle : secondaryButtonStyle),
-              width: isMobile ? "100%" : "auto",
-            }}
-          >
-            {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
-          </button>
-        </div>
-      )}
-
-      {isFeedbackOpen && !usePlayerRedesignShell && (
-        <div style={useManagementRedesignShell ? managementFeedbackComposerCardStyle : feedbackComposerCardStyle}>
-          <div style={useManagementRedesignShell ? managementCardTitleStyle : cardTitleStyle}>Skriv feedback</div>
-          <p
-            style={{
-              ...(useManagementRedesignShell ? managementMutedTextStyle : mutedTextStyle),
-              marginBottom: "12px",
-            }}
-          >
-            Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
-          </p>
-          <div style={compactFieldLabelStyle}>Meddelande</div>
-          <textarea
-            rows={4}
-            value={feedbackText}
-            onChange={(event) => setFeedbackText(event.target.value)}
-            placeholder="Skriv kort vad du vill skicka in"
-            style={{
-              ...(useManagementRedesignShell ? managementInputStyle : inputStyle),
-              ...textareaStyle,
-              width: "100%",
-              marginBottom: "12px",
-            }}
-          />
-          <div style={feedbackComposerActionsStyle}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsFeedbackOpen(false)
-                setFeedbackText("")
-              }}
-              style={useManagementRedesignShell ? managementSecondaryButtonStyle : secondaryButtonStyle}
-            >
-              Avbryt
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmitFeedback}
-              disabled={isSubmittingFeedback}
-              style={{
-                ...(useManagementRedesignShell ? managementButtonStyle : buttonStyle),
-                opacity: isSubmittingFeedback ? 0.7 : 1,
-                cursor: isSubmittingFeedback ? "default" : "pointer",
-              }}
-            >
-              {isSubmittingFeedback ? "Sparar..." : "Skicka feedback"}
-            </button>
-          </div>
-        </div>
-      )}
-
       {(profile?.role === "coach" || profile?.role === "head_admin") && (
         <>
           {!showCoachBottomNav && !showAdminBottomNav && (
