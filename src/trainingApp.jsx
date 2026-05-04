@@ -8388,40 +8388,70 @@ function TrainingApp() {
       {globalView === "account" && (
         <div
           style={{
-            ...cardStyle,
-            padding: isMobile ? "16px 14px" : cardStyle.padding,
-            borderRadius: isMobile ? "20px" : cardStyle.borderRadius,
-            marginBottom: isMobile ? "16px" : cardStyle.marginBottom,
+            ...(profile?.role === "player" ? playerAccountPanelStyle : cardStyle),
+            padding:
+              profile?.role === "player"
+                ? isMobile
+                  ? "18px 16px"
+                  : playerAccountPanelStyle.padding
+                : isMobile
+                ? "16px 14px"
+                : cardStyle.padding,
+            borderRadius:
+              profile?.role === "player"
+                ? isMobile
+                  ? "24px"
+                  : playerAccountPanelStyle.borderRadius
+                : isMobile
+                ? "20px"
+                : cardStyle.borderRadius,
+            marginBottom: isMobile ? "16px" : undefined,
           }}
         >
           <div style={accountHeaderStyle(isMobile)}>
             <div>
-              <div style={sectionTitleStyle}>Mitt konto</div>
+              {profile?.role === "player" ? (
+                <>
+                  <div style={playerTodayMonoLabelStyle}>Konto</div>
+                  <div style={playerPassPageTitleStyle}>Mitt konto</div>
+                </>
+              ) : (
+                <div style={sectionTitleStyle}>Mitt konto</div>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => navigateGlobalView("app")}
-              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+              style={{
+                ...(profile?.role === "player" ? playerAccountGhostButtonStyle : secondaryButtonStyle),
+                width: isMobile ? "100%" : "auto",
+              }}
             >
               Tillbaka
             </button>
           </div>
 
           <div style={accountGridStyle(isMobile)}>
-            <div style={accountInfoCardStyle}>
-              <div style={accountInfoLabelStyle}>Namn</div>
-              <div style={accountInfoValueStyle}>{profile.full_name || "-"}</div>
+            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
+              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>Namn</div>
+              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+                {profile.full_name || "-"}
+              </div>
             </div>
 
-            <div style={accountInfoCardStyle}>
-              <div style={accountInfoLabelStyle}>Användarnamn</div>
-              <div style={accountInfoValueStyle}>@{profile.username || "-"}</div>
+            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
+              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>
+                Användarnamn
+              </div>
+              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+                @{profile.username || "-"}
+              </div>
             </div>
 
-            <div style={accountInfoCardStyle}>
-              <div style={accountInfoLabelStyle}>Roll</div>
-              <div style={accountInfoValueStyle}>
+            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
+              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>Roll</div>
+              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
                 {profile.role === "head_admin"
                   ? "Huvudadmin"
                   : profile.role === "coach"
@@ -8430,9 +8460,11 @@ function TrainingApp() {
               </div>
             </div>
 
-            <div style={accountInfoCardStyle}>
-              <div style={accountInfoLabelStyle}>Lag</div>
-              <div style={accountInfoValueStyle}>{teamName}</div>
+            <div style={profile?.role === "player" ? playerAccountInfoCardStyle : accountInfoCardStyle}>
+              <div style={profile?.role === "player" ? playerAccountInfoLabelStyle : accountInfoLabelStyle}>Lag</div>
+              <div style={profile?.role === "player" ? playerAccountInfoValueStyle : accountInfoValueStyle}>
+                {teamName}
+              </div>
             </div>
           </div>
 
@@ -8440,7 +8472,10 @@ function TrainingApp() {
             <button
               type="button"
               onClick={() => navigateGlobalView("gdpr")}
-              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+              style={{
+                ...(profile?.role === "player" ? playerAccountGhostButtonStyle : secondaryButtonStyle),
+                width: isMobile ? "100%" : "auto",
+              }}
             >
               Integritet
             </button>
@@ -8451,7 +8486,7 @@ function TrainingApp() {
                 onClick={() => handleDeletePlayer(profile.id, profile.full_name, { isSelfDelete: true })}
                 disabled={isDeletingOwnAccount}
                 style={{
-                  ...dangerActionButtonStyle,
+                  ...(profile?.role === "player" ? playerAccountDangerButtonStyle : dangerActionButtonStyle),
                   width: isMobile ? "100%" : "auto",
                   opacity: isDeletingOwnAccount ? 0.7 : 1,
                   cursor: isDeletingOwnAccount ? "default" : "pointer",
@@ -8462,29 +8497,35 @@ function TrainingApp() {
             )}
           </div>
 
-          <div style={accountPasswordCardStyle}>
-            <div style={accountPasswordTitleStyle}>Byt lösenord</div>
-            <div style={accountPasswordTextStyle}>
+          <div style={profile?.role === "player" ? playerAccountPasswordCardStyle : accountPasswordCardStyle}>
+            <div style={profile?.role === "player" ? playerAccountSectionTitleStyle : accountPasswordTitleStyle}>
+              Byt lösenord
+            </div>
+            <div style={profile?.role === "player" ? playerAccountSectionTextStyle : accountPasswordTextStyle}>
               Byt lösenord direkt här. Gäller spelare, tränare och huvudadmin.
             </div>
 
             <div style={accountPasswordFormStyle(isMobile)}>
               <div style={{ width: "100%" }}>
-                <div style={compactFieldLabelStyle}>Nytt lösenord</div>
+                <div style={profile?.role === "player" ? playerAccountFieldLabelStyle : compactFieldLabelStyle}>
+                  Nytt lösenord
+                </div>
                 <input
                   type="password"
                   value={accountPassword}
                   onChange={(e) => setAccountPassword(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
+                  style={{ ...(profile?.role === "player" ? playerActivityInputStyle : inputStyle), width: "100%" }}
                 />
               </div>
               <div style={{ width: "100%" }}>
-                <div style={compactFieldLabelStyle}>Bekräfta nytt lösenord</div>
+                <div style={profile?.role === "player" ? playerAccountFieldLabelStyle : compactFieldLabelStyle}>
+                  Bekräfta nytt lösenord
+                </div>
                 <input
                   type="password"
                   value={accountPasswordConfirm}
                   onChange={(e) => setAccountPasswordConfirm(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
+                  style={{ ...(profile?.role === "player" ? playerActivityInputStyle : inputStyle), width: "100%" }}
                 />
               </div>
               <button
@@ -8492,7 +8533,7 @@ function TrainingApp() {
                 onClick={handleUpdateOwnPassword}
                 disabled={isUpdatingOwnPassword}
                 style={{
-                  ...buttonStyle,
+                  ...(profile?.role === "player" ? playerActivitySubmitButtonStyle : buttonStyle),
                   width: isMobile ? "100%" : "auto",
                   opacity: isUpdatingOwnPassword ? 0.7 : 1,
                   cursor: isUpdatingOwnPassword ? "default" : "pointer",
@@ -8503,9 +8544,11 @@ function TrainingApp() {
             </div>
           </div>
 
-          <div style={accountWarningCardStyle}>
-            <div style={accountWarningTitleStyle}>Radering av konto</div>
-            <div style={accountWarningTextStyle}>
+          <div style={profile?.role === "player" ? playerAccountWarningCardStyle : accountWarningCardStyle}>
+            <div style={profile?.role === "player" ? playerAccountWarningTitleStyle : accountWarningTitleStyle}>
+              Radering av konto
+            </div>
+            <div style={profile?.role === "player" ? playerAccountWarningTextStyle : accountWarningTextStyle}>
               Om du tar bort ditt konto raderas din profil och din träningshistorik permanent. Om du
               bara ska döljas från aktiva spelarlistor använder tränare eller huvudadmin arkivering.
             </div>
@@ -9724,14 +9767,14 @@ function TrainingApp() {
                                   onChange={(event) =>
                                     handleWorkoutDateDraftChange(session.session_id, event.target.value)
                                   }
-                                  style={{ ...inputStyle, width: "100%" }}
+                                  style={{ ...playerActivityInputStyle, width: "100%" }}
                                 />
                                 <button
                                   type="button"
                                   onClick={() => handleSaveWorkoutDate(session)}
                                   disabled={savingWorkoutDateSessionId === session.session_id}
                                   style={{
-                                    ...secondaryButtonStyle,
+                                    ...playerHistoryActionButtonStyle,
                                     width: isMobile ? "100%" : "auto",
                                     opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
                                     cursor:
@@ -9771,14 +9814,14 @@ function TrainingApp() {
                                   onChange={(event) =>
                                     handleWorkoutDateDraftChange(session.session_id, event.target.value)
                                   }
-                                  style={{ ...inputStyle, width: "100%" }}
+                                  style={{ ...playerActivityInputStyle, width: "100%" }}
                                 />
                                 <button
                                   type="button"
                                   onClick={() => handleSaveWorkoutDate(session)}
                                   disabled={savingWorkoutDateSessionId === session.session_id}
                                   style={{
-                                    ...secondaryButtonStyle,
+                                    ...playerHistoryActionButtonStyle,
                                     width: isMobile ? "100%" : "auto",
                                     opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
                                     cursor:
@@ -10026,9 +10069,8 @@ function TrainingApp() {
           {!isWorkoutActive && playerView === "stats" && (
             <>
               <div style={playerPageIntroStyle}>
-                <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
-                  Din statistik
-                </h2>
+                <div style={playerTodayMonoLabelStyle}>Statistik</div>
+                <h2 style={playerPassPageTitleStyle}>Din statistik</h2>
               </div>
 
               {isLoadingPlayerExerciseProgress ? (
@@ -10061,7 +10103,7 @@ function TrainingApp() {
                             setPlayerStatsPickerValue(nextExerciseId)
                             handleAddPlayerStatsExercise(nextExerciseId)
                           }}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                          style={{ ...playerStatsSelectStyle, width: "100%" }}
                         >
                           <option value="">Välj övning</option>
                           {unselectedPlayerStatsExercises.map((entry) => (
@@ -10363,60 +10405,77 @@ function TrainingApp() {
               style={
                 isMobile
                   ? {
-                      ...cardStyle,
+                      ...activeRunningWorkoutCardStyle,
                       ...activeWorkoutExerciseCardStyle,
                       ...exerciseSwipeCardStyle,
                     }
-                  : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
+                  : { ...activeRunningWorkoutCardStyle, ...activeWorkoutExerciseCardStyle }
               }
             >
               <div style={exerciseProgressStyle}>Löppass</div>
-              <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>{activeWorkoutData?.label || "Löppass"}</h3>
-              <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-                {buildRunningSummary({
-                  running_type: activeWorkoutData?.runningType,
-                  interval_time: activeWorkoutData?.runningConfig?.interval_time,
-                  intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
-                  running_distance: activeWorkoutData?.runningConfig?.running_distance,
-                  running_time: activeWorkoutData?.runningConfig?.running_time,
-                })}
-              </p>
+              <div style={activeRunningWorkoutHeaderStyle}>
+                <h3 style={activeRunningWorkoutTitleStyle}>{activeWorkoutData?.label || "Löppass"}</h3>
+                <div style={activeRunningWorkoutSummaryStyle}>
+                  {buildRunningSummary({
+                    running_type: activeWorkoutData?.runningType,
+                    interval_time: activeWorkoutData?.runningConfig?.interval_time,
+                    intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
+                    running_distance: activeWorkoutData?.runningConfig?.running_distance,
+                    running_time: activeWorkoutData?.runningConfig?.running_time,
+                  })}
+                </div>
+              </div>
 
               {activeWorkoutData?.runningType === "intervals" ? (
-                <div style={{ display: "grid", gap: "10px" }}>
-                  <input
-                    placeholder="Tid per intervall"
-                    value={activeRunningInput.interval_time}
-                    onChange={(e) => handleActiveRunningInputChange("interval_time", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                  <input
-                    placeholder="Antal intervaller"
-                    value={activeRunningInput.intervals_count}
-                    onChange={(e) => handleActiveRunningInputChange("intervals_count", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
+                <div style={activeRunningWorkoutFieldsStyle}>
+                  <div style={playerActivityFieldStyle}>
+                    <div style={playerActivityFieldLabelStyle}>Tid per intervall</div>
+                    <input
+                      placeholder="Tid per intervall"
+                      value={activeRunningInput.interval_time}
+                      onChange={(e) => handleActiveRunningInputChange("interval_time", e.target.value)}
+                      style={playerActivityInputStyle}
+                    />
+                  </div>
+                  <div style={playerActivityFieldStyle}>
+                    <div style={playerActivityFieldLabelStyle}>Antal intervaller</div>
+                    <input
+                      placeholder="Antal intervaller"
+                      value={activeRunningInput.intervals_count}
+                      onChange={(e) => handleActiveRunningInputChange("intervals_count", e.target.value)}
+                      style={playerActivityInputStyle}
+                    />
+                  </div>
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: "10px" }}>
-                  <input
-                    placeholder="Distans i km"
-                    value={activeRunningInput.running_distance}
-                    onChange={(e) => handleActiveRunningInputChange("running_distance", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                  <input
-                    placeholder="Tid, t.ex. 24:30"
-                    value={activeRunningInput.running_time}
-                    onChange={(e) => handleActiveRunningInputChange("running_time", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                  <input
-                    placeholder="Snittpuls"
-                    value={activeRunningInput.average_pulse}
-                    onChange={(e) => handleActiveRunningInputChange("average_pulse", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
+                <div style={activeRunningWorkoutFieldsStyle}>
+                  <div style={playerActivityFieldStyle}>
+                    <div style={playerActivityFieldLabelStyle}>Distans</div>
+                    <input
+                      placeholder="Distans i km"
+                      value={activeRunningInput.running_distance}
+                      onChange={(e) => handleActiveRunningInputChange("running_distance", e.target.value)}
+                      style={playerActivityInputStyle}
+                    />
+                  </div>
+                  <div style={playerActivityFieldStyle}>
+                    <div style={playerActivityFieldLabelStyle}>Tid</div>
+                    <input
+                      placeholder="Tid, t.ex. 24:30"
+                      value={activeRunningInput.running_time}
+                      onChange={(e) => handleActiveRunningInputChange("running_time", e.target.value)}
+                      style={playerActivityInputStyle}
+                    />
+                  </div>
+                  <div style={playerActivityFieldFullStyle}>
+                    <div style={playerActivityFieldLabelStyle}>Snittpuls</div>
+                    <input
+                      placeholder="Snittpuls"
+                      value={activeRunningInput.average_pulse}
+                      onChange={(e) => handleActiveRunningInputChange("average_pulse", e.target.value)}
+                      style={playerActivityInputStyle}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -10709,22 +10768,15 @@ function TrainingApp() {
 
                     {isTargetRequestComposerOpen && (
                       <div style={activeLiftComposerStyle}>
-                                <div style={{ ...targetSectionLabelStyle, marginBottom: "8px" }}>
-                                  Skicka till tränaren
-                                </div>
-                                <div style={{ ...mutedTextStyle, marginBottom: "10px", fontSize: "13px" }}>
-                                  För {getRepRangeLabelByKey(currentRepRangeBucket.key)} • nuvarande mål{" "}
-                                  {resolvedCurrentTargetWeight} kg
-                                </div>
+                        <div style={{ ...targetSectionLabelStyle, marginBottom: "8px" }}>
+                          Skicka till tränaren
+                        </div>
+                        <div style={activeLiftComposerHintStyle}>
+                          För {getRepRangeLabelByKey(currentRepRangeBucket.key)} • nuvarande mål{" "}
+                          {resolvedCurrentTargetWeight} kg
+                        </div>
 
-                                <div
-                                  style={{
-                                    display: "grid",
-                                    gap: "8px",
-                                    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
-                                    marginBottom: "10px",
-                                  }}
-                                >
+                        <div style={activeLiftChoiceGridStyle(isMobile)}>
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -10734,20 +10786,11 @@ function TrainingApp() {
                                       }))
                                     }
                                     style={{
-                                      ...secondaryButtonStyle,
+                                      ...activeLiftChoiceButtonStyle,
+                                      ...(activeTargetChangeRequestDraft?.request_type === "increase"
+                                        ? activeLiftChoiceButtonActiveStyle
+                                        : {}),
                                       width: "100%",
-                                      backgroundColor:
-                                        activeTargetChangeRequestDraft?.request_type === "increase"
-                                          ? "#fff1f1"
-                                          : "#ffffff",
-                                      borderColor:
-                                        activeTargetChangeRequestDraft?.request_type === "increase"
-                                          ? "#dc2626"
-                                          : "#d1d5db",
-                                      color:
-                                        activeTargetChangeRequestDraft?.request_type === "increase"
-                                          ? "#b91c1c"
-                                          : "#18202b",
                                     }}
                                   >
                                     Höj
@@ -10761,20 +10804,11 @@ function TrainingApp() {
                                       }))
                                     }
                                     style={{
-                                      ...secondaryButtonStyle,
+                                      ...activeLiftChoiceButtonStyle,
+                                      ...(activeTargetChangeRequestDraft?.request_type === "decrease"
+                                        ? activeLiftChoiceButtonActiveStyle
+                                        : {}),
                                       width: "100%",
-                                      backgroundColor:
-                                        activeTargetChangeRequestDraft?.request_type === "decrease"
-                                          ? "#fff1f1"
-                                          : "#ffffff",
-                                      borderColor:
-                                        activeTargetChangeRequestDraft?.request_type === "decrease"
-                                          ? "#dc2626"
-                                          : "#d1d5db",
-                                      color:
-                                        activeTargetChangeRequestDraft?.request_type === "decrease"
-                                          ? "#b91c1c"
-                                          : "#18202b",
                                     }}
                                   >
                                     Sänk
@@ -10788,44 +10822,35 @@ function TrainingApp() {
                                       }))
                                     }
                                     style={{
-                                      ...secondaryButtonStyle,
+                                      ...activeLiftChoiceButtonStyle,
+                                      ...(activeTargetChangeRequestDraft?.request_type === "review"
+                                        ? activeLiftChoiceButtonActiveStyle
+                                        : {}),
                                       width: "100%",
-                                      backgroundColor:
-                                        activeTargetChangeRequestDraft?.request_type === "review"
-                                          ? "#fff1f1"
-                                          : "#ffffff",
-                                      borderColor:
-                                        activeTargetChangeRequestDraft?.request_type === "review"
-                                          ? "#dc2626"
-                                          : "#d1d5db",
-                                      color:
-                                        activeTargetChangeRequestDraft?.request_type === "review"
-                                          ? "#b91c1c"
-                                          : "#18202b",
                                     }}
                                   >
                                     Se över
                                   </button>
-                                </div>
+                        </div>
 
-                                <textarea
-                                  rows={3}
-                                  value={activeTargetChangeRequestDraft?.comment || ""}
-                                  onChange={(event) =>
-                                    setActiveTargetChangeRequestDraft((prev) => ({
-                                      ...prev,
-                                      comment: event.target.value,
-                                    }))
-                                  }
-                                  placeholder="Skriv kort varför du vill ändra målvikten"
-                                  style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "10px" }}
-                                />
+                        <textarea
+                          rows={3}
+                          value={activeTargetChangeRequestDraft?.comment || ""}
+                          onChange={(event) =>
+                            setActiveTargetChangeRequestDraft((prev) => ({
+                              ...prev,
+                              comment: event.target.value,
+                            }))
+                          }
+                          placeholder="Skriv kort varför du vill ändra målvikten"
+                          style={{ ...playerActivityTextareaStyle, width: "100%", marginBottom: "10px", minHeight: "96px" }}
+                        />
 
-                                <div style={feedbackComposerActionsStyle}>
+                        <div style={feedbackComposerActionsStyle}>
                                   <button
                                     type="button"
                                     onClick={() => setActiveTargetChangeRequestDraft(null)}
-                                    style={secondaryButtonStyle}
+                                    style={activeLiftSecondaryActionStyle}
                                   >
                                     Avbryt
                                   </button>
@@ -10834,7 +10859,7 @@ function TrainingApp() {
                                     onClick={handleSubmitTargetChangeRequest}
                                     disabled={isSubmittingTargetChangeRequest}
                                     style={{
-                                      ...buttonStyle,
+                                      ...playerActivitySubmitButtonStyle,
                                       opacity: isSubmittingTargetChangeRequest ? 0.7 : 1,
                                       cursor: isSubmittingTargetChangeRequest ? "default" : "pointer",
                                     }}
@@ -11067,7 +11092,7 @@ function TrainingApp() {
                           value={exerciseComments[i] || ""}
                           onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
                           onBlur={() => handleExerciseCommentSave(i)}
-                          style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "88px" }}
+                          style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "88px" }}
                         />
                       </div>
                     )}
@@ -11108,7 +11133,7 @@ function TrainingApp() {
                     placeholder="T.ex. tungt pass idag, ont i knä eller något tränaren bör veta"
                     value={passComment}
                     onChange={(e) => setPassComment(e.target.value)}
-                    style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "104px" }}
+                    style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "104px" }}
                   />
                 </div>
 
@@ -12069,12 +12094,49 @@ const activeLiftComposerStyle = {
 }
 
 const targetSectionLabelStyle = {
-  fontSize: "12px",
-  color: "#6b7280",
-  fontWeight: "800",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  color: playerInkSoft,
+  fontWeight: "700",
   textTransform: "uppercase",
-  letterSpacing: "0.04em",
+  letterSpacing: "0.1em",
   marginBottom: "8px",
+}
+
+const activeLiftComposerHintStyle = {
+  marginBottom: "10px",
+  fontSize: "13px",
+  fontWeight: "700",
+  lineHeight: 1.5,
+  color: playerInkSoft,
+}
+
+const activeLiftChoiceGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "8px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "10px",
+})
+
+const activeLiftSecondaryActionStyle = {
+  ...secondaryButtonStyle,
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.36)",
+  color: playerInk,
+  boxShadow: "none",
+}
+
+const activeLiftChoiceButtonStyle = {
+  ...activeLiftSecondaryActionStyle,
+  justifyContent: "center",
+  minHeight: "46px",
+  borderRadius: "14px",
+}
+
+const activeLiftChoiceButtonActiveStyle = {
+  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  borderColor: playerAccent,
+  color: playerAccent,
 }
 
 const activeSetCardStyle = {
@@ -12841,6 +12903,116 @@ const accountWarningTextStyle = {
   color: "#5f2a2a",
 }
 
+const playerAccountPanelStyle = {
+  padding: "20px",
+  borderRadius: "28px",
+  border: `1px solid ${playerLine}`,
+  background:
+    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.08), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(243, 239, 230, 0.72))",
+  boxShadow: "0 20px 38px rgba(26, 24, 20, 0.08)",
+}
+
+const playerAccountInfoCardStyle = {
+  padding: "16px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
+}
+
+const playerAccountInfoLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  color: playerInkSoft,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  marginBottom: "8px",
+}
+
+const playerAccountInfoValueStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "24px",
+  lineHeight: 0.98,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const playerAccountGhostButtonStyle = {
+  ...activeLiftSecondaryActionStyle,
+  padding: "12px 16px",
+  borderRadius: "16px",
+  fontSize: "14px",
+  fontWeight: "800",
+}
+
+const playerAccountDangerButtonStyle = {
+  ...dangerActionButtonStyle,
+  border: "1px solid rgba(185, 28, 28, 0.2)",
+  backgroundColor: "rgba(185, 28, 28, 0.08)",
+  color: "#991b1b",
+  boxShadow: "none",
+}
+
+const playerAccountPasswordCardStyle = {
+  marginTop: "16px",
+  padding: "18px",
+  borderRadius: "22px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.26)",
+}
+
+const playerAccountSectionTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(22px, 6vw, 28px)",
+  lineHeight: 0.98,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: playerInk,
+  marginBottom: "6px",
+}
+
+const playerAccountSectionTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: playerInkSoft,
+  marginBottom: "12px",
+}
+
+const playerAccountFieldLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+  marginBottom: "8px",
+}
+
+const playerAccountWarningCardStyle = {
+  marginTop: "16px",
+  padding: "18px",
+  borderRadius: "22px",
+  border: "1px solid rgba(185, 28, 28, 0.16)",
+  backgroundColor: "rgba(185, 28, 28, 0.06)",
+}
+
+const playerAccountWarningTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(22px, 6vw, 28px)",
+  lineHeight: 0.98,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: "#991b1b",
+  marginBottom: "6px",
+}
+
+const playerAccountWarningTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "#7f1d1d",
+}
+
 const dangerActionButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
@@ -13181,9 +13353,9 @@ const playerTodaySecondaryButtonStyle = {
 const playerOverviewPanelStyle = {
   padding: "18px",
   borderRadius: "22px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowMd,
+  border: `1px solid ${playerLine}`,
+  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(243, 239, 230, 0.6))",
+  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
 }
 
 const playerOverviewPanelRowStyle = {
@@ -13341,18 +13513,19 @@ const playerFixedDraftTypeStyle = {
 
 const playerHistorySectionLabelStyle = {
   marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
   textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "#6b7280",
+  letterSpacing: "0.12em",
+  color: playerInkSoft,
 }
 
 const playerHistoryItemStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  backgroundColor: uiSurface,
-  border: `1px solid ${uiBorder}`,
+  padding: "15px",
+  borderRadius: "20px",
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  border: `1px solid ${playerLine}`,
 }
 
 const playerHistoryItemHeaderStyle = (isMobile) => ({
@@ -13365,20 +13538,24 @@ const playerHistoryItemHeaderStyle = (isMobile) => ({
 })
 
 const playerHistoryItemTitleStyle = {
+  fontSize: "16px",
   fontWeight: "800",
-  color: "#18202b",
+  color: playerInk,
   marginBottom: "4px",
 }
 
 const playerHistoryItemMetaStyle = {
   fontSize: "13px",
-  color: "#566173",
+  color: playerInkSoft,
 }
 
 const playerHistoryDateStyle = {
-  fontSize: "13px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
   fontWeight: "700",
-  color: "#566173",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
 }
 
 const playerHistoryActionRowStyle = (isMobile) => ({
@@ -13390,7 +13567,7 @@ const playerHistoryActionRowStyle = (isMobile) => ({
 
 const playerHistoryEmptyStyle = {
   fontSize: "14px",
-  color: "#6b7280",
+  color: playerInkSoft,
 }
 
 const playerHistoryHighlightsGridStyle = (isMobile) => ({
@@ -13401,25 +13578,33 @@ const playerHistoryHighlightsGridStyle = (isMobile) => ({
 
 const playerHistoryHighlightCardStyle = {
   padding: "12px 14px",
-  borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
 }
 
 const playerHistoryHighlightLabelStyle = {
   marginBottom: "6px",
-  fontSize: "12px",
-  fontWeight: "800",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
   textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "#6b7280",
+  letterSpacing: "0.1em",
+  color: playerInkSoft,
 }
 
 const playerHistoryHighlightValueStyle = {
-  fontSize: "15px",
+  fontSize: "16px",
   fontWeight: "800",
-  color: "#18202b",
+  color: playerInk,
   lineHeight: 1.4,
+}
+
+const playerHistoryActionButtonStyle = {
+  ...playerActivitySubmitButtonStyle,
+  marginTop: 0,
+  padding: "12px 16px",
+  borderRadius: "16px",
 }
 
 const playerPageIntroStyle = {
@@ -13443,9 +13628,9 @@ const playerStatsSelectorStyle = {
   gap: "12px",
   padding: "18px",
   borderRadius: "22px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowMd,
+  border: `1px solid ${playerLine}`,
+  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(243, 239, 230, 0.6))",
+  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
 }
 
 const playerStatsSelectorHeaderStyle = {
@@ -13456,18 +13641,19 @@ const playerStatsSelectorHeaderStyle = {
 }
 
 const playerStatsSelectorLabelStyle = {
-  fontSize: "12px",
-  fontWeight: "900",
-  letterSpacing: "0.14em",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#566173",
+  color: playerInkSoft,
   marginBottom: "4px",
 }
 
 const playerStatsSelectorTextStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: playerInk,
 }
 
 const playerStatsSelectorSummaryHintStyle = {
@@ -13476,8 +13662,8 @@ const playerStatsSelectorSummaryHintStyle = {
   justifyContent: "center",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: "rgba(26, 24, 20, 0.08)",
+  color: playerInk,
   fontSize: "12px",
   fontWeight: "800",
   whiteSpace: "nowrap",
@@ -13492,8 +13678,14 @@ const playerStatsSelectorControlsStyle = {
 
 const playerStatsSelectorHelperStyle = {
   fontSize: "13px",
-  color: "#566173",
+  color: playerInkSoft,
   lineHeight: 1.5,
+}
+
+const playerStatsSelectStyle = {
+  ...playerActivityInputStyle,
+  backgroundColor: "rgba(255, 255, 255, 0.82)",
+  color: playerInk,
 }
 
 const playerStatsExerciseTitleStyle = {
@@ -13520,9 +13712,9 @@ const playerStatsSelectedChipStyle = {
   justifyContent: "center",
   padding: "10px 14px",
   borderRadius: "999px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: "#fff6f6",
-  color: "#18202b",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.32)",
+  color: playerInk,
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",
@@ -13536,9 +13728,9 @@ const playerStatsCardsStackStyle = {
 const playerStatsCardStyle = {
   padding: "18px",
   borderRadius: "22px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowMd,
+  border: `1px solid ${playerLine}`,
+  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(243, 239, 230, 0.6))",
+  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
 }
 
 const playerStatsHeaderStyle = (isMobile) => ({
@@ -13551,15 +13743,18 @@ const playerStatsHeaderStyle = (isMobile) => ({
 })
 
 const playerStatsTitleStyle = {
-  fontSize: "20px",
-  fontWeight: "900",
-  color: "#18202b",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 7vw, 30px)",
+  fontWeight: "700",
+  lineHeight: 0.98,
+  letterSpacing: "-0.04em",
+  color: playerInk,
   marginBottom: "4px",
 }
 
 const playerStatsTextStyle = {
   fontSize: "14px",
-  color: "#566173",
+  color: playerInkSoft,
   lineHeight: 1.5,
 }
 
@@ -13567,8 +13762,8 @@ const playerStatsSummaryPillStyle = {
   display: "inline-flex",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: playerInk,
+  color: playerPaper,
   fontSize: "13px",
   fontWeight: "800",
 }
@@ -13599,35 +13794,35 @@ const playerStatsRecentItemStyle = {
   gap: "12px",
   padding: "12px 14px",
   borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.3)",
 }
 
 const playerStatsRecentDateStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: playerInk,
   marginBottom: "4px",
 }
 
 const playerStatsRecentMetaStyle = {
   fontSize: "13px",
-  color: "#566173",
+  color: playerInkSoft,
 }
 
 const playerStatsRecentValueStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#b61e24",
+  color: playerInk,
   whiteSpace: "nowrap",
 }
 
 const playerStatsEmptyStyle = {
   padding: "18px",
   borderRadius: "20px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  color: "#566173",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  color: playerInkSoft,
   fontSize: "14px",
 }
 
@@ -13635,10 +13830,49 @@ const playerStatsEmptyInlineStyle = {
   marginBottom: "14px",
   padding: "14px",
   borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  color: "#566173",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  color: playerInkSoft,
   fontSize: "14px",
+}
+
+const activeRunningWorkoutCardStyle = {
+  padding: "18px",
+}
+
+const activeRunningWorkoutHeaderStyle = {
+  display: "grid",
+  gap: "10px",
+  marginBottom: "14px",
+}
+
+const activeRunningWorkoutTitleStyle = {
+  margin: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 8vw, 40px)",
+  lineHeight: 0.94,
+  fontWeight: "700",
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const activeRunningWorkoutSummaryStyle = {
+  display: "inline-flex",
+  width: "fit-content",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  backgroundColor: playerInk,
+  color: playerPaper,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+}
+
+const activeRunningWorkoutFieldsStyle = {
+  display: "grid",
+  gap: "10px",
 }
 
 const renderCoachBottomNavIcon = (icon, isActive) => {
