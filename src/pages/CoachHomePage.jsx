@@ -148,14 +148,14 @@ const navCardStyle = (tone = 0) => {
 const navTitleStyle = (tone = 0) => ({
   fontSize: "18px",
   fontWeight: "800",
-  color: tone >= 4 ? "#f3efe6" : "#1a1814",
+  color: "#111111",
   overflowWrap: "anywhere",
 })
 
 const navTextStyle = (tone = 0) => ({
   fontSize: "14px",
   lineHeight: 1.5,
-  color: tone >= 4 ? "rgba(243, 239, 230, 0.76)" : tone >= 2 ? "#5f5448" : "#6f6659",
+  color: "#111111",
   overflowWrap: "anywhere",
 })
 
