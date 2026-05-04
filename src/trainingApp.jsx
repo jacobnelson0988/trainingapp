@@ -9453,19 +9453,13 @@ function TrainingApp() {
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
                       <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
-                        <div style={playerHomeTrainingKickerStyle}>Rekommenderat</div>
                         <div style={playerHomeTrainingTitleStyle}>Styrka</div>
-                        <div style={playerHomeTrainingTextStyle}>{playerFamilyCounts.strength} pass</div>
                       </button>
                       <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
-                        <div style={playerHomeTrainingKickerStyle}>Fritt</div>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
-                        <div style={playerHomeTrainingTextStyle}>Intervaller och distans</div>
                       </button>
                       <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
-                        <div style={playerHomeTrainingKickerStyle}>Hållbarhet</div>
                         <div style={playerHomeTrainingTitleStyle}>Prehab</div>
-                        <div style={playerHomeTrainingTextStyle}>{playerFamilyCounts.prehab} pass</div>
                       </button>
                     </div>
                   )}
