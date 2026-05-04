@@ -25,6 +25,7 @@ function MessagesPage({
   secondaryButtonStyle,
   isMobile,
 }) {
+  const isPlayer = role === "player"
   const [view, setView] = useState("inbox")
   const [selectedThreadKey, setSelectedThreadKey] = useState(null)
   const [isRecipientPickerOpen, setIsRecipientPickerOpen] = useState(false)
@@ -81,6 +82,48 @@ function MessagesPage({
   const selectedRecipients = recipients.filter((recipient) => selectedRecipientIds.includes(recipient.id))
   const totalUnreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount || 0), 0)
 
+  const resolvedPageHeaderStyle = isPlayer ? playerPageHeaderStyle : pageHeaderStyle
+  const resolvedPageHeaderCopyStyle = isPlayer ? playerPageHeaderCopyStyle : pageHeaderCopyStyle
+  const resolvedIntroTitleStyle = isPlayer ? playerIntroTitleStyle : introTitleStyle
+  const resolvedIntroStatsGridStyle = isPlayer ? playerIntroStatsGridStyle : introStatsGridStyle
+  const resolvedIntroStatCardStyle = isPlayer ? playerIntroStatCardStyle : introStatCardStyle
+  const resolvedIntroStatLabelStyle = isPlayer ? playerIntroStatLabelStyle : introStatLabelStyle
+  const resolvedIntroStatValueStyle = isPlayer ? playerIntroStatValueStyle : introStatValueStyle
+  const resolvedWrapStyle = isPlayer ? playerWrapStyle : wrapStyle
+  const resolvedHeaderStyle = isPlayer ? playerHeaderStyle : headerStyle
+  const resolvedCardStyle = isPlayer ? playerCardStyle : cardStyle
+  const resolvedInboxListStyle = isPlayer ? playerInboxListStyle : inboxListStyle
+  const resolvedInboxRowStyle = isPlayer ? playerInboxRowStyle : inboxRowStyle
+  const resolvedInboxSenderStyle = isPlayer ? playerInboxSenderStyle : inboxSenderStyle
+  const resolvedInboxSubjectStyle = isPlayer ? playerInboxSubjectStyle : inboxSubjectStyle
+  const resolvedInboxMetaStyle = isPlayer ? playerInboxMetaStyle : inboxMetaStyle
+  const resolvedUnreadBadgeStyle = isPlayer ? playerUnreadBadgeStyle : unreadBadgeStyle
+  const resolvedFieldLabelStyle = isPlayer ? playerFieldLabelStyle : fieldLabelStyle
+  const resolvedPickerButtonStyle = isPlayer ? playerPickerButtonStyle : pickerButtonStyle
+  const resolvedPickerMenuStyle = isPlayer ? playerPickerMenuStyle : pickerMenuStyle
+  const resolvedPickerEmptyStyle = isPlayer ? playerPickerEmptyStyle : pickerEmptyStyle
+  const resolvedPickerOptionStyle = isPlayer ? playerPickerOptionStyle : pickerOptionStyle
+  const resolvedPickerOptionActiveStyle = isPlayer ? playerPickerOptionActiveStyle : pickerOptionActiveStyle
+  const resolvedPickerOptionNameStyle = isPlayer ? playerPickerOptionNameStyle : pickerOptionNameStyle
+  const resolvedPickerOptionMetaStyle = isPlayer ? playerPickerOptionMetaStyle : pickerOptionMetaStyle
+  const resolvedActionsStyle = isPlayer ? playerActionsStyle : actionsStyle
+  const resolvedThreadSubjectStyle = isPlayer ? playerThreadSubjectStyle : threadSubjectStyle
+  const resolvedThreadInfoStyle = isPlayer ? playerThreadInfoStyle : threadInfoStyle
+  const resolvedChatListStyle = isPlayer ? playerChatListStyle : chatListStyle
+  const resolvedChatBubbleStyle = isPlayer ? playerChatBubbleStyle : chatBubbleStyle
+  const resolvedOwnBubbleStyle = isPlayer ? playerOwnBubbleStyle : ownBubbleStyle
+  const resolvedIncomingBubbleStyle = isPlayer ? playerIncomingBubbleStyle : incomingBubbleStyle
+  const resolvedChatAuthorStyle = isPlayer ? playerChatAuthorStyle : chatAuthorStyle
+  const resolvedChatTextStyle = isPlayer ? playerChatTextStyle : chatTextStyle
+  const resolvedChatDateStyle = isPlayer ? playerChatDateStyle : chatDateStyle
+  const resolvedCardTitleStyle = isPlayer ? playerSectionTitleStyle : cardTitleStyle
+  const resolvedMutedTextStyle = isPlayer ? playerMutedTextStyle : mutedTextStyle
+  const resolvedInputStyle = isPlayer ? { ...inputStyle, ...playerInputStyle } : inputStyle
+  const resolvedButtonStyle = isPlayer ? { ...buttonStyle, ...playerButtonStyle } : buttonStyle
+  const resolvedSecondaryButtonStyle = isPlayer
+    ? { ...secondaryButtonStyle, ...playerSecondaryButtonStyle }
+    : secondaryButtonStyle
+
   useEffect(() => {
     if (view !== "thread") return
     if (!activeThread) {
@@ -126,58 +169,58 @@ function MessagesPage({
 
   return (
     <div style={pageWrapStyle}>
-      <div style={pageHeaderStyle}>
-        <div style={pageHeaderCopyStyle}>
-          <div style={introTitleStyle}>Meddelanden</div>
+      <div style={resolvedPageHeaderStyle}>
+        <div style={resolvedPageHeaderCopyStyle}>
+          <div style={resolvedIntroTitleStyle}>Meddelanden</div>
         </div>
       </div>
 
-      <div style={introStatsGridStyle(isMobile)}>
-        <div style={introStatCardStyle}>
-          <div style={introStatLabelStyle}>Trådar</div>
-          <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{threads.length}</div>
+      <div style={resolvedIntroStatsGridStyle(isMobile)}>
+        <div style={resolvedIntroStatCardStyle}>
+          <div style={resolvedIntroStatLabelStyle}>Trådar</div>
+          <div style={{ ...resolvedIntroStatValueStyle, color: isPlayer ? playerAccent : "#dc2626" }}>{threads.length}</div>
         </div>
-        <div style={introStatCardStyle}>
-          <div style={introStatLabelStyle}>Olästa</div>
-          <div style={introStatValueStyle}>{totalUnreadCount}</div>
+        <div style={resolvedIntroStatCardStyle}>
+          <div style={resolvedIntroStatLabelStyle}>Olästa</div>
+          <div style={resolvedIntroStatValueStyle}>{totalUnreadCount}</div>
         </div>
-        <div style={introStatCardStyle}>
-          <div style={introStatLabelStyle}>Mottagare</div>
-          <div style={introStatValueStyle}>{recipients.length}</div>
+        <div style={resolvedIntroStatCardStyle}>
+          <div style={resolvedIntroStatLabelStyle}>Mottagare</div>
+          <div style={resolvedIntroStatValueStyle}>{recipients.length}</div>
         </div>
       </div>
 
-      <div style={wrapStyle}>
+      <div style={resolvedWrapStyle}>
       {view === "inbox" && (
         <>
-          <div style={headerStyle(isMobile)}>
-            <button type="button" onClick={openComposer} style={buttonStyle}>
+          <div style={resolvedHeaderStyle(isMobile)}>
+            <button type="button" onClick={openComposer} style={resolvedButtonStyle}>
               Nytt meddelande
             </button>
-            <button type="button" onClick={handleRefreshMessages} style={secondaryButtonStyle}>
+            <button type="button" onClick={handleRefreshMessages} style={resolvedSecondaryButtonStyle}>
               Uppdatera
             </button>
           </div>
 
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>Inkorg</div>
+          <div style={resolvedCardStyle}>
+            <div style={resolvedCardTitleStyle}>Inkorg</div>
             {isLoadingMessages ? (
-              <p style={mutedTextStyle}>Laddar meddelanden...</p>
+              <p style={resolvedMutedTextStyle}>Laddar meddelanden...</p>
             ) : threads.length === 0 ? (
-              <p style={mutedTextStyle}>Inga meddelanden ännu.</p>
+              <p style={resolvedMutedTextStyle}>Inga meddelanden ännu.</p>
             ) : (
-              <div style={inboxListStyle}>
+              <div style={resolvedInboxListStyle}>
                 {threads.map((thread) => (
                   <button
                     key={thread.key}
                     type="button"
                     onClick={() => openThread(thread)}
-                    style={inboxRowStyle(isMobile)}
+                    style={resolvedInboxRowStyle(isMobile)}
                   >
-                    <div style={inboxSenderStyle}>{thread.senderName}</div>
-                    <div style={inboxSubjectStyle}>{thread.subject || "(Utan ämne)"}</div>
-                    <div style={inboxMetaStyle}>
-                      {thread.unreadCount > 0 && <span style={unreadBadgeStyle}>{thread.unreadCount}</span>}
+                    <div style={resolvedInboxSenderStyle}>{thread.senderName}</div>
+                    <div style={resolvedInboxSubjectStyle}>{thread.subject || "(Utan ämne)"}</div>
+                    <div style={resolvedInboxMetaStyle}>
+                      {thread.unreadCount > 0 && <span style={resolvedUnreadBadgeStyle}>{thread.unreadCount}</span>}
                       <span>{formatMessageDate(thread.latestAt)}</span>
                     </div>
                   </button>
@@ -190,20 +233,20 @@ function MessagesPage({
 
       {view === "compose" && (
         <>
-          <div style={headerStyle(isMobile)}>
-            <button type="button" onClick={openInbox} style={secondaryButtonStyle}>
+          <div style={resolvedHeaderStyle(isMobile)}>
+            <button type="button" onClick={openInbox} style={resolvedSecondaryButtonStyle}>
               Tillbaka
             </button>
           </div>
 
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>Nytt meddelande</div>
+          <div style={resolvedCardStyle}>
+            <div style={resolvedCardTitleStyle}>Nytt meddelande</div>
 
-            <div style={fieldLabelStyle}>Mottagare</div>
+            <div style={resolvedFieldLabelStyle}>Mottagare</div>
             <button
               type="button"
               onClick={() => setIsRecipientPickerOpen((prev) => !prev)}
-              style={pickerButtonStyle}
+              style={resolvedPickerButtonStyle}
             >
               <span>
                 {selectedRecipients.length
@@ -214,9 +257,9 @@ function MessagesPage({
             </button>
 
             {isRecipientPickerOpen && (
-              <div style={pickerMenuStyle}>
+              <div style={resolvedPickerMenuStyle}>
                 {recipients.length === 0 ? (
-                  <div style={pickerEmptyStyle}>Inga mottagare tillgängliga</div>
+                  <div style={resolvedPickerEmptyStyle}>Inga mottagare tillgängliga</div>
                 ) : (
                   recipients.map((recipient) => {
                     const isSelected = selectedRecipientIds.includes(recipient.id)
@@ -226,12 +269,12 @@ function MessagesPage({
                         type="button"
                         onClick={() => onToggleRecipient(recipient.id)}
                         style={{
-                          ...pickerOptionStyle,
-                          ...(isSelected ? pickerOptionActiveStyle : {}),
+                          ...resolvedPickerOptionStyle,
+                          ...(isSelected ? resolvedPickerOptionActiveStyle : {}),
                         }}
                       >
-                        <div style={pickerOptionNameStyle}>{recipient.full_name}</div>
-                        <div style={pickerOptionMetaStyle}>
+                        <div style={resolvedPickerOptionNameStyle}>{recipient.full_name}</div>
+                        <div style={resolvedPickerOptionMetaStyle}>
                           {role === "player"
                             ? getRoleLabel(recipient.role)
                             : `${getRoleLabel(recipient.role)}${
@@ -245,31 +288,31 @@ function MessagesPage({
               </div>
             )}
 
-            <div style={fieldLabelStyle}>Ämne</div>
+            <div style={resolvedFieldLabelStyle}>Ämne</div>
             <input
               type="text"
               value={messageSubject}
               onChange={(event) => setMessageSubject(event.target.value)}
               placeholder="Skriv ämne"
-              style={{ ...inputStyle, width: "100%", marginBottom: "14px" }}
+              style={{ ...resolvedInputStyle, width: "100%", marginBottom: "14px" }}
             />
 
-            <div style={fieldLabelStyle}>Meddelande</div>
+            <div style={resolvedFieldLabelStyle}>Meddelande</div>
             <textarea
               rows={6}
               value={messageBody}
               onChange={(event) => setMessageBody(event.target.value)}
               placeholder="Skriv ditt meddelande här"
-              style={{ ...inputStyle, ...textareaStyle }}
+              style={{ ...resolvedInputStyle, ...textareaStyle }}
             />
 
-            <div style={actionsStyle}>
+            <div style={resolvedActionsStyle}>
               <button
                 type="button"
                 onClick={handleSendMessage}
                 disabled={isSendingMessage}
                 style={{
-                  ...buttonStyle,
+                  ...resolvedButtonStyle,
                   opacity: isSendingMessage ? 0.7 : 1,
                   cursor: isSendingMessage ? "default" : "pointer",
                 }}
@@ -283,17 +326,17 @@ function MessagesPage({
 
       {view === "thread" && activeThread && (
         <>
-          <div style={headerStyle(isMobile)}>
-            <button type="button" onClick={openInbox} style={secondaryButtonStyle}>
+          <div style={resolvedHeaderStyle(isMobile)}>
+            <button type="button" onClick={openInbox} style={resolvedSecondaryButtonStyle}>
               Tillbaka till inkorg
             </button>
           </div>
 
-          <div style={cardStyle}>
-            <div style={threadSubjectStyle}>{activeThread.subject || "(Utan ämne)"}</div>
-            <div style={threadInfoStyle}>{formatThreadParticipantNames(activeThread.otherParticipants)}</div>
+          <div style={resolvedCardStyle}>
+            <div style={resolvedThreadSubjectStyle}>{activeThread.subject || "(Utan ämne)"}</div>
+            <div style={resolvedThreadInfoStyle}>{formatThreadParticipantNames(activeThread.otherParticipants)}</div>
 
-            <div style={chatListStyle}>
+            <div style={resolvedChatListStyle}>
               {activeThread.messages.map((message) => {
                 const isOwn = message.sender_id === currentUserId
 
@@ -307,13 +350,34 @@ function MessagesPage({
                   >
                     <div
                       style={{
-                        ...chatBubbleStyle,
-                        ...(isOwn ? ownBubbleStyle : incomingBubbleStyle),
+                        ...resolvedChatBubbleStyle,
+                        ...(isOwn ? resolvedOwnBubbleStyle : resolvedIncomingBubbleStyle),
                       }}
                     >
-                      <div style={chatAuthorStyle}>{isOwn ? "Du" : message.sender?.full_name || "Okänd"}</div>
-                      <div style={chatTextStyle}>{message.body}</div>
-                      <div style={chatDateStyle}>{formatMessageDate(message.created_at)}</div>
+                      <div
+                        style={{
+                          ...resolvedChatAuthorStyle,
+                          color: isPlayer && isOwn ? "rgba(243, 239, 230, 0.76)" : resolvedChatAuthorStyle.color,
+                        }}
+                      >
+                        {isOwn ? "Du" : message.sender?.full_name || "Okänd"}
+                      </div>
+                      <div
+                        style={{
+                          ...resolvedChatTextStyle,
+                          color: isPlayer && isOwn ? playerPaper : resolvedChatTextStyle.color,
+                        }}
+                      >
+                        {message.body}
+                      </div>
+                      <div
+                        style={{
+                          ...resolvedChatDateStyle,
+                          color: isPlayer && isOwn ? "rgba(243, 239, 230, 0.72)" : resolvedChatDateStyle.color,
+                        }}
+                      >
+                        {formatMessageDate(message.created_at)}
+                      </div>
                     </div>
                   </div>
                 )
@@ -325,16 +389,16 @@ function MessagesPage({
               value={messageBody}
               onChange={(event) => setMessageBody(event.target.value)}
               placeholder="Skriv svar här"
-              style={{ ...inputStyle, ...textareaStyle, minHeight: "110px" }}
+              style={{ ...resolvedInputStyle, ...textareaStyle, minHeight: "110px" }}
             />
 
-            <div style={actionsStyle}>
+            <div style={resolvedActionsStyle}>
               <button
                 type="button"
                 onClick={handleSendMessage}
                 disabled={isSendingMessage}
                 style={{
-                  ...buttonStyle,
+                  ...resolvedButtonStyle,
                   opacity: isSendingMessage ? 0.7 : 1,
                   cursor: isSendingMessage ? "default" : "pointer",
                 }}
@@ -669,5 +733,330 @@ const chatDateStyle = {
   color: "#6b7280",
   fontWeight: "700",
 }
+
+const playerPaper = "#f3efe6"
+const playerInk = "#1a1814"
+const playerInkSoft = "#6f6659"
+const playerAccent = "#d94a1f"
+const playerLine = "rgba(26, 24, 20, 0.14)"
+const playerDisplayFont = '"Manrope", sans-serif'
+const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
+
+const playerPageHeaderStyle = {
+  marginBottom: "12px",
+}
+
+const playerPageHeaderCopyStyle = {
+  display: "grid",
+  gap: "2px",
+}
+
+const playerIntroTitleStyle = {
+  marginBottom: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(34px, 9vw, 52px)",
+  lineHeight: 0.94,
+  fontWeight: 800,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerIntroStatsGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+  marginBottom: "14px",
+})
+
+const playerIntroStatCardStyle = {
+  padding: "14px 12px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  background: "rgba(255, 255, 255, 0.28)",
+  boxShadow: "0 10px 24px rgba(75, 58, 38, 0.06)",
+}
+
+const playerIntroStatLabelStyle = {
+  marginBottom: "6px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerIntroStatValueStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "32px",
+  lineHeight: 0.95,
+  fontWeight: 750,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerWrapStyle = {
+  display: "grid",
+  gap: "14px",
+  width: "100%",
+  minWidth: 0,
+}
+
+const playerHeaderStyle = (isMobile) => ({
+  display: "flex",
+  gap: "10px",
+  flexDirection: isMobile ? "column" : "row",
+})
+
+const playerCardStyle = {
+  padding: "18px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(243, 239, 230, 0.6))",
+  boxShadow: "0 18px 34px rgba(75, 58, 38, 0.08)",
+  minWidth: 0,
+  overflow: "hidden",
+}
+
+const playerSectionTitleStyle = {
+  marginBottom: "14px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(26px, 7vw, 34px)",
+  lineHeight: 0.95,
+  fontWeight: 760,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerMutedTextStyle = {
+  margin: 0,
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: playerInkSoft,
+}
+
+const playerInboxListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const playerInboxRowStyle = () => ({
+  display: "grid",
+  gap: "6px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  background: "rgba(255, 255, 255, 0.3)",
+  textAlign: "left",
+  cursor: "pointer",
+  minWidth: 0,
+})
+
+const playerInboxSenderStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerInboxSubjectStyle = {
+  fontSize: "16px",
+  lineHeight: 1.25,
+  fontWeight: "800",
+  color: playerInk,
+  overflowWrap: "anywhere",
+}
+
+const playerInboxMetaStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  flexWrap: "wrap",
+  fontSize: "12px",
+  color: playerInkSoft,
+  fontWeight: "700",
+}
+
+const playerUnreadBadgeStyle = {
+  minWidth: "22px",
+  height: "22px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0 7px",
+  borderRadius: "999px",
+  backgroundColor: playerInk,
+  color: playerPaper,
+  fontSize: "11px",
+  fontWeight: "800",
+}
+
+const playerFieldLabelStyle = {
+  marginBottom: "8px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerInputStyle = {
+  border: `1px solid ${playerLine}`,
+  borderRadius: "16px",
+  backgroundColor: "rgba(255, 255, 255, 0.75)",
+  color: playerInk,
+  boxShadow: "none",
+}
+
+const playerButtonStyle = {
+  borderRadius: "16px",
+  background: playerAccent,
+  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
+}
+
+const playerSecondaryButtonStyle = {
+  borderRadius: "16px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.36)",
+  color: playerInk,
+  boxShadow: "none",
+}
+
+const playerPickerButtonStyle = {
+  width: "100%",
+  marginBottom: "10px",
+  padding: "13px 14px",
+  borderRadius: "16px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.72)",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  fontSize: "14px",
+  color: playerInk,
+  cursor: "pointer",
+  textAlign: "left",
+}
+
+const playerPickerMenuStyle = {
+  marginBottom: "14px",
+  border: `1px solid ${playerLine}`,
+  borderRadius: "18px",
+  backgroundColor: "rgba(255, 255, 255, 0.82)",
+  overflow: "hidden",
+}
+
+const playerPickerEmptyStyle = {
+  padding: "12px 14px",
+  fontSize: "14px",
+  color: playerInkSoft,
+}
+
+const playerPickerOptionStyle = {
+  width: "100%",
+  padding: "12px 14px",
+  border: "none",
+  borderBottom: `1px solid ${playerLine}`,
+  backgroundColor: "transparent",
+  textAlign: "left",
+  cursor: "pointer",
+}
+
+const playerPickerOptionActiveStyle = {
+  backgroundColor: "rgba(217, 74, 31, 0.1)",
+}
+
+const playerPickerOptionNameStyle = {
+  fontSize: "14px",
+  fontWeight: "800",
+  color: playerInk,
+  marginBottom: "4px",
+}
+
+const playerPickerOptionMetaStyle = {
+  fontSize: "12px",
+  color: playerInkSoft,
+}
+
+const playerActionsStyle = {
+  marginTop: "14px",
+  display: "flex",
+  justifyContent: "flex-end",
+}
+
+const playerThreadSubjectStyle = {
+  marginBottom: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(28px, 7vw, 36px)",
+  lineHeight: 0.96,
+  fontWeight: 760,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const playerThreadInfoStyle = {
+  marginBottom: "14px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const playerChatListStyle = {
+  display: "grid",
+  gap: "10px",
+  marginBottom: "14px",
+  minWidth: 0,
+}
+
+const playerChatBubbleStyle = {
+  maxWidth: "84%",
+  padding: "12px 14px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+}
+
+const playerOwnBubbleStyle = {
+  backgroundColor: playerInk,
+  borderColor: playerInk,
+}
+
+const playerIncomingBubbleStyle = {
+  backgroundColor: "rgba(255, 255, 255, 0.78)",
+}
+
+const playerChatAuthorStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: playerAccent,
+  marginBottom: "6px",
+}
+
+const playerChatTextStyle = {
+  fontSize: "14px",
+  color: playerInk,
+  lineHeight: 1.6,
+  whiteSpace: "pre-wrap",
+}
+
+const playerChatDateStyle = {
+  marginTop: "8px",
+  fontSize: "11px",
+  color: playerInkSoft,
+  fontWeight: "700",
+}
+
 
 export default MessagesPage
