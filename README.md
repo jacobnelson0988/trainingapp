@@ -251,6 +251,152 @@ Denna fas pågår parallellt med andra faser och är nu en aktiv del av arbetet.
 
 ---
 
+## Nästa tekniska produktlyft – PWA och intervalltimer (EFTER COACH-REDESIGN)
+
+Mål:
+Göra appen till en riktig installerbar PWA och bygga en intervalltimer för löppass som fungerar för både fasta tränarpass och spelarens egna intervallpass, med ljudsignaler som kan höras även när telefonen är låst.
+
+Förutsättning innan arbetet startar:
+
+- Den här satsningen väntar tills coachdelen också är ombyggd i `design/player-redesign-v1`
+- Skälet är att fasta intervallpass och spelarens egna intervallpass ska byggas på samma nya struktur
+- Ingen halvväg där spelaren får ny timer ovanpå gammal coachmodell
+
+PWA-ombyggnad:
+
+- Appen ska bli installerbar som PWA med:
+  - `manifest.json`
+  - service worker
+  - app-shell
+  - cache-strategi för grundresurser
+- Ett separat device-/PWA-lager ska läggas till för:
+  - `Media Session`
+  - ljudsignaler
+  - vibration där det stöds
+  - `Wake Lock`
+  - app resume / visibility / låsskärmsbeteende
+- Ingen native-app i denna fas
+- Låsskärmsmålet gäller installerad PWA, inte vanlig browserflik
+
+Kodstruktur före timer:
+
+- Spelarflödet ska brytas ut från `src/trainingApp.jsx` till egna moduler innan timer byggs in
+- Minsta måluppdelning:
+  - `src/player/*` för spelarens sidor och navigation
+  - `src/player/workout/*` för aktivt gympass, aktivt löppass och avslutat pass
+  - `src/running/*` för löppassmodell, summeringar och sessionslogik
+  - `src/timers/*` för timer-engine och state machine
+  - `src/app/device/*` för ljud, vibration, wake lock och mediasession
+  - `src/services/*` för Supabase-anrop
+- `TrainingApp` ska finnas kvar som toppcontainer för auth, profil och globala vyval
+
+Ny intervallmodell:
+
+- Dagens enkla intervallfält ska ersättas som huvudmodell med blockbaserat upplägg
+- Ny struktur för intervallpass:
+  - `blocks: [{ label, work_seconds, rest_seconds, repeats }]`
+  - `set_rest_seconds`
+  - `countdown_seconds`
+- Gäller både:
+  - fasta tränarskapade löppass
+  - spelarens egna intervallpass
+- Äldre intervallpass med `interval_time` + `intervals_count` ska konverteras vid läsning till ett enkelt blockprogram
+
+Coachens fasta intervallpass:
+
+- När coachdelen är redo ska coachen i design-branchen kunna bygga fasta intervallpass i blockform
+- Byggaren ska stödja:
+  - flera block
+  - arbetstid
+  - vilotid
+  - repetitioner
+  - längre setvila mellan block
+  - total summering av tid och antal intervaller
+- Detta ska ligga i coachens nya UI, inte i nuvarande gamla tränargränssnitt
+
+Spelarens egna intervallpass:
+
+- Spelaren ska kunna skapa egna återanvändbara intervallpass
+- Egna pass ska kunna:
+  - namnges
+  - sparas
+  - redigeras
+  - återanvändas
+  - startas direkt
+- Egen intervallbyggare ska använda samma blockmodell som fasta pass
+
+Aktiv intervalltimer:
+
+- En separat intervallspelare ska byggas för `running_type = "intervals"`
+- Den ska visa:
+  - aktuell fas: `Nedräkning`, `Löp`, `Vila`, `Setvila`, `Paus`
+  - stor återstående tid
+  - blocknummer
+  - repetitionsnummer
+  - nästa fas
+  - total progress genom passet
+- Kontroller i v1:
+  - `Starta`
+  - `Pausa`
+  - `Återuppta`
+  - `Avsluta pass`
+- Timer-engine ska bygga på absoluta tidsstämplar och återställning efter resume, inte bara `setInterval`
+
+Ljud och låsskärm:
+
+- Primär signalmodell:
+  - ljud vid start av arbetsintervall
+  - annan ljudsignal vid start av vila
+  - avslutssignal när passet är klart
+- Vibration körs parallellt där plattformen tillåter det, men är sekundär
+- Låsskärmsstödet i v1 betyder:
+  - passet ska kunna fortsätta ge hörbara signaler i installerad PWA
+  - inte att hela UI:t måste leva på låsskärmen
+- Ingen realtids-push per intervallskifte i v1
+
+Lagring och historik:
+
+- Stöd ska läggas till för blockprogram på mallnivå och exekveringsnivå
+- Minsta nya fält/tabeller:
+  - `workout_templates.running_interval_program jsonb`
+  - spelarägda presets, till exempel `player_running_presets`
+  - loggad körhistorik i `workout_logs`, till exempel:
+    - `running_interval_execution jsonb`
+    - `running_total_elapsed_seconds integer`
+- Historiken ska kunna visa:
+  - block
+  - genomförda intervaller
+  - total tid
+  - om passet slutfördes eller avbröts
+
+Testmål när arbetet väl startar:
+
+- `npm run build` ska passera efter varje större delsteg
+- Inga regressionsfel i `Hem`, `Pass`, `Kalender`, `Historik`, `Statistik`, `Meddelanden`, `Konto`
+- Tränare ska kunna skapa fast intervallpass med flera block och spara/öppna det igen
+- Spelare ska kunna skapa eget intervallpass, spara det och starta det senare
+- Timer ska testas för:
+  - nedräkning
+  - arbetsfas
+  - vilofas
+  - setvila
+  - paus mitt i pass
+  - återuppta utan fel i tid/fas
+  - avsluta som klart
+  - avbryta tidigt med partial historik
+- PWA/låsskärm ska testas genom att:
+  - installera appen som PWA
+  - starta intervallpass
+  - låsa telefonen
+  - verifiera att ljudsignaler hörs under passet på stödda enheter
+  - kontrollera vibration där det stöds
+- Äldre enkla intervallpass ska fortfarande gå att öppna och köra
+
+Kommentar:
+Detta är nästa större tekniska produktlyft, men det ska inte byggas innan coachdelen också är redo i design-branchen. Gympassens vilostoppklocka ingår inte i samma låsskärmssatsning.
+
+---
+
 ## Långsiktiga idéer
 
 Funktioner som inte behöver byggas tidigt, men som kan ge stort värde längre fram:
