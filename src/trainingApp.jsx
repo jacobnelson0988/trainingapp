@@ -13831,15 +13831,14 @@ const playerTodayTeamPillStyle = {
 
 const playerTodayPrimaryCardStyle = {
   width: "100%",
-  padding: "18px 0",
-  borderRadius: 0,
+  padding: "22px",
+  borderRadius: "24px",
   border: "none",
-  borderBottom: `1px solid ${redesignLine}`,
-  backgroundColor: "transparent",
-  color: playerInk,
+  backgroundColor: playerInk,
+  color: playerPaper,
   cursor: "pointer",
   textAlign: "left",
-  boxShadow: "none",
+  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
 }
 
 const playerTodayCalendarCardStyle = {
@@ -13851,7 +13850,12 @@ const playerTodaySourceRowStyle = {
   display: "flex",
   alignItems: "center",
   gap: "8px",
-  ...pageEyebrowStyleToken,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "rgba(243, 239, 230, 0.64)",
 }
 
 const playerTodayAccentDotStyle = {
@@ -13864,19 +13868,29 @@ const playerTodayAccentDotStyle = {
 
 const playerTodayWorkoutTitleStyle = {
   marginTop: "12px",
-  ...pageTitleStyleToken,
-  fontSize: "clamp(30px, 8vw, 46px)",
-  color: playerInk,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(28px, 7vw, 40px)",
+  fontWeight: 700,
+  lineHeight: 0.98,
+  letterSpacing: "-0.04em",
+  color: playerPaper,
 }
 
 const playerTodayWorkoutSubtitleStyle = {
   marginTop: "4px",
-  ...bodyTextStyleToken,
+  fontSize: "16px",
+  fontWeight: 700,
+  color: "rgba(243, 239, 230, 0.68)",
 }
 
 const playerHomeCalendarActionStyle = {
   marginTop: "16px",
-  ...pageEyebrowStyleToken,
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "rgba(243, 239, 230, 0.72)",
 }
 
 const playerHomeSectionHeaderStyle = {
@@ -13924,20 +13938,23 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
   const isAccent = variant === "accent"
 
   return {
-    minHeight: "88px",
+    minHeight: "122px",
     width: "100%",
-    padding: "18px 0",
-    borderRadius: 0,
-    border: "none",
-    borderBottom: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : redesignLine}`,
-    background: "transparent",
-    color: playerInk,
-    textAlign: "left",
+    padding: "16px",
+    borderRadius: "22px",
+    border: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : playerLine}`,
+    background: isDark
+      ? playerInk
+      : isAccent
+      ? `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`
+      : "rgba(255, 255, 255, 0.28)",
+    color: isDark || isAccent ? playerPaper : playerInk,
+    textAlign: "center",
     cursor: "pointer",
-    boxShadow: "none",
+    boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
     display: "flex",
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
   }
 }
 
@@ -13952,8 +13969,12 @@ const playerHomeTrainingKickerStyle = {
 }
 
 const playerHomeTrainingTitleStyle = {
-  ...sectionTitleStyleToken,
-  textAlign: "left",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(22px, 6.5vw, 32px)",
+  lineHeight: 0.95,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  textAlign: "center",
   maxWidth: "100%",
 }
 
