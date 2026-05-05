@@ -7732,7 +7732,7 @@ function TrainingApp() {
     playerPassFamily && (playerPassFamily !== "running" || playerRunningView === "assigned")
   const playerPassFamilyTitle =
     playerPassFamily === "strength"
-      ? "Gym"
+      ? "Styrka"
       : playerPassFamily === "running"
       ? playerRunningView === "assigned"
         ? "Färdiga intervallpass"
@@ -10024,7 +10024,7 @@ function TrainingApp() {
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
                       <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
-                        <div style={playerHomeTrainingTitleStyle}>Gym</div>
+                        <div style={playerHomeTrainingTitleStyle}>Styrka</div>
                       </button>
                       <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
