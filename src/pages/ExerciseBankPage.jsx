@@ -1803,9 +1803,12 @@ const introEyebrowStyle = {
 
 const introTitleStyle = {
   marginBottom: "6px",
-  fontSize: "24px",
-  fontWeight: "900",
-  color: "#111827",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(34px, 9vw, 52px)",
+  lineHeight: 0.94,
+  fontWeight: 800,
+  letterSpacing: "-0.05em",
+  color: "#1a1814",
 }
 
 const introTextStyle = {

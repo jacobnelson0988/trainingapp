@@ -1103,7 +1103,7 @@ function PlayersPage({
     <div style={pageWrapStyle}>
       <div style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px", fontSize: "24px" }}>
+          <h3 style={pageTitleStyle}>
             {role === "coach" ? "Spelare" : "Mina spelare"}
           </h3>
           <p style={{ ...mutedTextStyle, margin: 0 }}>
@@ -1444,6 +1444,16 @@ const pageHeaderStyle = {
 const pageHeaderCopyStyle = {
   display: "grid",
   gap: "4px",
+}
+
+const pageTitleStyle = {
+  marginBottom: "4px",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(34px, 9vw, 52px)",
+  lineHeight: 0.94,
+  fontWeight: 800,
+  letterSpacing: "-0.05em",
+  color: "#1a1814",
 }
 
 const pageEyebrowStyle = {
