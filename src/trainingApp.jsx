@@ -8060,7 +8060,7 @@ function TrainingApp() {
   const useManagementRedesignRole = profile?.role === "coach" || profile?.role === "head_admin"
   const useManagementRedesignShell =
     useManagementRedesignRole && globalView === "app"
-  const useManagementHomeLayout = useManagementRedesignShell && coachView === "home"
+  const useManagementFlatLayout = useManagementRedesignShell
   const resolvedCardTitleStyle = useManagementRedesignRole ? managementCardTitleStyle : cardTitleStyle
   const resolvedMutedTextStyle = useManagementRedesignRole ? managementMutedTextStyle : mutedTextStyle
   const resolvedInputStyle = useManagementRedesignRole ? managementInputStyle : inputStyle
@@ -9139,36 +9139,36 @@ function TrainingApp() {
 
           <div
             style={{
-              ...(useManagementHomeLayout
+              ...(useManagementFlatLayout
                 ? managementHomeViewportStyle
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle
                 : cardStyle),
               padding: isMobile
-                ? useManagementHomeLayout
+                ? useManagementFlatLayout
                   ? "0"
                   : useManagementRedesignShell
                   ? "18px 16px"
                   : "16px 14px"
-                : useManagementHomeLayout
+                : useManagementFlatLayout
                 ? "0"
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle.padding
                 : cardStyle.padding,
               borderRadius: isMobile
-                ? useManagementHomeLayout
+                ? useManagementFlatLayout
                   ? "0"
                   : "24px"
-                : useManagementHomeLayout
+                : useManagementFlatLayout
                 ? "0"
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle.borderRadius
                 : cardStyle.borderRadius,
               marginBottom: isMobile
-                ? useManagementHomeLayout
+                ? useManagementFlatLayout
                   ? "16px"
                   : "16px"
-                : useManagementHomeLayout
+                : useManagementFlatLayout
                 ? "16px"
                 : useManagementRedesignShell
                 ? managementViewportPanelStyle.marginBottom

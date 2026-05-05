@@ -510,7 +510,6 @@ function ExerciseBankPage({
   return (
     <div style={pageWrapStyle}>
       <div style={introCardStyle}>
-        <div style={introEyebrowStyle}>Tränarvy</div>
         <div style={introTitleStyle}>Övningsbank</div>
         <div style={introTextStyle}>
           {canManageExercises

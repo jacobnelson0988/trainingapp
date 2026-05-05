@@ -823,7 +823,6 @@ function StatsPage({
     <div style={pageWrapStyle}>
       <div style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
-        <div style={pageEyebrowStyle}>Tränarvy</div>
         <div style={introTitleStyle}>Aktivitet och statistik</div>
         <div style={introTextStyle}>
           Öppna genomförda pass direkt i listan och växla sedan över till utveckling per övning i samma kompakta flöde.

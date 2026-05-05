@@ -1103,7 +1103,6 @@ function PlayersPage({
     <div style={pageWrapStyle}>
       <div style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
-          <div style={pageEyebrowStyle}>Tränarvy</div>
           <h3 style={{ ...cardTitleStyle, marginBottom: "4px", fontSize: "24px" }}>
             {role === "coach" ? "Spelare" : "Mina spelare"}
           </h3>
