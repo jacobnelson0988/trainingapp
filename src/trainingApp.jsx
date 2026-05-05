@@ -7762,7 +7762,7 @@ function TrainingApp() {
         ? "Distanspass"
         : "Löpning"
       : playerPassFamily === "prehab"
-      ? "Prehab"
+      ? "Skadeförebyggande"
       : "Träning"
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
@@ -8208,7 +8208,7 @@ function TrainingApp() {
   }
   const getPlayerPassDisplayType = (workout) => {
     if (workout.workoutKind === "running") return getWorkoutKindLabel(workout.workoutKind)
-    if (workout.workoutKind === "prehab") return "Prehab"
+    if (workout.workoutKind === "prehab") return "Skadeförebyggande"
     return getGymPassTypeLabel(workout.gymPassType)
   }
   const getPlayerPassSummary = (workout) => {
@@ -10050,7 +10050,7 @@ function TrainingApp() {
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                       </button>
                       <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
-                        <div style={playerHomeTrainingTitleStyle}>Prehab</div>
+                        <div style={playerHomeTrainingTitleStyle}>Skadeförebyggande</div>
                       </button>
                     </div>
                   )}
