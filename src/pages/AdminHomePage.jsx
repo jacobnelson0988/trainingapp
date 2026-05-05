@@ -45,7 +45,7 @@ function AdminHomePage({
   return (
     <>
       <div style={headerBlockStyle}>
-        <div style={sectionLabelStyle}>Admin</div>
+        <div style={sectionLabelStyle}>Start</div>
         <div style={headerTitleStyle}>{organizationLabel || "Administration"}</div>
       </div>
 
@@ -75,18 +75,20 @@ const headerBlockStyle = {
 const sectionLabelStyle = {
   marginBottom: "10px",
   fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
-  fontSize: "10px",
+  fontSize: "11px",
   fontWeight: "700",
-  letterSpacing: "0.12em",
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
   color: "#6f6659",
 }
 
 const headerTitleStyle = {
-  fontSize: "clamp(34px, 8vw, 48px)",
-  lineHeight: 0.94,
+  marginTop: "8px",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
   fontWeight: "700",
-  letterSpacing: "-0.05em",
+  letterSpacing: "-0.04em",
   color: "#1a1814",
   overflowWrap: "anywhere",
 }

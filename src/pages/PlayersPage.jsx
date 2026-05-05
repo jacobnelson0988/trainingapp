@@ -1103,6 +1103,7 @@ function PlayersPage({
     <div style={pageWrapStyle}>
       <div style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
+          <div style={pageEyebrowStyle}>Spelare</div>
           <h3 style={pageTitleStyle}>
             {role === "coach" ? "Spelare" : "Mina spelare"}
           </h3>
@@ -1447,21 +1448,23 @@ const pageHeaderCopyStyle = {
 }
 
 const pageTitleStyle = {
+  marginTop: "8px",
   marginBottom: "4px",
   fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(34px, 9vw, 52px)",
-  lineHeight: 0.94,
-  fontWeight: 800,
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: "#1a1814",
 }
 
 const pageEyebrowStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#6f6659",
 }
 
 const coachSummaryGridStyle = (isMobile) => ({

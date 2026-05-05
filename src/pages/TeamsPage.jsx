@@ -26,7 +26,8 @@ function TeamsPage({
 
   return (
     <>
-      <h3 style={cardTitleStyle}>Lag</h3>
+      <div style={pageEyebrowStyle}>Lag</div>
+      <h3 style={pageTitleStyle}>Lag</h3>
       <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
         Skapa lag och se hur många tränare och spelare som är kopplade till varje lag.
       </p>
@@ -122,6 +123,26 @@ function TeamsPage({
       </div>
     </>
   )
+}
+
+const pageEyebrowStyle = {
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "#6f6659",
+}
+
+const pageTitleStyle = {
+  marginTop: "8px",
+  marginBottom: "4px",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const createCardStyle = {

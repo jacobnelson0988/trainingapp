@@ -86,6 +86,7 @@ function MessagesPage({
 
   const resolvedPageHeaderStyle = useRedesignVariant ? playerPageHeaderStyle : pageHeaderStyle
   const resolvedPageHeaderCopyStyle = useRedesignVariant ? playerPageHeaderCopyStyle : pageHeaderCopyStyle
+  const resolvedPageEyebrowStyle = useRedesignVariant ? playerPageEyebrowStyle : pageEyebrowStyle
   const resolvedIntroTitleStyle = useRedesignVariant ? playerIntroTitleStyle : introTitleStyle
   const resolvedIntroStatsGridStyle = useRedesignVariant ? playerIntroStatsGridStyle : introStatsGridStyle
   const resolvedIntroStatCardStyle = useRedesignVariant ? playerIntroStatCardStyle : introStatCardStyle
@@ -173,6 +174,7 @@ function MessagesPage({
     <div style={pageWrapStyle}>
       <div style={resolvedPageHeaderStyle}>
         <div style={resolvedPageHeaderCopyStyle}>
+          <div style={resolvedPageEyebrowStyle}>Meddelanden</div>
           <div style={resolvedIntroTitleStyle}>Meddelanden</div>
         </div>
       </div>
@@ -478,18 +480,23 @@ const wrapStyle = {
 }
 
 const pageEyebrowStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#6f6659",
 }
 
 const introTitleStyle = {
-  marginBottom: "2px",
-  fontSize: "24px",
-  fontWeight: "900",
-  color: "#111827",
+  marginBottom: 0,
+  marginTop: "8px",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const introTextStyle = {
@@ -764,13 +771,23 @@ const playerPageHeaderCopyStyle = {
   gap: "2px",
 }
 
+const playerPageEyebrowStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
 const playerIntroTitleStyle = {
   marginBottom: 0,
+  marginTop: "8px",
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(34px, 9vw, 52px)",
-  lineHeight: 0.94,
-  fontWeight: 800,
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: playerInk,
 }
 

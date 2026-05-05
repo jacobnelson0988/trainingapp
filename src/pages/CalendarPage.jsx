@@ -648,7 +648,7 @@ function CalendarPage({
           <div style={playerCalendarHeroTopRowStyle(isMobile)}>
             <div>
               <div style={playerCalendarMonoLabelStyle}>Kalender</div>
-              <div style={playerCalendarTitleStyle}>Planera veckan.</div>
+              <div style={playerCalendarTitleStyle}>Kalender</div>
             </div>
             {!hasComposeView ? (
               <button type="button" onClick={handleOpenCreate} style={playerCalendarPrimaryButtonStyle}>
@@ -886,6 +886,7 @@ function CalendarPage({
     <div>
       <div style={headerStyle(isMobile)}>
         <div>
+          <div style={managementPageEyebrowStyle}>Kalender</div>
           <div style={titleStyle}>
             {role === "coach" && isExternalCalendarPageOpen ? "Synka med kalender" : "Kalender"}
           </div>
@@ -1165,13 +1166,23 @@ const headerStyle = (isMobile) => ({
 })
 
 const titleStyle = {
+  marginTop: "8px",
   marginBottom: 0,
   fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(34px, 9vw, 52px)",
-  lineHeight: 0.94,
-  fontWeight: 800,
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: "#1a1814",
+}
+
+const managementPageEyebrowStyle = {
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "#6f6659",
 }
 
 const subStyle = {
@@ -1588,12 +1599,6 @@ const playerCalendarPageStyle = {
 const playerCalendarHeroStyle = {
   display: "grid",
   gap: "14px",
-  padding: "18px",
-  borderRadius: "24px",
-  background:
-    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.18) 0%, rgba(247, 239, 229, 0.96) 38%, rgba(255, 251, 246, 0.98) 100%)",
-  border: "1px solid rgba(164, 106, 60, 0.14)",
-  boxShadow: "0 16px 30px rgba(15, 23, 42, 0.06)",
 }
 
 const playerCalendarHeroTopRowStyle = (isMobile) => ({
@@ -1605,27 +1610,22 @@ const playerCalendarHeroTopRowStyle = (isMobile) => ({
 })
 
 const playerCalendarMonoLabelStyle = {
-  fontSize: "12px",
-  fontWeight: 800,
-  letterSpacing: "0.18em",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "#8f1d1d",
+  color: "#6f6659",
 }
 
 const playerCalendarTitleStyle = {
   marginTop: "8px",
-  fontSize: "clamp(28px, 4.5vw, 42px)",
-  lineHeight: 0.96,
-  fontWeight: 900,
-  color: "#1c1917",
-}
-
-const playerCalendarTextStyle = {
-  marginTop: "8px",
-  maxWidth: "560px",
-  fontSize: "14px",
-  lineHeight: 1.55,
-  color: "#5b6475",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const playerCalendarToolbarStyle = (isMobile) => ({
@@ -1634,10 +1634,6 @@ const playerCalendarToolbarStyle = (isMobile) => ({
   alignItems: isMobile ? "stretch" : "center",
   flexDirection: isMobile ? "column" : "row",
   gap: "12px",
-  padding: "14px 16px",
-  borderRadius: "18px",
-  backgroundColor: "rgba(255, 255, 255, 0.62)",
-  border: "1px solid rgba(164, 106, 60, 0.12)",
 })
 
 const playerCalendarWeekLabelStyle = {

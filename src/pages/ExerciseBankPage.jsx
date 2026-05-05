@@ -510,6 +510,7 @@ function ExerciseBankPage({
   return (
     <div style={pageWrapStyle}>
       <div style={introCardStyle}>
+        <div style={introEyebrowStyle}>Övningsbank</div>
         <div style={introTitleStyle}>Övningsbank</div>
         <div style={introTextStyle}>
           {canManageExercises
@@ -1785,29 +1786,26 @@ const pageWrapStyle = {
 
 const introCardStyle = {
   marginBottom: "18px",
-  padding: "20px",
-  borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
 }
 
 const introEyebrowStyle = {
   marginBottom: "8px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#6f6659",
 }
 
 const introTitleStyle = {
   marginBottom: "6px",
+  marginTop: "8px",
   fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(34px, 9vw, 52px)",
-  lineHeight: 0.94,
-  fontWeight: 800,
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: "#1a1814",
 }
 

@@ -32,7 +32,8 @@ function CreateUserPage({
 
   return (
     <>
-      <h3 style={cardTitleStyle}>{isHeadAdmin ? "Skapa användare" : "Skapa användare i laget"}</h3>
+      <div style={pageEyebrowStyle}>Användare</div>
+      <h3 style={pageTitleStyle}>{isHeadAdmin ? "Skapa användare" : "Skapa användare i laget"}</h3>
 
       <form onSubmit={handleCreateUser}>
         <div style={{ marginBottom: "10px" }}>
@@ -214,6 +215,26 @@ function CreateUserPage({
       )}
     </>
   )
+}
+
+const pageEyebrowStyle = {
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "#6f6659",
+}
+
+const pageTitleStyle = {
+  marginTop: "8px",
+  marginBottom: "10px",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 export default CreateUserPage

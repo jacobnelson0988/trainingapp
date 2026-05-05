@@ -604,8 +604,8 @@ function PassBuilderPage({
         </div>
 
         <div style={panelStyle}>
-          <div style={sectionEyebrowStyle}>Nytt pass</div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Skapa nytt pass</h3>
+          <div style={sectionEyebrowStyle}>Passval</div>
+          <h3 style={pageTitleStyle}>Skapa nytt pass</h3>
           <p style={{ ...mutedTextStyle, marginBottom: "16px" }}>
             Skapa först passet med namn och kort info. Du kan lägga till övningar efteråt.
           </p>
@@ -1627,7 +1627,8 @@ function PassBuilderPage({
     <>
       <div style={overviewHeaderStyle}>
         <div>
-          <h3 style={cardTitleStyle}>Passhantering</h3>
+          <div style={sectionEyebrowStyle}>Passval</div>
+          <h3 style={pageTitleStyle}>Passhantering</h3>
           <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
             Välj ett pass för att öppna redigeringsläget, eller skapa ett nytt pass.
           </p>
@@ -2100,11 +2101,23 @@ const editSectionButtonActiveStyle = {
 
 const sectionEyebrowStyle = {
   marginBottom: "6px",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
   fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#6f6659",
+}
+
+const pageTitleStyle = {
+  marginTop: "8px",
+  marginBottom: "8px",
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: "#1a1814",
 }
 
 const fieldLabelStyle = {

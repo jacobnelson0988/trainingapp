@@ -823,10 +823,11 @@ function StatsPage({
     <div style={pageWrapStyle}>
       <div style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
-        <div style={introTitleStyle}>Aktivitet och statistik</div>
-        <div style={introTextStyle}>
-          Öppna genomförda pass direkt i listan och växla sedan över till utveckling per övning i samma kompakta flöde.
-        </div>
+          <div style={pageEyebrowStyle}>Statistik</div>
+          <div style={introTitleStyle}>Aktivitet och statistik</div>
+          <div style={introTextStyle}>
+            Öppna genomförda pass direkt i listan och växla sedan över till utveckling per övning i samma kompakta flöde.
+          </div>
         </div>
       </div>
 
@@ -2361,20 +2362,22 @@ const pageHeaderCopyStyle = {
 }
 
 const pageEyebrowStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
+  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#6f6659",
 }
 
 const introTitleStyle = {
   marginBottom: "2px",
+  marginTop: "8px",
   fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(34px, 9vw, 52px)",
-  lineHeight: 0.94,
-  fontWeight: 800,
-  letterSpacing: "-0.05em",
+  fontSize: "clamp(38px, 10vw, 60px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
   color: "#1a1814",
 }
 
