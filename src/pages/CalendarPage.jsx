@@ -289,6 +289,7 @@ function CalendarPage({
   const [draft, setDraft] = useState(() => createEmptyDraft(role))
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [expandedPlayerDayKey, setExpandedPlayerDayKey] = useState(null)
+  const [isExternalCalendarPageOpen, setIsExternalCalendarPageOpen] = useState(false)
 
   const workoutOptions = useMemo(
     () =>
@@ -883,31 +884,63 @@ function CalendarPage({
 
   return (
     <div>
-      {role === "coach" ? (
-        <div style={externalCalendarAdminCardStyle}>
-          <div style={externalCalendarAdminHeaderStyle(isMobile)}>
-            <div>
-              <div style={formTitleStyle}>laget.se-kalender</div>
-              <div style={formTextStyle}>
-                Synka lagets handbollspass automatiskt till appens kalender.
-              </div>
-            </div>
+      <div style={headerStyle(isMobile)}>
+        <div>
+          <div style={titleStyle}>
+            {role === "coach" && isExternalCalendarPageOpen ? "Synka med kalender" : "Kalender"}
+          </div>
+          <div style={subStyle}>
+            {role === "coach" && isExternalCalendarPageOpen
+              ? "Klistra in länken till lagets kalender för att hämta in handbollspassen automatiskt."
+              : role === "coach"
+              ? `Planera veckan för ${teamName}.`
+              : "Se dina planerade aktiviteter för veckan."}
+          </div>
+        </div>
+        <div style={weekActionsStyle(isMobile)}>
+          {role === "coach" ? (
             <button
               type="button"
-              onClick={onSyncExternalCalendar}
-              disabled={!externalCalendarSource?.feed_url || isSyncingExternalCalendar}
-              style={{
-                ...primaryButtonCompactStyle,
-                opacity: !externalCalendarSource?.feed_url || isSyncingExternalCalendar ? 0.7 : 1,
-              }}
+              onClick={() => setIsExternalCalendarPageOpen((prev) => !prev)}
+              style={secondaryButtonStyle}
             >
-              {isSyncingExternalCalendar ? "Synkar..." : "Synka nu"}
+              {isExternalCalendarPageOpen ? "Tillbaka till kalendern" : "Synka med kalender"}
             </button>
+          ) : null}
+          {!editingEntry && !isExternalCalendarPageOpen ? (
+            <button type="button" onClick={handleOpenCreate} style={primaryButtonCompactStyle}>
+              {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
+            </button>
+          ) : null}
+          {!isExternalCalendarPageOpen ? (
+            <>
+              <button type="button" onClick={onPreviousWeek} style={secondaryButtonStyle}>
+                Föregående
+              </button>
+              <button type="button" onClick={onGoToToday} style={secondaryButtonStyle}>
+                Idag
+              </button>
+              <button type="button" onClick={onNextWeek} style={secondaryButtonStyle}>
+                Nästa
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {role === "coach" && isExternalCalendarPageOpen ? (
+        <div style={externalCalendarAdminCardStyle}>
+          <div style={externalCalendarSyncIntroStyle}>
+            <div style={formTitleStyle}>Koppla laget.se</div>
+            <div style={formTextStyle}>
+              Kopiera länken till lagets kalender och spara den här. Därefter kan du synka in kommande
+              handbollspass till appen.
+            </div>
           </div>
 
           <div style={externalCalendarAdminGridStyle(isMobile)}>
             <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Kalenderlänk eller slug</span>
+              <span style={fieldLabelStyle}>Kalenderlänk</span>
               <input
                 type="text"
                 value={externalCalendarFeedUrl}
@@ -953,42 +986,28 @@ function CalendarPage({
             >
               {isSavingExternalCalendarSource ? "Sparar..." : "Spara kalender"}
             </button>
-          </div>
-        </div>
-      ) : null}
-
-      <div style={headerStyle(isMobile)}>
-        <div>
-          <div style={titleStyle}>Kalender</div>
-          <div style={subStyle}>
-            {role === "coach" ? `Planera veckan för ${teamName}.` : "Se dina planerade aktiviteter för veckan."}
-          </div>
-        </div>
-        <div style={weekActionsStyle(isMobile)}>
-          {!editingEntry ? (
-            <button type="button" onClick={handleOpenCreate} style={primaryButtonCompactStyle}>
-              {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
+            <button
+              type="button"
+              onClick={onSyncExternalCalendar}
+              disabled={!externalCalendarSource?.feed_url || isSyncingExternalCalendar}
+              style={{
+                ...primaryButtonCompactStyle,
+                opacity: !externalCalendarSource?.feed_url || isSyncingExternalCalendar ? 0.7 : 1,
+              }}
+            >
+              {isSyncingExternalCalendar ? "Synkar..." : "Synka nu"}
             </button>
-          ) : null}
-          <button type="button" onClick={onPreviousWeek} style={secondaryButtonStyle}>
-            Föregående
-          </button>
-          <button type="button" onClick={onGoToToday} style={secondaryButtonStyle}>
-            Idag
-          </button>
-          <button type="button" onClick={onNextWeek} style={secondaryButtonStyle}>
-            Nästa
-          </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {isCreateOpen && !editingEntry ? <div style={composerWrapStyle}>{renderActivityForm()}</div> : null}
 
-      {isCreateOpen && !editingEntry ? <div style={composerWrapStyle}>{renderActivityForm()}</div> : null}
-
-      <div style={weekColumnStyle}>
-          {isLoading ? (
-            <div style={emptyStateStyle}>Laddar kalender...</div>
-          ) : (
-            <div style={weekGridStyle(isMobile)}>
+          <div style={weekColumnStyle}>
+            {isLoading ? (
+              <div style={emptyStateStyle}>Laddar kalender...</div>
+            ) : (
+              <div style={weekGridStyle(isMobile)}>
               {weekDays.map((day) => (
                 <section key={day.key} style={dayCardStyle}>
                   <div style={dayHeaderStyle}>
@@ -1127,9 +1146,11 @@ function CalendarPage({
                   )}
                 </section>
               ))}
-            </div>
-          )}
-      </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -1527,6 +1548,12 @@ const externalCalendarAdminGridStyle = (isMobile) => ({
   gap: "12px",
   gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.7fr) minmax(220px, 0.7fr)",
 })
+
+const externalCalendarSyncIntroStyle = {
+  display: "grid",
+  gap: "6px",
+  marginBottom: "16px",
+}
 
 const externalCalendarAdminMetaStyle = {
   display: "flex",
