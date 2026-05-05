@@ -7732,7 +7732,7 @@ function TrainingApp() {
     playerPassFamily && (playerPassFamily !== "running" || playerRunningView === "assigned")
   const playerPassFamilyTitle =
     playerPassFamily === "strength"
-      ? "Styrka"
+      ? "Gym"
       : playerPassFamily === "running"
       ? playerRunningView === "assigned"
         ? "Färdiga intervallpass"
@@ -10024,13 +10024,17 @@ function TrainingApp() {
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
                       <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
-                        <div style={playerHomeTrainingTitleStyle}>Styrka</div>
+                        <div style={playerHomeTrainingTitleStyle}>Gym</div>
                       </button>
                       <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                       </button>
-                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
-                        <div style={playerHomeTrainingTitleStyle}>Prehab</div>
+                      <button
+                        type="button"
+                        onClick={() => navigatePlayerSection("activity")}
+                        style={playerHomeTrainingCardStyle("paper")}
+                      >
+                        <div style={playerHomeTrainingTitleStyle}>Egen aktivitet</div>
                       </button>
                     </div>
                   )}
