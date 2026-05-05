@@ -13937,7 +13937,7 @@ const playerHomeSectionMetaStyle = {
 const playerTrainingMenuGridStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
-  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
+  gridTemplateColumns: "1fr",
 })
 
 const playerHomePrimaryMenuListStyle = {
