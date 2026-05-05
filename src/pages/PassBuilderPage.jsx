@@ -354,6 +354,7 @@ function PassBuilderPage({
   isMobile,
 }) {
   const [view, setView] = useState("overview")
+  const [selectedOverviewCategory, setSelectedOverviewCategory] = useState("")
   const [activeEditSection, setActiveEditSection] = useState("exercises")
   const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [showExercisePicker, setShowExercisePicker] = useState(false)
@@ -407,11 +408,15 @@ function PassBuilderPage({
   }, [activeEditSection, currentWorkout, view])
 
   const openCreateView = () => {
+    setView("createType")
+  }
+
+  const openCreateType = (workoutKind) => {
     setNewPassName("")
     setNewPassInfo("")
     setNewPassWarmupCardio("")
     setNewPassWarmupTechnique("")
-    setNewPassWorkoutKind("gym")
+    setNewPassWorkoutKind(workoutKind)
     setNewPassRunningType("intervals")
     setNewPassRunningIntervalTime("")
     setNewPassRunningIntervalsCount("")
@@ -454,6 +459,7 @@ function PassBuilderPage({
     const didCreate = await handleCreatePass()
 
     if (didCreate) {
+      setSelectedOverviewCategory(getOverviewCategoryForWorkoutKind(newPassWorkoutKind))
       setView("overview")
     }
   }
@@ -593,21 +599,37 @@ function PassBuilderPage({
   const hasAssignmentSelectionChanged =
     selectedAssignPlayerIds.length !== assignedPlayerIdsForSelectedPass.length ||
     selectedAssignPlayerIds.some((playerId) => !assignedPlayerIdsForSelectedPass.includes(playerId))
+  const passCountsByCategory = useMemo(
+    () => ({
+      strength: passKeys.filter((key) => (activeWorkouts[key]?.workoutKind || "gym") === "gym").length,
+      running: passKeys.filter((key) => activeWorkouts[key]?.workoutKind === "running").length,
+      prehab: passKeys.filter((key) => activeWorkouts[key]?.workoutKind === "prehab").length,
+    }),
+    [activeWorkouts, passKeys]
+  )
+  const filteredPassKeys = useMemo(() => {
+    if (!selectedOverviewCategory) return passKeys
+
+    return passKeys.filter((passKey) => {
+      const workoutKind = activeWorkouts[passKey]?.workoutKind || "gym"
+      return getOverviewCategoryForWorkoutKind(workoutKind) === selectedOverviewCategory
+    })
+  }, [activeWorkouts, passKeys, selectedOverviewCategory])
 
   if (view === "create") {
     return (
       <>
         <div style={topBarStyle}>
-          <button type="button" onClick={() => setView("overview")} style={secondaryButtonStyle}>
+          <button type="button" onClick={() => setView("createType")} style={secondaryButtonStyle}>
             ← Tillbaka
           </button>
         </div>
 
         <div style={panelStyle}>
-          <div style={sectionEyebrowStyle}>Passval</div>
-          <h3 style={pageTitleStyle}>Skapa nytt pass</h3>
+          <div style={sectionEyebrowStyle}>Skapa nytt pass</div>
+          <h3 style={pageTitleStyle}>{getCreatePageTitle(newPassWorkoutKind)}</h3>
           <p style={{ ...mutedTextStyle, marginBottom: "16px" }}>
-            Skapa först passet med namn och kort info. Du kan lägga till övningar efteråt.
+            Skapa först passet med namn och kort info. Därefter kan du direkt öppna det och lägga till övningar.
           </p>
 
           <div style={formStackStyle}>
@@ -634,17 +656,8 @@ function PassBuilderPage({
 
             <div style={subSectionStyle}>
               <div style={sectionTitleStyle}>Passupplägg</div>
-              <div>
-                <div style={fieldLabelStyle}>Typ av pass</div>
-                <select
-                  value={newPassWorkoutKind}
-                  onChange={(e) => setNewPassWorkoutKind(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                >
-                  <option value="gym">Gympass</option>
-                  <option value="prehab">Skadeförebyggande</option>
-                  <option value="running">Löppass</option>
-                </select>
+              <div style={passTypePillStyle}>
+                {getCreatePageTitle(newPassWorkoutKind)}
               </div>
 
               {newPassWorkoutKind === "gym" && (
@@ -797,9 +810,49 @@ function PassBuilderPage({
                 opacity: isCreatingPass ? 0.7 : 1,
               }}
             >
-              {isCreatingPass ? "Skapar..." : "Skapa pass"}
+              {isCreatingPass ? "Skapar..." : "Skapa pass och fortsätt"}
             </button>
           </div>
+        </div>
+      </>
+    )
+  }
+
+  if (view === "createType") {
+    return (
+      <>
+        <div style={topBarStyle}>
+          <button type="button" onClick={() => setView("overview")} style={secondaryButtonStyle}>
+            ← Tillbaka
+          </button>
+        </div>
+
+        <div style={pageStackStyle}>
+          <section style={overviewHeaderBlockStyle}>
+            <div style={sectionEyebrowStyle}>Passhantering</div>
+            <h3 style={pageTitleStyle}>Skapa nytt pass</h3>
+            <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
+              Välj först vilken typ av pass du vill bygga.
+            </p>
+          </section>
+
+          <section style={fullWidthCategoryListStyle}>
+            {[
+              { key: "gym", title: "Styrka", text: "Bygg gympass med uppvärmning och övningar.", tone: "ink" },
+              { key: "running", title: "Löppass", text: "Skapa intervall- eller distanspass.", tone: "accent" },
+              { key: "prehab", title: "Skadeförebyggande", text: "Bygg prehabpass i samma tydliga flöde.", tone: "paper" },
+            ].map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => openCreateType(option.key)}
+                style={passOverviewCategoryCardStyle(option.tone)}
+              >
+                <div style={passOverviewCategoryTitleStyle}>{option.title}</div>
+                <div style={passOverviewCategoryTextStyle}>{option.text}</div>
+              </button>
+            ))}
+          </section>
         </div>
       </>
     )
@@ -1625,60 +1678,85 @@ function PassBuilderPage({
 
   return (
     <>
-      <div style={overviewHeaderStyle}>
-        <div>
-          <div style={sectionEyebrowStyle}>Passval</div>
-          <h3 style={pageTitleStyle}>Passhantering</h3>
-          <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
-            Välj ett pass för att öppna redigeringsläget, eller skapa ett nytt pass.
-          </p>
+      {!selectedOverviewCategory ? (
+        <div style={pageStackStyle}>
+          <section style={overviewHeaderBlockStyle}>
+            <div style={sectionEyebrowStyle}>Passhantering</div>
+            <h3 style={pageTitleStyle}>Passhantering</h3>
+            <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
+              {passKeys.length} pass finns just nu. Välj kategori för att öppna befintliga pass.
+            </p>
+          </section>
+
+          <section style={fullWidthCategoryListStyle}>
+            <button
+              type="button"
+              onClick={() => setSelectedOverviewCategory("strength")}
+              style={passOverviewCategoryCardStyle("ink")}
+            >
+              <div style={passOverviewCategoryTitleStyle}>Styrka</div>
+              <div style={passOverviewCategoryTextStyle}>{passCountsByCategory.strength} pass</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedOverviewCategory("running")}
+              style={passOverviewCategoryCardStyle("accent")}
+            >
+              <div style={passOverviewCategoryTitleStyle}>Löppass</div>
+              <div style={passOverviewCategoryTextStyle}>{passCountsByCategory.running} pass</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedOverviewCategory("prehab")}
+              style={passOverviewCategoryCardStyle("paper")}
+            >
+              <div style={passOverviewCategoryTitleStyle}>Skadeförebyggande</div>
+              <div style={passOverviewCategoryTextStyle}>{passCountsByCategory.prehab} pass</div>
+            </button>
+          </section>
+
+          <section style={panelStyle}>
+            <div style={panelHeaderStyle}>
+              <div>
+                <div style={sectionEyebrowStyle}>Skapa nytt pass</div>
+                <div style={sectionTitleStyle}>Nytt upplägg</div>
+              </div>
+            </div>
+            <button type="button" onClick={openCreateView} style={{ ...buttonStyle, width: "100%" }}>
+              Skapa nytt pass
+            </button>
+          </section>
         </div>
-
-        <button type="button" onClick={openCreateView} style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}>
-          Skapa nytt pass
-        </button>
-      </div>
-
-      <div style={pageStackStyle}>
-        <section style={summaryStripStyle(isMobile)}>
-          <div style={summaryStatCardStyle}>
-            <div style={summaryStatLabelStyle}>Pass totalt</div>
-            <div style={{ ...summaryStatValueStyle, color: "#dc2626" }}>{passKeys.length}</div>
-          </div>
-          <div style={summaryStatCardStyle}>
-            <div style={summaryStatLabelStyle}>Gympass</div>
-            <div style={summaryStatValueStyle}>
-              {passKeys.filter((key) => (activeWorkouts[key]?.workoutKind || "gym") === "gym").length}
-            </div>
-          </div>
-          <div style={summaryStatCardStyle}>
-            <div style={summaryStatLabelStyle}>Skadeförebyggande</div>
-            <div style={summaryStatValueStyle}>
-              {passKeys.filter((key) => activeWorkouts[key]?.workoutKind === "prehab").length}
-            </div>
-          </div>
-          <div style={summaryStatCardStyle}>
-            <div style={summaryStatLabelStyle}>Löppass</div>
-            <div style={summaryStatValueStyle}>
-              {passKeys.filter((key) => activeWorkouts[key]?.workoutKind === "running").length}
-            </div>
-          </div>
-        </section>
-
-        <section style={panelStyle}>
-          <div style={panelHeaderStyle}>
-            <div>
-              <div style={sectionEyebrowStyle}>Dina pass</div>
-              <div style={sectionTitleStyle}>Välj pass att redigera</div>
-            </div>
-            <div style={summaryBadgeStyle}>{passKeys.length} pass</div>
+      ) : (
+        <div style={pageStackStyle}>
+          <div style={topBarStyle}>
+            <button type="button" onClick={() => setSelectedOverviewCategory("")} style={secondaryButtonStyle}>
+              ← Tillbaka
+            </button>
           </div>
 
-          {passKeys.length === 0 ? (
-            <p style={mutedTextStyle}>Inga pass finns ännu. Skapa ditt första pass.</p>
-          ) : (
-            <div style={{ ...passGridStyle, gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))" }}>
-              {passKeys.map((passKey) => {
+          <section style={overviewHeaderBlockStyle}>
+            <div style={sectionEyebrowStyle}>Passhantering</div>
+            <h3 style={pageTitleStyle}>{getOverviewCategoryLabel(selectedOverviewCategory)}</h3>
+            <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
+              {filteredPassKeys.length} pass i den här kategorin.
+            </p>
+          </section>
+
+          <section style={panelStyle}>
+            <div style={panelHeaderStyle}>
+              <div>
+                <div style={sectionEyebrowStyle}>Befintliga pass</div>
+                <div style={sectionTitleStyle}>Välj pass att redigera</div>
+              </div>
+              <div style={summaryBadgeStyle}>{filteredPassKeys.length} pass</div>
+            </div>
+
+            {filteredPassKeys.length === 0 ? (
+              <p style={mutedTextStyle}>Inga pass finns i den här kategorin ännu.</p>
+            ) : (
+              <div style={{ ...passGridStyle, gridTemplateColumns: "1fr" }}>
+                {filteredPassKeys.map((passKey) => {
                 const workout = activeWorkouts[passKey]
                 const isSelected = selectedTemplateCode === passKey
 
@@ -1872,12 +1950,31 @@ function PassBuilderPage({
                   </div>
                 )
               })}
-            </div>
-          )}
-        </section>
-      </div>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </>
   )
+}
+
+const getOverviewCategoryForWorkoutKind = (workoutKind) => {
+  if (workoutKind === "running") return "running"
+  if (workoutKind === "prehab") return "prehab"
+  return "strength"
+}
+
+const getOverviewCategoryLabel = (categoryKey) => {
+  if (categoryKey === "running") return "Löppass"
+  if (categoryKey === "prehab") return "Skadeförebyggande"
+  return "Styrka"
+}
+
+const getCreatePageTitle = (workoutKind) => {
+  if (workoutKind === "running") return "Skapa löppass"
+  if (workoutKind === "prehab") return "Skapa skadeförebyggande pass"
+  return "Skapa styrkepass"
 }
 
 const topBarStyle = {
@@ -1926,6 +2023,55 @@ const summaryStatValueStyle = {
 const pageStackStyle = {
   display: "grid",
   gap: "14px",
+}
+
+const overviewHeaderBlockStyle = {
+  display: "grid",
+  gap: "4px",
+}
+
+const fullWidthCategoryListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const passOverviewCategoryCardStyle = (tone = "paper") => {
+  const isDark = tone === "ink"
+  const isAccent = tone === "accent"
+
+  return {
+    width: "100%",
+    minHeight: "122px",
+    padding: "18px",
+    borderRadius: "22px",
+    border: `1px solid ${isDark ? "#1a1814" : isAccent ? "#d94a1f" : "rgba(26, 24, 20, 0.14)"}`,
+    background: isDark
+      ? "#1a1814"
+      : isAccent
+      ? "linear-gradient(135deg, #d94a1f 0%, #b93617 100%)"
+      : "rgba(255, 255, 255, 0.28)",
+    color: isDark || isAccent ? "#f3efe6" : "#1a1814",
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
+    display: "grid",
+    gap: "8px",
+    alignContent: "center",
+  }
+}
+
+const passOverviewCategoryTitleStyle = {
+  fontFamily: '"Manrope", sans-serif',
+  fontSize: "clamp(24px, 6vw, 34px)",
+  lineHeight: 0.94,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+}
+
+const passOverviewCategoryTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.5,
+  opacity: 0.88,
 }
 
 const panelStyle = {
@@ -2118,6 +2264,18 @@ const pageTitleStyle = {
   fontWeight: 700,
   letterSpacing: "-0.04em",
   color: "#1a1814",
+}
+
+const passTypePillStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "10px 14px",
+  borderRadius: "999px",
+  border: "1px solid rgba(26, 24, 20, 0.12)",
+  backgroundColor: "rgba(255, 255, 255, 0.6)",
+  color: "#1a1814",
+  fontSize: "14px",
+  fontWeight: 700,
 }
 
 const fieldLabelStyle = {
