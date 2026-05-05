@@ -882,275 +882,286 @@ function CalendarPage({
     )
   }
 
+  const hasCoachDetailView = isCreateOpen || Boolean(editingEntry) || isExternalCalendarPageOpen
+
   return (
-    <div>
-      <div style={headerStyle(isMobile)}>
-        <div>
-          <div style={managementPageEyebrowStyle}>Kalender</div>
-          <div style={titleStyle}>
-            {role === "coach" && isExternalCalendarPageOpen ? "Synka med kalender" : "Kalender"}
+    <div style={playerCalendarPageStyle}>
+      <div style={playerCalendarHeroStyle}>
+        <div style={playerCalendarHeroTopRowStyle(isMobile)}>
+          <div>
+            <div style={playerCalendarMonoLabelStyle}>Kalender</div>
+            <div style={playerCalendarTitleStyle}>{isExternalCalendarPageOpen ? "Synka med kalender" : "Kalender"}</div>
           </div>
-          <div style={subStyle}>
-            {role === "coach" && isExternalCalendarPageOpen
-              ? "Klistra in länken till lagets kalender för att hämta in handbollspassen automatiskt."
-              : role === "coach"
-              ? `Planera veckan för ${teamName}.`
-              : "Se dina planerade aktiviteter för veckan."}
-          </div>
+          {!hasCoachDetailView ? (
+            <div style={coachCalendarActionStackStyle(isMobile)}>
+              <button type="button" onClick={handleOpenCreate} style={playerCalendarPrimaryButtonStyle}>
+                Ny aktivitet
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsExternalCalendarPageOpen(true)}
+                style={playerCalendarSecondaryButtonStyle}
+              >
+                Synka med kalender
+              </button>
+            </div>
+          ) : null}
         </div>
-        <div style={weekActionsStyle(isMobile)}>
-          {role === "coach" ? (
-            <button
-              type="button"
-              onClick={() => setIsExternalCalendarPageOpen((prev) => !prev)}
-              style={secondaryButtonStyle}
-            >
-              {isExternalCalendarPageOpen ? "Tillbaka till kalendern" : "Synka med kalender"}
-            </button>
-          ) : null}
-          {!editingEntry && !isExternalCalendarPageOpen ? (
-            <button type="button" onClick={handleOpenCreate} style={primaryButtonCompactStyle}>
-              {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
-            </button>
-          ) : null}
-          {!isExternalCalendarPageOpen ? (
-            <>
-              <button type="button" onClick={onPreviousWeek} style={secondaryButtonStyle}>
+
+        {!isExternalCalendarPageOpen ? (
+          <div style={playerCalendarToolbarStyle(isMobile)}>
+            <div>
+              <div style={playerCalendarWeekLabelStyle}>Veckovy</div>
+              <div style={playerCalendarWeekRangeRowStyle}>
+                <div style={playerCalendarWeekRangeStyle}>{weekRangeLabel}</div>
+                <div style={playerCalendarWeekNumberStyle}>Vecka {weekNumber}</div>
+              </div>
+            </div>
+            <div style={playerCalendarNavRowStyle(isMobile)}>
+              <button type="button" onClick={onPreviousWeek} style={playerCalendarSecondaryButtonStyle}>
                 Föregående
               </button>
-              <button type="button" onClick={onGoToToday} style={secondaryButtonStyle}>
+              <button type="button" onClick={onGoToToday} style={playerCalendarSecondaryButtonStyle}>
                 Idag
               </button>
-              <button type="button" onClick={onNextWeek} style={secondaryButtonStyle}>
+              <button type="button" onClick={onNextWeek} style={playerCalendarSecondaryButtonStyle}>
                 Nästa
               </button>
-            </>
-          ) : null}
-        </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {role === "coach" && isExternalCalendarPageOpen ? (
-        <div style={externalCalendarAdminCardStyle}>
-          <div style={externalCalendarSyncIntroStyle}>
-            <div style={formTitleStyle}>Koppla laget.se</div>
-            <div style={formTextStyle}>
-              Kopiera länken till lagets kalender och spara den här. Därefter kan du synka in kommande
-              handbollspass till appen.
+      {isExternalCalendarPageOpen ? (
+        <div style={playerCalendarComposeWrapStyle}>
+          <button
+            type="button"
+            onClick={() => setIsExternalCalendarPageOpen(false)}
+            style={playerCalendarBackButtonStyle}
+          >
+            ← Tillbaka till veckan
+          </button>
+          <div style={playerCalendarComposeIntroStyle}>
+            <div style={playerCalendarMonoLabelStyle}>Kalendersynk</div>
+            <div style={playerCalendarComposeTitleStyle}>Koppla laget.se</div>
+            <div style={playerCalendarComposeTextStyle}>
+              Klistra in lagets kalenderlänk och spara den här. Därefter kan du synka in kommande handbollspass till appen.
             </div>
           </div>
 
-          <div style={externalCalendarAdminGridStyle(isMobile)}>
-            <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Kalenderlänk</span>
-              <input
-                type="text"
-                value={externalCalendarFeedUrl}
-                onChange={(event) => onExternalCalendarFeedUrlChange(event.target.value)}
-                placeholder="webcal://cal.laget.se/dittlag.ics"
-                style={inputStyle}
-              />
-            </label>
+          <div style={externalCalendarAdminCardStyle}>
+            <div style={externalCalendarAdminGridStyle(isMobile)}>
+              <label style={fieldStyle}>
+                <span style={fieldLabelStyle}>Kalenderlänk</span>
+                <input
+                  type="text"
+                  value={externalCalendarFeedUrl}
+                  onChange={(event) => onExternalCalendarFeedUrlChange(event.target.value)}
+                  placeholder="webcal://cal.laget.se/dittlag.ics"
+                  style={inputStyle}
+                />
+              </label>
 
-            <label style={{ ...fieldStyle, justifyContent: "flex-end" }}>
-              <span style={fieldLabelStyle}>Automatisk sync</span>
-              <select
-                value={externalCalendarEnabled ? "enabled" : "disabled"}
-                onChange={(event) => onExternalCalendarEnabledChange(event.target.value === "enabled")}
-                style={inputStyle}
-              >
-                <option value="enabled">Aktiv</option>
-                <option value="disabled">Avstängd</option>
-              </select>
-            </label>
-          </div>
+              <label style={{ ...fieldStyle, justifyContent: "flex-end" }}>
+                <span style={fieldLabelStyle}>Automatisk sync</span>
+                <select
+                  value={externalCalendarEnabled ? "enabled" : "disabled"}
+                  onChange={(event) => onExternalCalendarEnabledChange(event.target.value === "enabled")}
+                  style={inputStyle}
+                >
+                  <option value="enabled">Aktiv</option>
+                  <option value="disabled">Avstängd</option>
+                </select>
+              </label>
+            </div>
 
-          <div style={externalCalendarAdminMetaStyle}>
-            <span>Senast synkad: {externalCalendarLastSyncedLabel}</span>
-            {externalCalendarSource?.last_sync_status ? (
-              <span>Status: {externalCalendarSource.last_sync_status}</span>
+            <div style={externalCalendarAdminMetaStyle}>
+              <span>Senast synkad: {externalCalendarLastSyncedLabel}</span>
+              {externalCalendarSource?.last_sync_status ? (
+                <span>Status: {externalCalendarSource.last_sync_status}</span>
+              ) : null}
+            </div>
+
+            {externalCalendarSource?.last_sync_error ? (
+              <div style={externalCalendarAdminErrorStyle}>{externalCalendarSource.last_sync_error}</div>
             ) : null}
-          </div>
 
-          {externalCalendarSource?.last_sync_error ? (
-            <div style={externalCalendarAdminErrorStyle}>{externalCalendarSource.last_sync_error}</div>
-          ) : null}
-
-          <div style={playerActionsWrapStyle}>
-            <button
-              type="button"
-              onClick={onSaveExternalCalendarSource}
-              disabled={isSavingExternalCalendarSource}
-              style={{
-                ...secondaryButtonStyle,
-                opacity: isSavingExternalCalendarSource ? 0.7 : 1,
-              }}
-            >
-              {isSavingExternalCalendarSource ? "Sparar..." : "Spara kalender"}
-            </button>
-            <button
-              type="button"
-              onClick={onSyncExternalCalendar}
-              disabled={!externalCalendarSource?.feed_url || isSyncingExternalCalendar}
-              style={{
-                ...primaryButtonCompactStyle,
-                opacity: !externalCalendarSource?.feed_url || isSyncingExternalCalendar ? 0.7 : 1,
-              }}
-            >
-              {isSyncingExternalCalendar ? "Synkar..." : "Synka nu"}
-            </button>
+            <div style={playerActionsWrapStyle}>
+              <button
+                type="button"
+                onClick={onSaveExternalCalendarSource}
+                disabled={isSavingExternalCalendarSource}
+                style={{
+                  ...playerCalendarSecondaryButtonStyle,
+                  opacity: isSavingExternalCalendarSource ? 0.7 : 1,
+                }}
+              >
+                {isSavingExternalCalendarSource ? "Sparar..." : "Spara kalender"}
+              </button>
+              <button
+                type="button"
+                onClick={onSyncExternalCalendar}
+                disabled={!externalCalendarSource?.feed_url || isSyncingExternalCalendar}
+                style={{
+                  ...playerCalendarPrimaryButtonStyle,
+                  opacity: !externalCalendarSource?.feed_url || isSyncingExternalCalendar ? 0.7 : 1,
+                }}
+              >
+                {isSyncingExternalCalendar ? "Synkar..." : "Synka nu"}
+              </button>
+            </div>
           </div>
         </div>
+      ) : isCreateOpen || editingEntry ? (
+        <div style={playerCalendarComposeWrapStyle}>
+          <button type="button" onClick={resetDraft} style={playerCalendarBackButtonStyle}>
+            ← Tillbaka till veckan
+          </button>
+          <div style={playerCalendarComposeIntroStyle}>
+            <div style={playerCalendarMonoLabelStyle}>{editingEntry ? "Redigera" : "Ny aktivitet"}</div>
+            <div style={playerCalendarComposeTitleStyle}>
+              {editingEntry ? "Ändra kalenderpost." : "Lägg in något i kalendern."}
+            </div>
+            <div style={playerCalendarComposeTextStyle}>
+              Planera veckan för laget och håll alla aktiviteter samlade i samma flöde.
+            </div>
+          </div>
+          {renderActivityForm()}
+        </div>
+      ) : isLoading ? (
+        <div style={playerCalendarLoadingStyle}>Laddar kalender...</div>
       ) : (
-        <>
-          {isCreateOpen && !editingEntry ? <div style={composerWrapStyle}>{renderActivityForm()}</div> : null}
+        <div style={playerCalendarWeekListStyle}>
+          {weekDays.map((day) => {
+            const dayEntries = entriesByDay[day.key] || []
+            const isExpanded = expandedPlayerDayKey === day.key
 
-          <div style={weekColumnStyle}>
-            {isLoading ? (
-              <div style={emptyStateStyle}>Laddar kalender...</div>
-            ) : (
-              <div style={weekGridStyle(isMobile)}>
-              {weekDays.map((day) => (
-                <section key={day.key} style={dayCardStyle}>
-                  <div style={dayHeaderStyle}>
-                    <div style={dayTitleStyle}>{day.label}</div>
-                    <div style={dayCountStyle}>{entriesByDay[day.key]?.length || 0}</div>
+            return (
+              <section key={day.key} style={playerCalendarDaySectionStyle}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedPlayerDayKey((current) => (current === day.key ? null : day.key))}
+                  style={playerCalendarDayHeaderButtonStyle}
+                >
+                  <div style={playerCalendarDayHeaderStyle}>
+                    <div style={playerCalendarDayKickerStyle}>
+                      {new Date(day.key).toLocaleDateString("sv-SE", { weekday: "short" })}
+                    </div>
+                    <div style={playerCalendarDayTitleStyle}>{formatPlayerDayTitle(day.key)}</div>
                   </div>
+                  <div style={playerCalendarDayHeaderMetaStyle}>
+                    <div style={playerCalendarDayCountStyle}>{dayEntries.length}</div>
+                    <div style={playerCalendarDayChevronStyle(isExpanded)} aria-hidden="true">
+                      ▾
+                    </div>
+                  </div>
+                </button>
 
-                  {(entriesByDay[day.key] || []).length === 0 ? (
-                    <div style={dayEmptyStyle}>Inget planerat.</div>
-                  ) : (
-                    <div style={eventStackStyle}>
-                      {(entriesByDay[day.key] || []).map((entry) => {
-                        const status = entry.current_user_link?.completion_status || "planned"
-                        const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
-                        const isEditingThisEntry = editingEntry?.id === entry.id
-                        const isImportedHandball = entry?.is_external === true && entry?.activity_kind === "handball"
+                {isExpanded && dayEntries.length > 0 ? (
+                  <div style={playerCalendarEntryListStyle}>
+                    {dayEntries.map((entry) => {
+                      const status = entry.current_user_link?.completion_status || "planned"
+                      const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
+                      const isEditingThisEntry = editingEntry?.id === entry.id
+                      const isImportedHandball = entry?.is_external === true && entry?.activity_kind === "handball"
 
-                        return (
-                          <div key={entry.id} style={eventWrapStyle}>
-                            <div style={eventCardStyle}>
-                              <div style={eventTopRowStyle}>
-                                <div>
-                                  <div style={eventTitleStyle}>{entry.title}</div>
-                                  <div style={eventMetaStyle}>
-                                    {formatTime(entry.starts_at)}-{formatTime(entry.ends_at)}
-                                    {entry.location ? ` • ${entry.location}` : ""}
-                                  </div>
-                                </div>
-                                <div
-                                  style={{
-                                    ...statusBadgeStyle,
-                                    backgroundColor: isImportedHandball ? "#f3f4f6" : statusTheme.background,
-                                    color: isImportedHandball ? "#6b7280" : statusTheme.color,
-                                  }}
-                                >
-                                  {isImportedHandball ? "laget.se" : statusLabelMap[status] || "Planerad"}
-                                </div>
+                      return (
+                        <div key={entry.id} style={eventWrapStyle}>
+                          <article
+                            style={{
+                              ...playerCalendarEntryCardStyle,
+                              background: isImportedHandball
+                                ? "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,247,247,0.96) 100%)"
+                                : "linear-gradient(180deg, rgba(255,248,244,0.96) 0%, rgba(255,255,255,0.98) 100%)",
+                            }}
+                          >
+                            <div style={playerCalendarEntryTopRowStyle}>
+                              <div style={playerCalendarEntrySourceWrapStyle}>
+                                <span style={playerCalendarSourceDotStyle(false)} />
+                                <span style={playerCalendarEntrySourceStyle}>
+                                  {isImportedHandball ? "Lagets kalender" : "Coachplanerat"}
+                                </span>
                               </div>
-
-                              {entry.description ? <div style={eventDescriptionStyle}>{entry.description}</div> : null}
-
-                              {role === "coach" ? (
-                                <div style={coachMetaWrapStyle}>
-                                  <div style={coachMetaTextStyle}>
-                                    {isImportedHandball
-                                      ? `${entry.player_links.length} spelare • importerat från laget.se`
-                                      : `${entry.player_links.length} spelare${
-                                          entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""
-                                        }${entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}`}
-                                  </div>
-                                  {entry.player_links.length > 0 ? (
-                                    <div style={playerChipWrapStyle}>
-                                      {entry.player_links.slice(0, isMobile ? 4 : 3).map((link) => (
-                                        <span key={link.id} style={playerChipStyle}>
-                                          {link.player_name}
-                                        </span>
-                                      ))}
-                                      {entry.player_links.length > (isMobile ? 4 : 3) ? (
-                                        <span style={playerChipMutedStyle}>
-                                          +{entry.player_links.length - (isMobile ? 4 : 3)}
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
-                                  {!isImportedHandball ? (
-                                    <div style={playerActionsWrapStyle}>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleStartEdit(entry)}
-                                        style={secondaryButtonStyleCompact}
-                                      >
-                                        {isEditingThisEntry ? "Redigerar" : "Redigera"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => onCancelActivity(entry)}
-                                        disabled={isCancellingActivity}
-                                        style={dangerButtonCompactStyle}
-                                      >
-                                        Ställ in
-                                      </button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : (
-                                !isImportedHandball ? (
-                                  <div style={playerActionsWrapStyle}>
-                                    <button type="button" onClick={() => onOpenEntry(entry)} style={primaryButtonCompactStyle}>
-                                      {entry.activity_kind === "template_workout" ? "Starta" : "Öppna"}
-                                    </button>
-                                    {entry.current_user_link && entry.current_user_link.completion_status !== "completed" ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "skipped")}
-                                        disabled={updatingEntryStatusId === entry.current_user_link.id}
-                                        style={secondaryButtonStyleCompact}
-                                      >
-                                        Hoppa över
-                                      </button>
-                                    ) : null}
-                                    {entry.current_user_link && entry.current_user_link.completion_status === "skipped" ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => onUpdateEntryStatus(entry.current_user_link.id, "planned")}
-                                        disabled={updatingEntryStatusId === entry.current_user_link.id}
-                                        style={secondaryButtonStyleCompact}
-                                      >
-                                        Återställ
-                                      </button>
-                                    ) : null}
-                                    {getCanEditEntry(entry, role) ? (
-                                      <button type="button" onClick={() => handleStartEdit(entry)} style={secondaryButtonStyleCompact}>
-                                        Redigera
-                                      </button>
-                                    ) : null}
-                                    {getCanEditEntry(entry, role) ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => onCancelActivity(entry)}
-                                        disabled={isCancellingActivity}
-                                        style={dangerButtonCompactStyle}
-                                      >
-                                        Ta bort
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                ) : null
-                              )}
+                              <div
+                                style={{
+                                  ...playerCalendarStatusStyle,
+                                  backgroundColor: isImportedHandball ? "#f3f4f6" : statusTheme.background,
+                                  color: isImportedHandball ? "#6b7280" : statusTheme.color,
+                                }}
+                              >
+                                {isImportedHandball ? "Handboll" : statusLabelMap[status] || "Planerad"}
+                              </div>
                             </div>
 
-                            {isEditingThisEntry ? <div style={inlineComposerStyle}>{renderActivityForm()}</div> : null}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </section>
-              ))}
-              </div>
-            )}
-          </div>
-        </>
+                            <div style={playerCalendarEntryTitleStyle}>{entry.title}</div>
+                            <div style={playerCalendarEntryMetaStyle}>
+                              {formatTime(entry.starts_at)}-{formatTime(entry.ends_at)}
+                              {entry.location ? ` • ${entry.location}` : ""}
+                            </div>
+
+                            {entry.description ? (
+                              <div style={playerCalendarEntryDescriptionStyle}>{entry.description}</div>
+                            ) : null}
+
+                            <div style={coachMetaWrapStyle}>
+                              <div style={coachMetaTextStyle}>
+                                {isImportedHandball
+                                  ? `${entry.player_links.length} spelare • importerat från laget.se`
+                                  : `${entry.player_links.length} spelare${
+                                      entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""
+                                    }${entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}`}
+                              </div>
+                              {entry.player_links.length > 0 ? (
+                                <div style={playerChipWrapStyle}>
+                                  {entry.player_links.slice(0, isMobile ? 4 : 3).map((link) => (
+                                    <span key={link.id} style={playerChipStyle}>
+                                      {link.player_name}
+                                    </span>
+                                  ))}
+                                  {entry.player_links.length > (isMobile ? 4 : 3) ? (
+                                    <span style={playerChipMutedStyle}>
+                                      +{entry.player_links.length - (isMobile ? 4 : 3)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                              {!isImportedHandball ? (
+                                <div style={playerCalendarEntryActionRowStyle(isMobile)}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEdit(entry)}
+                                    style={{
+                                      ...playerCalendarSecondaryButtonStyle,
+                                      width: isMobile ? "100%" : "auto",
+                                    }}
+                                  >
+                                    {isEditingThisEntry ? "Redigerar" : "Redigera"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onCancelActivity(entry)}
+                                    disabled={isCancellingActivity}
+                                    style={{
+                                      ...playerCalendarDangerButtonStyle,
+                                      width: isMobile ? "100%" : "auto",
+                                      opacity: isCancellingActivity ? 0.7 : 1,
+                                    }}
+                                  >
+                                    Ställ in
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                          </article>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </section>
+            )
+          })}
+        </div>
       )}
     </div>
   )
@@ -1634,6 +1645,12 @@ const playerCalendarToolbarStyle = (isMobile) => ({
   alignItems: isMobile ? "stretch" : "center",
   flexDirection: isMobile ? "column" : "row",
   gap: "12px",
+})
+
+const coachCalendarActionStackStyle = (isMobile) => ({
+  display: "grid",
+  gap: "8px",
+  width: isMobile ? "100%" : "auto",
 })
 
 const playerCalendarWeekLabelStyle = {
