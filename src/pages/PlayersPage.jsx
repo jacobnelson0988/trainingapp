@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
+import {
+  bodyTextStyleToken,
+  compactBodyTextStyleToken,
+  itemTitleStyleToken,
+  pageEyebrowStyleToken,
+  pageTitleStyleToken,
+  redesignInk,
+  redesignLine,
+  redesignLineSoft,
+  redesignMuted,
+  redesignSurface,
+  redesignSurfaceSoft,
+  sectionTitleStyleToken,
+} from "../ui/redesignTokens"
 
 const repRangeOptions = [
   { key: "1_3", label: "1-3 reps" },
@@ -1450,21 +1464,11 @@ const pageHeaderCopyStyle = {
 const pageTitleStyle = {
   marginTop: "8px",
   marginBottom: "4px",
-  fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(38px, 10vw, 60px)",
-  lineHeight: 0.92,
-  fontWeight: 700,
-  letterSpacing: "-0.04em",
-  color: "#1a1814",
+  ...pageTitleStyleToken,
 }
 
 const pageEyebrowStyle = {
-  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: "#6f6659",
+  ...pageEyebrowStyleToken,
 }
 
 const coachSummaryGridStyle = (isMobile) => ({
@@ -1475,11 +1479,12 @@ const coachSummaryGridStyle = (isMobile) => ({
 })
 
 const coachSummaryCardStyle = {
-  padding: "13px 12px",
-  borderRadius: "16px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const coachSummaryLabelStyle = {
@@ -1506,13 +1511,14 @@ const utilityGridStyle = (isMobile) => ({
 })
 
 const utilityButtonStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  boxShadow: "none",
 }
 
 const utilityButtonActiveStyle = {
@@ -1556,10 +1562,11 @@ const utilityBadgeStyle = (isActive) => ({
 
 const inlineUtilityPanelStyle = {
   marginBottom: "14px",
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const inlineUtilityPanelHeaderStyle = {
@@ -1579,10 +1586,11 @@ const inlineUtilityPanelMetaStyle = {
 }
 
 const inlineRequestCardStyle = {
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px solid #f0dada",
-  backgroundColor: "#ffffff",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const inlineRequestHeaderStyle = (isMobile) => ({
@@ -1640,10 +1648,11 @@ const quickActionButtonStyle = {
 
 const bulkActionCardStyle = (isMobile) => ({
   marginBottom: "14px",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   display: "flex",
   justifyContent: "space-between",
   alignItems: isMobile ? "stretch" : "center",
@@ -1811,22 +1820,23 @@ const archivedStatusBadgeStyle = {
 
 const archivedInfoCardStyle = {
   marginBottom: "14px",
-  padding: "12px 14px",
-  borderRadius: "14px",
-  border: "1px solid #f0dada",
-  backgroundColor: "#fff7f7",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   color: "#7f1d1d",
-  fontSize: "13px",
-  lineHeight: 1.6,
+  ...compactBodyTextStyleToken,
   fontWeight: "700",
 }
 
 const editorSummaryCardStyle = {
   marginBottom: "14px",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
@@ -1835,9 +1845,7 @@ const editorSummaryCardStyle = {
 }
 
 const editorSummaryTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...sectionTitleStyleToken,
   marginBottom: "4px",
 }
 
@@ -1908,10 +1916,11 @@ const editorOverviewGridStyle = (isMobile) => ({
 })
 
 const miniStatCardStyle = {
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const miniStatLabelStyle = {
@@ -1950,10 +1959,11 @@ const coachChipMetaStyle = {
 }
 
 const historyStatCardStyle = {
-  padding: "12px",
-  borderRadius: "12px",
-  backgroundColor: "#f8fafc",
-  border: "1px solid #dbe5ef",
+  padding: "12px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
 }
 
 const historyStatLabelStyle = {
@@ -1979,10 +1989,11 @@ const historyStatMetaStyle = {
 
 const historyViewerCardStyle = {
   marginBottom: "16px",
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#f8fbff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const exercisePassBadgeWrapStyle = {
@@ -2006,13 +2017,13 @@ const exercisePassBadgeStyle = {
 
 const exerciseGoalInfoStyle = {
   marginBottom: "10px",
-  padding: "10px 12px",
-  borderRadius: "12px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#f8fafc",
-  fontSize: "13px",
-  lineHeight: 1.5,
-  color: "#64748b",
+  padding: "10px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const historySessionPickerStyle = {
@@ -2022,10 +2033,11 @@ const historySessionPickerStyle = {
 }
 
 const historySessionButtonStyle = {
-  padding: "12px 14px",
-  borderRadius: "14px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   textAlign: "left",
   cursor: "pointer",
 }
@@ -2044,10 +2056,11 @@ const historySessionButtonMetaStyle = {
 
 const historySessionSummaryStyle = {
   marginBottom: "12px",
-  padding: "12px 14px",
-  borderRadius: "14px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #e2e8f0",
+  padding: "12px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
 }
 
 const historySessionSummaryTitleStyle = {
@@ -2063,12 +2076,13 @@ const historySessionSummaryMetaStyle = {
 }
 
 const historySessionRunningCardStyle = {
-  padding: "14px",
-  borderRadius: "14px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
-  fontSize: "14px",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  color: redesignInk,
+  ...bodyTextStyleToken,
   fontWeight: "700",
 }
 
@@ -2089,10 +2103,11 @@ const historyExerciseCardsTrackStyle = {
 const historyExerciseCardStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   scrollSnapAlign: "start",
 }
 
@@ -2115,10 +2130,11 @@ const historySetListStyle = {
 }
 
 const historySetCardStyle = {
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px solid #edf2f7",
-  backgroundColor: "#f8fafc",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const historySetTitleStyle = {

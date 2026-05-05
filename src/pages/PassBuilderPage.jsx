@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useState } from "react"
 import { getExerciseProtocolConfig, isProtocolExercise } from "../utils/exerciseProtocols"
+import {
+  bodyTextStyleToken,
+  compactBodyTextStyleToken,
+  fieldLabelStyleToken,
+  itemTitleStyleToken,
+  pageEyebrowStyleToken,
+  pageTitleStyleToken,
+  redesignBody,
+  redesignInk,
+  redesignLine,
+  redesignLineSoft,
+  redesignMuted,
+  redesignSurface,
+  redesignSurfaceSoft,
+  sectionTitleStyleToken,
+} from "../ui/redesignTokens"
 
 const exerciseNavigationCategoryOrder = [
   "Axlar",
@@ -1997,27 +2013,24 @@ const summaryStripStyle = (isMobile) => ({
 })
 
 const summaryStatCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const summaryStatLabelStyle = {
   marginBottom: "6px",
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#6b7280",
+  ...pageEyebrowStyleToken,
 }
 
 const summaryStatValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: redesignInk,
 }
 
 const pageStackStyle = {
@@ -2075,20 +2088,21 @@ const passOverviewCategoryTextStyle = {
 }
 
 const panelStyle = {
-  padding: "18px",
-  borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const exercisePickerCategoryCardStyle = {
   width: "100%",
-  padding: "16px 18px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -2098,31 +2112,31 @@ const exercisePickerCategoryCardStyle = {
 }
 
 const exercisePickerCategoryTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
 }
 
 const exercisePickerCategoryHintStyle = {
-  fontSize: "12px",
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
   marginTop: "4px",
 }
 
 const exercisePickerEmptyStyle = {
-  padding: "16px 18px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  color: "#64748b",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  color: redesignMuted,
+  ...bodyTextStyleToken,
 }
 
 const exercisePickerRowStyle = {
   width: "100%",
-  padding: "14px 16px",
-  borderRadius: "16px",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  padding: "14px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  boxShadow: "none",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -2132,14 +2146,12 @@ const exercisePickerRowStyle = {
 }
 
 const exercisePickerRowTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
 }
 
 const exercisePickerRowMetaStyle = {
-  fontSize: "12px",
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
   marginTop: "4px",
 }
 
@@ -2151,10 +2163,12 @@ const exercisePickerRowSelectStyle = {
 }
 
 const hrgQuickAddCardStyle = {
-  padding: "14px 16px",
-  borderRadius: "16px",
-  border: "1px solid rgba(198, 40, 40, 0.12)",
-  backgroundColor: "#fff7f7",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLine}`,
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   display: "grid",
   gap: "12px",
 }
@@ -2165,8 +2179,8 @@ const hrgQuickAddHeaderStyle = {
 }
 
 const hrgQuickAddHintStyle = {
-  fontSize: "12px",
-  color: "#7f1d1d",
+  ...compactBodyTextStyleToken,
+  color: redesignBody,
 }
 
 const hrgQuickAddGridStyle = (isMobile) => ({
@@ -2177,10 +2191,10 @@ const hrgQuickAddGridStyle = (isMobile) => ({
 
 const hrgQuickAddButtonStyle = {
   width: "100%",
-  padding: "14px 16px",
-  borderRadius: "14px",
-  border: "1px solid rgba(198, 40, 40, 0.16)",
-  backgroundColor: "#ffffff",
+  padding: "14px 12px",
+  borderRadius: "12px",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurface,
   display: "grid",
   gap: "4px",
   textAlign: "left",
@@ -2188,14 +2202,12 @@ const hrgQuickAddButtonStyle = {
 }
 
 const hrgQuickAddTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
 }
 
 const hrgQuickAddMetaStyle = {
-  fontSize: "12px",
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const panelHeaderStyle = {
@@ -2247,23 +2259,13 @@ const editSectionButtonActiveStyle = {
 
 const sectionEyebrowStyle = {
   marginBottom: "6px",
-  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: "#6f6659",
+  ...pageEyebrowStyleToken,
 }
 
 const pageTitleStyle = {
   marginTop: "8px",
   marginBottom: "8px",
-  fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(38px, 10vw, 60px)",
-  lineHeight: 0.92,
-  fontWeight: 700,
-  letterSpacing: "-0.04em",
-  color: "#1a1814",
+  ...pageTitleStyleToken,
 }
 
 const passTypePillStyle = {
@@ -2280,22 +2282,17 @@ const passTypePillStyle = {
 
 const fieldLabelStyle = {
   marginBottom: "8px",
-  fontSize: "13px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...fieldLabelStyleToken,
 }
 
 const fieldHintStyle = {
   marginBottom: "8px",
-  fontSize: "12px",
-  lineHeight: 1.5,
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const sectionTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...sectionTitleStyleToken,
 }
 
 const summaryBadgeStyle = {
@@ -2316,10 +2313,11 @@ const formStackStyle = {
 const subSectionStyle = {
   display: "grid",
   gap: "10px",
-  padding: "12px",
-  borderRadius: "16px",
-  border: "1px solid #efe5e5",
-  backgroundColor: "#fffdfd",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const warmupTemplateListStyle = {
@@ -2349,8 +2347,8 @@ const passCardButtonStyle = {
 }
 
 const selectedPassInlineCardStyle = {
-  borderRadius: "16px",
-  backgroundColor: "#ffffff",
+  borderRadius: 0,
+  backgroundColor: "transparent",
   overflow: "hidden",
 }
 
@@ -2364,20 +2362,18 @@ const passCardHeaderStyle = {
 const selectedPassInlineContentStyle = {
   display: "grid",
   gap: "12px",
-  padding: "0 14px 14px",
-  borderTop: "1px solid #f0dada",
+  padding: "12px 0 0",
+  borderTop: `1px solid ${redesignLineSoft}`,
 }
 
 const passCardTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
   marginBottom: "6px",
 }
 
 const passCardMetaStyle = {
-  fontSize: "13px",
-  color: "#6b7280",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
   marginBottom: "8px",
 }
 
@@ -2403,10 +2399,11 @@ const selectedPassActionsStyle = (isMobile) => ({
 })
 
 const selectedPassMetricStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  backgroundColor: "#fff7f7",
-  border: "1px solid #f0dada",
+  padding: "12px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
 }
 
 const selectedPassMetricLabelStyle = {
@@ -2425,16 +2422,16 @@ const selectedPassMetricValueStyle = {
 }
 
 const selectedPassDescriptionStyle = {
-  fontSize: "14px",
-  color: "#18202b",
-  lineHeight: 1.6,
+  ...bodyTextStyleToken,
+  color: redesignBody,
 }
 
 const selectedPassExerciseListCardStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #f0e5e5",
-  backgroundColor: "#fffdfd",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const assignmentPanelStyle = {
@@ -2534,17 +2531,16 @@ const addExercisePanelStyle = {
 }
 
 const emptyStateStyle = {
-  padding: "18px",
-  borderRadius: "16px",
-  border: "1px dashed #e5caca",
-  backgroundColor: "#fffdfd",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px dashed ${redesignLine}`,
+  backgroundColor: "transparent",
 }
 
 const emptyStateTitleStyle = {
   marginBottom: "6px",
-  fontSize: "15px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
 }
 
 const exerciseListStyle = {
@@ -2553,10 +2549,11 @@ const exerciseListStyle = {
 }
 
 const exerciseEditorCardStyle = {
-  padding: "16px",
-  borderRadius: "16px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const exerciseAccordionButtonStyle = {

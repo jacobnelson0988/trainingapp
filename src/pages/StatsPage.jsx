@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../supabase"
 import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
+import {
+  bodyTextStyleToken,
+  compactBodyTextStyleToken,
+  fieldLabelStyleToken,
+  itemTitleStyleToken,
+  pageEyebrowStyleToken,
+  redesignInk,
+  redesignLine,
+  redesignLineSoft,
+  redesignMuted,
+  redesignSurface,
+  redesignSurfaceSoft,
+  sectionTitleStyleToken,
+} from "../ui/redesignTokens"
 
 const LINE_COLORS = ["#c62828", "#1d4ed8", "#0f766e", "#7c3aed", "#ea580c", "#0891b2"]
 const PERIOD_OPTIONS = [
@@ -1650,11 +1664,11 @@ const primaryViewButtonStyle = (isActive, isMobile) => ({
 
 const contentPanelStyle = {
   marginTop: "4px",
-  padding: "16px",
-  borderRadius: "22px",
-  border: "1px solid #cbd5e1",
-  backgroundColor: "#f8fafc",
-  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08), 0 22px 48px rgba(15, 23, 42, 0.12)",
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const panelHeaderStyle = (isMobile) => ({
@@ -1667,16 +1681,13 @@ const panelHeaderStyle = (isMobile) => ({
 })
 
 const panelTitleStyle = {
-  fontSize: "20px",
-  fontWeight: "900",
-  color: "#111827",
+  ...sectionTitleStyleToken,
   marginBottom: "4px",
 }
 
 const panelTextStyle = {
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#64748b",
+  ...bodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const statsSummaryGridStyle = (isMobile) => ({
@@ -1687,34 +1698,32 @@ const statsSummaryGridStyle = (isMobile) => ({
 })
 
 const statsSummaryCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const statsSummaryLabelStyle = {
   marginBottom: "6px",
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#6b7280",
+  ...pageEyebrowStyleToken,
 }
 
 const statsSummaryValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: redesignInk,
 }
 
 const filterCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#fcfdff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const recommendationSectionStyle = {
@@ -1750,11 +1759,12 @@ const recommendationGridStyle = (isMobile) => ({
 })
 
 const recommendationCardStyle = {
-  padding: "14px",
-  borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
   minWidth: 0,
 }
 
@@ -1767,9 +1777,7 @@ const recommendationCardHeaderStyle = {
 }
 
 const recommendationPlayerNameStyle = {
-  fontSize: "15px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...itemTitleStyleToken,
 }
 
 const recommendationDateStyle = {
@@ -1786,10 +1794,10 @@ const recommendationStatsGridStyle = {
 }
 
 const recommendationStatBoxStyle = {
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px solid #eef2f7",
-  backgroundColor: "#f8fafc",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurface,
   minWidth: 0,
 }
 
@@ -1811,9 +1819,8 @@ const recommendationStatValueStyle = {
 }
 
 const recommendationStatMetaStyle = {
-  fontSize: "12px",
-  lineHeight: 1.4,
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const recommendationRangesWrapStyle = {
@@ -1860,17 +1867,14 @@ const recommendationQuickEditHintStyle = {
   marginTop: "12px",
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#f8fafc",
-  fontSize: "13px",
-  lineHeight: 1.5,
-  color: "#64748b",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurface,
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const filterTitleStyle = {
-  fontSize: "14px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...itemTitleStyleToken,
   marginBottom: "10px",
 }
 
@@ -1882,9 +1886,9 @@ const playerDropdownMenuStyle = {
   zIndex: 20,
   padding: "12px",
   borderRadius: "16px",
-  border: "1px solid #dbe5ef",
+  border: `1px solid ${redesignLineSoft}`,
   backgroundColor: "#ffffff",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.12)",
+  boxShadow: "0 8px 18px rgba(24, 32, 43, 0.08)",
 }
 
 const playerDropdownActionsStyle = {
@@ -1907,11 +1911,11 @@ const playerDropdownItemStyle = {
   gap: "10px",
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #eef2f7",
-  backgroundColor: "#f8fafc",
-  color: "#18202b",
-  fontSize: "14px",
-  fontWeight: "700",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurfaceSoft,
+  color: redesignInk,
+  ...bodyTextStyleToken,
+  fontWeight: 700,
 }
 
 const playerChipWrapStyle = {
@@ -1923,11 +1927,11 @@ const playerChipWrapStyle = {
 const playerChipStyle = {
   padding: "9px 12px",
   borderRadius: "999px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
-  fontSize: "13px",
-  fontWeight: "800",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurface,
+  color: redesignInk,
+  ...compactBodyTextStyleToken,
+  fontWeight: 700,
   cursor: "pointer",
 }
 
@@ -1952,10 +1956,11 @@ const activityRowStyle = (isMobile) => ({
   alignItems: "center",
   gap: "10px",
   padding: isMobile ? "12px 14px" : "14px 16px",
-  borderRadius: "16px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
   width: "100%",
   minWidth: 0,
   textAlign: "left",
@@ -2012,19 +2017,21 @@ const activitySelectedHintStyle = {
 }
 
 const activityDetailCardStyle = {
-  padding: "14px",
-  borderRadius: "18px",
-  border: "1px solid #f1d7d7",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 14px 30px rgba(24, 32, 43, 0.05)",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const activityDetailPanelStyle = {
-  padding: "14px",
-  borderRadius: "20px",
-  border: "1px solid #d7dee7",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06)",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const activityDetailPanelHeaderStyle = {
@@ -2032,13 +2039,13 @@ const activityDetailPanelHeaderStyle = {
 }
 
 const emptyDetailPanelStyle = {
-  padding: "18px 14px",
-  borderRadius: "16px",
-  border: "1px dashed #cbd5e1",
-  backgroundColor: "#f8fafc",
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#64748b",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px dashed ${redesignLine}`,
+  backgroundColor: "transparent",
+  ...bodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const activityDetailHeaderStyle = {
@@ -2056,13 +2063,14 @@ const activityDetailMetaStyle = {
 }
 
 const activityRunningCardStyle = {
-  padding: "14px 16px",
-  borderRadius: "18px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
-  fontSize: "14px",
-  fontWeight: "700",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  color: redesignInk,
+  ...bodyTextStyleToken,
+  fontWeight: 700,
 }
 
 const activityExerciseCardsViewportStyle = {
@@ -2098,10 +2106,11 @@ const activityExerciseCardStyle = {
   minWidth: "100%",
   maxWidth: "100%",
   boxSizing: "border-box",
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
   overflow: "hidden",
   scrollSnapAlign: "start",
 }
@@ -2125,10 +2134,11 @@ const activitySetListStyle = {
 }
 
 const activitySetCardStyle = {
-  padding: "12px",
-  borderRadius: "16px",
-  backgroundColor: "#f8fafc",
-  border: "1px solid #e2e8f0",
+  padding: "12px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
 }
 
 const activitySetTitleStyle = {
@@ -2184,11 +2194,12 @@ const chartCardStyle = {
   minWidth: 0,
   boxSizing: "border-box",
   overflow: "hidden",
-  padding: "18px",
-  borderRadius: "22px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLine}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const chartHeaderActionsStyle = {
@@ -2199,15 +2210,13 @@ const chartHeaderActionsStyle = {
 }
 
 const chartTitleStyle = {
-  fontSize: "20px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...sectionTitleStyleToken,
   marginBottom: "4px",
 }
 
 const chartSubtitleStyle = {
-  fontSize: "13px",
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const legendWrapStyle = {
@@ -2395,10 +2404,11 @@ const introStatsGridStyle = (isMobile) => ({
 })
 
 const introStatCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const introStatLabelStyle = {

@@ -147,10 +147,11 @@ const infoGridStyle = (isMobile) => ({
 })
 
 const infoCardStyle = (isManagementRedesign) => ({
-  padding: "16px",
-  borderRadius: "20px",
-  border: isManagementRedesign ? "1px solid rgba(26, 24, 20, 0.12)" : "1px solid #dbe5ef",
-  backgroundColor: isManagementRedesign ? "rgba(255, 255, 255, 0.32)" : "#f8fbff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: isManagementRedesign ? "1px solid rgba(26, 24, 20, 0.08)" : "1px solid #dbe5ef",
+  backgroundColor: "transparent",
 })
 
 const infoTitleStyle = (isManagementRedesign) => ({

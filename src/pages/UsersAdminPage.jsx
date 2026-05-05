@@ -359,10 +359,11 @@ const roleLabel = (role) => {
 
 const createWrapStyle = {
   marginBottom: "16px",
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
 }
 
 const toolbarStyle = (isMobile) => ({
@@ -395,10 +396,11 @@ const userRowStyle = (isMobile) => ({
     : "minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1fr)",
   gap: "10px",
   alignItems: "center",
-  padding: "10px 12px",
-  borderRadius: "14px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
   textAlign: "left",
   cursor: "pointer",
 })
@@ -422,10 +424,11 @@ const userRowMetaStyle = {
 
 const expandedPanelStyle = {
   marginTop: "6px",
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
 }
 
 const actionGroupStyle = {

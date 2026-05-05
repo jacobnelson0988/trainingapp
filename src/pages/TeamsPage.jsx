@@ -146,17 +146,19 @@ const pageTitleStyle = {
 }
 
 const createCardStyle = {
-  padding: "16px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
 }
 
 const teamCardStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
 }
 
 const teamToggleButtonStyle = {
@@ -212,10 +214,11 @@ const teamActionsRowStyle = (isMobile) => ({
 })
 
 const teamUserRowStyle = (isMobile) => ({
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px solid #efe7e7",
-  backgroundColor: "#fffdfd",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
   display: "flex",
   justifyContent: "space-between",
   alignItems: isMobile ? "flex-start" : "center",
@@ -246,12 +249,13 @@ const roleBadgeStyle = (role) => ({
 })
 
 const emptyUsersStyle = {
-  padding: "12px",
-  borderRadius: "14px",
-  border: "1px dashed #e6dede",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: "1px dashed rgba(26, 24, 20, 0.16)",
   color: "#6b7280",
   fontSize: "13px",
-  backgroundColor: "#fffdfd",
+  backgroundColor: "transparent",
 }
 
 export default TeamsPage

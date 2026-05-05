@@ -340,10 +340,11 @@ const pageTitleStyle = {
 }
 
 const filterCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #efe2e2",
-  backgroundColor: "#fffdfd",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: "1px solid rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
 }
 
 const filterRowStyle = (isMobile) => ({
@@ -394,10 +395,11 @@ const listWrapStyle = {
 }
 
 const feedbackCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #efe2e2",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,250,250,0.96))",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: "1px solid rgba(26, 24, 20, 0.08)",
+  background: "transparent",
 }
 
 const feedbackHeaderStyle = (isMobile) => ({
@@ -449,10 +451,11 @@ const statusUpdatedStyle = {
 }
 
 const feedbackBodyWrapStyle = {
-  padding: "14px",
-  borderRadius: "14px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #f1e3e3",
+  padding: "12px 0 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderTop: "1px solid rgba(26, 24, 20, 0.08)",
 }
 
 const feedbackBodyStyle = {

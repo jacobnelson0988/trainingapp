@@ -1,4 +1,16 @@
 import { useEffect, useMemo, useState } from "react"
+import {
+  bodyTextStyleToken,
+  compactBodyTextStyleToken,
+  fieldLabelStyleToken,
+  itemTitleStyleToken,
+  pageEyebrowStyleToken,
+  pageTitleStyleToken,
+  redesignLineSoft,
+  redesignMuted,
+  redesignSurface,
+  redesignSurfaceSoft,
+} from "../ui/redesignTokens"
 
 function MessagesPage({
   role,
@@ -480,30 +492,19 @@ const wrapStyle = {
 }
 
 const pageEyebrowStyle = {
-  fontFamily: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace',
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: "#6f6659",
+  ...pageEyebrowStyleToken,
 }
 
 const introTitleStyle = {
   marginBottom: 0,
   marginTop: "8px",
-  fontFamily: '"Manrope", sans-serif',
-  fontSize: "clamp(38px, 10vw, 60px)",
-  lineHeight: 0.92,
-  fontWeight: 700,
-  letterSpacing: "-0.04em",
-  color: "#1a1814",
+  ...pageTitleStyleToken,
 }
 
 const introTextStyle = {
   marginBottom: 0,
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#6b7280",
+  ...bodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const introStatsGridStyle = (isMobile) => ({
@@ -513,10 +514,11 @@ const introStatsGridStyle = (isMobile) => ({
 })
 
 const introStatCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const introStatLabelStyle = {
@@ -542,11 +544,11 @@ const headerStyle = (isMobile) => ({
 })
 
 const cardStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  boxShadow: "none",
   minWidth: 0,
   overflow: "hidden",
 }
@@ -614,11 +616,7 @@ const unreadBadgeStyle = {
 
 const fieldLabelStyle = {
   marginBottom: "8px",
-  fontSize: "12px",
-  fontWeight: "800",
-  color: "#7f1d1d",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
+  ...fieldLabelStyleToken,
 }
 
 const pickerButtonStyle = {
@@ -626,13 +624,13 @@ const pickerButtonStyle = {
   marginBottom: "10px",
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #e9dada",
-  backgroundColor: "#ffffff",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurfaceSoft,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "12px",
-  fontSize: "14px",
+  ...bodyTextStyleToken,
   color: "#18202b",
   cursor: "pointer",
   textAlign: "left",
@@ -640,8 +638,8 @@ const pickerButtonStyle = {
 
 const pickerMenuStyle = {
   marginBottom: "14px",
-  border: "1px solid #ece5e5",
-  borderRadius: "16px",
+  border: `1px solid ${redesignLineSoft}`,
+  borderRadius: "12px",
   backgroundColor: "#ffffff",
   overflow: "hidden",
 }
@@ -693,9 +691,8 @@ const actionsStyle = {
 
 const threadSubjectStyle = {
   marginBottom: "6px",
-  fontSize: "20px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...itemTitleStyleToken,
+  fontSize: "24px",
 }
 
 const threadInfoStyle = {

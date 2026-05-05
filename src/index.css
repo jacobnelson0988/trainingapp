@@ -51,6 +51,16 @@ select {
   font: inherit;
 }
 
+input::placeholder,
+textarea::placeholder {
+  font-family: "Manrope", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #8a8173;
+  opacity: 1;
+}
+
 button {
   transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
   -webkit-tap-highlight-color: transparent;

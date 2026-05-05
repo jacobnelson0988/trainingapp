@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { getProtocolTypeLabel } from "../utils/exerciseProtocols"
+import {
+  bodyTextStyleToken,
+  compactBodyTextStyleToken,
+  fieldLabelStyleToken,
+  itemTitleStyleToken,
+  pageEyebrowStyleToken,
+  redesignInk,
+  redesignLine,
+  redesignLineSoft,
+  redesignMuted,
+  redesignSurface,
+  redesignSurfaceSoft,
+  sectionTitleStyleToken,
+} from "../ui/redesignTokens"
 
 const normalizeExerciseSearchValue = (value) =>
   String(value || "")
@@ -1880,11 +1894,11 @@ function formatRequestDate(value) {
 
 const formCardStyle = (isMobile) => ({
   marginBottom: "18px",
-  padding: isMobile ? "14px" : "18px",
-  borderRadius: isMobile ? "16px" : "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  padding: 0,
+  borderRadius: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  boxShadow: "none",
 })
 
 const pillStyle = {
@@ -1936,17 +1950,11 @@ const sectionHeaderStyle = {
 
 const sectionEyebrowStyle = {
   marginBottom: "6px",
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#991b1b",
+  ...pageEyebrowStyleToken,
 }
 
 const sectionTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...sectionTitleStyleToken,
 }
 
 const countBadgeStyle = {
@@ -1961,17 +1969,17 @@ const countBadgeStyle = {
 
 const importPreviewCardStyle = {
   marginTop: "12px",
-  padding: "12px",
-  borderRadius: "14px",
-  backgroundColor: "#fff8f8",
-  border: "1px solid #f2d7d7",
+  padding: "12px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
 }
 
 const importSectionSubtleTextStyle = {
   marginTop: "8px",
-  fontSize: "13px",
-  lineHeight: 1.6,
-  color: "#566173",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
   maxWidth: "560px",
 }
 
@@ -1990,33 +1998,27 @@ const importActionGridStyle = (isMobile) => ({
 })
 
 const importActionCardStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  backgroundColor: "#fffdfd",
-  border: "1px solid #f1dfdf",
-  boxShadow: "0 8px 22px rgba(24, 32, 43, 0.04)",
+  padding: "14px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  boxShadow: "none",
 }
 
 const importActionEyebrowStyle = {
   marginBottom: "6px",
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#991b1b",
+  ...pageEyebrowStyleToken,
 }
 
 const importActionTitleStyle = {
   marginBottom: "8px",
-  fontSize: "16px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
 }
 
 const importActionTextStyle = {
-  fontSize: "13px",
-  lineHeight: 1.6,
-  color: "#566173",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const importFileMetaStyle = {
@@ -2038,9 +2040,8 @@ const importPreviewHeaderStyle = (isMobile) => ({
 })
 
 const importPreviewTitleStyle = {
-  fontSize: "14px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...itemTitleStyleToken,
+  fontSize: "16px",
 }
 
 const importPreviewRowStyle = {
@@ -2071,17 +2072,14 @@ const headerActionsStyle = {
 }
 
 const fieldLabelStyle = {
-  fontSize: "14px",
-  fontWeight: "800",
-  color: "#18202b",
+  ...fieldLabelStyleToken,
   marginBottom: "8px",
 }
 
 const helperTextStyle = {
   marginBottom: "8px",
-  fontSize: "12px",
-  lineHeight: 1.5,
-  color: "#64748b",
+  ...compactBodyTextStyleToken,
+  color: redesignMuted,
 }
 
 const exerciseTitleRowStyle = {
@@ -2153,10 +2151,11 @@ const requestsHeaderStyle = (isMobile) => ({
 })
 
 const requestFilterCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const requestFilterRowStyle = (isMobile) => ({
@@ -2209,11 +2208,12 @@ const requestListStyle = {
 }
 
 const requestCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  padding: "16px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const requestCardHeaderStyle = (isMobile) => ({

@@ -1,4 +1,11 @@
 import { useMemo, useState } from "react"
+import {
+  bodyTextStyleToken,
+  fieldLabelStyleToken,
+  redesignLineSoft,
+  redesignSurfaceSoft,
+  sectionTitleStyleToken,
+} from "../ui/redesignTokens"
 
 const ACTIVITY_KIND_OPTIONS = [
   { value: "template_workout", label: "Passmall" },
@@ -1374,12 +1381,12 @@ const playerActionsWrapStyle = {
 }
 
 const formCardStyle = {
-  padding: "18px",
-  borderRadius: "24px",
-  border: "1px solid rgba(26, 24, 20, 0.12)",
-  background:
-    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.72), rgba(243,239,230,0.82))",
-  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
+  padding: "0 0 18px",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  background: "transparent",
+  boxShadow: "none",
 }
 
 const formTitleRowStyle = {
@@ -1390,17 +1397,13 @@ const formTitleRowStyle = {
 }
 
 const formTitleStyle = {
-  fontSize: "clamp(24px, 4vw, 30px)",
-  lineHeight: 0.98,
-  fontWeight: 700,
-  letterSpacing: "-0.04em",
-  color: "#1a1814",
+  ...sectionTitleStyleToken,
+  fontSize: "clamp(24px, 6vw, 34px)",
 }
 
 const formTextStyle = {
   marginTop: "6px",
-  fontSize: "14px",
-  lineHeight: 1.6,
+  ...bodyTextStyleToken,
   color: "#6f6659",
 }
 
@@ -1417,19 +1420,15 @@ const fieldStyle = {
 }
 
 const fieldLabelStyle = {
-  fontSize: "11px",
-  fontWeight: 700,
-  color: "#6f6659",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
+  ...fieldLabelStyleToken,
 }
 
 const inputStyle = {
   width: "100%",
   padding: "12px 14px",
   borderRadius: "16px",
-  border: "1px solid rgba(26, 24, 20, 0.12)",
-  backgroundColor: "rgba(255, 255, 255, 0.48)",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurfaceSoft,
   color: "#1a1814",
   fontSize: "15px",
   fontFamily: '"Manrope", sans-serif',

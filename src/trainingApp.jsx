@@ -14,6 +14,26 @@ import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
 import StatsPage from "./pages/StatsPage"
 import {
+  bodyTextStyleToken,
+  compactBodyTextStyleToken,
+  fieldLabelStyleToken,
+  flatSectionStyleToken,
+  inputTextStyleToken,
+  itemTitleStyleToken,
+  mutedBodyTextStyleToken,
+  pageEyebrowStyleToken,
+  pageTitleStyleToken,
+  redesignInk,
+  redesignLine,
+  redesignLineSoft,
+  redesignMuted,
+  redesignPaper,
+  redesignSurface,
+  redesignSurfaceSoft,
+  sectionTitleStyleToken,
+  subtleInsetStyleToken,
+} from "./ui/redesignTokens"
+import {
   getExerciseProtocolConfig,
   getExerciseProtocolStep,
   isProtocolExercise,
@@ -11867,13 +11887,12 @@ const managementShellMenuIconLineStyle = {
 
 const managementViewportPanelStyle = {
   marginBottom: "18px",
-  padding: "22px",
-  borderRadius: "28px",
-  border: `1px solid ${playerLine}`,
-  background:
-    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 28%), linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(243, 239, 230, 0.82))",
-  boxShadow: "0 22px 44px rgba(26, 24, 20, 0.08)",
-  backdropFilter: "blur(16px)",
+  padding: 0,
+  border: "none",
+  borderRadius: "14px",
+  background: "transparent",
+  boxShadow: "none",
+  backdropFilter: "none",
 }
 
 const managementHomeViewportStyle = {
@@ -11887,31 +11906,22 @@ const managementHomeViewportStyle = {
 }
 
 const managementCardTitleStyle = {
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(24px, 4vw, 34px)",
-  lineHeight: 0.96,
-  fontWeight: "700",
-  letterSpacing: "-0.05em",
-  color: playerInk,
+  ...sectionTitleStyleToken,
   marginBottom: "12px",
 }
 
 const managementMutedTextStyle = {
-  fontSize: "14px",
-  lineHeight: 1.65,
-  color: playerInkSoft,
+  ...mutedBodyTextStyleToken,
 }
 
 const managementInputStyle = {
   width: "100%",
   padding: "12px 14px",
-  borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.42)",
-  color: playerInk,
-  fontFamily: playerDisplayFont,
-  fontSize: "15px",
-  lineHeight: 1.4,
+  borderRadius: "12px",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurfaceSoft,
+  color: redesignInk,
+  ...inputTextStyleToken,
   boxShadow: "none",
   outline: "none",
 }
@@ -11947,11 +11957,11 @@ const managementTabsWrapStyle = {
   gap: "10px",
   marginBottom: "18px",
   flexWrap: "wrap",
-  padding: "10px",
-  borderRadius: "22px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.26)",
-  boxShadow: "0 14px 30px rgba(26, 24, 20, 0.05)",
+  padding: 0,
+  borderRadius: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const managementTabButtonStyle = {
@@ -11976,7 +11986,7 @@ const managementActiveTabButtonStyle = {
 }
 
 const managementFeedbackActionBarStyle = {
-  ...managementViewportPanelStyle,
+  ...flatSectionStyleToken,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -11984,43 +11994,30 @@ const managementFeedbackActionBarStyle = {
 }
 
 const managementFeedbackComposerCardStyle = {
-  ...managementViewportPanelStyle,
-  padding: "20px",
+  ...flatSectionStyleToken,
+  padding: 0,
 }
 
 const managementAccountPanelStyle = {
-  padding: "22px",
-  borderRadius: "28px",
-  border: `1px solid ${playerLine}`,
-  background:
-    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.07), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(243, 239, 230, 0.78))",
-  boxShadow: "0 22px 42px rgba(26, 24, 20, 0.08)",
+  ...flatSectionStyleToken,
+  padding: 0,
 }
 
 const managementMonoLabelStyle = {
-  fontFamily: playerMonoFont,
-  fontSize: "10px",
-  fontWeight: "700",
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: playerInkSoft,
+  ...pageEyebrowStyleToken,
   marginBottom: "8px",
 }
 
 const managementPageTitleStyle = {
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(34px, 7vw, 48px)",
-  lineHeight: 0.94,
-  fontWeight: "700",
-  letterSpacing: "-0.05em",
-  color: playerInk,
+  ...pageTitleStyleToken,
 }
 
 const managementAccountInfoCardStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const managementAccountInfoLabelStyle = {
@@ -12039,10 +12036,11 @@ const managementAccountInfoValueStyle = {
 
 const managementAccountPasswordCardStyle = {
   marginTop: "16px",
-  padding: "20px",
-  borderRadius: "22px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
+  padding: "16px 0 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const managementAccountSectionTitleStyle = {
@@ -12062,10 +12060,10 @@ const managementAccountFieldLabelStyle = {
 
 const managementAccountWarningCardStyle = {
   marginTop: "16px",
-  padding: "20px",
-  borderRadius: "22px",
+  padding: "16px 0 0",
+  borderRadius: 0,
   border: "1px solid rgba(185, 28, 28, 0.14)",
-  backgroundColor: "rgba(185, 28, 28, 0.06)",
+  backgroundColor: "transparent",
 }
 
 const managementAccountWarningTitleStyle = {
@@ -12314,15 +12312,15 @@ const restStopwatchHintStyle = {
 
 const feedbackActionBarStyle = {
   marginBottom: "16px",
-  padding: "16px 18px",
-  borderRadius: "20px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  background: "transparent",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "12px",
-  boxShadow: uiShadowSm,
+  boxShadow: "none",
 }
 
 const feedbackActionTitleStyle = {
@@ -12342,21 +12340,16 @@ const compactFieldLabelStyle = {
 const fieldLabelStyle = {
   display: "grid",
   gap: "7px",
-  fontFamily: playerMonoFont,
-  fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.1em",
-  textTransform: "uppercase",
-  color: playerInkSoft,
+  ...fieldLabelStyleToken,
 }
 
 const feedbackComposerCardStyle = {
   marginBottom: "16px",
-  padding: "18px",
-  borderRadius: "20px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowMd,
+  padding: 0,
+  borderRadius: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  boxShadow: "none",
 }
 
 const feedbackComposerActionsStyle = {
@@ -12488,10 +12481,8 @@ const workoutActionSectionStyle = {
 }
 
 const sectionTitleStyle = {
-  fontSize: "28px",
+  ...sectionTitleStyleToken,
   marginBottom: "16px",
-  color: "#18202b",
-  fontWeight: "900",
 }
 
 const cardStyle = {
@@ -12499,18 +12490,16 @@ const cardStyle = {
   minWidth: 0,
   boxSizing: "border-box",
   marginBottom: "20px",
-  padding: "20px",
-  border: `1px solid ${uiBorder}`,
-  borderRadius: "24px",
-  background: uiSurface,
-  boxShadow: uiShadowMd,
+  padding: 0,
+  border: "none",
+  borderRadius: 0,
+  background: "transparent",
+  boxShadow: "none",
 }
 
 const cardTitleStyle = {
   margin: "0 0 6px 0",
-  fontSize: "20px",
-  color: "#18202b",
-  fontWeight: "900",
+  ...itemTitleStyleToken,
 }
 
 const guideStyle = {
@@ -12552,9 +12541,7 @@ const exerciseMediaStyle = {
 
 const mutedTextStyle = {
   margin: 0,
-  fontSize: "14px",
-  color: "#566173",
-  lineHeight: 1.6,
+  ...mutedBodyTextStyleToken,
 }
 
 const exerciseProgressStyle = {
@@ -13844,14 +13831,15 @@ const playerTodayTeamPillStyle = {
 
 const playerTodayPrimaryCardStyle = {
   width: "100%",
-  padding: "22px",
-  borderRadius: "24px",
+  padding: "18px 0",
+  borderRadius: 0,
   border: "none",
-  backgroundColor: playerInk,
-  color: playerPaper,
+  borderBottom: `1px solid ${redesignLine}`,
+  backgroundColor: "transparent",
+  color: playerInk,
   cursor: "pointer",
   textAlign: "left",
-  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
+  boxShadow: "none",
 }
 
 const playerTodayCalendarCardStyle = {
@@ -13863,12 +13851,7 @@ const playerTodaySourceRowStyle = {
   display: "flex",
   alignItems: "center",
   gap: "8px",
-  fontFamily: playerMonoFont,
-  fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.64)",
+  ...pageEyebrowStyleToken,
 }
 
 const playerTodayAccentDotStyle = {
@@ -13881,29 +13864,19 @@ const playerTodayAccentDotStyle = {
 
 const playerTodayWorkoutTitleStyle = {
   marginTop: "12px",
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(28px, 7vw, 40px)",
-  fontWeight: 700,
-  lineHeight: 0.98,
-  letterSpacing: "-0.04em",
-  color: playerPaper,
+  ...pageTitleStyleToken,
+  fontSize: "clamp(30px, 8vw, 46px)",
+  color: playerInk,
 }
 
 const playerTodayWorkoutSubtitleStyle = {
   marginTop: "4px",
-  fontSize: "16px",
-  fontWeight: 700,
-  color: "rgba(243, 239, 230, 0.68)",
+  ...bodyTextStyleToken,
 }
 
 const playerHomeCalendarActionStyle = {
   marginTop: "16px",
-  fontFamily: playerMonoFont,
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.72)",
+  ...pageEyebrowStyleToken,
 }
 
 const playerHomeSectionHeaderStyle = {
@@ -13951,23 +13924,20 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
   const isAccent = variant === "accent"
 
   return {
-    minHeight: "122px",
+    minHeight: "88px",
     width: "100%",
-    padding: "16px",
-    borderRadius: "22px",
-    border: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : playerLine}`,
-    background: isDark
-      ? playerInk
-      : isAccent
-      ? `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`
-      : "rgba(255, 255, 255, 0.28)",
-    color: isDark || isAccent ? playerPaper : playerInk,
-    textAlign: "center",
+    padding: "18px 0",
+    borderRadius: 0,
+    border: "none",
+    borderBottom: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : redesignLine}`,
+    background: "transparent",
+    color: playerInk,
+    textAlign: "left",
     cursor: "pointer",
-    boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
+    boxShadow: "none",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   }
 }
 
@@ -13982,12 +13952,8 @@ const playerHomeTrainingKickerStyle = {
 }
 
 const playerHomeTrainingTitleStyle = {
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(22px, 6.5vw, 32px)",
-  lineHeight: 0.95,
-  fontWeight: 700,
-  letterSpacing: "-0.04em",
-  textAlign: "center",
+  ...sectionTitleStyleToken,
+  textAlign: "left",
   maxWidth: "100%",
 }
 
@@ -14019,10 +13985,11 @@ const playerHomeToolButtonStyle = {
 
 const playerTodayWeekCardStyle = {
   gridColumn: "1 / -1",
-  padding: "16px",
-  borderRadius: "20px",
-  border: `1px solid ${playerLine}`,
-  background: "rgba(255, 255, 255, 0.22)",
+  padding: "16px 0 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  background: "transparent",
 }
 
 const playerTodayWeekHeaderStyle = {
@@ -14079,11 +14046,12 @@ const playerTodayWeekCellDoneStyle = {
 }
 
 const playerWorkoutCompleteCardStyle = {
-  padding: "22px",
-  borderRadius: "24px",
-  backgroundColor: playerInk,
-  color: playerPaper,
-  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
+  padding: "20px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  color: playerInk,
+  borderTop: `1px solid ${redesignLine}`,
+  boxShadow: "none",
 }
 
 const playerWorkoutCompleteTitleStyle = {
@@ -14097,17 +14065,17 @@ const playerWorkoutCompleteTitleStyle = {
 
 const playerWorkoutCompleteMetaStyle = {
   marginTop: "8px",
-  color: "rgba(243, 239, 230, 0.7)",
+  ...mutedBodyTextStyleToken,
   fontSize: "15px",
-  fontWeight: 700,
 }
 
 const playerWorkoutHighlightCardStyle = {
   marginTop: "18px",
-  padding: "16px",
-  borderRadius: "18px",
-  backgroundColor: "rgba(243, 239, 230, 0.08)",
-  border: "1px solid rgba(243, 239, 230, 0.12)",
+  padding: "12px 0 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
 }
 
 const playerWorkoutHighlightValueStyle = {
@@ -14138,11 +14106,11 @@ const playerTodaySecondaryButtonStyle = {
 }
 
 const playerOverviewPanelStyle = {
-  padding: "18px",
-  borderRadius: "22px",
-  border: `1px solid ${playerLine}`,
-  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(243, 239, 230, 0.6))",
-  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  background: "transparent",
+  boxShadow: "none",
 }
 
 const playerOverviewPanelRowStyle = {
@@ -14157,11 +14125,11 @@ const playerAccordionContentStyle = {
 }
 
 const playerActivityPanelStyle = {
-  padding: "20px",
-  borderRadius: "24px",
-  border: `1px solid ${playerLine}`,
-  background: "linear-gradient(180deg, rgba(255, 248, 238, 0.78) 0%, rgba(255, 255, 255, 0.34) 100%)",
-  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  background: "transparent",
+  boxShadow: "none",
 }
 
 const playerActivityPanelIntroStyle = {
@@ -14179,12 +14147,7 @@ const playerActivityPanelKickerStyle = {
 }
 
 const playerActivityPanelTitleStyle = {
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(22px, 6.5vw, 30px)",
-  lineHeight: 0.96,
-  fontWeight: 700,
-  letterSpacing: "-0.04em",
-  color: playerInk,
+  ...sectionTitleStyleToken,
 }
 
 const playerActivityNoticeStyle = {
@@ -14206,10 +14169,10 @@ const playerActivityFormGridStyle = (isMobile) => ({
 const playerActivityFieldStyle = {
   display: "grid",
   gap: "8px",
-  padding: "12px",
-  borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  background: "rgba(255, 255, 255, 0.34)",
+  padding: "0",
+  borderRadius: 0,
+  border: "none",
+  background: "transparent",
 }
 
 const playerActivityFieldFullStyle = {
@@ -14218,23 +14181,16 @@ const playerActivityFieldFullStyle = {
 }
 
 const playerActivityFieldLabelStyle = {
-  fontFamily: playerMonoFont,
-  fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: playerInkSoft,
+  ...fieldLabelStyleToken,
 }
 
 const playerActivityInputStyle = {
   ...inputStyle,
-  fontFamily: playerDisplayFont,
-  fontSize: "14px",
-  lineHeight: 1.45,
+  ...inputTextStyleToken,
   width: "100%",
   minWidth: 0,
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.58)",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurfaceSoft,
   color: playerInk,
   boxShadow: "none",
 }
@@ -14311,10 +14267,11 @@ const playerHistorySectionLabelStyle = {
 }
 
 const playerHistoryItemStyle = {
-  padding: "15px",
-  borderRadius: "20px",
-  backgroundColor: "rgba(255, 255, 255, 0.28)",
-  border: `1px solid ${playerLine}`,
+  padding: "14px 0",
+  borderRadius: 0,
+  backgroundColor: "transparent",
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
 }
 
 const playerHistoryItemHeaderStyle = (isMobile) => ({
@@ -14415,11 +14372,12 @@ const playerStatsSelectorWrapStyle = {
 const playerStatsSelectorStyle = {
   display: "grid",
   gap: "12px",
-  padding: "18px",
-  borderRadius: "22px",
-  border: `1px solid ${playerLine}`,
-  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(243, 239, 230, 0.6))",
-  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
+  padding: "0 0 16px",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  background: "transparent",
+  boxShadow: "none",
 }
 
 const playerStatsSelectorHeaderStyle = {
@@ -14440,8 +14398,8 @@ const playerStatsSelectorLabelStyle = {
 }
 
 const playerStatsSelectorTextStyle = {
-  fontSize: "15px",
-  fontWeight: "800",
+  ...bodyTextStyleToken,
+  fontWeight: 700,
   color: playerInk,
 }
 
@@ -14451,10 +14409,10 @@ const playerStatsSelectorSummaryHintStyle = {
   justifyContent: "center",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "rgba(26, 24, 20, 0.08)",
+  backgroundColor: "rgba(26, 24, 20, 0.06)",
   color: playerInk,
-  fontSize: "12px",
-  fontWeight: "800",
+  ...compactBodyTextStyleToken,
+  fontWeight: 700,
   whiteSpace: "nowrap",
 }
 
@@ -14466,9 +14424,8 @@ const playerStatsSelectorControlsStyle = {
 }
 
 const playerStatsSelectorHelperStyle = {
-  fontSize: "13px",
+  ...compactBodyTextStyleToken,
   color: playerInkSoft,
-  lineHeight: 1.5,
 }
 
 const playerStatsSelectStyle = {
@@ -14478,15 +14435,13 @@ const playerStatsSelectStyle = {
 }
 
 const playerStatsExerciseTitleStyle = {
-  fontSize: "15px",
-  fontWeight: "900",
-  color: "#18202b",
+  ...itemTitleStyleToken,
   marginBottom: "4px",
 }
 
 const playerStatsExerciseMetaStyle = {
-  fontSize: "13px",
-  color: "#566173",
+  ...compactBodyTextStyleToken,
+  color: playerInkSoft,
 }
 
 const playerStatsSelectedChipsStyle = {
@@ -14501,11 +14456,11 @@ const playerStatsSelectedChipStyle = {
   justifyContent: "center",
   padding: "10px 14px",
   borderRadius: "999px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.32)",
+  border: `1px solid ${redesignLineSoft}`,
+  backgroundColor: redesignSurface,
   color: playerInk,
-  fontSize: "13px",
-  fontWeight: "800",
+  ...compactBodyTextStyleToken,
+  fontWeight: 700,
   cursor: "pointer",
 }
 
@@ -14515,11 +14470,12 @@ const playerStatsCardsStackStyle = {
 }
 
 const playerStatsCardStyle = {
-  padding: "18px",
-  borderRadius: "22px",
-  border: `1px solid ${playerLine}`,
-  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(243, 239, 230, 0.6))",
-  boxShadow: "0 18px 34px rgba(26, 24, 20, 0.08)",
+  padding: "0 0 18px",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
+  background: "transparent",
+  boxShadow: "none",
 }
 
 const playerStatsHeaderStyle = (isMobile) => ({
@@ -14532,19 +14488,13 @@ const playerStatsHeaderStyle = (isMobile) => ({
 })
 
 const playerStatsTitleStyle = {
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(24px, 7vw, 30px)",
-  fontWeight: "700",
-  lineHeight: 0.98,
-  letterSpacing: "-0.04em",
-  color: playerInk,
+  ...sectionTitleStyleToken,
   marginBottom: "4px",
 }
 
 const playerStatsTextStyle = {
-  fontSize: "14px",
+  ...bodyTextStyleToken,
   color: playerInkSoft,
-  lineHeight: 1.5,
 }
 
 const playerStatsSummaryPillStyle = {
@@ -14581,10 +14531,11 @@ const playerStatsRecentItemStyle = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: "12px",
-  padding: "12px 14px",
-  borderRadius: "16px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderTop: `1px solid ${redesignLineSoft}`,
+  backgroundColor: "transparent",
 }
 
 const playerStatsRecentDateStyle = {
@@ -14607,22 +14558,22 @@ const playerStatsRecentValueStyle = {
 }
 
 const playerStatsEmptyStyle = {
-  padding: "18px",
-  borderRadius: "20px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  padding: "14px 0",
+  borderRadius: 0,
+  border: "none",
   color: playerInkSoft,
-  fontSize: "14px",
+  ...bodyTextStyleToken,
+  borderBottom: `1px solid ${redesignLineSoft}`,
 }
 
 const playerStatsEmptyInlineStyle = {
   marginBottom: "14px",
-  padding: "14px",
-  borderRadius: "16px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.28)",
+  padding: "12px 0",
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${redesignLineSoft}`,
   color: playerInkSoft,
-  fontSize: "14px",
+  ...bodyTextStyleToken,
 }
 
 const activeRunningWorkoutCardStyle = {
