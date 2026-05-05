@@ -81,7 +81,6 @@ function CoachHomePage({
       <div style={navGridStyle(isMobile)}>
         {cards.map((card) => (
           <button key={card.key} type="button" onClick={card.onClick} style={navCardStyle(card.tone)}>
-            <div style={navAccentBarStyle(card.tone)} />
             <div style={coachNavTopRowStyle}>
               <div style={navTitleStyle(card.tone)}>{card.title}</div>
               {card.badge ? <div style={navBadgeStyle}>{card.badge}</div> : null}
@@ -124,19 +123,17 @@ const navCardStyle = (tone = 0) => {
     minHeight: "118px",
     padding: "18px",
     borderRadius: "22px",
-    border: `1px solid ${navBorderByTone[tone] || navBorderByTone[0]}`,
+    border: `2px solid ${navBorderByTone[tone] || navBorderByTone[0]}`,
     background: "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(243,239,230,0.9))",
     textAlign: "left",
     cursor: "pointer",
     boxShadow:
       tone >= 4
-        ? "0 18px 34px rgba(217, 74, 31, 0.14)"
+        ? "0 18px 34px rgba(217, 74, 31, 0.1)"
         : "0 14px 28px rgba(26, 24, 20, 0.06)",
     display: "grid",
     alignContent: "space-between",
     gap: "8px",
-    position: "relative",
-    overflow: "hidden",
   }
 }
 
@@ -154,30 +151,13 @@ const navTextStyle = (tone = 0) => ({
   overflowWrap: "anywhere",
 })
 
-const navAccentBarStyle = (tone = 0) => ({
-  position: "absolute",
-  inset: "0 auto 0 0",
-  width: tone >= 4 ? "12px" : tone >= 2 ? "10px" : "8px",
-  borderRadius: "22px 0 0 22px",
-  background: navBackgroundByTone[tone] || navBackgroundByTone[0],
-})
-
-const navBackgroundByTone = {
-  5: "linear-gradient(180deg, #d94a1f 0%, #9f2f16 100%)",
-  4: "linear-gradient(180deg, #ea6d35 0%, #c64a1d 100%)",
-  3: "linear-gradient(180deg, rgba(244, 149, 101, 0.96), rgba(233, 123, 69, 0.9))",
-  2: "linear-gradient(180deg, rgba(251, 200, 171, 0.96), rgba(244, 176, 139, 0.92))",
-  1: "linear-gradient(180deg, rgba(255, 230, 214, 0.98), rgba(249, 210, 186, 0.94))",
-  0: "linear-gradient(180deg, rgba(255, 245, 238, 0.98), rgba(250, 233, 221, 0.94))",
-}
-
 const navBorderByTone = {
-  5: "rgba(159, 47, 22, 0.9)",
-  4: "rgba(198, 74, 29, 0.72)",
-  3: "rgba(223, 121, 67, 0.42)",
-  2: "rgba(222, 157, 116, 0.28)",
-  1: "rgba(222, 157, 116, 0.18)",
-  0: "rgba(26, 24, 20, 0.12)",
+  5: "rgba(159, 47, 22, 0.82)",
+  4: "rgba(198, 74, 29, 0.68)",
+  3: "rgba(223, 121, 67, 0.52)",
+  2: "rgba(222, 157, 116, 0.42)",
+  1: "rgba(222, 157, 116, 0.3)",
+  0: "rgba(222, 157, 116, 0.22)",
 }
 
 const coachNavTopRowStyle = {
