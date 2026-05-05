@@ -10029,12 +10029,8 @@ function TrainingApp() {
                       <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => navigatePlayerSection("activity")}
-                        style={playerHomeTrainingCardStyle("paper")}
-                      >
-                        <div style={playerHomeTrainingTitleStyle}>Egen aktivitet</div>
+                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
+                        <div style={playerHomeTrainingTitleStyle}>Prehab</div>
                       </button>
                     </div>
                   )}
