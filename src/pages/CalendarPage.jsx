@@ -261,6 +261,23 @@ const getCanEditEntry = (entry, role) =>
   entry?.is_external !== true &&
   (role === "coach" || (role === "player" && entry?.current_user_link?.assignment_source === "self"))
 
+const isSharedTemplateEntry = (entry, workouts) => {
+  if (entry?.activity_kind !== "template_workout") return false
+
+  const matchingWorkout = Object.entries(workouts || {}).find(
+    ([, workout]) => String(workout.id || "") === String(entry.workout_template_id || "")
+  )?.[1]
+
+  return matchingWorkout?.workoutKind === "gym" && matchingWorkout?.gymPassType === "shared"
+}
+
+const buildGroupDraftFromEntry = (entry) =>
+  (entry?.groups || []).map((group, index) => ({
+    id: group.id || `group-${index + 1}`,
+    name: group.name || `Grupp ${index + 1}`,
+    player_ids: (group.members || []).map((member) => member.player_id),
+  }))
+
 function CalendarPage({
   role,
   isMobile,
@@ -291,12 +308,16 @@ function CalendarPage({
   isSavingExternalCalendarSource,
   onSyncExternalCalendar,
   isSyncingExternalCalendar,
+  isSavingGroups,
+  onSaveEntryGroups,
 }) {
   const [editingEntry, setEditingEntry] = useState(null)
   const [draft, setDraft] = useState(() => createEmptyDraft(role))
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [expandedPlayerDayKey, setExpandedPlayerDayKey] = useState(null)
   const [isExternalCalendarPageOpen, setIsExternalCalendarPageOpen] = useState(false)
+  const [groupEditorEntryId, setGroupEditorEntryId] = useState(null)
+  const [groupDrafts, setGroupDrafts] = useState([])
 
   const workoutOptions = useMemo(
     () =>
@@ -416,6 +437,73 @@ function CalendarPage({
     if (!confirmed) return
 
     await onUpdateEntryStatus(playerLinkId, "skipped")
+  }
+
+  const handleOpenGroupEditor = (entry) => {
+    if (!entry?.id) return
+
+    if (groupEditorEntryId === entry.id) {
+      setGroupEditorEntryId(null)
+      setGroupDrafts([])
+      return
+    }
+
+    setEditingEntry(null)
+    setGroupEditorEntryId(entry.id)
+    setGroupDrafts(buildGroupDraftFromEntry(entry))
+  }
+
+  const handleAddGroupDraft = () => {
+    setGroupDrafts((prev) => [
+      ...prev,
+      {
+        id: `group-${crypto.randomUUID()}`,
+        name: `Grupp ${prev.length + 1}`,
+        player_ids: [],
+      },
+    ])
+  }
+
+  const handleGroupNameChange = (groupId, value) => {
+    setGroupDrafts((prev) =>
+      prev.map((group) => (group.id === groupId ? { ...group, name: value } : group))
+    )
+  }
+
+  const handleRemoveGroupDraft = (groupId) => {
+    setGroupDrafts((prev) => prev.filter((group) => group.id !== groupId))
+  }
+
+  const handleAssignPlayerToGroup = (playerId, nextGroupId) => {
+    setGroupDrafts((prev) =>
+      prev.map((group) => {
+        const filteredPlayerIds = group.player_ids.filter((id) => id !== playerId)
+
+        if (group.id !== nextGroupId) {
+          return {
+            ...group,
+            player_ids: filteredPlayerIds,
+          }
+        }
+
+        return {
+          ...group,
+          player_ids: nextGroupId ? [...filteredPlayerIds, playerId] : filteredPlayerIds,
+        }
+      })
+    )
+  }
+
+  const handleClearGroups = () => {
+    setGroupDrafts([])
+  }
+
+  const handleSaveGroupEditor = async (entry) => {
+    const result = await onSaveEntryGroups?.(entry, groupDrafts)
+    if (result?.ok) {
+      setGroupEditorEntryId(null)
+      setGroupDrafts([])
+    }
   }
 
   const renderActivityForm = () => (
@@ -1116,7 +1204,9 @@ function CalendarPage({
                                   ? `${entry.player_links.length} spelare • importerat från laget.se`
                                   : `${entry.player_links.length} spelare${
                                       entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""
-                                    }${entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}`}
+                                    }${entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}${
+                                      entry.groups?.length > 0 ? ` • ${entry.groups.length} grupper` : ""
+                                    }`}
                               </div>
                               {entry.player_links.length > 0 ? (
                                 <div style={playerChipWrapStyle}>
@@ -1156,10 +1246,125 @@ function CalendarPage({
                                   >
                                     Ställ in
                                   </button>
+                                  {isSharedTemplateEntry(entry, workouts) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenGroupEditor(entry)}
+                                      style={{
+                                        ...playerCalendarSecondaryButtonStyle,
+                                        width: isMobile ? "100%" : "auto",
+                                      }}
+                                    >
+                                      {groupEditorEntryId === entry.id ? "Stäng grupper" : "Hantera grupper"}
+                                    </button>
+                                  ) : null}
                                 </div>
                               ) : null}
                             </div>
                           </article>
+
+                          {groupEditorEntryId === entry.id ? (
+                            <div style={inlineComposerStyle}>
+                              <div style={groupEditorCardStyle}>
+                                <div style={groupEditorHeaderStyle}>
+                                  <div>
+                                    <div style={formTitleStyle}>Grupper för detta pass</div>
+                                    <div style={groupEditorHintStyle}>
+                                      Gäller bara den här planerade aktiviteten. Om inga grupper sparas visas ingen
+                                      gruppinfo för spelarna.
+                                    </div>
+                                  </div>
+                                  <button type="button" onClick={handleClearGroups} style={ghostButtonStyle}>
+                                    Rensa
+                                  </button>
+                                </div>
+
+                                {groupDrafts.length === 0 ? (
+                                  <div style={groupEditorEmptyStyle}>
+                                    Inga grupper skapade ännu. Lägg till minst en grupp om spelarna ska se
+                                    gruppindelning för det här passet.
+                                  </div>
+                                ) : (
+                                  <div style={groupListStyle}>
+                                    {groupDrafts.map((group, index) => (
+                                      <div key={group.id} style={groupCardStyle}>
+                                        <div style={groupCardHeaderStyle}>
+                                          <label style={{ ...fieldStyle, margin: 0, flex: 1 }}>
+                                            <span style={fieldLabelStyle}>Gruppnamn</span>
+                                            <input
+                                              type="text"
+                                              value={group.name}
+                                              onChange={(event) => handleGroupNameChange(group.id, event.target.value)}
+                                              style={inputStyle}
+                                              placeholder={`Grupp ${index + 1}`}
+                                            />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveGroupDraft(group.id)}
+                                            style={dangerButtonCompactStyle}
+                                          >
+                                            Ta bort
+                                          </button>
+                                        </div>
+                                        <div style={groupSizeTextStyle}>
+                                          {group.player_ids.length} spelare
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <div style={groupAssignmentsWrapStyle}>
+                                  <div style={fieldLabelStyle}>Tilldelning per spelare</div>
+                                  <div style={groupAssignmentListStyle}>
+                                    {(entry.player_links || []).map((link) => {
+                                      const assignedGroupId =
+                                        groupDrafts.find((group) => group.player_ids.includes(link.player_id))?.id || ""
+
+                                      return (
+                                        <div key={link.id} style={groupAssignmentRowStyle(isMobile)}>
+                                          <div style={groupAssignmentPlayerNameStyle}>{link.player_name}</div>
+                                          <select
+                                            value={assignedGroupId}
+                                            onChange={(event) =>
+                                              handleAssignPlayerToGroup(link.player_id, event.target.value)
+                                            }
+                                            style={inputStyle}
+                                          >
+                                            <option value="">Ingen grupp</option>
+                                            {groupDrafts.map((group) => (
+                                              <option key={`${link.id}-${group.id}`} value={group.id}>
+                                                {group.name || "Namnlös grupp"}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div style={formActionsStyle}>
+                                  <button
+                                    type="button"
+                                    onClick={handleAddGroupDraft}
+                                    style={secondaryButtonStyleCompact}
+                                  >
+                                    Ny grupp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveGroupEditor(entry)}
+                                    disabled={isSavingGroups}
+                                    style={primaryButtonCompactStyle}
+                                  >
+                                    {isSavingGroups ? "Sparar..." : "Spara grupper"}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       )
                     })}
@@ -1976,6 +2181,87 @@ const playerGhostButtonStyle = {
   fontWeight: 800,
   cursor: "pointer",
   padding: "2px 0",
+}
+
+const groupEditorCardStyle = {
+  padding: "16px",
+  borderRadius: "18px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffefe",
+}
+
+const groupEditorHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+}
+
+const groupEditorHintStyle = {
+  marginTop: "6px",
+  fontSize: "13px",
+  lineHeight: 1.55,
+  color: "#6b7280",
+}
+
+const groupEditorEmptyStyle = {
+  marginTop: "14px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px dashed #d7dee7",
+  backgroundColor: "#fcfcfd",
+  color: "#6b7280",
+  fontSize: "13px",
+  lineHeight: 1.5,
+}
+
+const groupListStyle = {
+  display: "grid",
+  gap: "10px",
+  marginTop: "14px",
+}
+
+const groupCardStyle = {
+  padding: "12px",
+  borderRadius: "14px",
+  border: "1px solid #ece5e5",
+  backgroundColor: "#fffdfd",
+}
+
+const groupCardHeaderStyle = {
+  display: "flex",
+  gap: "10px",
+  alignItems: "flex-end",
+}
+
+const groupSizeTextStyle = {
+  marginTop: "8px",
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "#6b7280",
+}
+
+const groupAssignmentsWrapStyle = {
+  marginTop: "16px",
+}
+
+const groupAssignmentListStyle = {
+  display: "grid",
+  gap: "10px",
+  marginTop: "8px",
+}
+
+const groupAssignmentRowStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  alignItems: "center",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(220px, 280px)",
+})
+
+const groupAssignmentPlayerNameStyle = {
+  fontSize: "14px",
+  fontWeight: 700,
+  color: "#111827",
 }
 
 export default CalendarPage
