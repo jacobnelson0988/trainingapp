@@ -358,6 +358,9 @@ const getWorkoutKindLabel = (workoutKind) => {
 
 const getGymPassTypeLabel = (gymPassType) => (gymPassType === "shared" ? "Gemensamt gympass" : "Individuellt gympass")
 
+const isSharedGymWorkout = (workout) =>
+  workout?.workoutKind === "gym" && workout?.gymPassType === "shared"
+
 const getPlayerWorkoutGroupKey = (workout) => {
   const workoutKind = workout?.workoutKind || "gym"
   if (workoutKind === "running") return "running"
@@ -1266,7 +1269,10 @@ function TrainingApp() {
   const [isSavingCalendarActivity, setIsSavingCalendarActivity] = useState(false)
   const [isCancellingCalendarActivity, setIsCancellingCalendarActivity] = useState(false)
   const [updatingCalendarEventPlayerId, setUpdatingCalendarEventPlayerId] = useState(null)
+  const [isSavingCalendarGroups, setIsSavingCalendarGroups] = useState(false)
   const [activeCalendarEventPlayerId, setActiveCalendarEventPlayerId] = useState(null)
+  const [activeCalendarGroup, setActiveCalendarGroup] = useState(null)
+  const [isActiveCalendarGroupExpanded, setIsActiveCalendarGroupExpanded] = useState(false)
   const [pendingFreeActivityCalendarEvent, setPendingFreeActivityCalendarEvent] = useState(null)
   const [runningDraft, setRunningDraft] = useState({
     log_date: getTodayDateInputValue(),
@@ -1347,6 +1353,12 @@ function TrainingApp() {
 
     return () => window.clearInterval(intervalId)
   }, [isWorkoutActive, restStopwatchStartedAt])
+
+  useEffect(() => {
+    if (isWorkoutActive) return
+    setActiveCalendarGroup(null)
+    setIsActiveCalendarGroupExpanded(false)
+  }, [isWorkoutActive])
 
   useEffect(() => {
     if (!user || !profile || !["coach", "player"].includes(profile.role)) {
@@ -3846,6 +3858,26 @@ function TrainingApp() {
             players.find((player) => player.id === link.player_id)?.full_name ||
             "Spelare",
         }))
+        const groups = (row.calendar_event_groups || [])
+          .map((group) => ({
+            id: group.id,
+            name: group.name || "",
+            sort_order: group.sort_order ?? 0,
+            members: (group.calendar_event_group_members || [])
+              .map((member) => ({
+                id: member.id,
+                calendar_event_player_id: member.calendar_event_player_id,
+                player_id: member.player_id,
+                player_name: member.player_name || "Spelare",
+              })),
+          }))
+          .sort((a, b) => {
+            if ((a.sort_order ?? 0) !== (b.sort_order ?? 0)) {
+              return (a.sort_order ?? 0) - (b.sort_order ?? 0)
+            }
+
+            return String(a.name || "").localeCompare(String(b.name || ""), "sv")
+          })
 
         const summary = playerLinks.reduce(
           (acc, link) => {
@@ -3867,9 +3899,28 @@ function TrainingApp() {
           starts_at: row.starts_at,
           ends_at: row.ends_at,
           is_cancelled: row.is_cancelled === true,
+          groups,
           player_links: playerLinks,
           current_user_link: playerLinks.find((link) => link.player_id === user?.id) || null,
           summary,
+        }
+      })
+      .map((entry) => {
+        if (!entry.current_user_link?.id || !entry.groups.length) {
+          return {
+            ...entry,
+            current_user_group: null,
+          }
+        }
+
+        const currentUserGroup =
+          entry.groups.find((group) =>
+            group.members.some((member) => member.calendar_event_player_id === entry.current_user_link.id)
+          ) || null
+
+        return {
+          ...entry,
+          current_user_group: currentUserGroup,
         }
       })
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
@@ -3898,6 +3949,17 @@ function TrainingApp() {
         starts_at,
         ends_at,
         is_cancelled,
+        calendar_event_groups (
+          id,
+          name,
+          sort_order,
+          calendar_event_group_members (
+            id,
+            calendar_event_player_id,
+            player_id,
+            player_name
+          )
+        ),
         calendar_event_players (
           id,
           player_id,
@@ -4193,6 +4255,125 @@ function TrainingApp() {
     return { ok: true }
   }
 
+  const handleSaveCalendarEntryGroups = async (entry, nextGroups) => {
+    if (!entry?.id) {
+      setStatus("Kunde inte spara grupperna")
+      return { ok: false }
+    }
+
+    const matchedWorkout =
+      entry.activity_kind === "template_workout"
+        ? Object.values(activeWorkouts || {}).find(
+            (workout) => String(workout.id || "") === String(entry.workout_template_id || "")
+          )
+        : null
+
+    if (!isSharedGymWorkout(matchedWorkout)) {
+      setStatus("Grupper används bara för gemensamma gympass")
+      return { ok: false }
+    }
+
+    const cleanedGroups = (nextGroups || [])
+      .map((group, index) => ({
+        name: String(group?.name || "").trim() || `Grupp ${index + 1}`,
+        sort_order: index + 1,
+        player_ids: Array.from(new Set((group?.player_ids || []).filter(Boolean))),
+      }))
+      .filter((group) => group.name)
+
+    const playerLinkByPlayerId = (entry.player_links || []).reduce((acc, link) => {
+      acc[link.player_id] = link
+      return acc
+    }, {})
+
+    setIsSavingCalendarGroups(true)
+
+    const { error: deleteError } = await supabase
+      .from("calendar_event_groups")
+      .delete()
+      .eq("calendar_event_id", entry.id)
+
+    if (deleteError) {
+      console.error(deleteError)
+      setStatus("Kunde inte rensa tidigare grupper")
+      setIsSavingCalendarGroups(false)
+      return { ok: false }
+    }
+
+    if (cleanedGroups.length === 0) {
+      setStatus("Grupper borttagna från aktiviteten ✅")
+      setIsSavingCalendarGroups(false)
+      await loadCalendarEntries()
+      return { ok: true }
+    }
+
+    const { data: insertedGroups, error: insertGroupsError } = await supabase
+      .from("calendar_event_groups")
+      .insert(
+        cleanedGroups.map((group) => ({
+          calendar_event_id: entry.id,
+          name: group.name,
+          sort_order: group.sort_order,
+        }))
+      )
+      .select("id, sort_order")
+
+    if (insertGroupsError || !insertedGroups?.length) {
+      console.error(insertGroupsError)
+      setStatus("Kunde inte spara grupperna")
+      setIsSavingCalendarGroups(false)
+      return { ok: false }
+    }
+
+    const insertedGroupBySortOrder = insertedGroups.reduce((acc, group) => {
+      acc[group.sort_order] = group.id
+      return acc
+    }, {})
+
+    const assignedPlayerIds = new Set()
+    const memberRows = cleanedGroups.flatMap((group) => {
+      const groupId = insertedGroupBySortOrder[group.sort_order]
+      if (!groupId) return []
+
+      return group.player_ids
+        .map((playerId) => {
+          if (assignedPlayerIds.has(playerId)) return null
+
+          const playerLink = playerLinkByPlayerId[playerId]
+          if (!playerLink?.id) return null
+
+          assignedPlayerIds.add(playerId)
+
+          return {
+            calendar_event_group_id: groupId,
+            calendar_event_player_id: playerLink.id,
+            player_id: playerLink.player_id,
+            player_name: playerLink.player_name || "Spelare",
+          }
+        })
+        .filter(Boolean)
+    })
+
+    if (memberRows.length > 0) {
+      const { error: insertMembersError } = await supabase
+        .from("calendar_event_group_members")
+        .insert(memberRows)
+
+      if (insertMembersError) {
+        console.error(insertMembersError)
+        setStatus("Grupperna sparades men spelare kunde inte kopplas helt")
+        setIsSavingCalendarGroups(false)
+        await loadCalendarEntries()
+        return { ok: false }
+      }
+    }
+
+    setStatus("Grupper sparade för aktiviteten ✅")
+    setIsSavingCalendarGroups(false)
+    await loadCalendarEntries()
+    return { ok: true }
+  }
+
   const handleCancelCalendarActivity = async (entry) => {
     if (!entry?.id) return { ok: false }
 
@@ -4271,6 +4452,7 @@ function TrainingApp() {
 
       await startWorkout(matchedWorkout[0], {
         calendarEventPlayerId: entry.current_user_link?.id || null,
+        calendarEntry: entry,
       })
       return
     }
@@ -4404,6 +4586,11 @@ function TrainingApp() {
       setStatus("Kunde inte starta passet")
       return
     }
+    if (profile?.role === "player" && isSharedGymWorkout(workout) && !options.calendarEventPlayerId) {
+      setStatus("Gemensamma gympass startas från kalendern")
+      navigatePlayerSection("calendar")
+      return
+    }
     const { error, targetsByPass, assignedPasses } = await fetchTargetsByPassForUser(user.id)
 
     if (error) {
@@ -4421,6 +4608,8 @@ function TrainingApp() {
     setIsWorkoutActive(true)
     setExpandedInfo({})
     setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
+    setActiveCalendarGroup(options.calendarEntry?.current_user_group || null)
+    setIsActiveCalendarGroupExpanded(false)
     setPendingFreeActivityCalendarEvent(null)
 
     if (workout.workoutKind === "running") {
@@ -7308,9 +7497,13 @@ function TrainingApp() {
 
     return workoutA.label.localeCompare(workoutB.label, "sv")
   })
+  const playerPassMenuEntries =
+    profile?.role === "player"
+      ? sortedVisibleWorkoutEntries.filter(([, workout]) => !isSharedGymWorkout(workout))
+      : sortedVisibleWorkoutEntries
   const groupedVisibleWorkoutEntries = ["gym_individual", "running", "prehab", "gym_shared"]
     .map((groupKey) => {
-      const entries = sortedVisibleWorkoutEntries.filter(
+      const entries = playerPassMenuEntries.filter(
         ([, workout]) => getPlayerWorkoutGroupKey(workout) === groupKey
       )
 
@@ -7910,6 +8103,8 @@ function TrainingApp() {
                 onCancelActivity={handleCancelCalendarActivity}
                 onOpenEntry={handleOpenCalendarEntry}
                 onUpdateEntryStatus={handleUpdateCalendarEventPlayerStatus}
+                isSavingGroups={isSavingCalendarGroups}
+                onSaveEntryGroups={handleSaveCalendarEntryGroups}
               />
             )}
 
@@ -8872,6 +9067,8 @@ function TrainingApp() {
               onCancelActivity={handleCancelCalendarActivity}
               onOpenEntry={handleOpenCalendarEntry}
               onUpdateEntryStatus={handleUpdateCalendarEventPlayerStatus}
+              isSavingGroups={isSavingCalendarGroups}
+              onSaveEntryGroups={handleSaveCalendarEntryGroups}
             />
           )}
 
@@ -8886,9 +9083,9 @@ function TrainingApp() {
                 </p>
               </div>
 
-              {Object.keys(visibleWorkouts).length === 0 ? (
+              {groupedVisibleWorkoutEntries.length === 0 ? (
                 <p style={mutedTextStyle}>
-                  Inga pass är tilldelade ännu. Be en tränare lägga till pass åt dig.
+                  Inga startbara pass finns här just nu. Gemensamma gympass öppnas från kalendern när de är planerade.
                 </p>
               ) : (
                 <div style={pickerGridStyle}>
@@ -9294,6 +9491,35 @@ function TrainingApp() {
               </button>
             )}
           </div>
+
+          {isSharedGymWorkout(activeWorkoutData) && activeCalendarGroup ? (
+            <div style={activeWorkoutGroupCardStyle}>
+              <button
+                type="button"
+                onClick={() => setIsActiveCalendarGroupExpanded((prev) => !prev)}
+                style={activeWorkoutGroupButtonStyle}
+              >
+                <div>
+                  <div style={activeWorkoutGroupLabelStyle}>Din grupp</div>
+                  <div style={activeWorkoutGroupNameStyle}>{activeCalendarGroup.name}</div>
+                </div>
+                <div style={activeWorkoutGroupToggleStyle}>{isActiveCalendarGroupExpanded ? "−" : "+"}</div>
+              </button>
+
+              {isActiveCalendarGroupExpanded ? (
+                <div style={activeWorkoutGroupMembersStyle}>
+                  {activeCalendarGroup.members.map((member) => (
+                    <div key={member.calendar_event_player_id} style={activeWorkoutGroupMemberRowStyle}>
+                      <span>{member.player_name}</span>
+                      {member.calendar_event_player_id === activeCalendarEventPlayerId ? (
+                        <span style={activeWorkoutGroupMemberYouStyle}>Du</span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {isMobile && activeWorkoutSlideCount > 1 && (
             <div style={exerciseCarouselToolbarStyle}>
@@ -10486,6 +10712,78 @@ const restStopwatchHintStyle = {
   fontSize: "12px",
   fontWeight: "800",
   color: "rgba(255, 255, 255, 0.72)",
+}
+
+const activeWorkoutGroupCardStyle = {
+  marginBottom: "16px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: `1px solid ${uiBorder}`,
+  backgroundColor: "#fffaf5",
+  boxShadow: uiShadowSm,
+}
+
+const activeWorkoutGroupButtonStyle = {
+  width: "100%",
+  border: "none",
+  backgroundColor: "transparent",
+  padding: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  textAlign: "left",
+  cursor: "pointer",
+  color: "#18202b",
+}
+
+const activeWorkoutGroupLabelStyle = {
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "#991b1b",
+  marginBottom: "6px",
+}
+
+const activeWorkoutGroupNameStyle = {
+  fontSize: "20px",
+  lineHeight: 1.1,
+  fontWeight: "900",
+  color: "#18202b",
+}
+
+const activeWorkoutGroupToggleStyle = {
+  fontSize: "22px",
+  lineHeight: 1,
+  fontWeight: "900",
+  color: "#991b1b",
+}
+
+const activeWorkoutGroupMembersStyle = {
+  display: "grid",
+  gap: "8px",
+  marginTop: "14px",
+}
+
+const activeWorkoutGroupMemberRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  paddingTop: "8px",
+  borderTop: `1px solid ${uiBorder}`,
+  fontSize: "14px",
+  color: "#374151",
+}
+
+const activeWorkoutGroupMemberYouStyle = {
+  padding: "4px 8px",
+  borderRadius: "999px",
+  backgroundColor: "#fff1f1",
+  color: "#b61e24",
+  fontSize: "11px",
+  fontWeight: "800",
 }
 
 const feedbackActionBarStyle = {
