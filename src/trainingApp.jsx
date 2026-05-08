@@ -1301,7 +1301,10 @@ function TrainingApp() {
   const [isSavingCalendarImportSource, setIsSavingCalendarImportSource] = useState(false)
   const [isSyncingCalendarImportSource, setIsSyncingCalendarImportSource] = useState(false)
   const [updatingCalendarEventPlayerId, setUpdatingCalendarEventPlayerId] = useState(null)
+  const [isSavingCalendarGroups, setIsSavingCalendarGroups] = useState(false)
   const [activeCalendarEventPlayerId, setActiveCalendarEventPlayerId] = useState(null)
+  const [activeCalendarGroup, setActiveCalendarGroup] = useState(null)
+  const [isActiveCalendarGroupExpanded, setIsActiveCalendarGroupExpanded] = useState(false)
   const [pendingFreeActivityCalendarEvent, setPendingFreeActivityCalendarEvent] = useState(null)
   const [runningDraft, setRunningDraft] = useState({
     log_date: getTodayDateInputValue(),
