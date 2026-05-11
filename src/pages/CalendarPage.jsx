@@ -1125,9 +1125,6 @@ function CalendarPage({
           </div>
           {!hasCoachDetailView ? (
             <div style={coachCalendarActionStackStyle(isMobile)}>
-              <button type="button" onClick={handleOpenCreate} style={playerCalendarPrimaryButtonStyle}>
-                Ny aktivitet
-              </button>
               <button
                 type="button"
                 onClick={() => setIsExternalCalendarPageOpen(true)}
@@ -1338,18 +1335,8 @@ function CalendarPage({
                 {activePlayerDay?.key ? formatPlayerDateOnly(activePlayerDay.key) : "Ingen dag vald"}
               </div>
             </div>
-            <div style={coachCalendarDetailActionsStyle(isMobile)}>
-              <div style={playerCalendarDetailCountStyle}>
-                {activePlayerDayEntries.length} {activePlayerDayEntries.length === 1 ? "pass" : "pass"}
-              </div>
-              <div style={coachCalendarInlineActionsStyle(isMobile)}>
-                <button type="button" onClick={() => setIsExternalCalendarPageOpen(true)} style={playerCalendarMicroButtonStyle}>
-                  Synka kalender
-                </button>
-                <button type="button" onClick={handleOpenCreate} style={playerCalendarMicroPrimaryButtonStyle}>
-                  Ny aktivitet
-                </button>
-              </div>
+            <div style={playerCalendarDetailCountStyle}>
+              {activePlayerDayEntries.length} {activePlayerDayEntries.length === 1 ? "pass" : "pass"}
             </div>
           </div>
 
@@ -1358,14 +1345,6 @@ function CalendarPage({
               <div style={playerCalendarEmptyPromptTitleStyle}>Tomt den här dagen.</div>
               <div style={playerCalendarEmptyPromptTextStyle}>
                 Planera ett pass eller synka in kalenderhändelser för att fylla dagen.
-              </div>
-              <div style={coachCalendarEmptyActionsStyle(isMobile)}>
-                <button type="button" onClick={handleOpenCreate} style={playerCalendarEmptyPromptButtonStyle}>
-                  Ny aktivitet
-                </button>
-                <button type="button" onClick={() => setIsExternalCalendarPageOpen(true)} style={coachCalendarGhostActionStyle}>
-                  Synka med kalender
-                </button>
               </div>
             </div>
           ) : (
