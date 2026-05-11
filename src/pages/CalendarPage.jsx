@@ -1262,253 +1262,312 @@ function CalendarPage({
       ) : isLoading ? (
         <div style={playerCalendarLoadingStyle}>Laddar kalender...</div>
       ) : (
-        <div style={playerCalendarWeekListStyle}>
-          {weekDays.map((day) => {
-            const dayEntries = entriesByDay[day.key] || []
-            const isExpanded = expandedPlayerDayKey === day.key
-
-            return (
-              <section key={day.key} style={playerCalendarDaySectionStyle}>
-                <button
-                  type="button"
-                  onClick={() => setExpandedPlayerDayKey((current) => (current === day.key ? null : day.key))}
-                  style={playerCalendarDayHeaderButtonStyle}
-                >
-                  <div style={playerCalendarDayHeaderStyle}>
-                    <div style={playerCalendarDayKickerStyle}>
-                      {new Date(day.key).toLocaleDateString("sv-SE", { weekday: "short" })}
-                    </div>
-                    <div style={playerCalendarDayTitleStyle}>{formatPlayerDayTitle(day.key)}</div>
-                  </div>
-                  <div style={playerCalendarDayHeaderMetaStyle}>
-                    <div style={playerCalendarDayCountStyle}>{dayEntries.length}</div>
-                    <div style={playerCalendarDayChevronStyle(isExpanded)} aria-hidden="true">
-                      ▾
-                    </div>
-                  </div>
+        <div style={playerCalendarShellStyle}>
+          <div style={playerCalendarHeroStyle}>
+            <div style={playerCalendarMockHeaderStyle(isMobile)}>
+              <div>
+                <div style={playerCalendarMonoLabelStyle}>{playerMonthLabel}</div>
+                <div style={playerCalendarMockWeekTitleRowStyle(isMobile)}>
+                  <div style={playerCalendarMockWeekNumberStyle}>v.{weekNumber}</div>
+                  <div style={playerCalendarMockWeekRangeStyle}>{playerCompactWeekRange}</div>
+                </div>
+              </div>
+              <div style={playerCalendarMockNavStyle}>
+                <button type="button" onClick={onPreviousWeek} style={playerCalendarIconButtonStyle} aria-label="Föregående vecka">
+                  ‹
                 </button>
+                <button type="button" onClick={onGoToToday} style={playerCalendarTodayButtonStyle}>
+                  Idag
+                </button>
+                <button type="button" onClick={onNextWeek} style={playerCalendarIconButtonStyle} aria-label="Nästa vecka">
+                  ›
+                </button>
+              </div>
+            </div>
 
-                {isExpanded && dayEntries.length > 0 ? (
-                  <div style={playerCalendarEntryListStyle}>
-                    {dayEntries.map((entry) => {
-                      const status = entry.current_user_link?.completion_status || "planned"
-                      const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
-                      const isEditingThisEntry = editingEntry?.id === entry.id
-                      const isImportedHandball = entry?.is_external === true && entry?.activity_kind === "handball"
+            <div style={playerCalendarStripStyle}>
+              {weekDays.map((day) => {
+                const dayEntries = entriesByDay[day.key] || []
+                const isSelected = day.key === activePlayerDayKey
 
-                      return (
-                        <div key={entry.id} style={eventWrapStyle}>
-                          <article
-                            style={{
-                              ...playerCalendarEntryCardStyle,
-                              background: isImportedHandball
-                                ? "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,247,247,0.96) 100%)"
-                                : "linear-gradient(180deg, rgba(255,248,244,0.96) 0%, rgba(255,255,255,0.98) 100%)",
-                            }}
-                          >
-                            <div style={playerCalendarEntryTopRowStyle}>
-                              <div style={playerCalendarEntrySourceWrapStyle}>
-                                <span style={playerCalendarSourceDotStyle(false)} />
-                                <span style={playerCalendarEntrySourceStyle}>
-                                  {isImportedHandball ? "Lagets kalender" : "Coachplanerat"}
-                                </span>
-                              </div>
-                              <div
-                                style={{
-                                  ...playerCalendarStatusStyle,
-                                  backgroundColor: isImportedHandball ? "#f3f4f6" : statusTheme.background,
-                                  color: isImportedHandball ? "#6b7280" : statusTheme.color,
-                                }}
-                              >
-                                {isImportedHandball ? "Handboll" : statusLabelMap[status] || "Planerad"}
-                              </div>
-                            </div>
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    onClick={() => setExpandedPlayerDayKey(day.key)}
+                    style={playerCalendarStripDayButtonStyle(isSelected)}
+                  >
+                    <div style={playerCalendarStripDayLetterStyle(isSelected)}>{getPlayerDayLetter(day.key)}</div>
+                    <div style={playerCalendarStripDayNumberStyle(isSelected)}>{new Date(day.key).getDate()}</div>
+                    <div style={playerCalendarStripDotRowStyle}>
+                      {dayEntries.length > 0
+                        ? dayEntries.slice(0, 3).map((entry) => (
+                            <span
+                              key={`${day.key}-${entry.id}`}
+                              style={playerCalendarStripDotStyle({
+                                isSelected,
+                                color: getPlayerDayActivityDotColor(entry, workouts),
+                                isEmpty: false,
+                              })}
+                            />
+                          ))
+                        : (
+                          <span
+                            style={playerCalendarStripDotStyle({
+                              isSelected,
+                              color: "#d8cbbb",
+                              isEmpty: true,
+                            })}
+                          />
+                        )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-                            <div style={playerCalendarEntryTitleStyle}>{entry.title}</div>
-                            <div style={playerCalendarEntryMetaStyle}>
-                              {formatTime(entry.starts_at)}-{formatTime(entry.ends_at)}
-                              {entry.location ? ` • ${entry.location}` : ""}
-                            </div>
+          <div style={playerCalendarDetailHeaderStyle(isMobile)}>
+            <div>
+              <div style={playerCalendarMonoLabelStyle}>
+                {activePlayerDay?.key
+                  ? new Date(activePlayerDay.key).toLocaleDateString("sv-SE", { weekday: "long" })
+                  : ""}
+              </div>
+              <div style={playerCalendarDetailDateStyle}>
+                {activePlayerDay?.key ? formatPlayerDateOnly(activePlayerDay.key) : "Ingen dag vald"}
+              </div>
+            </div>
+            <div style={coachCalendarDetailActionsStyle(isMobile)}>
+              <div style={playerCalendarDetailCountStyle}>
+                {activePlayerDayEntries.length} {activePlayerDayEntries.length === 1 ? "pass" : "pass"}
+              </div>
+              <div style={coachCalendarInlineActionsStyle(isMobile)}>
+                <button type="button" onClick={() => setIsExternalCalendarPageOpen(true)} style={playerCalendarMicroButtonStyle}>
+                  Synka kalender
+                </button>
+                <button type="button" onClick={handleOpenCreate} style={playerCalendarMicroPrimaryButtonStyle}>
+                  Ny aktivitet
+                </button>
+              </div>
+            </div>
+          </div>
 
-                            {entry.description ? (
-                              <div style={playerCalendarEntryDescriptionStyle}>{entry.description}</div>
-                            ) : null}
+          {activePlayerDayEntries.length === 0 ? (
+            <div style={playerCalendarEmptyPromptStyle}>
+              <div style={playerCalendarEmptyPromptTitleStyle}>Tomt den här dagen.</div>
+              <div style={playerCalendarEmptyPromptTextStyle}>
+                Planera ett pass eller synka in kalenderhändelser för att fylla dagen.
+              </div>
+              <div style={coachCalendarEmptyActionsStyle(isMobile)}>
+                <button type="button" onClick={handleOpenCreate} style={playerCalendarEmptyPromptButtonStyle}>
+                  Ny aktivitet
+                </button>
+                <button type="button" onClick={() => setIsExternalCalendarPageOpen(true)} style={coachCalendarGhostActionStyle}>
+                  Synka med kalender
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={playerCalendarAgendaListStyle}>
+              {activePlayerDayEntries.map((entry) => {
+                const matchedWorkout = entry.activity_kind === "template_workout" ? getMatchingWorkout(entry, workouts) : null
+                const typeLabel = getPlayerEntryTypeLabel(entry, matchedWorkout)
+                const badgeLabel = getPlayerEntryBadgeLabel(entry, matchedWorkout)
+                const badgeTheme = getPlayerEntryBadgeTheme(entry, matchedWorkout)
+                const status = entry.current_user_link?.completion_status || "planned"
+                const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
+                const isEditingThisEntry = editingEntry?.id === entry.id
+                const isImportedHandball = entry?.is_external === true && entry?.activity_kind === "handball"
+                const durationLabel = getEntryDurationMinutes(entry)
+                const coachSummaryText = isImportedHandball
+                  ? `${entry.player_links.length} spelare • importerat från laget.se`
+                  : `${entry.player_links.length} spelare${
+                      entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""
+                    }${entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}${
+                      entry.groups?.length > 0 ? ` • ${entry.groups.length} grupper` : ""
+                    }`
 
-                            <div style={coachMetaWrapStyle}>
-                              <div style={coachMetaTextStyle}>
-                                {isImportedHandball
-                                  ? `${entry.player_links.length} spelare • importerat från laget.se`
-                                  : `${entry.player_links.length} spelare${
-                                      entry.summary.completed > 0 ? ` • ${entry.summary.completed} klara` : ""
-                                    }${entry.summary.skipped > 0 ? ` • ${entry.summary.skipped} hoppade över` : ""}${
-                                      entry.groups?.length > 0 ? ` • ${entry.groups.length} grupper` : ""
-                                    }`}
-                              </div>
-                              {entry.player_links.length > 0 ? (
-                                <div style={playerChipWrapStyle}>
-                                  {entry.player_links.slice(0, isMobile ? 4 : 3).map((link) => (
-                                    <span key={link.id} style={playerChipStyle}>
-                                      {link.player_name}
-                                    </span>
-                                  ))}
-                                  {entry.player_links.length > (isMobile ? 4 : 3) ? (
-                                    <span style={playerChipMutedStyle}>
-                                      +{entry.player_links.length - (isMobile ? 4 : 3)}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                              {!isImportedHandball ? (
-                                <div style={playerCalendarEntryActionRowStyle(isMobile)}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleStartEdit(entry)}
-                                    style={{
-                                      ...playerCalendarSecondaryButtonStyle,
-                                      width: isMobile ? "100%" : "auto",
-                                    }}
-                                  >
-                                    {isEditingThisEntry ? "Redigerar" : "Redigera"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onCancelActivity(entry)}
-                                    disabled={isCancellingActivity}
-                                    style={{
-                                      ...playerCalendarDangerButtonStyle,
-                                      width: isMobile ? "100%" : "auto",
-                                      opacity: isCancellingActivity ? 0.7 : 1,
-                                    }}
-                                  >
-                                    Ställ in
-                                  </button>
-                                  {isSharedTemplateEntry(entry, workouts) ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenGroupEditor(entry)}
-                                      style={{
-                                        ...playerCalendarSecondaryButtonStyle,
-                                        width: isMobile ? "100%" : "auto",
-                                      }}
-                                    >
-                                      {groupEditorEntryId === entry.id ? "Stäng grupper" : "Hantera grupper"}
-                                    </button>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </div>
-                          </article>
-
-                          {groupEditorEntryId === entry.id ? (
-                            <div style={inlineComposerStyle}>
-                              <div style={groupEditorCardStyle}>
-                                <div style={groupEditorHeaderStyle}>
-                                  <div>
-                                    <div style={formTitleStyle}>Grupper för detta pass</div>
-                                    <div style={groupEditorHintStyle}>
-                                      Gäller bara den här planerade aktiviteten. Om inga grupper sparas visas ingen
-                                      gruppinfo för spelarna.
-                                    </div>
-                                  </div>
-                                  <button type="button" onClick={handleClearGroups} style={ghostButtonStyle}>
-                                    Rensa
-                                  </button>
-                                </div>
-
-                                {groupDrafts.length === 0 ? (
-                                  <div style={groupEditorEmptyStyle}>
-                                    Inga grupper skapade ännu. Lägg till minst en grupp om spelarna ska se
-                                    gruppindelning för det här passet.
-                                  </div>
-                                ) : (
-                                  <div style={groupListStyle}>
-                                    {groupDrafts.map((group, index) => (
-                                      <div key={group.id} style={groupCardStyle}>
-                                        <div style={groupCardHeaderStyle}>
-                                          <label style={{ ...fieldStyle, margin: 0, flex: 1 }}>
-                                            <span style={fieldLabelStyle}>Gruppnamn</span>
-                                            <input
-                                              type="text"
-                                              value={group.name}
-                                              onChange={(event) => handleGroupNameChange(group.id, event.target.value)}
-                                              style={inputStyle}
-                                              placeholder={`Grupp ${index + 1}`}
-                                            />
-                                          </label>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveGroupDraft(group.id)}
-                                            style={dangerButtonCompactStyle}
-                                          >
-                                            Ta bort
-                                          </button>
-                                        </div>
-                                        <div style={groupSizeTextStyle}>
-                                          {group.player_ids.length} spelare
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                <div style={groupAssignmentsWrapStyle}>
-                                  <div style={fieldLabelStyle}>Tilldelning per spelare</div>
-                                  <div style={groupAssignmentListStyle}>
-                                    {(entry.player_links || []).map((link) => {
-                                      const assignedGroupId =
-                                        groupDrafts.find((group) => group.player_ids.includes(link.player_id))?.id || ""
-
-                                      return (
-                                        <div key={link.id} style={groupAssignmentRowStyle(isMobile)}>
-                                          <div style={groupAssignmentPlayerNameStyle}>{link.player_name}</div>
-                                          <select
-                                            value={assignedGroupId}
-                                            onChange={(event) =>
-                                              handleAssignPlayerToGroup(link.player_id, event.target.value)
-                                            }
-                                            style={inputStyle}
-                                          >
-                                            <option value="">Ingen grupp</option>
-                                            {groupDrafts.map((group) => (
-                                              <option key={`${link.id}-${group.id}`} value={group.id}>
-                                                {group.name || "Namnlös grupp"}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                </div>
-
-                                <div style={formActionsStyle}>
-                                  <button
-                                    type="button"
-                                    onClick={handleAddGroupDraft}
-                                    style={secondaryButtonStyleCompact}
-                                  >
-                                    Ny grupp
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSaveGroupEditor(entry)}
-                                    disabled={isSavingGroups}
-                                    style={primaryButtonCompactStyle}
-                                  >
-                                    {isSavingGroups ? "Sparar..." : "Spara grupper"}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
+                return (
+                  <div key={entry.id} style={playerCalendarAgendaItemStyle}>
+                    <article style={coachCalendarAgendaCardStyle}>
+                      <div style={playerCalendarAgendaCardButtonStyle(true)}>
+                        <div style={{ ...playerCalendarAgendaBadgeStyle, ...badgeTheme }}>{badgeLabel}</div>
+                        <div style={playerCalendarAgendaContentStyle}>
+                          <div style={playerCalendarAgendaTitleStyle}>{entry.title}</div>
+                          <div style={playerCalendarAgendaMetaStyle}>
+                            {typeLabel}
+                            {entry.location ? ` • ${entry.location}` : ""}
+                          </div>
+                          {entry.description ? (
+                            <div style={coachCalendarAgendaDescriptionStyle}>{entry.description}</div>
                           ) : null}
                         </div>
-                      )
-                    })}
+                        <div style={playerCalendarAgendaAsideStyle}>
+                          {durationLabel ? (
+                            <div style={playerCalendarAgendaDurationStyle}>{durationLabel}</div>
+                          ) : null}
+                          <div
+                            style={{
+                              ...playerCalendarAgendaStatusStyle,
+                              backgroundColor: isImportedHandball ? "#f3f4f6" : statusTheme.background,
+                              color: isImportedHandball ? "#6b7280" : statusTheme.color,
+                            }}
+                          >
+                            {isImportedHandball ? "Handboll" : statusLabelMap[status] || "Planerad"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={playerCalendarAgendaFooterStyle}>
+                        <div style={coachMetaTextStyle}>{coachSummaryText}</div>
+                        {entry.player_links.length > 0 ? (
+                          <div style={playerChipWrapStyle}>
+                            {entry.player_links.slice(0, isMobile ? 4 : 3).map((link) => (
+                              <span key={link.id} style={playerChipStyle}>
+                                {link.player_name}
+                              </span>
+                            ))}
+                            {entry.player_links.length > (isMobile ? 4 : 3) ? (
+                              <span style={playerChipMutedStyle}>
+                                +{entry.player_links.length - (isMobile ? 4 : 3)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {!isImportedHandball ? (
+                          <div style={coachCalendarCardActionsStyle(isMobile)}>
+                            <button type="button" onClick={() => handleStartEdit(entry)} style={playerCalendarMicroButtonStyle}>
+                              {isEditingThisEntry ? "Redigerar" : "Redigera"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onCancelActivity(entry)}
+                              disabled={isCancellingActivity}
+                              style={playerCalendarMicroDangerButtonStyle}
+                            >
+                              Ställ in
+                            </button>
+                            {isSharedTemplateEntry(entry, workouts) ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenGroupEditor(entry)}
+                                style={playerCalendarMicroButtonStyle}
+                              >
+                                {groupEditorEntryId === entry.id ? "Stäng grupper" : "Hantera grupper"}
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+
+                    {groupEditorEntryId === entry.id ? (
+                      <div style={inlineComposerStyle}>
+                        <div style={groupEditorCardStyle}>
+                          <div style={groupEditorHeaderStyle}>
+                            <div>
+                              <div style={formTitleStyle}>Grupper för detta pass</div>
+                              <div style={groupEditorHintStyle}>
+                                Gäller bara den här planerade aktiviteten. Om inga grupper sparas visas ingen
+                                gruppinfo för spelarna.
+                              </div>
+                            </div>
+                            <button type="button" onClick={handleClearGroups} style={ghostButtonStyle}>
+                              Rensa
+                            </button>
+                          </div>
+
+                          {groupDrafts.length === 0 ? (
+                            <div style={groupEditorEmptyStyle}>
+                              Inga grupper skapade ännu. Lägg till minst en grupp om spelarna ska se gruppindelning
+                              för det här passet.
+                            </div>
+                          ) : (
+                            <div style={groupListStyle}>
+                              {groupDrafts.map((group, index) => (
+                                <div key={group.id} style={groupCardStyle}>
+                                  <div style={groupCardHeaderStyle}>
+                                    <label style={{ ...fieldStyle, margin: 0, flex: 1 }}>
+                                      <span style={fieldLabelStyle}>Gruppnamn</span>
+                                      <input
+                                        type="text"
+                                        value={group.name}
+                                        onChange={(event) => handleGroupNameChange(group.id, event.target.value)}
+                                        style={inputStyle}
+                                        placeholder={`Grupp ${index + 1}`}
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveGroupDraft(group.id)}
+                                      style={dangerButtonCompactStyle}
+                                    >
+                                      Ta bort
+                                    </button>
+                                  </div>
+                                  <div style={groupSizeTextStyle}>{group.player_ids.length} spelare</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={groupAssignmentsWrapStyle}>
+                            <div style={fieldLabelStyle}>Tilldelning per spelare</div>
+                            <div style={groupAssignmentListStyle}>
+                              {(entry.player_links || []).map((link) => {
+                                const assignedGroupId =
+                                  groupDrafts.find((group) => group.player_ids.includes(link.player_id))?.id || ""
+
+                                return (
+                                  <div key={link.id} style={groupAssignmentRowStyle(isMobile)}>
+                                    <div style={groupAssignmentPlayerNameStyle}>{link.player_name}</div>
+                                    <select
+                                      value={assignedGroupId}
+                                      onChange={(event) => handleAssignPlayerToGroup(link.player_id, event.target.value)}
+                                      style={inputStyle}
+                                    >
+                                      <option value="">Ingen grupp</option>
+                                      {groupDrafts.map((group) => (
+                                        <option key={`${link.id}-${group.id}`} value={group.id}>
+                                          {group.name || "Namnlös grupp"}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+
+                          <div style={formActionsStyle}>
+                            <button type="button" onClick={handleAddGroupDraft} style={secondaryButtonStyleCompact}>
+                              Ny grupp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveGroupEditor(entry)}
+                              disabled={isSavingGroups}
+                              style={primaryButtonCompactStyle}
+                            >
+                              {isSavingGroups ? "Sparar..." : "Spara grupper"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </section>
-            )
-          })}
+                )
+              })}
+            </div>
+          )}
+
+          <div style={playerCalendarBottomActionWrapStyle}>
+            <button type="button" onClick={handleOpenCreate} style={playerCalendarBottomActionButtonStyle}>
+              + Ny aktivitet
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -2324,11 +2383,43 @@ const playerCalendarAgendaSourceStyle = {
   color: "#8a8173",
 }
 
+const coachCalendarAgendaCardStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const coachCalendarAgendaDescriptionStyle = {
+  marginTop: "8px",
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: "#5b6475",
+}
+
 const playerCalendarAgendaActionsStyle = (isMobile) => ({
   display: "flex",
   flexWrap: "wrap",
   gap: "6px",
   flexDirection: isMobile ? "row" : "row",
+})
+
+const coachCalendarCardActionsStyle = (isMobile) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "6px",
+  flexDirection: isMobile ? "row" : "row",
+})
+
+const coachCalendarDetailActionsStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  justifyItems: isMobile ? "start" : "end",
+})
+
+const coachCalendarInlineActionsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  justifyContent: isMobile ? "flex-start" : "flex-end",
 })
 
 const playerCalendarMicroPrimaryButtonStyle = {
@@ -2361,6 +2452,17 @@ const playerCalendarMicroDangerButtonStyle = {
   color: "#b91c1c",
   fontSize: "12px",
   fontWeight: 700,
+  cursor: "pointer",
+}
+
+const coachCalendarGhostActionStyle = {
+  border: "1px solid rgba(164, 106, 60, 0.18)",
+  borderRadius: "999px",
+  padding: "10px 14px",
+  backgroundColor: "#fffdfa",
+  color: "#1a1814",
+  fontSize: "13px",
+  fontWeight: 800,
   cursor: "pointer",
 }
 
@@ -2398,6 +2500,15 @@ const playerCalendarEmptyPromptButtonStyle = {
   fontWeight: 800,
   cursor: "pointer",
 }
+
+const coachCalendarEmptyActionsStyle = (isMobile) => ({
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  flexDirection: isMobile ? "column" : "row",
+  alignItems: isMobile ? "stretch" : "center",
+  marginTop: "18px",
+})
 
 const playerCalendarBottomActionWrapStyle = {
   position: "sticky",
