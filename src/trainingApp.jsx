@@ -1280,6 +1280,8 @@ function TrainingApp() {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
   const [restStopwatchStartedAt, setRestStopwatchStartedAt] = useState(null)
   const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
+  const [loggedSetsByExercise, setLoggedSetsByExercise] = useState({})
+  const [activeSideByExercise, setActiveSideByExercise] = useState({})
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -4885,6 +4887,8 @@ function TrainingApp() {
         average_pulse: "",
       })
       setInputs({})
+      setLoggedSetsByExercise({})
+      setActiveSideByExercise({})
       setSelectedExerciseOptionKeys({})
       setExerciseComments({})
       setPassComment("")
@@ -4993,6 +4997,8 @@ function TrainingApp() {
       setLastFinishedWorkoutSummary(finishedSummary)
       setCurrentSessionId(null)
       setInputs({})
+      setLoggedSetsByExercise({})
+      setActiveSideByExercise({})
       setSelectedExerciseOptionKeys({})
       setExerciseComments({})
       setPassComment("")
@@ -5131,6 +5137,8 @@ function TrainingApp() {
     setLastFinishedWorkoutSummary(finishedSummary)
     setCurrentSessionId(null)
     setInputs({})
+    setLoggedSetsByExercise({})
+    setActiveSideByExercise({})
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
@@ -5172,6 +5180,8 @@ function TrainingApp() {
     setIsWorkoutActive(false)
     setCurrentSessionId(null)
     setInputs({})
+    setLoggedSetsByExercise({})
+    setActiveSideByExercise({})
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
     setPassComment("")
@@ -5413,6 +5423,50 @@ function TrainingApp() {
 
     if (isComplete) {
       await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
+    }
+  }
+
+  const handleLogSet = async (exerciseIndex, setIndex) => {
+    if (!isWorkoutActive || !currentSessionId) return
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    const selEx = getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
+    const set = (inputs[exerciseIndex] || [])[setIndex]
+    if (!set || !selEx) return
+    await saveSet(exerciseIndex, selEx, setIndex, set)
+    setLoggedSetsByExercise((prev) => ({
+      ...prev,
+      [exerciseIndex]: { ...(prev[exerciseIndex] || {}), [setIndex]: true },
+    }))
+    setRestStopwatchStartedAt(Date.now())
+  }
+
+  const handleSwitchSide = (exerciseIndex) => {
+    setActiveSideByExercise((prev) => ({
+      ...prev,
+      [exerciseIndex]: (prev[exerciseIndex] || "left") === "left" ? "right" : "left",
+    }))
+  }
+
+  const handleSecondsInputChange = async (exerciseIndex, setIndex, side, value) => {
+    if (!isWorkoutActive || !currentSessionId) return
+    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
+    const selEx = getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
+    const current = inputs[exerciseIndex] || []
+    const updated = [...current]
+    const updatedSet = {
+      ...updated[setIndex],
+      [`seconds_${side}`]: value,
+      set_type: updated[setIndex]?.set_type || "work",
+      workout_session_id: currentSessionId,
+      client_set_id: updated[setIndex]?.client_set_id || generateSetId(exerciseIndex, setIndex),
+    }
+    if (updatedSet.seconds_left && updatedSet.seconds_right) {
+      updatedSet.seconds = updatedSet.seconds_left
+    }
+    updated[setIndex] = updatedSet
+    setInputs({ ...inputs, [exerciseIndex]: updated })
+    if (updatedSet.seconds && selEx) {
+      await saveSet(exerciseIndex, selEx, setIndex, updatedSet)
     }
   }
 
@@ -11557,8 +11611,13 @@ function TrainingApp() {
                   </div>
                 )}
 
-                {isWorkoutActive && !isProtocol && (
-                  <div style={activeLiftLogHeaderStyle(isMobile)}>
+                {isWorkoutActive && !isProtocol && (() => {
+                  const exType = selectedExercise?.type
+                  const execSide = selectedExercise?.executionSide
+                  const isUnilateral = execSide === "single_leg" || execSide === "single_arm"
+                  const sets = inputs[i] || []
+
+                  const RestVila = () => (
                     <button
                       type="button"
                       onClick={resetRestStopwatch}
@@ -11569,126 +11628,365 @@ function TrainingApp() {
                       <span style={restStopwatchValueStyle}>{formatStopwatchTime(restStopwatchElapsedMs)}</span>
                       <span style={restStopwatchHintStyle}>Tryck för att nollställa</span>
                     </button>
-                    <button
-                      onClick={() => handleAddSet(i)}
-                      style={activeLiftAddSetButtonStyle}
-                    >
-                      + Lägg till set
-                    </button>
-                  </div>
-                )}
+                  )
 
-                {isWorkoutActive &&
-                  !isProtocol &&
-                  (inputs[i] || []).map((set, j) => (
-                    <div key={set.client_set_id || j} style={activeSetCardStyle}>
-                      <div style={setHeaderRowStyle}>
-                        <div style={setLabelStyle}>Set {j + 1}</div>
+                  // ── VARIANT 1: weight_reps ──────────────────────────────────
+                  if (exType === "weight_reps") {
+                    const firstActiveIdx = sets.findIndex((_, idx) => !loggedSetsByExercise[i]?.[idx])
+
+                    const stepWeight = (j, delta) => {
+                      const cur = parseFloat(sets[j]?.weight || resolvedCurrentTargetWeight || 0)
+                      handleChange(i, j, "weight", String(Math.max(0, Math.round((cur + delta) * 4) / 4)))
+                    }
+                    const stepReps = (j, delta) => {
+                      const cur = parseInt(sets[j]?.reps || currentTarget?.target_reps_min || 0, 10)
+                      handleChange(i, j, "reps", String(Math.max(0, cur + delta)))
+                    }
+                    const hintWeight =
+                      resolvedCurrentTargetWeight ||
+                      (selectedExercise && latestWorkout[selectedExercise.name]?.slice(-1)[0]?.weight)
+
+                    return (
+                      <div style={{ display: "grid", gap: "8px", marginBottom: "10px" }}>
+                        <div style={setStackHeaderRowStyle}>
+                          <span style={setLabelStyle}>Set</span>
+                          <span style={{ ...setLabelStyle, color: playerInkSoft }}>
+                            {Object.keys(loggedSetsByExercise[i] || {}).length} av {sets.length}
+                          </span>
+                        </div>
+
+                        {sets.map((set, j) => {
+                          const isLogged = !!loggedSetsByExercise[i]?.[j]
+                          const isActive = j === firstActiveIdx
+                          const wVal = set.weight || (isActive ? resolvedCurrentTargetWeight : null) || ""
+                          const rVal = set.reps || (isActive ? currentTarget?.target_reps_min : null) || ""
+
+                          if (isLogged) {
+                            return (
+                              <div key={set.client_set_id || j} style={weightSetDoneStyle}>
+                                <div style={weightSetDoneIconStyle}>✓</div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={setStackMetaStyle}>Set {j + 1} · klart</div>
+                                  <div style={weightSetValueStyle}>{set.weight} kg × {set.reps} reps</div>
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          if (isActive) {
+                            return (
+                              <div key={set.client_set_id || j} style={weightSetActiveStyle}>
+                                <div style={setStackHeaderRowStyle}>
+                                  <span style={{ ...setLabelStyle, color: playerAccent }}>
+                                    Set {j + 1} · pågår
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleSetType(i, j)}
+                                    style={{
+                                      ...setTypeToggleStyle,
+                                      backgroundColor: set.set_type === "warmup" ? "rgba(217,74,31,0.12)" : playerInk,
+                                      borderColor: set.set_type === "warmup" ? "rgba(217,74,31,0.22)" : playerInk,
+                                      color: set.set_type === "warmup" ? playerAccent : playerPaper,
+                                    }}
+                                  >
+                                    {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                                  </button>
+                                </div>
+                                {set.set_type === "warmup" && (
+                                  <div style={setInputHintStyle}>Uppvärmningsset räknas inte i statistik.</div>
+                                )}
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px" }}>
+                                  <div>
+                                    <div style={stepperLabelStyle}>Vikt</div>
+                                    <div style={stepperRowStyle}>
+                                      <button style={stepperBtnStyle} onClick={() => stepWeight(j, -2.5)}>−</button>
+                                      <div style={stepperValueStyle}>
+                                        {wVal || "—"}<span style={stepperUnitStyle}>kg</span>
+                                      </div>
+                                      <button style={stepperBtnStyle} onClick={() => stepWeight(j, 2.5)}>+</button>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={stepperLabelStyle}>Reps</div>
+                                    <div style={stepperRowStyle}>
+                                      <button style={stepperBtnStyle} onClick={() => stepReps(j, -1)}>−</button>
+                                      <div style={stepperValueStyle}>{rVal || "—"}</div>
+                                      <button style={stepperBtnStyle} onClick={() => stepReps(j, 1)}>+</button>
+                                    </div>
+                                  </div>
+                                </div>
+                                <button
+                                  style={{
+                                    ...logSetButtonStyle,
+                                    opacity: !wVal || !rVal ? 0.5 : 1,
+                                    cursor: !wVal || !rVal ? "default" : "pointer",
+                                  }}
+                                  onClick={() => { if (wVal && rVal) handleLogSet(i, j) }}
+                                >
+                                  Logga set · starta vila
+                                </button>
+                                <button
+                                  style={{ ...removeButtonStyle, marginTop: "8px" }}
+                                  onClick={() => handleRemoveSet(i, j)}
+                                >
+                                  Ta bort
+                                </button>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <div key={set.client_set_id || j} style={weightSetTodoStyle}>
+                              <div style={weightSetTodoIconStyle}>{j + 1}</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={setStackMetaStyle}>Set {j + 1} · kommer</div>
+                                {hintWeight && (
+                                  <div style={weightSetTodoHintStyle}>förslag {hintWeight} kg</div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+
+                        <RestVila />
+
                         <button
-                          type="button"
-                          onClick={() => handleToggleSetType(i, j)}
-                          style={{
-                            ...setTypeToggleStyle,
-                            backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
-                            borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
-                            color: set.set_type === "warmup" ? playerAccent : playerPaper,
-                          }}
+                          style={{ ...secondaryButtonStyle, width: "100%" }}
+                          onClick={() => handleAddSet(i)}
                         >
-                          {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                          + Lägg till set
                         </button>
                       </div>
+                    )
+                  }
 
-                      {set.set_type === "warmup" && (
-                        <div style={setInputHintStyle}>
-                          Uppvärmningsset räknas inte i statistik.
+                  // ── VARIANT B: seconds_only ─────────────────────────────────
+                  if (exType === "seconds_only") {
+                    const activeSide = activeSideByExercise[i] || "left"
+                    const firstActiveIdx = sets.findIndex((s) => !s.seconds)
+                    const activeSet = firstActiveIdx >= 0 ? sets[firstActiveIdx] : null
+                    const sideWords = execSide === "single_arm"
+                      ? ["Vänster hand", "Höger hand"]
+                      : ["Vänster ben", "Höger ben"]
+
+                    if (isUnilateral) {
+                      return (
+                        <div style={{ marginBottom: "10px" }}>
+                          {activeSet && (
+                            <>
+                              <div style={bilateralCardStyle}>
+                                <div style={{
+                                  ...bilateralPanelStyle,
+                                  borderRight: `1px solid ${playerLine}`,
+                                  opacity: activeSide === "left" ? 1 : 0.45,
+                                }}>
+                                  <div style={{
+                                    ...setStackMetaStyle,
+                                    color: activeSide === "left" ? playerAccent : playerInkSoft,
+                                  }}>
+                                    {sideWords[0]}{activeSide === "left" ? " · aktiv" : ""}
+                                  </div>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    placeholder="sek"
+                                    value={activeSet.seconds_left || ""}
+                                    onChange={(e) => handleSecondsInputChange(i, firstActiveIdx, "left", e.target.value)}
+                                    readOnly={activeSide !== "left"}
+                                    style={{
+                                      ...bilateralInputStyle,
+                                      borderColor: activeSide === "left" ? playerAccent : playerLine,
+                                    }}
+                                  />
+                                </div>
+                                <div style={{
+                                  ...bilateralPanelStyle,
+                                  opacity: activeSide === "right" ? 1 : 0.45,
+                                }}>
+                                  <div style={{
+                                    ...setStackMetaStyle,
+                                    color: activeSide === "right" ? playerAccent : playerInkSoft,
+                                  }}>
+                                    {sideWords[1]}{activeSide === "right" ? " · aktiv" : ""}
+                                  </div>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    placeholder="sek"
+                                    value={activeSet.seconds_right || ""}
+                                    onChange={(e) => handleSecondsInputChange(i, firstActiveIdx, "right", e.target.value)}
+                                    readOnly={activeSide !== "right"}
+                                    style={{
+                                      ...bilateralInputStyle,
+                                      borderColor: activeSide === "right" ? playerAccent : playerLine,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                style={{ ...secondaryButtonStyle, width: "100%", marginTop: "10px" }}
+                                onClick={() => handleSwitchSide(i)}
+                              >
+                                {activeSide === "left"
+                                  ? `Byt till ${sideWords[1].toLowerCase()}`
+                                  : `Byt till ${sideWords[0].toLowerCase()}`}
+                              </button>
+                            </>
+                          )}
+                          {!activeSet && sets.length > 0 && (
+                            <div style={{ ...setInputHintStyle, textAlign: "center", padding: "12px 0" }}>
+                              Alla set klara ✓
+                            </div>
+                          )}
+                          <div style={{ marginTop: "16px" }}>
+                            <div style={setStackHeaderRowStyle}>
+                              <span style={setLabelStyle}>Dagens set</span>
+                              <span style={{ ...setLabelStyle, color: playerInkSoft }}>
+                                {sets.filter((s) => s.seconds).length} av {sets.length}
+                              </span>
+                            </div>
+                            {sets.map((set, j) => (
+                              <div key={set.client_set_id || j} style={bilateralRowStyle}>
+                                <span style={{ ...setStackMetaStyle }}>SET {j + 1}</span>
+                                <span style={bilateralRowValueStyle}>
+                                  VÄ {set.seconds_left ? `${set.seconds_left} s` : "—"}
+                                </span>
+                                <span style={bilateralRowValueStyle}>
+                                  HÖ {set.seconds_right ? `${set.seconds_right} s` : "—"}
+                                </span>
+                                <span style={{ color: playerAccent }}>
+                                  {set.seconds ? "✓" : ""}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <RestVila />
+                          <button
+                            style={{ ...secondaryButtonStyle, width: "100%", marginTop: "10px" }}
+                            onClick={() => handleAddSet(i)}
+                          >
+                            + Lägg till set
+                          </button>
                         </div>
-                      )}
+                      )
+                    }
 
-                      <div
-                        style={{
-                          ...setInputsRowStyle,
-                          flexDirection: "row",
-                          alignItems: isMobile ? "stretch" : "center",
-                        }}
-                      >
-                        {selectedExercise?.type === "weight_reps" && (
-                          <>
-                            <input
-                              placeholder="kg"
-                              value={set.weight || ""}
-                              onChange={(e) =>
-                                handleChange(i, j, "weight", e.target.value)
-                              }
-                              style={{ ...inputStyle, ...compactSetInputStyle }}
-                            />
+                    // Tvåsidig (standard) — situps, armhävningar etc.
+                    return (
+                      <div style={{ display: "grid", gap: "8px", marginBottom: "10px" }}>
+                        {sets.map((set, j) => (
+                          <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                            <div style={setHeaderRowStyle}>
+                              <div style={setLabelStyle}>Set {j + 1}</div>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSetType(i, j)}
+                                style={{
+                                  ...setTypeToggleStyle,
+                                  backgroundColor: set.set_type === "warmup" ? "rgba(217,74,31,0.12)" : playerInk,
+                                  borderColor: set.set_type === "warmup" ? "rgba(217,74,31,0.22)" : playerInk,
+                                  color: set.set_type === "warmup" ? playerAccent : playerPaper,
+                                }}
+                              >
+                                {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                              </button>
+                            </div>
+                            {set.set_type === "warmup" && (
+                              <div style={setInputHintStyle}>Uppvärmningsset räknas inte i statistik.</div>
+                            )}
+                            <div style={{ ...setInputsRowStyle, alignItems: "center" }}>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                placeholder={getExerciseMeasurementPlaceholder(
+                                  selectedExercise?.type || exercise.type,
+                                  selectedExercise?.executionSide || "standard"
+                                )}
+                                value={set.seconds || ""}
+                                onChange={(e) => handleChange(i, j, "seconds", e.target.value)}
+                                style={{ ...inputStyle, ...compactSetInputStyle }}
+                              />
+                              <button
+                                onClick={() => handleRemoveSet(i, j)}
+                                style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
+                              >
+                                Ta bort
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        <RestVila />
+                        <button
+                          style={{ ...secondaryButtonStyle, width: "100%" }}
+                          onClick={() => handleAddSet(i)}
+                        >
+                          + Lägg till set
+                        </button>
+                      </div>
+                    )
+                  }
+
+                  // ── reps_only — behåll befintlig rendering ──────────────────
+                  return (
+                    <div style={{ display: "grid", gap: "8px", marginBottom: "10px" }}>
+                      {sets.map((set, j) => (
+                        <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                          <div style={setHeaderRowStyle}>
+                            <div style={setLabelStyle}>Set {j + 1}</div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSetType(i, j)}
+                              style={{
+                                ...setTypeToggleStyle,
+                                backgroundColor: set.set_type === "warmup" ? "rgba(217,74,31,0.12)" : playerInk,
+                                borderColor: set.set_type === "warmup" ? "rgba(217,74,31,0.22)" : playerInk,
+                                color: set.set_type === "warmup" ? playerAccent : playerPaper,
+                              }}
+                            >
+                              {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                            </button>
+                          </div>
+                          {set.set_type === "warmup" && (
+                            <div style={setInputHintStyle}>Uppvärmningsset räknas inte i statistik.</div>
+                          )}
+                          <div style={{ ...setInputsRowStyle, alignItems: "center" }}>
                             <input
                               placeholder={getExerciseMeasurementPlaceholder(
                                 selectedExercise?.type || exercise.type,
                                 selectedExercise?.executionSide || "standard"
                               )}
                               value={set.reps || ""}
-                              onChange={(e) =>
-                                handleChange(i, j, "reps", e.target.value)
-                              }
+                              onChange={(e) => handleChange(i, j, "reps", e.target.value)}
                               style={{ ...inputStyle, ...compactSetInputStyle }}
                             />
-                          </>
-                        )}
-
-                        {selectedExercise?.type === "reps_only" && (
-                          <input
-                            placeholder={getExerciseMeasurementPlaceholder(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                            value={set.reps || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "reps", e.target.value)
-                            }
-                            style={{ ...inputStyle, ...compactSetInputStyle }}
-                          />
-                        )}
-
-                        {selectedExercise?.type === "seconds_only" && (
-                          <input
-                            placeholder={getExerciseMeasurementPlaceholder(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                            value={set.seconds || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "seconds", e.target.value)
-                            }
-                            style={{ ...inputStyle, ...compactSetInputStyle }}
-                          />
-                        )}
-
-                        <button
-                          onClick={() => handleRemoveSet(i, j)}
-                          style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
-                        >
-                          Ta bort
-                        </button>
-                      </div>
-
-                      {selectedExercise?.type === "weight_reps" &&
-                        selectedExercise &&
-                        latestWorkout[selectedExercise.name]?.slice(-1)[0]?.weight != null && (
-                          <div style={setInputHintStyle}>
-                            Senaste vikt: {latestWorkout[selectedExercise.name].slice(-1)[0].weight} kg
+                            <button
+                              onClick={() => handleRemoveSet(i, j)}
+                              style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
+                            >
+                              Ta bort
+                            </button>
                           </div>
-                        )}
-
-                      {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
-                        <div style={setInputHintStyle}>
-                          {getExerciseExecutionSideHint(
-                            selectedExercise.executionSide,
-                            selectedExercise?.type || exercise.type
+                          {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
+                            <div style={setInputHintStyle}>
+                              {getExerciseExecutionSideHint(
+                                selectedExercise.executionSide,
+                                selectedExercise?.type || exercise.type
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
+                      ))}
+                      <RestVila />
+                      <button
+                        style={{ ...secondaryButtonStyle, width: "100%" }}
+                        onClick={() => handleAddSet(i)}
+                      >
+                        + Lägg till set
+                      </button>
                     </div>
-                  ))}
+                  )
+                })()}
 
                 {isWorkoutActive && (
                   <div style={activeLiftSupportPanelStyle}>
@@ -13206,6 +13504,199 @@ const setInputHintStyle = {
   marginTop: "8px",
   fontSize: "12px",
   color: playerInkSoft,
+}
+
+const setStackHeaderRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "baseline",
+  marginBottom: "8px",
+}
+
+const setStackMetaStyle = {
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const weightSetDoneStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "14px",
+  padding: "12px 16px",
+  borderRadius: "14px",
+  marginTop: "4px",
+  background: "rgba(243, 239, 230, 0.72)",
+  border: `1px solid ${playerLine}`,
+}
+
+const weightSetDoneIconStyle = {
+  width: "28px",
+  height: "28px",
+  borderRadius: "50%",
+  background: playerInk,
+  color: playerPaper,
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "13px",
+}
+
+const weightSetValueStyle = {
+  fontFamily: "monospace",
+  fontSize: "14px",
+  marginTop: "2px",
+  color: playerInk,
+}
+
+const weightSetActiveStyle = {
+  marginTop: "4px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: `1.5px solid ${playerAccent}`,
+  background: playerPaper,
+}
+
+const weightSetTodoStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "14px",
+  padding: "10px 16px",
+  borderRadius: "14px",
+  marginTop: "4px",
+  background: "rgba(243, 239, 230, 0.4)",
+  border: `1px solid ${playerLine}`,
+  opacity: 0.6,
+}
+
+const weightSetTodoIconStyle = {
+  width: "26px",
+  height: "26px",
+  borderRadius: "50%",
+  border: `1px solid ${playerLine}`,
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "12px",
+  color: playerInkSoft,
+}
+
+const weightSetTodoHintStyle = {
+  fontFamily: "monospace",
+  fontSize: "12px",
+  color: playerInkSoft,
+  marginTop: "2px",
+}
+
+const stepperLabelStyle = {
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const stepperRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  marginTop: "6px",
+}
+
+const stepperBtnStyle = {
+  width: "36px",
+  height: "36px",
+  borderRadius: "10px",
+  flexShrink: 0,
+  border: `1px solid ${playerLine}`,
+  background: playerPaper,
+  cursor: "pointer",
+  fontSize: "18px",
+  fontWeight: "700",
+  color: playerInk,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const stepperValueStyle = {
+  flex: 1,
+  textAlign: "center",
+  fontSize: "26px",
+  fontWeight: "700",
+  letterSpacing: "-0.02em",
+  borderBottom: `1px dashed ${playerLine}`,
+  paddingBottom: "4px",
+  color: playerInk,
+}
+
+const stepperUnitStyle = {
+  fontSize: "12px",
+  color: playerInkSoft,
+  marginLeft: "3px",
+}
+
+const logSetButtonStyle = {
+  marginTop: "14px",
+  width: "100%",
+  height: "46px",
+  background: playerInk,
+  color: playerPaper,
+  border: "none",
+  borderRadius: "12px",
+  fontSize: "14px",
+  fontWeight: "700",
+  letterSpacing: "-0.01em",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const bilateralCardStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  borderRadius: "18px",
+  overflow: "hidden",
+  marginTop: "12px",
+  border: `1px solid ${playerLine}`,
+  background: "rgba(243, 239, 230, 0.72)",
+}
+
+const bilateralPanelStyle = {
+  padding: "16px 14px",
+}
+
+const bilateralInputStyle = {
+  marginTop: "8px",
+  width: "100%",
+  padding: "10px",
+  borderRadius: "12px",
+  border: `1px solid ${playerLine}`,
+  fontSize: "28px",
+  fontWeight: "700",
+  textAlign: "center",
+  background: playerPaper,
+  color: playerInk,
+  boxSizing: "border-box",
+}
+
+const bilateralRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "50px 1fr 1fr 20px",
+  alignItems: "center",
+  gap: "8px",
+  padding: "10px 0",
+  borderTop: `1px solid ${playerLine}`,
+}
+
+const bilateralRowValueStyle = {
+  fontFamily: "monospace",
+  fontSize: "13px",
+  color: playerInk,
 }
 
 const exerciseCommentCardStyle = {
