@@ -1282,6 +1282,8 @@ function TrainingApp() {
   const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
   const [loggedSetsByExercise, setLoggedSetsByExercise] = useState({})
   const [activeSideByExercise, setActiveSideByExercise] = useState({})
+  const [exerciseSetTimers, setExerciseSetTimers] = useState({})
+  const [timerTick, setTimerTick] = useState(Date.now())
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -1388,6 +1390,13 @@ function TrainingApp() {
 
     return () => window.clearInterval(intervalId)
   }, [isWorkoutActive, restStopwatchStartedAt])
+
+  const hasRunningTimer = Object.values(exerciseSetTimers).some(t => t.startedAt && !t.pausedAt)
+  useEffect(() => {
+    if (!hasRunningTimer) return
+    const id = setInterval(() => setTimerTick(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [hasRunningTimer])
 
   useEffect(() => {
     if (isWorkoutActive) return
@@ -4887,6 +4896,7 @@ function TrainingApp() {
         average_pulse: "",
       })
       setInputs({})
+      setExerciseSetTimers({})
       setLoggedSetsByExercise({})
       setActiveSideByExercise({})
       setSelectedExerciseOptionKeys({})
@@ -4939,6 +4949,33 @@ function TrainingApp() {
     const now = Date.now()
     setRestStopwatchStartedAt(now)
     setRestStopwatchNow(now)
+  }
+
+  const startExerciseTimer = (exerciseIdx, setIdx, side) => {
+    const key = `${exerciseIdx}-${setIdx}-${side}`
+    setExerciseSetTimers(prev => {
+      const existing = prev[key]
+      if (existing && !existing.pausedAt) return prev
+      return { ...prev, [key]: { startedAt: Date.now(), accumulatedMs: existing?.accumulatedMs || 0, pausedAt: null } }
+    })
+  }
+
+  const pauseExerciseTimer = (exerciseIdx, setIdx, side) => {
+    const key = `${exerciseIdx}-${setIdx}-${side}`
+    const t = exerciseSetTimers[key]
+    if (!t || t.pausedAt) return
+    const newAccumulated = (t.accumulatedMs || 0) + (Date.now() - t.startedAt)
+    setExerciseSetTimers(prev => ({ ...prev, [key]: { ...t, pausedAt: Date.now(), accumulatedMs: newAccumulated } }))
+    handleSecondsInputChange(exerciseIdx, setIdx, side, String(Math.round(newAccumulated / 1000)))
+  }
+
+  const getTimerElapsed = (exerciseIdx, setIdx, side) => {
+    const key = `${exerciseIdx}-${setIdx}-${side}`
+    const t = exerciseSetTimers[key]
+    if (!t) return 0
+    const acc = t.accumulatedMs || 0
+    if (t.pausedAt) return Math.round(acc / 1000)
+    return Math.round((acc + (timerTick - t.startedAt)) / 1000)
   }
 
   const finishWorkout = async () => {
@@ -4997,6 +5034,7 @@ function TrainingApp() {
       setLastFinishedWorkoutSummary(finishedSummary)
       setCurrentSessionId(null)
       setInputs({})
+      setExerciseSetTimers({})
       setLoggedSetsByExercise({})
       setActiveSideByExercise({})
       setSelectedExerciseOptionKeys({})
@@ -11387,7 +11425,6 @@ function TrainingApp() {
                 }
                 >
                 <div style={activeLiftHeroStyle}>
-                  <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
                   <h3 style={activeLiftTitleStyle}>
                     {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
                   </h3>
@@ -11403,133 +11440,58 @@ function TrainingApp() {
                   )}
                 </div>
 
-                {(hasExerciseDetails || exerciseOptions.length > 1) && (
-                  <div style={activeLiftSupportGridStyle(isMobile)}>
-                    {hasExerciseDetails && (
-                      <div style={activeLiftSupportPanelStyle}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedInfo((prev) => ({
-                              ...prev,
-                              [infoKey]: !prev[infoKey],
-                            }))
-                          }
-                          style={activeLiftSupportButtonStyle}
-                        >
-                          <span>
-                            <span style={activeLiftSupportKickerStyle}>Stöd</span>
-                            <span style={activeLiftSupportTitleStyle}>Instruktion / video</span>
-                          </span>
-                          <span style={activeLiftSupportIconStyle}>{isInfoExpanded ? "−" : "+"}</span>
-                        </button>
+                {exerciseOptions.length > 1 && (
+                  <div style={activeLiftSupportPanelStyle}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedInfo((prev) => ({
+                          ...prev,
+                          [alternativesInfoKey]: !prev[alternativesInfoKey],
+                        }))
+                      }
+                      style={activeLiftSupportButtonStyle}
+                    >
+                      <span>
+                        <span style={activeLiftSupportKickerStyle}>Alternativ</span>
+                        <span style={activeLiftSupportTitleStyle}>Byt övning</span>
+                      </span>
+                      <span style={activeLiftSupportIconStyle}>{isAlternativesExpanded ? "−" : "+"}</span>
+                    </button>
 
-                        {isInfoExpanded && (
-                          <div style={activeLiftComposerStyle}>
-                            {!selectedExercise?.isBase && (
-                              <div style={alternativeSelectionMetaStyle}>
-                                Alternativ till {exercise.displayName || exercise.name}
-                              </div>
-                            )}
+                    {isAlternativesExpanded && (
+                      <div style={alternativeSelectionCardStyle}>
+                        <div style={alternativeSelectionHintStyle}>
+                          Vald: {selectedExercise?.displayName || selectedExercise?.name}
+                        </div>
+                        <div style={alternativeSelectionOptionListStyle}>
+                          {exerciseOptions.map((option) => {
+                            const isSelectedOption = selectedExercise?.optionKey === option.optionKey
 
-                            {exerciseTextSections.primaryText && (
-                              <div>
-                                <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
-                                <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
-                              </div>
-                            )}
-
-                            {exerciseTextSections.secondaryText && (
-                              <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
-                                <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
-                                <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
-                              </div>
-                            )}
-
-                            {selectedExercise?.mediaUrl && (
-                              <div
+                            return (
+                              <button
+                                key={option.optionKey}
+                                type="button"
+                                onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
                                 style={{
-                                  ...exerciseMediaWrapStyle,
-                                  marginTop:
-                                    exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
+                                  ...alternativeSelectionOptionStyle,
+                                  borderColor: isSelectedOption ? playerAccent : playerLine,
+                                  backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
+                                  color: isSelectedOption ? playerAccent : playerInk,
                                 }}
                               >
-                                <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
-                                {isVideoUrl(selectedExercise.mediaUrl) ? (
-                                  <video
-                                    src={selectedExercise.mediaUrl}
-                                    controls
-                                    playsInline
-                                    style={exerciseMediaStyle}
-                                  />
-                                ) : (
-                                  <img
-                                    src={selectedExercise.mediaUrl}
-                                    alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
-                                    style={exerciseMediaStyle}
-                                  />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {exerciseOptions.length > 1 && (
-                      <div style={activeLiftSupportPanelStyle}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedInfo((prev) => ({
-                              ...prev,
-                              [alternativesInfoKey]: !prev[alternativesInfoKey],
-                            }))
-                          }
-                          style={activeLiftSupportButtonStyle}
-                        >
-                          <span>
-                            <span style={activeLiftSupportKickerStyle}>Valfritt</span>
-                            <span style={activeLiftSupportTitleStyle}>Alternativa övningar</span>
-                          </span>
-                          <span style={activeLiftSupportIconStyle}>{isAlternativesExpanded ? "−" : "+"}</span>
-                        </button>
-
-                        {isAlternativesExpanded && (
-                          <div style={alternativeSelectionCardStyle}>
-                            <div style={alternativeSelectionHintStyle}>
-                              Vald: {selectedExercise?.displayName || selectedExercise?.name}
-                            </div>
-                            <div style={alternativeSelectionOptionListStyle}>
-                              {exerciseOptions.map((option) => {
-                                const isSelectedOption = selectedExercise?.optionKey === option.optionKey
-
-                                return (
-                                  <button
-                                    key={option.optionKey}
-                                    type="button"
-                                    onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
-                                    style={{
-                                      ...alternativeSelectionOptionStyle,
-                                      borderColor: isSelectedOption ? playerAccent : playerLine,
-                                      backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
-                                      color: isSelectedOption ? playerAccent : playerInk,
-                                    }}
-                                  >
-                                    <div style={alternativeSelectionOptionNameStyle}>
-                                      {option.displayName || option.name}
-                                    </div>
-                                    <div style={alternativeSelectionOptionMetaStyle}>
-                                      {option.isBase
-                                        ? "Originalövning"
-                                        : `Alternativ till ${exercise.displayName || exercise.name}`}
-                                    </div>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
+                                <div style={alternativeSelectionOptionNameStyle}>
+                                  {option.displayName || option.name}
+                                </div>
+                                <div style={alternativeSelectionOptionMetaStyle}>
+                                  {option.isBase
+                                    ? "Originalövning"
+                                    : `Alternativ till ${exercise.displayName || exercise.name}`}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -11749,14 +11711,14 @@ function TrainingApp() {
                           )
                         })}
 
-                        <RestVila />
-
                         <button
                           style={{ ...secondaryButtonStyle, width: "100%" }}
                           onClick={() => handleAddSet(i)}
                         >
                           + Lägg till set
                         </button>
+
+                        <RestVila />
                       </div>
                     )
                   }
@@ -11776,53 +11738,59 @@ function TrainingApp() {
                           {activeSet && (
                             <>
                               <div style={bilateralCardStyle}>
-                                <div style={{
-                                  ...bilateralPanelStyle,
-                                  borderRight: `1px solid ${playerLine}`,
-                                  opacity: activeSide === "left" ? 1 : 0.45,
-                                }}>
-                                  <div style={{
-                                    ...setStackMetaStyle,
-                                    color: activeSide === "left" ? playerAccent : playerInkSoft,
-                                  }}>
-                                    {sideWords[0]}{activeSide === "left" ? " · aktiv" : ""}
-                                  </div>
-                                  <input
-                                    type="number"
-                                    inputMode="numeric"
-                                    placeholder="sek"
-                                    value={activeSet.seconds_left || ""}
-                                    onChange={(e) => handleSecondsInputChange(i, firstActiveIdx, "left", e.target.value)}
-                                    readOnly={activeSide !== "left"}
-                                    style={{
-                                      ...bilateralInputStyle,
-                                      borderColor: activeSide === "left" ? playerAccent : playerLine,
-                                    }}
-                                  />
-                                </div>
-                                <div style={{
-                                  ...bilateralPanelStyle,
-                                  opacity: activeSide === "right" ? 1 : 0.45,
-                                }}>
-                                  <div style={{
-                                    ...setStackMetaStyle,
-                                    color: activeSide === "right" ? playerAccent : playerInkSoft,
-                                  }}>
-                                    {sideWords[1]}{activeSide === "right" ? " · aktiv" : ""}
-                                  </div>
-                                  <input
-                                    type="number"
-                                    inputMode="numeric"
-                                    placeholder="sek"
-                                    value={activeSet.seconds_right || ""}
-                                    onChange={(e) => handleSecondsInputChange(i, firstActiveIdx, "right", e.target.value)}
-                                    readOnly={activeSide !== "right"}
-                                    style={{
-                                      ...bilateralInputStyle,
-                                      borderColor: activeSide === "right" ? playerAccent : playerLine,
-                                    }}
-                                  />
-                                </div>
+                                {["left", "right"].map((side) => {
+                                  const sideLabel = side === "left" ? sideWords[0] : sideWords[1]
+                                  const isActive = activeSide === side
+                                  const elapsed = getTimerElapsed(i, firstActiveIdx, side)
+                                  const t = exerciseSetTimers[`${i}-${firstActiveIdx}-${side}`]
+                                  const isRunning = t && !t.pausedAt
+                                  const hasSecs = side === "left" ? !!activeSet.seconds_left : !!activeSet.seconds_right
+
+                                  return (
+                                    <div
+                                      key={side}
+                                      style={{
+                                        ...bilateralPanelStyle,
+                                        ...(side === "left" ? { borderRight: `1px solid ${playerLine}` } : {}),
+                                        opacity: isActive ? 1 : 0.45,
+                                      }}
+                                    >
+                                      <div style={{
+                                        ...setStackMetaStyle,
+                                        color: isActive ? playerAccent : playerInkSoft,
+                                      }}>
+                                        {sideLabel}{isActive ? " · aktiv" : ""}
+                                      </div>
+
+                                      {isRunning ? (
+                                        <button
+                                          onClick={() => pauseExerciseTimer(i, firstActiveIdx, side)}
+                                          style={exerciseTimerRunningStyle}
+                                        >
+                                          <span style={exerciseTimerElapsedStyle}>{elapsed}s</span>
+                                          <span style={exerciseTimerActionLabelStyle}>Pausa</span>
+                                        </button>
+                                      ) : hasSecs || elapsed > 0 ? (
+                                        <button
+                                          onClick={() => isActive && startExerciseTimer(i, firstActiveIdx, side)}
+                                          disabled={!isActive}
+                                          style={exerciseTimerDoneStyle}
+                                        >
+                                          <span style={exerciseTimerElapsedStyle}>{elapsed}s</span>
+                                          <span style={exerciseTimerActionLabelStyle}>{isActive ? "Fortsätt" : "✓"}</span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => isActive && startExerciseTimer(i, firstActiveIdx, side)}
+                                          disabled={!isActive}
+                                          style={exerciseTimerStartStyle}
+                                        >
+                                          ▶ Starta
+                                        </button>
+                                      )}
+                                    </div>
+                                  )
+                                })}
                               </div>
                               <button
                                 style={{ ...secondaryButtonStyle, width: "100%", marginTop: "10px" }}
@@ -11861,13 +11829,13 @@ function TrainingApp() {
                               </div>
                             ))}
                           </div>
-                          <RestVila />
                           <button
                             style={{ ...secondaryButtonStyle, width: "100%", marginTop: "10px" }}
                             onClick={() => handleAddSet(i)}
                           >
                             + Lägg till set
                           </button>
+                          <RestVila />
                         </div>
                       )
                     }
@@ -11895,34 +11863,45 @@ function TrainingApp() {
                             {set.set_type === "warmup" && (
                               <div style={setInputHintStyle}>Uppvärmningsset räknas inte i statistik.</div>
                             )}
-                            <div style={{ ...setInputsRowStyle, alignItems: "center" }}>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                placeholder={getExerciseMeasurementPlaceholder(
-                                  selectedExercise?.type || exercise.type,
-                                  selectedExercise?.executionSide || "standard"
-                                )}
-                                value={set.seconds || ""}
-                                onChange={(e) => handleChange(i, j, "seconds", e.target.value)}
-                                style={{ ...inputStyle, ...compactSetInputStyle }}
-                              />
-                              <button
-                                onClick={() => handleRemoveSet(i, j)}
-                                style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
-                              >
-                                Ta bort
-                              </button>
-                            </div>
+                            {(() => {
+                              const elapsed = getTimerElapsed(i, j, "single")
+                              const t = exerciseSetTimers[`${i}-${j}-single`]
+                              const isRunning = t && !t.pausedAt
+                              const hasSecs = !!set.seconds
+
+                              if (isRunning) return (
+                                <button onClick={() => pauseExerciseTimer(i, j, "single")} style={exerciseTimerRunningStyle}>
+                                  <span style={exerciseTimerElapsedStyle}>{elapsed}s</span>
+                                  <span style={exerciseTimerActionLabelStyle}>Pausa</span>
+                                </button>
+                              )
+                              if (hasSecs || elapsed > 0) return (
+                                <button onClick={() => startExerciseTimer(i, j, "single")} style={exerciseTimerDoneStyle}>
+                                  <span style={exerciseTimerElapsedStyle}>{elapsed || set.seconds}s</span>
+                                  <span style={exerciseTimerActionLabelStyle}>Fortsätt</span>
+                                </button>
+                              )
+                              return (
+                                <button onClick={() => startExerciseTimer(i, j, "single")} style={exerciseTimerStartStyle}>
+                                  ▶ Starta
+                                </button>
+                              )
+                            })()}
+                            <button
+                              onClick={() => handleRemoveSet(i, j)}
+                              style={{ ...removeButtonStyle, marginTop: "6px" }}
+                            >
+                              Ta bort
+                            </button>
                           </div>
                         ))}
-                        <RestVila />
                         <button
                           style={{ ...secondaryButtonStyle, width: "100%" }}
                           onClick={() => handleAddSet(i)}
                         >
                           + Lägg till set
                         </button>
+                        <RestVila />
                       </div>
                     )
                   }
@@ -11977,16 +11956,87 @@ function TrainingApp() {
                           )}
                         </div>
                       ))}
-                      <RestVila />
                       <button
                         style={{ ...secondaryButtonStyle, width: "100%" }}
                         onClick={() => handleAddSet(i)}
                       >
                         + Lägg till set
                       </button>
+                      <RestVila />
                     </div>
                   )
                 })()}
+
+                {hasExerciseDetails && (
+                  <div style={activeLiftSupportPanelStyle}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedInfo((prev) => ({
+                          ...prev,
+                          [infoKey]: !prev[infoKey],
+                        }))
+                      }
+                      style={activeLiftSupportButtonStyle}
+                    >
+                      <span>
+                        <span style={activeLiftSupportKickerStyle}>Instruktion</span>
+                        <span style={activeLiftSupportTitleStyle}>Instruktion / video</span>
+                      </span>
+                      <span style={activeLiftSupportIconStyle}>{isInfoExpanded ? "−" : "+"}</span>
+                    </button>
+
+                    {isInfoExpanded && (
+                      <div style={activeLiftComposerStyle}>
+                        {!selectedExercise?.isBase && (
+                          <div style={alternativeSelectionMetaStyle}>
+                            Alternativ till {exercise.displayName || exercise.name}
+                          </div>
+                        )}
+
+                        {exerciseTextSections.primaryText && (
+                          <div>
+                            <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
+                            <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
+                          </div>
+                        )}
+
+                        {exerciseTextSections.secondaryText && (
+                          <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
+                            <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
+                            <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
+                          </div>
+                        )}
+
+                        {selectedExercise?.mediaUrl && (
+                          <div
+                            style={{
+                              ...exerciseMediaWrapStyle,
+                              marginTop:
+                                exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
+                            }}
+                          >
+                            <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
+                            {isVideoUrl(selectedExercise.mediaUrl) ? (
+                              <video
+                                src={selectedExercise.mediaUrl}
+                                controls
+                                playsInline
+                                style={exerciseMediaStyle}
+                              />
+                            ) : (
+                              <img
+                                src={selectedExercise.mediaUrl}
+                                alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
+                                style={exerciseMediaStyle}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {isWorkoutActive && (
                   <div style={activeLiftSupportPanelStyle}>
@@ -13273,14 +13323,52 @@ const activeLiftTitleStyle = {
 }
 
 const activeLiftSideHintStyle = {
+  marginTop: "5px",
+  fontSize: "11px",
+  fontWeight: 500,
+  color: playerInkSoft,
+  lineHeight: 1.4,
+}
+
+const exerciseTimerStartStyle = {
   marginTop: "10px",
-  display: "inline-flex",
-  padding: "7px 10px",
-  borderRadius: "999px",
-  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  width: "100%",
+  height: "52px",
+  background: playerInk,
+  color: playerPaper,
+  border: "none",
+  borderRadius: "14px",
+  fontSize: "15px",
+  fontWeight: "700",
+  cursor: "pointer",
+  letterSpacing: "-0.01em",
+  boxSizing: "border-box",
+}
+const exerciseTimerRunningStyle = {
+  ...exerciseTimerStartStyle,
+  background: playerAccent,
+  display: "grid",
+  height: "64px",
+  gap: "2px",
+  placeContent: "center",
+}
+const exerciseTimerDoneStyle = {
+  ...exerciseTimerRunningStyle,
+  background: "rgba(217,74,31,0.10)",
   color: playerAccent,
-  fontSize: "12px",
-  fontWeight: 900,
+}
+const exerciseTimerElapsedStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "22px",
+  fontWeight: "700",
+  lineHeight: 1,
+}
+const exerciseTimerActionLabelStyle = {
+  fontSize: "10px",
+  fontWeight: "700",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  opacity: 0.72,
 }
 
 const activeWorkoutFinishTitleStyle = {
