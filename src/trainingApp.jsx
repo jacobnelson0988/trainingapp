@@ -11266,7 +11266,7 @@ function TrainingApp() {
         </div>
       )}
 
-      {status && <p style={statusStyle}>{status}</p>}
+      {status && !(isWorkoutActive && /startat$/i.test(String(status))) ? <p style={statusStyle}>{status}</p> : null}
 
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
@@ -11379,22 +11379,16 @@ function TrainingApp() {
                 }
               >
                 <div style={activeWarmupScreenStyle}>
-                  <div style={exerciseProgressStyle}>Start</div>
-                  <h3 style={activeWarmupTitleStyle}>Uppvärmning</h3>
-                  <div style={activeWarmupLeadStyle}>
-                    Gör kroppen redo. När du är klar går du vidare till första lyftet.
-                  </div>
-
                   <div style={activeWarmupGridStyle(isMobile)}>
                     <div style={activeWarmupBlockStyle}>
-                      <div style={activeWarmupBlockLabelStyle}>Pulshöjande</div>
+                      <div style={activeWarmupBlockLabelStyle}>PULSHÖJANDE UPPVÄRMNING</div>
                       <div style={activeWarmupBlockTextStyle}>
                         {activeWorkoutWarmup.cardio || "Ingen pulshöjande del inlagd."}
                       </div>
                     </div>
 
                     <div style={activeWarmupBlockStyle}>
-                      <div style={activeWarmupBlockLabelStyle}>Teknik</div>
+                      <div style={activeWarmupBlockLabelStyle}>TEKNIKUPPVÄRMNING</div>
                       {activeWorkoutWarmup.technique.length ? (
                         <div style={activeWarmupStepsStyle}>
                           {activeWorkoutWarmup.technique.map((item, index) => (
