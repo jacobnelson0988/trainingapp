@@ -11515,9 +11515,31 @@ function TrainingApp() {
                 <div style={activeWorkoutExerciseShellStyle}>
                   <div style={activeLiftHeroStyle}>
                     <div style={activeWorkoutExerciseTitleRowStyle}>
-                      <h3 style={activeWorkoutExerciseTitleStyle}>
-                        {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
-                      </h3>
+                      <div style={activeWorkoutExerciseTitleClusterStyle}>
+                        <h3 style={activeWorkoutExerciseTitleStyle}>
+                          {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
+                        </h3>
+                        {hasExerciseDetails ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedInfo((prev) => ({
+                                ...prev,
+                                [infoKey]: !prev[infoKey],
+                              }))
+                            }
+                            aria-label={isInfoExpanded ? "Dölj instruktion" : "Visa instruktion"}
+                            style={{
+                              ...activeWorkoutInfoIconButtonStyle,
+                              color: isInfoExpanded ? playerAccent : playerInkSoft,
+                              borderColor: isInfoExpanded ? playerAccent : playerLine,
+                              backgroundColor: isInfoExpanded ? "rgba(217, 74, 31, 0.12)" : "transparent",
+                            }}
+                          >
+                            i
+                          </button>
+                        ) : null}
+                      </div>
                       {exerciseOptions.length > 1 ? (
                         <button
                           type="button"
@@ -11551,18 +11573,35 @@ function TrainingApp() {
                   </div>
 
                   {!isProtocol ? (
-                    <div style={activeWorkoutSummaryGridStyle(isMobile)}>
-                      <div style={activeWorkoutSummaryCellStyle}>
-                        <div style={activeWorkoutSummaryLabelStyle}>Mål</div>
-                        <div style={activeWorkoutSummaryValueStyle}>{activeLiftTargetSummary}</div>
+                    <div style={activeWorkoutSummaryStackStyle}>
+                      <div style={activeWorkoutSummaryGridStyle(isMobile)}>
+                        <div style={activeWorkoutSummaryCellStyle}>
+                          <div style={activeWorkoutSummaryLabelStyle}>Mål</div>
+                          <div style={activeWorkoutSummaryValueStyle}>{activeLiftTargetSummary}</div>
+                        </div>
+                        <div style={activeWorkoutSummaryCellStyle}>
+                          <div style={activeWorkoutSummaryLabelStyle}>Senast</div>
+                          <div style={activeWorkoutSummaryValueStyle}>{activeLiftLatestSummary}</div>
+                          {latestExerciseDate ? (
+                            <div style={activeWorkoutSummaryMetaStyle}>{formatDate(latestExerciseDate)}</div>
+                          ) : null}
+                        </div>
                       </div>
-                      <div style={activeWorkoutSummaryCellStyle}>
-                        <div style={activeWorkoutSummaryLabelStyle}>Senast</div>
-                        <div style={activeWorkoutSummaryValueStyle}>{activeLiftLatestSummary}</div>
-                        {latestExerciseDate ? (
-                          <div style={activeWorkoutSummaryMetaStyle}>{formatDate(latestExerciseDate)}</div>
-                        ) : null}
-                      </div>
+
+                      {isWorkoutActive ? (
+                        <button
+                          type="button"
+                          onClick={resetRestStopwatch}
+                          style={activeWorkoutRestInlineButtonStyle}
+                          aria-label="Nollställ vilostoppklocka"
+                        >
+                          <span style={activeWorkoutRestInlineLabelStyle}>Vila</span>
+                          <span style={activeWorkoutRestInlineValueStyle}>
+                            {formatStopwatchTime(restStopwatchElapsedMs)}
+                          </span>
+                          <span style={activeWorkoutRestInlineHintStyle}>Tryck för att nollställa</span>
+                        </button>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -11697,9 +11736,9 @@ function TrainingApp() {
                             <div style={activeWorkoutActiveSetHeaderStyle}>
                               <div>
                                 <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
-                                <div style={activeWorkoutActiveSetTitleStyle}>
-                                  {set.set_type === "warmup" ? "Uppvärmningsset" : "Logga nästa set"}
-                                </div>
+                                {set.set_type === "warmup" ? (
+                                  <div style={activeWorkoutActiveSetTitleStyle}>Uppvärmningsset</div>
+                                ) : null}
                               </div>
                               <button
                                 type="button"
@@ -12017,33 +12056,6 @@ function TrainingApp() {
 
                   {isWorkoutActive && !isProtocol ? (
                     <div style={activeWorkoutGhostActionsStyle}>
-                      <button
-                        type="button"
-                        onClick={resetRestStopwatch}
-                        style={activeWorkoutGhostActionButtonStyle}
-                      >
-                        <span style={activeWorkoutGhostActionLabelStyle}>Vila</span>
-                        <span style={activeWorkoutGhostActionValueStyle}>
-                          {formatStopwatchTime(restStopwatchElapsedMs)}
-                        </span>
-                      </button>
-
-                      {hasExerciseDetails ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedInfo((prev) => ({
-                              ...prev,
-                              [infoKey]: !prev[infoKey],
-                            }))
-                          }
-                          style={activeWorkoutGhostActionButtonStyle}
-                        >
-                          <span style={activeWorkoutGhostActionLabelStyle}>Instruktion</span>
-                          <span style={activeWorkoutGhostActionValueStyle}>{isInfoExpanded ? "Dölj" : "Visa"}</span>
-                        </button>
-                      ) : null}
-
                       <button
                         type="button"
                         onClick={() => handleAddSet(i)}
@@ -13413,11 +13425,19 @@ const activeWorkoutExerciseTitleRowStyle = {
   alignItems: "flex-start",
   justifyContent: "space-between",
   gap: "10px",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
+}
+
+const activeWorkoutExerciseTitleClusterStyle = {
+  flex: "1 1 auto",
+  minWidth: 0,
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "8px",
 }
 
 const activeWorkoutExerciseTitleStyle = {
-  flex: "1 1 220px",
+  flex: "1 1 auto",
   minWidth: 0,
   margin: 0,
   fontFamily: playerDisplayFont,
@@ -13426,6 +13446,25 @@ const activeWorkoutExerciseTitleStyle = {
   fontWeight: 700,
   letterSpacing: "-0.04em",
   color: playerInk,
+}
+
+const activeWorkoutInfoIconButtonStyle = {
+  width: "28px",
+  height: "28px",
+  flex: "0 0 auto",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: "4px",
+  padding: 0,
+  borderRadius: "999px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "transparent",
+  cursor: "pointer",
+  fontFamily: playerMonoFont,
+  fontSize: "13px",
+  fontWeight: 700,
+  lineHeight: 1,
 }
 
 const activeWorkoutTopPillButtonStyle = {
@@ -13446,6 +13485,11 @@ const activeWorkoutSummaryGridStyle = (isMobile) => ({
   gap: isMobile ? "8px" : "10px",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
 })
+
+const activeWorkoutSummaryStackStyle = {
+  display: "grid",
+  gap: "8px",
+}
 
 const activeWorkoutSummaryCellStyle = {
   minWidth: 0,
@@ -13480,6 +13524,48 @@ const activeWorkoutSummaryMetaStyle = {
   fontSize: "11px",
   fontWeight: 800,
   color: playerInkSoft,
+}
+
+const activeWorkoutRestInlineButtonStyle = {
+  width: "100%",
+  minHeight: "58px",
+  padding: "12px 16px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.24)",
+  color: playerInk,
+  cursor: "pointer",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto auto",
+  alignItems: "center",
+  gap: "10px",
+  textAlign: "left",
+  boxShadow: "none",
+}
+
+const activeWorkoutRestInlineLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutRestInlineValueStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "18px",
+  lineHeight: 1,
+  fontWeight: 700,
+  letterSpacing: "0.02em",
+  color: playerInk,
+}
+
+const activeWorkoutRestInlineHintStyle = {
+  fontSize: "11px",
+  fontWeight: 800,
+  color: playerInkSoft,
+  whiteSpace: "nowrap",
 }
 
 const activeWorkoutSetListStyle = {
