@@ -11027,22 +11027,8 @@ function TrainingApp() {
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
           <div style={activeWorkoutFocusHeroStyle}>
-            <div style={playerTodayMonoLabelStyle}>
-              {isRunningWorkoutActive ? "Aktivt löppass" : "Aktuell övning"}
-            </div>
             <div style={activeWorkoutFocusTitleStyle}>{activeWorkoutFocusTitle}</div>
             <div style={activeWorkoutFocusMetaStyle}>{activeWorkoutFocusMeta}</div>
-          </div>
-
-          <div style={activeWorkoutPageMetaRowStyle(isMobile)}>
-            <div style={activeWorkoutPageMetaCardStyle}>
-              <div style={activeWorkoutPageMetaLabelStyle}>Pass</div>
-              <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutData?.label}</div>
-            </div>
-            <div style={activeWorkoutPageMetaCardStyle}>
-              <div style={activeWorkoutPageMetaLabelStyle}>Övning</div>
-              <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutProgressSummary}</div>
-            </div>
           </div>
 
           {isSharedGymWorkout(activeWorkoutData) && activeCalendarGroup ? (
@@ -12445,12 +12431,11 @@ const activeWorkoutPageWrapStyle = {
 }
 
 const activeWorkoutFocusHeroStyle = {
-  marginBottom: "12px",
-  padding: "14px 4px 2px",
+  marginBottom: "14px",
+  padding: "14px 4px 0",
 }
 
 const activeWorkoutFocusTitleStyle = {
-  marginTop: "8px",
   fontFamily: playerDisplayFont,
   fontSize: "clamp(28px, 8vw, 44px)",
   lineHeight: 0.96,
@@ -12467,41 +12452,9 @@ const activeWorkoutFocusMetaStyle = {
   color: playerInkSoft,
 }
 
-const activeWorkoutPageMetaRowStyle = (isMobile) => ({
-  display: "grid",
-  gap: "10px",
-  marginBottom: "14px",
-  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))",
-})
-
-const activeWorkoutPageMetaCardStyle = {
+const restStopwatchCardStyle = {
   padding: "12px",
   borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.32)",
-  boxShadow: "none",
-}
-
-const activeWorkoutPageMetaLabelStyle = {
-  fontFamily: playerMonoFont,
-  fontSize: "9px",
-  fontWeight: "700",
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: playerInkSoft,
-  marginBottom: "6px",
-}
-
-const activeWorkoutPageMetaValueStyle = {
-  fontFamily: playerDisplayFont,
-  fontSize: "18px",
-  fontWeight: "600",
-  lineHeight: 1.05,
-  color: playerInk,
-}
-
-const restStopwatchCardStyle = {
-  ...activeWorkoutPageMetaCardStyle,
   textAlign: "left",
   cursor: "pointer",
   background: playerInk,
@@ -12511,7 +12464,11 @@ const restStopwatchCardStyle = {
 }
 
 const restStopwatchLabelStyle = {
-  ...activeWorkoutPageMetaLabelStyle,
+  fontFamily: playerMonoFont,
+  fontSize: "9px",
+  fontWeight: "700",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
   color: "rgba(243, 239, 230, 0.64)",
 }
 
