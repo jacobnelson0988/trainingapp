@@ -1280,6 +1280,7 @@ function TrainingApp() {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
   const [restStopwatchStartedAt, setRestStopwatchStartedAt] = useState(null)
   const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
+  const [activeTimedSetTimer, setActiveTimedSetTimer] = useState(null)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -1386,6 +1387,28 @@ function TrainingApp() {
 
     return () => window.clearInterval(intervalId)
   }, [isWorkoutActive, restStopwatchStartedAt])
+
+  useEffect(() => {
+    if (!activeTimedSetTimer) return
+
+    const intervalId = window.setInterval(() => {
+      setActiveTimedSetTimer((prev) =>
+        prev
+          ? {
+              ...prev,
+              now: Date.now(),
+            }
+          : prev
+      )
+    }, 250)
+
+    return () => window.clearInterval(intervalId)
+  }, [activeTimedSetTimer?.startedAt])
+
+  useEffect(() => {
+    if (isWorkoutActive) return
+    setActiveTimedSetTimer(null)
+  }, [isWorkoutActive])
 
   useEffect(() => {
     if (isWorkoutActive) return
@@ -4868,6 +4891,7 @@ function TrainingApp() {
     setActiveCalendarGroup(options.calendarEntry?.current_user_group || null)
     setIsActiveCalendarGroupExpanded(false)
     setPendingFreeActivityCalendarEvent(null)
+    setActiveTimedSetTimer(null)
 
     if (workout.workoutKind === "running") {
       setRestStopwatchStartedAt(null)
@@ -4912,6 +4936,10 @@ function TrainingApp() {
               weight: "",
               reps: "",
               seconds: "",
+              left_seconds: "",
+              right_seconds: "",
+              active_side: "",
+              side_input_seconds: "",
               set_type: "work",
               client_set_id: generateSetId(index, setIndex),
               workout_session_id: newSessionId,
@@ -4985,6 +5013,49 @@ function TrainingApp() {
 
   const getNextPendingSetIndex = (exerciseType, sets, executionSide = "standard") =>
     (sets || []).findIndex((set) => !isSetCompleteForExercise(exerciseType, set, executionSide))
+
+  const isTimedSetTimerRunning = (exerciseIndex, setIndex, side = null) =>
+    Boolean(
+      activeTimedSetTimer &&
+        activeTimedSetTimer.exerciseIndex === exerciseIndex &&
+        activeTimedSetTimer.setIndex === setIndex &&
+        (activeTimedSetTimer.side || null) === (side || null)
+    )
+
+  const getTimedSetElapsedMs = (exerciseIndex, setIndex, side = null) =>
+    isTimedSetTimerRunning(exerciseIndex, setIndex, side)
+      ? Math.max(0, (activeTimedSetTimer?.now || 0) - (activeTimedSetTimer?.startedAt || 0))
+      : 0
+
+  const getTimedSetElapsedSeconds = (exerciseIndex, setIndex, side = null) =>
+    Math.max(1, Math.round(getTimedSetElapsedMs(exerciseIndex, setIndex, side) / 1000))
+
+  const startTimedSetTimer = (exerciseIndex, setIndex, side = null) => {
+    const now = Date.now()
+    setActiveTimedSetTimer({
+      exerciseIndex,
+      setIndex,
+      side: side || null,
+      startedAt: now,
+      now,
+    })
+  }
+
+  const stopTimedSetTimer = () => {
+    if (!activeTimedSetTimer) return null
+
+    const elapsedSeconds = Math.max(
+      1,
+      Math.round(((activeTimedSetTimer.now || Date.now()) - activeTimedSetTimer.startedAt) / 1000)
+    )
+
+    setActiveTimedSetTimer(null)
+    return elapsedSeconds
+  }
+
+  const clearTimedSetTimer = () => {
+    setActiveTimedSetTimer(null)
+  }
 
   const getSuggestedWeightForSet = (sets, setIndex, latestExerciseTopSet) => {
     const previousLoggedSet = (sets || [])
@@ -5092,39 +5163,68 @@ function TrainingApp() {
     resetRestStopwatch()
   }
 
-  const adjustBilateralSideValue = (exerciseIndex, setIndex, delta, fallbackValue = 0) => {
+  const handleTimedSetPrimaryAction = async (
+    exerciseIndex,
+    setIndex,
+    selectedExercise,
+    fallbackSeconds = 0
+  ) => {
+    if (isTimedSetTimerRunning(exerciseIndex, setIndex)) {
+      const elapsedSeconds = stopTimedSetTimer()
+      await handleLogSetAndStartRest(exerciseIndex, setIndex, selectedExercise, {
+        seconds: elapsedSeconds ?? fallbackSeconds,
+      })
+      return
+    }
+
+    startTimedSetTimer(exerciseIndex, setIndex)
+    setStatus("Timer startad")
+  }
+
+  const handleSelectBilateralTimedSide = (
+    exerciseIndex,
+    setIndex,
+    side,
+    fallbackSeconds = 0
+  ) => {
     const currentSet = inputs[exerciseIndex]?.[setIndex] || {}
-    const activeSide = currentSet.active_side || "left"
-    const currentSideValue =
-      activeSide === "right" ? currentSet.right_seconds : currentSet.left_seconds
-    const baseValue = parseStepperNumber(currentSet.side_input_seconds ?? currentSideValue)
-    const fallbackNumericValue = parseStepperNumber(fallbackValue)
-    const nextNumericValue = Math.max(
-      0,
-      (baseValue != null ? baseValue : fallbackNumericValue != null ? fallbackNumericValue : 0) +
-        delta * 5
-    )
+    const sideField = side === "right" ? "right_seconds" : "left_seconds"
+    const existingSideValue = currentSet[sideField]
+    const suggestedValue =
+      existingSideValue ||
+      currentSet.side_input_seconds ||
+      (fallbackSeconds != null ? formatStepperValue(fallbackSeconds) : "")
 
     updateSetDraft(exerciseIndex, setIndex, {
-      active_side: activeSide,
-      side_input_seconds: formatStepperValue(nextNumericValue),
+      active_side: side,
+      side_input_seconds: suggestedValue,
+      set_type: currentSet.set_type || "work",
       workout_session_id: currentSessionId,
       client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
     })
+    setStatus(side === "left" ? "Vänster vald" : "Höger vald")
   }
 
   const handleAdvanceBilateralTimedSet = async (
     exerciseIndex,
     setIndex,
     selectedExercise,
-    fallbackSeconds = 0
+    fallbackSeconds = 0,
+    loggedSeconds = null
   ) => {
     if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !selectedExercise) return
 
     const currentRows = inputs[exerciseIndex] || []
     const currentSet = currentRows[setIndex] || {}
-    const activeSide = currentSet.active_side || "left"
+    const activeSide = currentSet.active_side || ""
+
+    if (!activeSide || activeSide === "done") {
+      setStatus("Välj sida först")
+      return
+    }
+
     const resolvedSideValue =
+      parseStepperNumber(loggedSeconds) ??
       parseStepperNumber(currentSet.side_input_seconds) ??
       parseStepperNumber(
         activeSide === "right" ? currentSet.right_seconds : currentSet.left_seconds
@@ -5136,35 +5236,39 @@ function TrainingApp() {
       return
     }
 
-    if (activeSide === "left") {
+    const otherSide = activeSide === "left" ? "right" : "left"
+    const activeField = activeSide === "left" ? "left_seconds" : "right_seconds"
+    const otherField = otherSide === "left" ? "left_seconds" : "right_seconds"
+    const updatedActiveSeconds = formatStepperValue(resolvedSideValue)
+    const otherSeconds = parseStepperNumber(currentSet[otherField])
+
+    if (otherSeconds == null || otherSeconds <= 0) {
+      clearTimedSetTimer()
       updateSetDraft(exerciseIndex, setIndex, {
-        left_seconds: formatStepperValue(resolvedSideValue),
-        active_side: "right",
-        side_input_seconds: formatStepperValue(resolvedSideValue),
+        [activeField]: updatedActiveSeconds,
+        active_side: otherSide,
+        side_input_seconds:
+          currentSet[otherField] ||
+          (fallbackSeconds != null ? formatStepperValue(fallbackSeconds) : ""),
         set_type: currentSet.set_type || "work",
         workout_session_id: currentSessionId,
         client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
       })
-      setStatus("Vänster sida loggad")
-      return
-    }
-
-    const leftSeconds =
-      parseStepperNumber(currentSet.left_seconds) ?? parseStepperNumber(fallbackSeconds)
-    const rightSeconds = resolvedSideValue
-
-    if (leftSeconds == null || leftSeconds <= 0) {
-      setStatus("Logga vänster sida först")
+      setStatus(activeSide === "left" ? "Vänster sida loggad" : "Höger sida loggad")
       return
     }
 
     const nextSet = {
       ...currentSet,
-      left_seconds: formatStepperValue(leftSeconds),
-      right_seconds: formatStepperValue(rightSeconds),
+      [activeField]: updatedActiveSeconds,
       active_side: "done",
       side_input_seconds: "",
-      seconds: formatStepperValue(Math.min(leftSeconds, rightSeconds)),
+      seconds: formatStepperValue(
+        Math.min(
+          parseStepperNumber(activeSide === "left" ? updatedActiveSeconds : currentSet.left_seconds) ?? 0,
+          parseStepperNumber(activeSide === "right" ? updatedActiveSeconds : currentSet.right_seconds) ?? 0
+        )
+      ),
       set_type: currentSet.set_type || "work",
       workout_session_id: currentSessionId,
       client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
@@ -5177,8 +5281,39 @@ function TrainingApp() {
       [exerciseIndex]: nextRows,
     }))
 
+    clearTimedSetTimer()
     await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
     resetRestStopwatch()
+  }
+
+  const handleBilateralTimedPrimaryAction = async (
+    exerciseIndex,
+    setIndex,
+    selectedExercise,
+    fallbackSeconds = 0
+  ) => {
+    const currentSet = inputs[exerciseIndex]?.[setIndex] || {}
+    const activeSide = currentSet.active_side || ""
+
+    if (!activeSide || activeSide === "done") {
+      setStatus("Välj sida först")
+      return
+    }
+
+    if (isTimedSetTimerRunning(exerciseIndex, setIndex, activeSide)) {
+      const elapsedSeconds = stopTimedSetTimer()
+      await handleAdvanceBilateralTimedSet(
+        exerciseIndex,
+        setIndex,
+        selectedExercise,
+        fallbackSeconds,
+        elapsedSeconds
+      )
+      return
+    }
+
+    startTimedSetTimer(exerciseIndex, setIndex, activeSide)
+    setStatus(activeSide === "left" ? "Timer startad för vänster" : "Timer startad för höger")
   }
 
   const finishWorkout = async () => {
@@ -5451,6 +5586,10 @@ function TrainingApp() {
           weight: "",
           reps: "",
           seconds: "",
+          left_seconds: "",
+          right_seconds: "",
+          active_side: "",
+          side_input_seconds: "",
           set_type: "work",
           client_set_id: generateSetId(exerciseIndex, current.length),
           workout_session_id: currentSessionId,
@@ -11476,12 +11615,15 @@ function TrainingApp() {
             const executionSide = selectedExercise?.executionSide || "standard"
             const exerciseSets = inputs[i] || []
             const isBilateralTimed = isBilateralTimedExercise(selectedExercise || exercise)
+            const isStandardTimed = exerciseType === "seconds_only" && !isBilateralTimed
             const nextPendingSetIndex = getNextPendingSetIndex(exerciseType, exerciseSets, executionSide)
             const activeSetIndex =
               nextPendingSetIndex >= 0 ? nextPendingSetIndex : Math.max(exerciseSets.length - 1, 0)
             const representativeTargetValue = getRepresentativeTargetValue(currentTarget)
             const suggestedTimedSeconds =
               parseStepperNumber(latestExerciseTopSet?.seconds) ?? representativeTargetValue
+            const activeTimedSet = exerciseSets[activeSetIndex] || {}
+            const activeTimedSide = activeTimedSet.active_side || ""
             const formatSetReceiptValue = (set) => {
               if (exerciseType === "weight_reps") {
                 return `${set.weight || "-"} kg × ${set.reps || "-"}`
@@ -11497,6 +11639,9 @@ function TrainingApp() {
 
               return `${set.seconds || "-"} sek`
             }
+            const standardTimedTimerActive = isTimedSetTimerRunning(i, activeSetIndex)
+            const bilateralTimedTimerActive =
+              !!activeTimedSide && isTimedSetTimerRunning(i, activeSetIndex, activeTimedSide)
 
             return (
               <div
@@ -11665,7 +11810,7 @@ function TrainingApp() {
                     </div>
                   ) : null}
 
-                  {isWorkoutActive && !isProtocol && !isBilateralTimed ? (
+                  {isWorkoutActive && !isProtocol && exerciseType !== "seconds_only" ? (
                     <div style={activeWorkoutSetListStyle}>
                       {exerciseSets.map((set, j) => {
                         const isCompleted = isSetCompleteForExercise(exerciseType, set, executionSide)
@@ -11889,6 +12034,123 @@ function TrainingApp() {
                     </div>
                   ) : null}
 
+                  {isWorkoutActive && !isProtocol && isStandardTimed ? (
+                    <div style={activeWorkoutSetListStyle}>
+                      {exerciseSets.map((set, j) => {
+                        const isCompleted = isSetCompleteForExercise(exerciseType, set, executionSide)
+                        const isActiveSet = nextPendingSetIndex !== -1 && j === activeSetIndex && !isCompleted
+                        const suggestedSeconds =
+                          parseStepperNumber(set.seconds) ?? suggestedTimedSeconds
+                        const timerIsActive = isTimedSetTimerRunning(i, j)
+                        const previewMs = timerIsActive
+                          ? getTimedSetElapsedMs(i, j)
+                          : (parseStepperNumber(set.seconds) ?? suggestedSeconds ?? 0) * 1000
+                        const warmupStyleOverrides =
+                          set.set_type === "warmup"
+                            ? {
+                                borderColor: "rgba(217, 74, 31, 0.22)",
+                                backgroundColor: "rgba(252, 235, 227, 0.62)",
+                              }
+                            : {}
+
+                        if (isCompleted) {
+                          return (
+                            <div
+                              key={set.client_set_id || j}
+                              style={{ ...activeWorkoutReceiptRowStyle, ...warmupStyleOverrides }}
+                            >
+                              <div>
+                                <div style={activeWorkoutReceiptLabelStyle}>
+                                  Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
+                                </div>
+                                <div style={activeWorkoutReceiptValueStyle}>{formatSetReceiptValue(set)}</div>
+                              </div>
+                              <div style={activeWorkoutReceiptStatusStyle}>Loggat</div>
+                            </div>
+                          )
+                        }
+
+                        if (!isActiveSet) {
+                          return (
+                            <div
+                              key={set.client_set_id || j}
+                              style={{ ...activeWorkoutUpcomingSetStyle, ...warmupStyleOverrides }}
+                            >
+                              <div style={activeWorkoutReceiptLabelStyle}>
+                                Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
+                              </div>
+                              <div style={activeWorkoutUpcomingValueStyle}>
+                                {suggestedSeconds != null
+                                  ? `Starta timer för ca ${formatStepperValue(suggestedSeconds)} sek`
+                                  : "Starta timer när du är redo"}
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div
+                            key={set.client_set_id || j}
+                            style={{ ...activeWorkoutActiveSetStyle, ...warmupStyleOverrides }}
+                          >
+                            <div style={activeWorkoutActiveSetHeaderStyle}>
+                              <div>
+                                <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
+                                <div style={activeWorkoutActiveSetTitleStyle}>Tid i fokus</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSetType(i, j)}
+                                style={{
+                                  ...activeWorkoutTopPillButtonStyle,
+                                  color: set.set_type === "warmup" ? playerAccent : playerPaper,
+                                  borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
+                                  backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
+                                }}
+                              >
+                                {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                              </button>
+                            </div>
+
+                            <div
+                              style={activeWorkoutTimedTimerCardStyle(
+                                timerIsActive ? "active" : "idle"
+                              )}
+                            >
+                              <div style={activeWorkoutTimedTimerLabelStyle}>Timer</div>
+                              <div style={activeWorkoutTimedTimerValueStyle}>
+                                {formatStopwatchTime(previewMs)}
+                              </div>
+                              <div style={activeWorkoutTimedTimerHintStyle}>
+                                {timerIsActive
+                                  ? "Stoppa när setet är klart så loggas tiden direkt."
+                                  : suggestedSeconds != null
+                                  ? `Senast eller mål ligger runt ${formatStepperValue(suggestedSeconds)} sek.`
+                                  : "Starta när du är redo att genomföra setet."}
+                              </div>
+                            </div>
+
+                            {set.set_type === "warmup" ? (
+                              <div style={activeWorkoutSubtleHintStyle}>
+                                Uppvärmningsset räknas inte i statistik.
+                              </div>
+                            ) : null}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleTimedSetPrimaryAction(i, j, selectedExercise, suggestedSeconds ?? 0)
+                              }
+                              style={activeWorkoutPrimaryActionStyle}
+                            >
+                              {timerIsActive ? "Stoppa · logga set" : "Starta timer"}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+
                   {isWorkoutActive && !isProtocol && isBilateralTimed ? (
                     <div style={activeWorkoutSetListStyle}>
                       {nextPendingSetIndex !== -1 ? (
@@ -11922,26 +12184,55 @@ function TrainingApp() {
                           <div style={activeWorkoutBilateralHalvesStyle(isMobile)}>
                             {["left", "right"].map((side) => {
                               const activeSet = exerciseSets[activeSetIndex] || {}
-                              const isActiveSide = (activeSet.active_side || "left") === side
+                              const sideField = side === "left" ? "left_seconds" : "right_seconds"
+                              const otherField = side === "left" ? "right_seconds" : "left_seconds"
+                              const isActiveSide = (activeSet.active_side || "") === side
+                              const isLoggedSide = Boolean(activeSet[sideField])
+                              const timerIsActive = isTimedSetTimerRunning(i, activeSetIndex, side)
                               const sideValue =
                                 side === "left" ? activeSet.left_seconds : activeSet.right_seconds
                               const previewValue =
-                                isActiveSide && !sideValue
-                                  ? activeSet.side_input_seconds || (suggestedTimedSeconds != null ? formatStepperValue(suggestedTimedSeconds) : "")
+                                timerIsActive
+                                  ? formatStepperValue(getTimedSetElapsedSeconds(i, activeSetIndex, side))
+                                  : isActiveSide && !sideValue
+                                  ? activeSet.side_input_seconds ||
+                                    (suggestedTimedSeconds != null ? formatStepperValue(suggestedTimedSeconds) : "")
                                   : sideValue
+                              const canSelectSide =
+                                !bilateralTimedTimerActive &&
+                                !isLoggedSide &&
+                                (!activeSet[otherField] || isActiveSide)
 
                               return (
-                                <div
+                                <button
                                   key={side}
+                                  type="button"
+                                  onClick={() =>
+                                    canSelectSide
+                                      ? handleSelectBilateralTimedSide(
+                                          i,
+                                          activeSetIndex,
+                                          side,
+                                          suggestedTimedSeconds ?? 0
+                                        )
+                                      : undefined
+                                  }
+                                  disabled={!canSelectSide}
                                   style={{
                                     ...activeWorkoutBilateralHalfStyle,
                                     backgroundColor:
-                                      previewValue && !isActiveSide
-                                        ? "rgba(255, 255, 255, 0.72)"
-                                        : isActiveSide
+                                      timerIsActive || isActiveSide
                                         ? "rgba(217, 74, 31, 0.14)"
+                                        : previewValue
+                                        ? "rgba(255, 255, 255, 0.72)"
                                         : "rgba(26, 24, 20, 0.05)",
-                                    borderColor: isActiveSide ? "rgba(217, 74, 31, 0.34)" : playerLine,
+                                    borderColor:
+                                      timerIsActive || isActiveSide
+                                        ? "rgba(217, 74, 31, 0.34)"
+                                        : playerLine,
+                                    cursor: canSelectSide ? "pointer" : "default",
+                                    textAlign: "left",
+                                    opacity: !canSelectSide && !isLoggedSide && !isActiveSide ? 0.72 : 1,
                                   }}
                                 >
                                   <div style={activeWorkoutBilateralHalfLabelStyle}>
@@ -11952,66 +12243,71 @@ function TrainingApp() {
                                     <span style={activeWorkoutStepperUnitStyle}>sek</span>
                                   </div>
                                   <div style={activeWorkoutBilateralHalfMetaStyle}>
-                                    {previewValue
-                                      ? isActiveSide && !sideValue
-                                        ? "Förhandsvisning"
-                                        : "Loggad"
+                                    {isLoggedSide
+                                      ? "Loggad"
+                                      : timerIsActive
+                                      ? "Tidtagning pågår"
                                       : isActiveSide
-                                      ? "Aktiv sida"
+                                      ? "Vald sida"
+                                      : canSelectSide
+                                      ? "Tryck för att välja"
                                       : "Väntar"}
                                   </div>
-                                </div>
+                                </button>
                               )
                             })}
                           </div>
 
-                          <div style={activeWorkoutStepperFieldStyle}>
-                            <div style={activeWorkoutStepperLabelStyle}>
-                              {(exerciseSets[activeSetIndex]?.active_side || "left") === "left" ? "Vänster sida" : "Höger sida"}
-                            </div>
-                            <div style={activeWorkoutStepperControlStyle}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  adjustBilateralSideValue(i, activeSetIndex, -1, suggestedTimedSeconds ?? 0)
-                                }
-                                style={activeWorkoutStepperButtonStyle}
+                          {activeTimedSide ? (
+                            <>
+                              <div
+                                style={activeWorkoutTimedTimerCardStyle(
+                                  bilateralTimedTimerActive ? "active" : "idle"
+                                )}
                               >
-                                −
-                              </button>
-                              <div style={activeWorkoutStepperValueStyle}>
-                                {exerciseSets[activeSetIndex]?.side_input_seconds ||
-                                  (suggestedTimedSeconds != null ? formatStepperValue(suggestedTimedSeconds) : "—")}
-                                <span style={activeWorkoutStepperUnitStyle}>sek</span>
+                                <div style={activeWorkoutTimedTimerLabelStyle}>
+                                  {activeTimedSide === "left" ? "Vänster sida" : "Höger sida"}
+                                </div>
+                                <div style={activeWorkoutTimedTimerValueStyle}>
+                                  {formatStopwatchTime(
+                                    bilateralTimedTimerActive
+                                      ? getTimedSetElapsedMs(i, activeSetIndex, activeTimedSide)
+                                      : (parseStepperNumber(activeTimedSet.side_input_seconds) ??
+                                          suggestedTimedSeconds ??
+                                          0) * 1000
+                                  )}
+                                </div>
+                                <div style={activeWorkoutTimedTimerHintStyle}>
+                                  {bilateralTimedTimerActive
+                                    ? "Stoppa när den valda sidan är klar."
+                                    : activeTimedSet.left_seconds || activeTimedSet.right_seconds
+                                    ? "Andra sidan i samma set väntar på att loggas."
+                                    : "Välj sida ovan och starta när du är redo."}
+                                </div>
                               </div>
+
                               <button
                                 type="button"
                                 onClick={() =>
-                                  adjustBilateralSideValue(i, activeSetIndex, 1, suggestedTimedSeconds ?? 0)
+                                  handleBilateralTimedPrimaryAction(
+                                    i,
+                                    activeSetIndex,
+                                    selectedExercise,
+                                    suggestedTimedSeconds ?? 0
+                                  )
                                 }
-                                style={activeWorkoutStepperButtonStyle}
+                                style={activeWorkoutPrimaryActionStyle}
                               >
-                                +
+                                {bilateralTimedTimerActive
+                                  ? `Stoppa · logga ${activeTimedSide === "left" ? "vänster" : "höger"}`
+                                  : `Starta ${activeTimedSide === "left" ? "vänster" : "höger"}`}
                               </button>
+                            </>
+                          ) : (
+                            <div style={activeWorkoutEmptyStateStyle}>
+                              Välj vänster eller höger för att starta det här setet.
                             </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleAdvanceBilateralTimedSet(
-                                i,
-                                activeSetIndex,
-                                selectedExercise,
-                                suggestedTimedSeconds ?? 0
-                              )
-                            }
-                            style={activeWorkoutPrimaryActionStyle}
-                          >
-                            {(exerciseSets[activeSetIndex]?.active_side || "left") === "left"
-                              ? "Logga vänster"
-                              : "Logga höger · starta vila"}
-                          </button>
+                          )}
                         </div>
                       ) : (
                         <div style={activeWorkoutEmptyStateStyle}>Alla set i den här övningen är redan loggade.</div>
@@ -12025,7 +12321,7 @@ function TrainingApp() {
                         </div>
                         {exerciseSets.map((set, j) => {
                           const isCurrentRow = nextPendingSetIndex !== -1 && j === activeSetIndex
-                          const activeSide = set.active_side || "left"
+                          const activeSide = set.active_side || ""
                           return (
                             <div
                               key={set.client_set_id || j}
@@ -12038,13 +12334,17 @@ function TrainingApp() {
                               <span>
                                 {set.left_seconds ||
                                   (isCurrentRow && activeSide === "left"
-                                    ? set.side_input_seconds || "—"
+                                    ? isTimedSetTimerRunning(i, j, "left")
+                                      ? formatStepperValue(getTimedSetElapsedSeconds(i, j, "left"))
+                                      : set.side_input_seconds || "—"
                                     : "—")}
                               </span>
                               <span>
                                 {set.right_seconds ||
                                   (isCurrentRow && activeSide === "right"
-                                    ? set.side_input_seconds || "—"
+                                    ? isTimedSetTimerRunning(i, j, "right")
+                                      ? formatStepperValue(getTimedSetElapsedSeconds(i, j, "right"))
+                                      : set.side_input_seconds || "—"
                                     : "—")}
                               </span>
                             </div>
@@ -13654,6 +13954,43 @@ const activeWorkoutActiveSetTitleStyle = {
   color: playerInk,
 }
 
+const activeWorkoutTimedTimerCardStyle = (state = "idle") => ({
+  padding: "16px 18px",
+  borderRadius: "24px",
+  border: `1px solid ${
+    state === "active" ? "rgba(217, 74, 31, 0.36)" : "rgba(215, 208, 192, 0.82)"
+  }`,
+  backgroundColor:
+    state === "active" ? "rgba(252, 235, 227, 0.92)" : "rgba(255, 255, 255, 0.24)",
+  display: "grid",
+  gap: "8px",
+})
+
+const activeWorkoutTimedTimerLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutTimedTimerValueStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "clamp(34px, 9vw, 46px)",
+  lineHeight: 0.92,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const activeWorkoutTimedTimerHintStyle = {
+  fontSize: "14px",
+  lineHeight: 1.45,
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
 const activeWorkoutStepperGridStyle = (columns = 1) => ({
   display: "grid",
   gap: "10px",
@@ -13809,9 +14146,13 @@ const activeWorkoutBilateralHalvesStyle = (isMobile) => ({
 })
 
 const activeWorkoutBilateralHalfStyle = {
+  width: "100%",
   padding: "14px",
   borderRadius: "22px",
   border: `1px solid ${playerLine}`,
+  appearance: "none",
+  display: "grid",
+  gap: "4px",
 }
 
 const activeWorkoutBilateralHalfLabelStyle = {
