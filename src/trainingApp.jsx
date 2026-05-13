@@ -8385,26 +8385,6 @@ function TrainingApp() {
   const weekCompletedDayCount = Object.values(weekDayStateByDate).filter((value) => value === "completed").length
   const weekPlannedDayCount = Object.values(weekDayStateByDate).filter((value) => value === "planned").length
   const todayWeekIndex = (new Date().getDay() + 6) % 7
-  const activeWorkoutCurrentExercise =
-    !isRunningWorkoutActive && activeExerciseIndex > 0 && activeExerciseIndex <= activeWorkoutExercises.length
-      ? activeWorkoutExercises[activeExerciseIndex - 1]
-      : null
-  const activeWorkoutFocusTitle = isRunningWorkoutActive
-    ? activeWorkoutData?.label || "Löppass"
-    : isWarmupSlideActive
-    ? "Värm upp."
-    : isFinishSlideActive
-    ? "Spara passet."
-    : activeWorkoutCurrentExercise?.displayName || activeWorkoutCurrentExercise?.name || "Nästa övning"
-  const activeWorkoutFocusMeta = isRunningWorkoutActive
-    ? buildRunningSummary({
-        running_type: activeWorkoutData?.runningType,
-        interval_time: activeWorkoutData?.runningConfig?.interval_time,
-        intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
-        running_distance: activeWorkoutData?.runningConfig?.running_distance,
-        running_time: activeWorkoutData?.runningConfig?.running_time,
-      })
-    : activeWorkoutProgressSummary
   const activeWorkoutTargetRequestOptions =
     !isRunningWorkoutActive && profile?.individual_goals_enabled !== false
       ? activeWorkoutExercises.flatMap((exercise, exerciseIndex) => {
@@ -11270,11 +11250,6 @@ function TrainingApp() {
 
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
-          <div style={activeWorkoutFocusHeroStyle}>
-            <div style={activeWorkoutFocusTitleStyle}>{activeWorkoutFocusTitle}</div>
-            <div style={activeWorkoutFocusMetaStyle}>{activeWorkoutFocusMeta}</div>
-          </div>
-
           {isSharedGymWorkout(activeWorkoutData) && activeCalendarGroup ? (
             <div style={activeWorkoutGroupCardStyle}>
               <button
