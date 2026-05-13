@@ -13422,19 +13422,20 @@ const activeWorkoutTopPillButtonStyle = {
 
 const activeWorkoutSummaryGridStyle = (isMobile) => ({
   display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  gap: isMobile ? "8px" : "10px",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
 })
 
 const activeWorkoutSummaryCellStyle = {
-  padding: "14px 16px",
-  borderRadius: "22px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.42)",
+  minWidth: 0,
+  padding: "12px 14px",
+  borderRadius: "18px",
+  border: `1px solid rgba(215, 208, 192, 0.72)`,
+  backgroundColor: "rgba(255, 255, 255, 0.24)",
 }
 
 const activeWorkoutSummaryLabelStyle = {
-  marginBottom: "10px",
+  marginBottom: "8px",
   fontFamily: playerMonoFont,
   fontSize: "10px",
   fontWeight: 700,
@@ -13445,16 +13446,17 @@ const activeWorkoutSummaryLabelStyle = {
 
 const activeWorkoutSummaryValueStyle = {
   fontFamily: playerDisplayFont,
-  fontSize: "clamp(24px, 7vw, 34px)",
-  lineHeight: 0.94,
+  fontSize: "clamp(20px, 5.8vw, 30px)",
+  lineHeight: 0.96,
   fontWeight: 650,
   letterSpacing: "-0.04em",
   color: playerInk,
+  overflowWrap: "anywhere",
 }
 
 const activeWorkoutSummaryMetaStyle = {
-  marginTop: "8px",
-  fontSize: "12px",
+  marginTop: "6px",
+  fontSize: "11px",
   fontWeight: 800,
   color: playerInkSoft,
 }
