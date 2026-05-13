@@ -12926,11 +12926,10 @@ const activeWorkoutProgressSegmentStyle = {
 
 const activeWorkoutPageWrapStyle = {
   width: "100%",
-  marginTop: "6px",
-  padding: "4px",
-  borderRadius: "28px",
-  background:
-    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.12), transparent 30%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
+  marginTop: 0,
+  padding: 0,
+  borderRadius: 0,
+  background: "transparent",
 }
 
 const activeWorkoutFocusHeroStyle = {
@@ -13354,7 +13353,7 @@ const exerciseSwipeCardStyle = {
 }
 
 const activeWorkoutExerciseCardStyle = {
-  padding: "6px 2px 12px",
+  padding: "0 0 12px",
   border: "none",
   borderRadius: 0,
   background: "transparent",
