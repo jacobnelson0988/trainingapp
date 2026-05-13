@@ -4937,6 +4937,250 @@ function TrainingApp() {
     setRestStopwatchNow(now)
   }
 
+  const parseStepperNumber = (value) => {
+    if (value == null || value === "") return null
+    const normalized = String(value).replace(",", ".").trim()
+    const parsed = Number.parseFloat(normalized)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  const formatStepperValue = (value) => {
+    if (!Number.isFinite(Number(value))) return ""
+    const numericValue = Number(value)
+    if (Number.isInteger(numericValue)) return String(numericValue)
+    return numericValue.toFixed(1).replace(/\.0$/, "")
+  }
+
+  const getRepresentativeTargetValue = (target) => {
+    const bounds = parseRepTargetRangeBounds(target)
+    if (!bounds) return null
+    return bounds.max != null ? bounds.max : bounds.min != null ? bounds.min : null
+  }
+
+  const isBilateralTimedExercise = (selectedExercise) =>
+    selectedExercise?.type === "seconds_only" &&
+    ["single_leg", "single_arm"].includes(selectedExercise?.executionSide || "standard")
+
+  const isSetCompleteForExercise = (exerciseType, set, executionSide = "standard") => {
+    if (!set) return false
+
+    if (exerciseType === "weight_reps") {
+      return Boolean(set.weight && set.reps)
+    }
+
+    if (exerciseType === "reps_only") {
+      return Boolean(set.reps)
+    }
+
+    if (exerciseType === "seconds_only" && ["single_leg", "single_arm"].includes(executionSide)) {
+      return Boolean(set.left_seconds && set.right_seconds)
+    }
+
+    if (exerciseType === "seconds_only") {
+      return Boolean(set.seconds)
+    }
+
+    return false
+  }
+
+  const getNextPendingSetIndex = (exerciseType, sets, executionSide = "standard") =>
+    (sets || []).findIndex((set) => !isSetCompleteForExercise(exerciseType, set, executionSide))
+
+  const getSuggestedWeightForSet = (sets, setIndex, latestExerciseTopSet) => {
+    const previousLoggedSet = (sets || [])
+      .slice(0, setIndex)
+      .reverse()
+      .find((set) => set?.weight)
+
+    if (previousLoggedSet?.weight) return parseStepperNumber(previousLoggedSet.weight)
+    if (latestExerciseTopSet?.weight != null) return parseStepperNumber(latestExerciseTopSet.weight)
+    return null
+  }
+
+  const updateSetDraft = (exerciseIndex, setIndex, updater) => {
+    const currentRows = inputs[exerciseIndex] || []
+    const nextRows = currentRows.slice()
+    const previousSet = nextRows[setIndex] || {}
+    const nextSet =
+      typeof updater === "function"
+        ? updater(previousSet)
+        : {
+            ...previousSet,
+            ...updater,
+          }
+
+    nextRows[setIndex] = nextSet
+    setInputs((prev) => ({
+      ...prev,
+      [exerciseIndex]: nextRows,
+    }))
+    return nextSet
+  }
+
+  const adjustSetNumericField = (exerciseIndex, setIndex, field, delta, fallbackValue = 0) => {
+    const currentSet = inputs[exerciseIndex]?.[setIndex] || {}
+    const baseValue = parseStepperNumber(currentSet[field])
+    const fallbackNumericValue = parseStepperNumber(fallbackValue)
+    const step =
+      field === "weight"
+        ? 2.5
+        : field === "seconds"
+        ? 5
+        : 1
+    const nextNumericValue = Math.max(
+      0,
+      (baseValue != null ? baseValue : fallbackNumericValue != null ? fallbackNumericValue : 0) +
+        delta * step
+    )
+
+    updateSetDraft(exerciseIndex, setIndex, {
+      [field]: formatStepperValue(nextNumericValue),
+      set_type: currentSet.set_type || "work",
+      workout_session_id: currentSessionId,
+      client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
+    })
+  }
+
+  const handleLogSetAndStartRest = async (
+    exerciseIndex,
+    setIndex,
+    selectedExercise,
+    defaults = {}
+  ) => {
+    if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !selectedExercise) return
+
+    const currentRows = inputs[exerciseIndex] || []
+    const currentSet = currentRows[setIndex] || {}
+    const nextSet = {
+      ...currentSet,
+      weight:
+        selectedExercise.type === "weight_reps"
+          ? currentSet.weight || (defaults.weight != null ? formatStepperValue(defaults.weight) : "")
+          : currentSet.weight || "",
+      reps:
+        selectedExercise.type === "weight_reps" || selectedExercise.type === "reps_only"
+          ? currentSet.reps || (defaults.reps != null ? formatStepperValue(defaults.reps) : "")
+          : currentSet.reps || "",
+      seconds:
+        selectedExercise.type === "seconds_only"
+          ? currentSet.seconds || (defaults.seconds != null ? formatStepperValue(defaults.seconds) : "")
+          : currentSet.seconds || "",
+      set_type: currentSet.set_type || "work",
+      workout_session_id: currentSessionId,
+      client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
+    }
+
+    if (
+      !isSetCompleteForExercise(
+        selectedExercise.type,
+        nextSet,
+        selectedExercise.executionSide || "standard"
+      )
+    ) {
+      setStatus("Fyll i setet först")
+      return
+    }
+
+    const nextRows = currentRows.slice()
+    nextRows[setIndex] = nextSet
+    setInputs((prev) => ({
+      ...prev,
+      [exerciseIndex]: nextRows,
+    }))
+
+    await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
+    resetRestStopwatch()
+  }
+
+  const adjustBilateralSideValue = (exerciseIndex, setIndex, delta, fallbackValue = 0) => {
+    const currentSet = inputs[exerciseIndex]?.[setIndex] || {}
+    const activeSide = currentSet.active_side || "left"
+    const currentSideValue =
+      activeSide === "right" ? currentSet.right_seconds : currentSet.left_seconds
+    const baseValue = parseStepperNumber(currentSet.side_input_seconds ?? currentSideValue)
+    const fallbackNumericValue = parseStepperNumber(fallbackValue)
+    const nextNumericValue = Math.max(
+      0,
+      (baseValue != null ? baseValue : fallbackNumericValue != null ? fallbackNumericValue : 0) +
+        delta * 5
+    )
+
+    updateSetDraft(exerciseIndex, setIndex, {
+      active_side: activeSide,
+      side_input_seconds: formatStepperValue(nextNumericValue),
+      workout_session_id: currentSessionId,
+      client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
+    })
+  }
+
+  const handleAdvanceBilateralTimedSet = async (
+    exerciseIndex,
+    setIndex,
+    selectedExercise,
+    fallbackSeconds = 0
+  ) => {
+    if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !selectedExercise) return
+
+    const currentRows = inputs[exerciseIndex] || []
+    const currentSet = currentRows[setIndex] || {}
+    const activeSide = currentSet.active_side || "left"
+    const resolvedSideValue =
+      parseStepperNumber(currentSet.side_input_seconds) ??
+      parseStepperNumber(
+        activeSide === "right" ? currentSet.right_seconds : currentSet.left_seconds
+      ) ??
+      parseStepperNumber(fallbackSeconds)
+
+    if (resolvedSideValue == null || resolvedSideValue <= 0) {
+      setStatus("Välj sekunder först")
+      return
+    }
+
+    if (activeSide === "left") {
+      updateSetDraft(exerciseIndex, setIndex, {
+        left_seconds: formatStepperValue(resolvedSideValue),
+        active_side: "right",
+        side_input_seconds: formatStepperValue(resolvedSideValue),
+        set_type: currentSet.set_type || "work",
+        workout_session_id: currentSessionId,
+        client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
+      })
+      setStatus("Vänster sida loggad")
+      return
+    }
+
+    const leftSeconds =
+      parseStepperNumber(currentSet.left_seconds) ?? parseStepperNumber(fallbackSeconds)
+    const rightSeconds = resolvedSideValue
+
+    if (leftSeconds == null || leftSeconds <= 0) {
+      setStatus("Logga vänster sida först")
+      return
+    }
+
+    const nextSet = {
+      ...currentSet,
+      left_seconds: formatStepperValue(leftSeconds),
+      right_seconds: formatStepperValue(rightSeconds),
+      active_side: "done",
+      side_input_seconds: "",
+      seconds: formatStepperValue(Math.min(leftSeconds, rightSeconds)),
+      set_type: currentSet.set_type || "work",
+      workout_session_id: currentSessionId,
+      client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
+    }
+
+    const nextRows = currentRows.slice()
+    nextRows[setIndex] = nextSet
+    setInputs((prev) => ({
+      ...prev,
+      [exerciseIndex]: nextRows,
+    }))
+
+    await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
+    resetRestStopwatch()
+  }
+
   const finishWorkout = async () => {
     if (!currentSessionId || !selectedWorkout || !user) return
 
@@ -11303,6 +11547,31 @@ function TrainingApp() {
             const commentInfoKey = `${infoKey}:comment`
             const isAlternativesExpanded = !!expandedInfo[alternativesInfoKey]
             const isCommentExpanded = !!expandedInfo[commentInfoKey]
+            const exerciseType = selectedExercise?.type || exercise.type
+            const executionSide = selectedExercise?.executionSide || "standard"
+            const exerciseSets = inputs[i] || []
+            const isBilateralTimed = isBilateralTimedExercise(selectedExercise || exercise)
+            const nextPendingSetIndex = getNextPendingSetIndex(exerciseType, exerciseSets, executionSide)
+            const activeSetIndex =
+              nextPendingSetIndex >= 0 ? nextPendingSetIndex : Math.max(exerciseSets.length - 1, 0)
+            const representativeTargetValue = getRepresentativeTargetValue(currentTarget)
+            const suggestedTimedSeconds =
+              parseStepperNumber(latestExerciseTopSet?.seconds) ?? representativeTargetValue
+            const formatSetReceiptValue = (set) => {
+              if (exerciseType === "weight_reps") {
+                return `${set.weight || "-"} kg × ${set.reps || "-"}`
+              }
+
+              if (exerciseType === "reps_only") {
+                return `${set.reps || "-"} reps`
+              }
+
+              if (isBilateralTimed) {
+                return `VÄ ${set.left_seconds || "-"} s · HÖ ${set.right_seconds || "-"} s`
+              }
+
+              return `${set.seconds || "-"} sek`
+            }
 
             return (
               <div
@@ -11318,27 +11587,525 @@ function TrainingApp() {
                     : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
                 }
                 >
-                <div style={activeLiftHeroStyle}>
-                  <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
-                  <h3 style={activeLiftTitleStyle}>
-                    {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
-                  </h3>
-                  {!isProtocol &&
-                    selectedExercise?.executionSide &&
-                    selectedExercise.executionSide !== "standard" && (
-                    <div style={activeLiftSideHintStyle}>
-                      {getExerciseExecutionSideHint(
-                        selectedExercise.executionSide,
-                        selectedExercise?.type || exercise.type
-                      )}
-                    </div>
-                  )}
-                </div>
+                <div style={activeWorkoutExerciseShellStyle}>
+                  <div style={activeWorkoutExerciseHeaderRowStyle}>
+                    <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
+                    {exerciseOptions.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedInfo((prev) => ({
+                            ...prev,
+                            [alternativesInfoKey]: !prev[alternativesInfoKey],
+                          }))
+                        }
+                        style={{
+                          ...activeWorkoutTopPillButtonStyle,
+                          color: isAlternativesExpanded ? playerAccent : playerInk,
+                          borderColor: isAlternativesExpanded ? playerAccent : playerLine,
+                          backgroundColor: isAlternativesExpanded ? "rgba(217, 74, 31, 0.12)" : "transparent",
+                        }}
+                      >
+                        Alternativ
+                      </button>
+                    ) : null}
+                  </div>
 
-                {(hasExerciseDetails || exerciseOptions.length > 1) && (
-                  <div style={activeLiftSupportGridStyle(isMobile)}>
-                    {hasExerciseDetails && (
-                      <div style={activeLiftSupportPanelStyle}>
+                  <div style={activeLiftHeroStyle}>
+                    <h3 style={activeLiftTitleStyle}>
+                      {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
+                    </h3>
+                    {!isProtocol &&
+                    selectedExercise?.executionSide &&
+                    selectedExercise.executionSide !== "standard" ? (
+                      <div style={activeLiftSideHintStyle}>
+                        {getExerciseExecutionSideHint(
+                          selectedExercise.executionSide,
+                          selectedExercise?.type || exercise.type
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {!isProtocol ? (
+                    <div style={activeWorkoutSummaryGridStyle(isMobile)}>
+                      <div style={activeWorkoutSummaryCellStyle}>
+                        <div style={activeWorkoutSummaryLabelStyle}>Mål</div>
+                        <div style={activeWorkoutSummaryValueStyle}>{activeLiftTargetSummary}</div>
+                      </div>
+                      <div style={activeWorkoutSummaryCellStyle}>
+                        <div style={activeWorkoutSummaryLabelStyle}>Senast</div>
+                        <div style={activeWorkoutSummaryValueStyle}>{activeLiftLatestSummary}</div>
+                        {latestExerciseDate ? (
+                          <div style={activeWorkoutSummaryMetaStyle}>{formatDate(latestExerciseDate)}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {isWorkoutActive && isProtocol ? (
+                    <div style={{ display: "grid", gap: "10px" }}>
+                      <div
+                        style={{
+                          padding: "14px",
+                          borderRadius: "16px",
+                          border: "1px solid #e5e7eb",
+                          backgroundColor: "#fffaf5",
+                        }}
+                      >
+                        <div style={{ ...exerciseCommentTitleStyle, marginBottom: "6px" }}>Kastprotokoll</div>
+                        <div style={mutedTextStyle}>
+                          Genomför blocken i ordning och markera varje block som klart när det är gjort.
+                        </div>
+                      </div>
+
+                      {exerciseSets.map((set, j) => {
+                        const protocolStep =
+                          protocolConfig?.steps?.[j] || getExerciseProtocolStep(selectedExercise || exercise, j + 1)
+                        const isCompleted = Boolean(set.protocolCompleted || set.reps || set.seconds || set.weight)
+
+                        return (
+                          <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                            <div style={setLabelStyle}>{protocolStep?.label || `Block ${j + 1}`}</div>
+                            <div
+                              style={{
+                                fontSize: "22px",
+                                fontWeight: "800",
+                                color: "#18202b",
+                                marginBottom: "6px",
+                              }}
+                            >
+                              {protocolStep?.summary || "Följ instruktionen för blocket"}
+                            </div>
+                            <div style={setInputHintStyle}>
+                              {protocolStep?.intensityPercent != null
+                                ? `${protocolStep.targetValue} skott på ${protocolStep.intensityPercent} % av maxhastighet`
+                                : "Markera blocket när det är klart"}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleProtocolStepToggle(i, j)}
+                              style={{
+                                ...secondaryButtonStyle,
+                                width: isMobile ? "100%" : "auto",
+                                marginTop: "12px",
+                                backgroundColor: isCompleted ? "#ecfdf3" : "#ffffff",
+                                borderColor: isCompleted ? "#16a34a" : "#d1d5db",
+                                color: isCompleted ? "#166534" : "#18202b",
+                              }}
+                            >
+                              {isCompleted ? "Klart, tryck för att ångra" : "Markera block som klart"}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+
+                  {isWorkoutActive && !isProtocol && !isBilateralTimed ? (
+                    <div style={activeWorkoutSetListStyle}>
+                      {exerciseSets.map((set, j) => {
+                        const isCompleted = isSetCompleteForExercise(exerciseType, set, executionSide)
+                        const isActiveSet = nextPendingSetIndex !== -1 && j === activeSetIndex && !isCompleted
+                        const suggestedWeight =
+                          exerciseType === "weight_reps"
+                            ? getSuggestedWeightForSet(exerciseSets, j, latestExerciseTopSet)
+                            : null
+                        const suggestedSeconds =
+                          parseStepperNumber(set.seconds) ?? suggestedTimedSeconds
+                        const warmupStyleOverrides =
+                          set.set_type === "warmup"
+                            ? {
+                                borderColor: "rgba(217, 74, 31, 0.22)",
+                                backgroundColor: "rgba(252, 235, 227, 0.62)",
+                              }
+                            : {}
+
+                        if (isCompleted) {
+                          return (
+                            <div
+                              key={set.client_set_id || j}
+                              style={{ ...activeWorkoutReceiptRowStyle, ...warmupStyleOverrides }}
+                            >
+                              <div>
+                                <div style={activeWorkoutReceiptLabelStyle}>
+                                  Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
+                                </div>
+                                <div style={activeWorkoutReceiptValueStyle}>{formatSetReceiptValue(set)}</div>
+                              </div>
+                              <div style={activeWorkoutReceiptStatusStyle}>Loggat</div>
+                            </div>
+                          )
+                        }
+
+                        if (!isActiveSet) {
+                          const upcomingSummary =
+                            exerciseType === "weight_reps"
+                              ? suggestedWeight != null
+                                ? `Föreslår ${formatStepperValue(suggestedWeight)} kg`
+                                : "Nästa set väntar"
+                              : exerciseType === "reps_only"
+                              ? representativeTargetValue != null
+                                ? `Mål ${formatStepperValue(representativeTargetValue)} reps`
+                                : "Nästa set väntar"
+                              : suggestedSeconds != null
+                              ? `Föreslår ${formatStepperValue(suggestedSeconds)} sek`
+                              : "Nästa set väntar"
+
+                          return (
+                            <div
+                              key={set.client_set_id || j}
+                              style={{ ...activeWorkoutUpcomingSetStyle, ...warmupStyleOverrides }}
+                            >
+                              <div style={activeWorkoutReceiptLabelStyle}>
+                                Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
+                              </div>
+                              <div style={activeWorkoutUpcomingValueStyle}>{upcomingSummary}</div>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div
+                            key={set.client_set_id || j}
+                            style={{ ...activeWorkoutActiveSetStyle, ...warmupStyleOverrides }}
+                          >
+                            <div style={activeWorkoutActiveSetHeaderStyle}>
+                              <div>
+                                <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
+                                <div style={activeWorkoutActiveSetTitleStyle}>
+                                  {set.set_type === "warmup" ? "Uppvärmningsset" : "Logga nästa set"}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSetType(i, j)}
+                                style={{
+                                  ...activeWorkoutTopPillButtonStyle,
+                                  color: set.set_type === "warmup" ? playerAccent : playerPaper,
+                                  borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
+                                  backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
+                                }}
+                              >
+                                {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                              </button>
+                            </div>
+
+                            <div style={activeWorkoutStepperGridStyle(exerciseType === "weight_reps" ? isMobile ? 1 : 2 : 1)}>
+                              {exerciseType === "weight_reps" ? (
+                                <div style={activeWorkoutStepperFieldStyle}>
+                                  <div style={activeWorkoutStepperLabelStyle}>Vikt</div>
+                                  <div style={activeWorkoutStepperControlStyle}>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        adjustSetNumericField(
+                                          i,
+                                          j,
+                                          "weight",
+                                          -1,
+                                          suggestedWeight ?? resolvedCurrentTargetWeight ?? 0
+                                        )
+                                      }
+                                      style={activeWorkoutStepperButtonStyle}
+                                    >
+                                      −
+                                    </button>
+                                    <div style={activeWorkoutStepperValueStyle}>
+                                      {set.weight || (suggestedWeight != null ? formatStepperValue(suggestedWeight) : "—")}
+                                      <span style={activeWorkoutStepperUnitStyle}>kg</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        adjustSetNumericField(
+                                          i,
+                                          j,
+                                          "weight",
+                                          1,
+                                          suggestedWeight ?? resolvedCurrentTargetWeight ?? 0
+                                        )
+                                      }
+                                      style={activeWorkoutStepperButtonStyle}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                  {suggestedWeight != null ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateSetDraft(i, j, {
+                                          weight: formatStepperValue(suggestedWeight),
+                                          set_type: set.set_type || "work",
+                                          workout_session_id: currentSessionId,
+                                          client_set_id: set.client_set_id || generateSetId(i, j),
+                                        })
+                                      }
+                                      style={activeWorkoutStepperHintButtonStyle}
+                                    >
+                                      Använd förslag {formatStepperValue(suggestedWeight)} kg
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : null}
+
+                              <div style={activeWorkoutStepperFieldStyle}>
+                                <div style={activeWorkoutStepperLabelStyle}>
+                                  {exerciseType === "seconds_only" ? "Tid" : "Reps"}
+                                </div>
+                                <div style={activeWorkoutStepperControlStyle}>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      adjustSetNumericField(
+                                        i,
+                                        j,
+                                        exerciseType === "seconds_only" ? "seconds" : "reps",
+                                        -1,
+                                        exerciseType === "seconds_only"
+                                          ? suggestedSeconds ?? 0
+                                          : representativeTargetValue ?? 0
+                                      )
+                                    }
+                                    style={activeWorkoutStepperButtonStyle}
+                                  >
+                                    −
+                                  </button>
+                                  <div style={activeWorkoutStepperValueStyle}>
+                                    {exerciseType === "seconds_only"
+                                      ? set.seconds || (suggestedSeconds != null ? formatStepperValue(suggestedSeconds) : "—")
+                                      : set.reps || (representativeTargetValue != null ? formatStepperValue(representativeTargetValue) : "—")}
+                                    <span style={activeWorkoutStepperUnitStyle}>
+                                      {exerciseType === "seconds_only" ? "sek" : "reps"}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      adjustSetNumericField(
+                                        i,
+                                        j,
+                                        exerciseType === "seconds_only" ? "seconds" : "reps",
+                                        1,
+                                        exerciseType === "seconds_only"
+                                          ? suggestedSeconds ?? 0
+                                          : representativeTargetValue ?? 0
+                                      )
+                                    }
+                                    style={activeWorkoutStepperButtonStyle}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {set.set_type === "warmup" ? (
+                              <div style={activeWorkoutSubtleHintStyle}>
+                                Uppvärmningsset räknas inte i statistik.
+                              </div>
+                            ) : null}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleLogSetAndStartRest(i, j, selectedExercise, {
+                                  weight: suggestedWeight ?? resolvedCurrentTargetWeight,
+                                  reps: representativeTargetValue,
+                                  seconds: suggestedSeconds,
+                                })
+                              }
+                              style={activeWorkoutPrimaryActionStyle}
+                            >
+                              Logga set · starta vila
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+
+                  {isWorkoutActive && !isProtocol && isBilateralTimed ? (
+                    <div style={activeWorkoutSetListStyle}>
+                      {nextPendingSetIndex !== -1 ? (
+                        <div style={activeWorkoutBilateralPanelStyle}>
+                          <div style={activeWorkoutActiveSetHeaderStyle}>
+                            <div>
+                              <div style={activeWorkoutReceiptLabelStyle}>Set {activeSetIndex + 1}</div>
+                              <div style={activeWorkoutActiveSetTitleStyle}>Båda sidorna i samma set</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSetType(i, activeSetIndex)}
+                              style={{
+                                ...activeWorkoutTopPillButtonStyle,
+                                color:
+                                  exerciseSets[activeSetIndex]?.set_type === "warmup" ? playerAccent : playerPaper,
+                                borderColor:
+                                  exerciseSets[activeSetIndex]?.set_type === "warmup"
+                                    ? "rgba(217, 74, 31, 0.22)"
+                                    : playerInk,
+                                backgroundColor:
+                                  exerciseSets[activeSetIndex]?.set_type === "warmup"
+                                    ? "rgba(217, 74, 31, 0.12)"
+                                    : playerInk,
+                              }}
+                            >
+                              {exerciseSets[activeSetIndex]?.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
+                            </button>
+                          </div>
+
+                          <div style={activeWorkoutBilateralHalvesStyle(isMobile)}>
+                            {["left", "right"].map((side) => {
+                              const activeSet = exerciseSets[activeSetIndex] || {}
+                              const isActiveSide = (activeSet.active_side || "left") === side
+                              const sideValue =
+                                side === "left" ? activeSet.left_seconds : activeSet.right_seconds
+                              const previewValue =
+                                isActiveSide && !sideValue
+                                  ? activeSet.side_input_seconds || (suggestedTimedSeconds != null ? formatStepperValue(suggestedTimedSeconds) : "")
+                                  : sideValue
+
+                              return (
+                                <div
+                                  key={side}
+                                  style={{
+                                    ...activeWorkoutBilateralHalfStyle,
+                                    backgroundColor:
+                                      previewValue && !isActiveSide
+                                        ? "rgba(255, 255, 255, 0.72)"
+                                        : isActiveSide
+                                        ? "rgba(217, 74, 31, 0.14)"
+                                        : "rgba(26, 24, 20, 0.05)",
+                                    borderColor: isActiveSide ? "rgba(217, 74, 31, 0.34)" : playerLine,
+                                  }}
+                                >
+                                  <div style={activeWorkoutBilateralHalfLabelStyle}>
+                                    {side === "left" ? "Vänster" : "Höger"}
+                                  </div>
+                                  <div style={activeWorkoutBilateralHalfValueStyle}>
+                                    {previewValue || "—"}
+                                    <span style={activeWorkoutStepperUnitStyle}>sek</span>
+                                  </div>
+                                  <div style={activeWorkoutBilateralHalfMetaStyle}>
+                                    {previewValue
+                                      ? isActiveSide && !sideValue
+                                        ? "Förhandsvisning"
+                                        : "Loggad"
+                                      : isActiveSide
+                                      ? "Aktiv sida"
+                                      : "Väntar"}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <div style={activeWorkoutStepperFieldStyle}>
+                            <div style={activeWorkoutStepperLabelStyle}>
+                              {(exerciseSets[activeSetIndex]?.active_side || "left") === "left" ? "Vänster sida" : "Höger sida"}
+                            </div>
+                            <div style={activeWorkoutStepperControlStyle}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  adjustBilateralSideValue(i, activeSetIndex, -1, suggestedTimedSeconds ?? 0)
+                                }
+                                style={activeWorkoutStepperButtonStyle}
+                              >
+                                −
+                              </button>
+                              <div style={activeWorkoutStepperValueStyle}>
+                                {exerciseSets[activeSetIndex]?.side_input_seconds ||
+                                  (suggestedTimedSeconds != null ? formatStepperValue(suggestedTimedSeconds) : "—")}
+                                <span style={activeWorkoutStepperUnitStyle}>sek</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  adjustBilateralSideValue(i, activeSetIndex, 1, suggestedTimedSeconds ?? 0)
+                                }
+                                style={activeWorkoutStepperButtonStyle}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleAdvanceBilateralTimedSet(
+                                i,
+                                activeSetIndex,
+                                selectedExercise,
+                                suggestedTimedSeconds ?? 0
+                              )
+                            }
+                            style={activeWorkoutPrimaryActionStyle}
+                          >
+                            {(exerciseSets[activeSetIndex]?.active_side || "left") === "left"
+                              ? "Logga vänster"
+                              : "Logga höger · starta vila"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={activeWorkoutEmptyStateStyle}>Alla set i den här övningen är redan loggade.</div>
+                      )}
+
+                      <div style={activeWorkoutBilateralTableStyle}>
+                        <div style={activeWorkoutBilateralTableHeaderStyle}>
+                          <span>SET</span>
+                          <span>VÄ</span>
+                          <span>HÖ</span>
+                        </div>
+                        {exerciseSets.map((set, j) => {
+                          const isCurrentRow = nextPendingSetIndex !== -1 && j === activeSetIndex
+                          const activeSide = set.active_side || "left"
+                          return (
+                            <div
+                              key={set.client_set_id || j}
+                              style={{
+                                ...activeWorkoutBilateralTableRowStyle,
+                                backgroundColor: isCurrentRow ? "rgba(217, 74, 31, 0.08)" : "transparent",
+                              }}
+                            >
+                              <span>Set {j + 1}</span>
+                              <span>
+                                {set.left_seconds ||
+                                  (isCurrentRow && activeSide === "left"
+                                    ? set.side_input_seconds || "—"
+                                    : "—")}
+                              </span>
+                              <span>
+                                {set.right_seconds ||
+                                  (isCurrentRow && activeSide === "right"
+                                    ? set.side_input_seconds || "—"
+                                    : "—")}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {isWorkoutActive && !isProtocol ? (
+                    <div style={activeWorkoutGhostActionsStyle}>
+                      <button
+                        type="button"
+                        onClick={resetRestStopwatch}
+                        style={activeWorkoutGhostActionButtonStyle}
+                      >
+                        <span style={activeWorkoutGhostActionLabelStyle}>Vila</span>
+                        <span style={activeWorkoutGhostActionValueStyle}>
+                          {formatStopwatchTime(restStopwatchElapsedMs)}
+                        </span>
+                      </button>
+
+                      {hasExerciseDetails ? (
                         <button
                           type="button"
                           onClick={() =>
@@ -11347,368 +12114,137 @@ function TrainingApp() {
                               [infoKey]: !prev[infoKey],
                             }))
                           }
-                          style={activeLiftSupportButtonStyle}
+                          style={activeWorkoutGhostActionButtonStyle}
                         >
-                          <span>
-                            <span style={activeLiftSupportKickerStyle}>Stöd</span>
-                            <span style={activeLiftSupportTitleStyle}>Instruktion / video</span>
-                          </span>
-                          <span style={activeLiftSupportIconStyle}>{isInfoExpanded ? "−" : "+"}</span>
+                          <span style={activeWorkoutGhostActionLabelStyle}>Instruktion</span>
+                          <span style={activeWorkoutGhostActionValueStyle}>{isInfoExpanded ? "Dölj" : "Visa"}</span>
                         </button>
+                      ) : null}
 
-                        {isInfoExpanded && (
-                          <div style={activeLiftComposerStyle}>
-                            {!selectedExercise?.isBase && (
-                              <div style={alternativeSelectionMetaStyle}>
-                                Alternativ till {exercise.displayName || exercise.name}
-                              </div>
-                            )}
+                      <button
+                        type="button"
+                        onClick={() => handleAddSet(i)}
+                        style={activeWorkoutGhostActionButtonStyle}
+                      >
+                        <span style={activeWorkoutGhostActionLabelStyle}>Set</span>
+                        <span style={activeWorkoutGhostActionValueStyle}>+ Lägg till</span>
+                      </button>
 
-                            {exerciseTextSections.primaryText && (
-                              <div>
-                                <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
-                                <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
-                              </div>
-                            )}
-
-                            {exerciseTextSections.secondaryText && (
-                              <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
-                                <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
-                                <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
-                              </div>
-                            )}
-
-                            {selectedExercise?.mediaUrl && (
-                              <div
-                                style={{
-                                  ...exerciseMediaWrapStyle,
-                                  marginTop:
-                                    exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
-                                }}
-                              >
-                                <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
-                                {isVideoUrl(selectedExercise.mediaUrl) ? (
-                                  <video
-                                    src={selectedExercise.mediaUrl}
-                                    controls
-                                    playsInline
-                                    style={exerciseMediaStyle}
-                                  />
-                                ) : (
-                                  <img
-                                    src={selectedExercise.mediaUrl}
-                                    alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
-                                    style={exerciseMediaStyle}
-                                  />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {exerciseOptions.length > 1 && (
-                      <div style={activeLiftSupportPanelStyle}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedInfo((prev) => ({
-                              ...prev,
-                              [alternativesInfoKey]: !prev[alternativesInfoKey],
-                            }))
-                          }
-                          style={activeLiftSupportButtonStyle}
-                        >
-                          <span>
-                            <span style={activeLiftSupportKickerStyle}>Valfritt</span>
-                            <span style={activeLiftSupportTitleStyle}>Alternativa övningar</span>
-                          </span>
-                          <span style={activeLiftSupportIconStyle}>{isAlternativesExpanded ? "−" : "+"}</span>
-                        </button>
-
-                        {isAlternativesExpanded && (
-                          <div style={alternativeSelectionCardStyle}>
-                            <div style={alternativeSelectionHintStyle}>
-                              Vald: {selectedExercise?.displayName || selectedExercise?.name}
-                            </div>
-                            <div style={alternativeSelectionOptionListStyle}>
-                              {exerciseOptions.map((option) => {
-                                const isSelectedOption = selectedExercise?.optionKey === option.optionKey
-
-                                return (
-                                  <button
-                                    key={option.optionKey}
-                                    type="button"
-                                    onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
-                                    style={{
-                                      ...alternativeSelectionOptionStyle,
-                                      borderColor: isSelectedOption ? playerAccent : playerLine,
-                                      backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
-                                      color: isSelectedOption ? playerAccent : playerInk,
-                                    }}
-                                  >
-                                    <div style={alternativeSelectionOptionNameStyle}>
-                                      {option.displayName || option.name}
-                                    </div>
-                                    <div style={alternativeSelectionOptionMetaStyle}>
-                                      {option.isBase
-                                        ? "Originalövning"
-                                        : `Alternativ till ${exercise.displayName || exercise.name}`}
-                                    </div>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {!isProtocol && (
-                  <div style={activeLiftDataGridStyle(isMobile)}>
-                    <div style={activeLiftDataCardStyle}>
-                      <div style={activeLiftDataLabelStyle}>Dagens mål</div>
-                      <div style={activeLiftDataValueStyle}>{activeLiftTargetSummary}</div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedInfo((prev) => ({
+                            ...prev,
+                            [commentInfoKey]: !prev[commentInfoKey],
+                          }))
+                        }
+                        style={activeWorkoutGhostActionButtonStyle}
+                      >
+                        <span style={activeWorkoutGhostActionLabelStyle}>Kommentar</span>
+                        <span style={activeWorkoutGhostActionValueStyle}>{isCommentExpanded ? "Dölj" : "Skriv"}</span>
+                      </button>
                     </div>
-                    <div style={activeLiftDataCardStyle}>
-                      <div style={activeLiftDataLabelStyle}>Senast</div>
-                      <div style={activeLiftDataValueStyle}>{activeLiftLatestSummary}</div>
-                      {latestExerciseDate && (
-                        <div style={activeLiftDataMetaStyle}>{formatDate(latestExerciseDate)}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                  ) : null}
 
-                {isWorkoutActive && isProtocol && (
-                  <div style={{ display: "grid", gap: "10px" }}>
-                    <div
-                      style={{
-                        padding: "14px",
-                        borderRadius: "16px",
-                        border: "1px solid #e5e7eb",
-                        backgroundColor: "#fffaf5",
-                      }}
-                    >
-                      <div style={{ ...exerciseCommentTitleStyle, marginBottom: "6px" }}>Kastprotokoll</div>
-                      <div style={mutedTextStyle}>
-                        Genomför blocken i ordning och markera varje block som klart när det är gjort.
+                  {isAlternativesExpanded && exerciseOptions.length > 1 ? (
+                    <div style={activeWorkoutDetailPanelStyle}>
+                      <div style={alternativeSelectionHintStyle}>
+                        Vald: {selectedExercise?.displayName || selectedExercise?.name}
+                      </div>
+                      <div style={alternativeSelectionOptionListStyle}>
+                        {exerciseOptions.map((option) => {
+                          const isSelectedOption = selectedExercise?.optionKey === option.optionKey
+
+                          return (
+                            <button
+                              key={option.optionKey}
+                              type="button"
+                              onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
+                              style={{
+                                ...alternativeSelectionOptionStyle,
+                                borderColor: isSelectedOption ? playerAccent : playerLine,
+                                backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
+                                color: isSelectedOption ? playerAccent : playerInk,
+                              }}
+                            >
+                              <div style={alternativeSelectionOptionNameStyle}>
+                                {option.displayName || option.name}
+                              </div>
+                              <div style={alternativeSelectionOptionMetaStyle}>
+                                {option.isBase
+                                  ? "Originalövning"
+                                  : `Alternativ till ${exercise.displayName || exercise.name}`}
+                              </div>
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
+                  ) : null}
 
-                    {(inputs[i] || []).map((set, j) => {
-                      const protocolStep =
-                        protocolConfig?.steps?.[j] || getExerciseProtocolStep(selectedExercise || exercise, j + 1)
-                      const isCompleted = Boolean(set.protocolCompleted || set.reps || set.seconds || set.weight)
-
-                      return (
-                        <div key={set.client_set_id || j} style={activeSetCardStyle}>
-                          <div style={setLabelStyle}>{protocolStep?.label || `Block ${j + 1}`}</div>
-                          <div
-                            style={{
-                              fontSize: "22px",
-                              fontWeight: "800",
-                              color: "#18202b",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            {protocolStep?.summary || "Följ instruktionen för blocket"}
-                          </div>
-                          <div style={setInputHintStyle}>
-                            {protocolStep?.intensityPercent != null
-                              ? `${protocolStep.targetValue} skott på ${protocolStep.intensityPercent} % av maxhastighet`
-                              : "Markera blocket när det är klart"}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleProtocolStepToggle(i, j)}
-                            style={{
-                              ...secondaryButtonStyle,
-                              width: isMobile ? "100%" : "auto",
-                              marginTop: "12px",
-                              backgroundColor: isCompleted ? "#ecfdf3" : "#ffffff",
-                              borderColor: isCompleted ? "#16a34a" : "#d1d5db",
-                              color: isCompleted ? "#166534" : "#18202b",
-                            }}
-                          >
-                            {isCompleted ? "Klart, tryck för att ångra" : "Markera block som klart"}
-                          </button>
+                  {isInfoExpanded && hasExerciseDetails ? (
+                    <div style={activeWorkoutDetailPanelStyle}>
+                      {!selectedExercise?.isBase ? (
+                        <div style={alternativeSelectionMetaStyle}>
+                          Alternativ till {exercise.displayName || exercise.name}
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
+                      ) : null}
 
-                {isWorkoutActive && !isProtocol && (
-                  <div style={activeLiftLogHeaderStyle(isMobile)}>
-                    <button
-                      type="button"
-                      onClick={resetRestStopwatch}
-                      style={activeLiftRestButtonStyle}
-                      aria-label="Nollställ vilostoppklocka"
-                    >
-                      <span style={restStopwatchLabelStyle}>Vila</span>
-                      <span style={restStopwatchValueStyle}>{formatStopwatchTime(restStopwatchElapsedMs)}</span>
-                      <span style={restStopwatchHintStyle}>Tryck för att nollställa</span>
-                    </button>
-                    <button
-                      onClick={() => handleAddSet(i)}
-                      style={activeLiftAddSetButtonStyle}
-                    >
-                      + Lägg till set
-                    </button>
-                  </div>
-                )}
+                      {exerciseTextSections.primaryText ? (
+                        <div>
+                          <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.primaryLabel}</div>
+                          <p style={exerciseDescriptionStyle}>{exerciseTextSections.primaryText}</p>
+                        </div>
+                      ) : null}
 
-                {isWorkoutActive &&
-                  !isProtocol &&
-                  (inputs[i] || []).map((set, j) => (
-                    <div key={set.client_set_id || j} style={activeSetCardStyle}>
-                      <div style={setHeaderRowStyle}>
-                        <div style={setLabelStyle}>Set {j + 1}</div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleSetType(i, j)}
+                      {exerciseTextSections.secondaryText ? (
+                        <div style={{ marginTop: exerciseTextSections.primaryText ? "10px" : 0 }}>
+                          <div style={exerciseDetailsLabelStyle}>{exerciseTextSections.secondaryLabel}</div>
+                          <p style={guideStyle}>{exerciseTextSections.secondaryText}</p>
+                        </div>
+                      ) : null}
+
+                      {selectedExercise?.mediaUrl ? (
+                        <div
                           style={{
-                            ...setTypeToggleStyle,
-                            backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
-                            borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
-                            color: set.set_type === "warmup" ? playerAccent : playerPaper,
+                            ...exerciseMediaWrapStyle,
+                            marginTop:
+                              exerciseTextSections.primaryText || exerciseTextSections.secondaryText ? "12px" : 0,
                           }}
                         >
-                          {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
-                        </button>
-                      </div>
-
-                      {set.set_type === "warmup" && (
-                        <div style={setInputHintStyle}>
-                          Uppvärmningsset räknas inte i statistik.
-                        </div>
-                      )}
-
-                      <div
-                        style={{
-                          ...setInputsRowStyle,
-                          flexDirection: "row",
-                          alignItems: isMobile ? "stretch" : "center",
-                        }}
-                      >
-                        {selectedExercise?.type === "weight_reps" && (
-                          <>
-                            <input
-                              placeholder="kg"
-                              value={set.weight || ""}
-                              onChange={(e) =>
-                                handleChange(i, j, "weight", e.target.value)
-                              }
-                              style={{ ...inputStyle, ...compactSetInputStyle }}
+                          <div style={exerciseDetailsLabelStyle}>Video eller exempel</div>
+                          {isVideoUrl(selectedExercise.mediaUrl) ? (
+                            <video
+                              src={selectedExercise.mediaUrl}
+                              controls
+                              playsInline
+                              style={exerciseMediaStyle}
                             />
-                            <input
-                              placeholder={getExerciseMeasurementPlaceholder(
-                                selectedExercise?.type || exercise.type,
-                                selectedExercise?.executionSide || "standard"
-                              )}
-                              value={set.reps || ""}
-                              onChange={(e) =>
-                                handleChange(i, j, "reps", e.target.value)
-                              }
-                              style={{ ...inputStyle, ...compactSetInputStyle }}
+                          ) : (
+                            <img
+                              src={selectedExercise.mediaUrl}
+                              alt={`${selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name} demo`}
+                              style={exerciseMediaStyle}
                             />
-                          </>
-                        )}
-
-                        {selectedExercise?.type === "reps_only" && (
-                          <input
-                            placeholder={getExerciseMeasurementPlaceholder(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                            value={set.reps || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "reps", e.target.value)
-                            }
-                            style={{ ...inputStyle, ...compactSetInputStyle }}
-                          />
-                        )}
-
-                        {selectedExercise?.type === "seconds_only" && (
-                          <input
-                            placeholder={getExerciseMeasurementPlaceholder(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                            value={set.seconds || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "seconds", e.target.value)
-                            }
-                            style={{ ...inputStyle, ...compactSetInputStyle }}
-                          />
-                        )}
-
-                        <button
-                          onClick={() => handleRemoveSet(i, j)}
-                          style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
-                        >
-                          Ta bort
-                        </button>
-                      </div>
-
-                      {selectedExercise?.type === "weight_reps" &&
-                        selectedExercise &&
-                        latestWorkout[selectedExercise.name]?.slice(-1)[0]?.weight != null && (
-                          <div style={setInputHintStyle}>
-                            Senaste vikt: {latestWorkout[selectedExercise.name].slice(-1)[0].weight} kg
-                          </div>
-                        )}
-
-                      {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
-                        <div style={setInputHintStyle}>
-                          {getExerciseExecutionSideHint(
-                            selectedExercise.executionSide,
-                            selectedExercise?.type || exercise.type
                           )}
                         </div>
-                      )}
+                      ) : null}
                     </div>
-                  ))}
+                  ) : null}
 
-                {isWorkoutActive && (
-                  <div style={activeLiftSupportPanelStyle}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedInfo((prev) => ({
-                          ...prev,
-                          [commentInfoKey]: !prev[commentInfoKey],
-                        }))
-                      }
-                      style={activeLiftSupportButtonStyle}
-                    >
-                      <span>
-                        <span style={activeLiftSupportKickerStyle}>Efter seten</span>
-                        <span style={activeLiftSupportTitleStyle}>Kommentar på övningen</span>
-                      </span>
-                      <span style={activeLiftSupportIconStyle}>{isCommentExpanded ? "−" : "+"}</span>
-                    </button>
-
-                    {isCommentExpanded && (
-                      <div style={activeLiftComposerStyle}>
-                        <textarea
-                          rows={3}
-                          placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
-                          value={exerciseComments[i] || ""}
-                          onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
-                          onBlur={() => handleExerciseCommentSave(i)}
-                          style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "88px" }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                  {isCommentExpanded && isWorkoutActive ? (
+                    <div style={activeWorkoutDetailPanelStyle}>
+                      <textarea
+                        rows={3}
+                        placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
+                        value={exerciseComments[i] || ""}
+                        onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
+                        onBlur={() => handleExerciseCommentSave(i)}
+                        style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "88px" }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
             )
           })}
@@ -12851,11 +13387,391 @@ const exerciseSwipeCardStyle = {
 }
 
 const activeWorkoutExerciseCardStyle = {
+  padding: "6px 2px 12px",
+  border: "none",
+  borderRadius: 0,
+  background: "transparent",
+  boxShadow: "none",
+}
+
+const activeWorkoutExerciseShellStyle = {
+  display: "grid",
+  gap: "14px",
+}
+
+const activeWorkoutExerciseHeaderRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+}
+
+const activeWorkoutTopPillButtonStyle = {
+  padding: "10px 12px",
+  borderRadius: "999px",
   border: `1px solid ${playerLine}`,
-  borderRadius: "28px",
-  background:
-    "radial-gradient(circle at 96% 6%, rgba(217, 74, 31, 0.16), transparent 26%), rgba(255, 255, 255, 0.24)",
-  boxShadow: "0 20px 42px rgba(26, 24, 20, 0.08)",
+  backgroundColor: "transparent",
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: 900,
+  whiteSpace: "nowrap",
+}
+
+const activeWorkoutSummaryGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const activeWorkoutSummaryCellStyle = {
+  padding: "14px 16px",
+  borderRadius: "22px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.42)",
+}
+
+const activeWorkoutSummaryLabelStyle = {
+  marginBottom: "10px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutSummaryValueStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 7vw, 34px)",
+  lineHeight: 0.94,
+  fontWeight: 650,
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const activeWorkoutSummaryMetaStyle = {
+  marginTop: "8px",
+  fontSize: "12px",
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
+const activeWorkoutSetListStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const activeWorkoutReceiptRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "14px",
+  padding: "14px 16px",
+  borderRadius: "22px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.36)",
+}
+
+const activeWorkoutReceiptLabelStyle = {
+  marginBottom: "6px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutReceiptValueStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(24px, 6.6vw, 30px)",
+  lineHeight: 0.98,
+  fontWeight: 650,
+  letterSpacing: "-0.04em",
+  color: playerInk,
+  textDecoration: "line-through",
+  textDecorationThickness: "1px",
+  textDecorationColor: "rgba(26, 24, 20, 0.26)",
+}
+
+const activeWorkoutReceiptStatusStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+  whiteSpace: "nowrap",
+}
+
+const activeWorkoutUpcomingSetStyle = {
+  padding: "12px 16px",
+  borderRadius: "20px",
+  border: `1px solid rgba(215, 208, 192, 0.72)`,
+  backgroundColor: "rgba(255, 255, 255, 0.18)",
+}
+
+const activeWorkoutUpcomingValueStyle = {
+  fontSize: "14px",
+  fontWeight: 800,
+  lineHeight: 1.4,
+  color: playerInkSoft,
+}
+
+const activeWorkoutActiveSetStyle = {
+  padding: "16px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.54)",
+  boxShadow: "0 16px 30px rgba(26, 24, 20, 0.06)",
+  display: "grid",
+  gap: "12px",
+}
+
+const activeWorkoutActiveSetHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+}
+
+const activeWorkoutActiveSetTitleStyle = {
+  fontSize: "20px",
+  lineHeight: 1.1,
+  fontWeight: 900,
+  color: playerInk,
+}
+
+const activeWorkoutStepperGridStyle = (columns = 1) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+})
+
+const activeWorkoutStepperFieldStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const activeWorkoutStepperLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutStepperControlStyle = {
+  display: "grid",
+  gridTemplateColumns: "46px minmax(0, 1fr) 46px",
+  alignItems: "stretch",
+  gap: "8px",
+}
+
+const activeWorkoutStepperButtonStyle = {
+  border: `1px solid ${playerLine}`,
+  borderRadius: "18px",
+  backgroundColor: "rgba(255, 255, 255, 0.88)",
+  color: playerInk,
+  cursor: "pointer",
+  fontSize: "24px",
+  lineHeight: 1,
+  fontWeight: 500,
+}
+
+const activeWorkoutStepperValueStyle = {
+  minHeight: "72px",
+  padding: "12px 14px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.72)",
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "center",
+  gap: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 9vw, 40px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const activeWorkoutStepperUnitStyle = {
+  marginBottom: "4px",
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutStepperHintButtonStyle = {
+  width: "fit-content",
+  padding: 0,
+  border: "none",
+  backgroundColor: "transparent",
+  color: playerAccent,
+  cursor: "pointer",
+  fontSize: "13px",
+  fontWeight: 900,
+}
+
+const activeWorkoutPrimaryActionStyle = {
+  width: "100%",
+  padding: "16px 18px",
+  borderRadius: "22px",
+  border: `1px solid ${playerAccent}`,
+  background: playerAccent,
+  color: playerPaper,
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: 900,
+  boxShadow: "0 16px 32px rgba(217, 74, 31, 0.18)",
+}
+
+const activeWorkoutSubtleHintStyle = {
+  fontSize: "13px",
+  lineHeight: 1.45,
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
+const activeWorkoutGhostActionsStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+}
+
+const activeWorkoutGhostActionButtonStyle = {
+  padding: "12px 14px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.24)",
+  color: playerInk,
+  cursor: "pointer",
+  display: "grid",
+  gap: "4px",
+  textAlign: "left",
+  boxShadow: "none",
+}
+
+const activeWorkoutGhostActionLabelStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutGhostActionValueStyle = {
+  fontSize: "14px",
+  fontWeight: 900,
+  color: playerInk,
+}
+
+const activeWorkoutDetailPanelStyle = {
+  padding: "14px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.72)",
+}
+
+const activeWorkoutBilateralPanelStyle = {
+  padding: "16px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.54)",
+  boxShadow: "0 16px 30px rgba(26, 24, 20, 0.06)",
+  display: "grid",
+  gap: "12px",
+}
+
+const activeWorkoutBilateralHalvesStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const activeWorkoutBilateralHalfStyle = {
+  padding: "14px",
+  borderRadius: "22px",
+  border: `1px solid ${playerLine}`,
+}
+
+const activeWorkoutBilateralHalfLabelStyle = {
+  marginBottom: "10px",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutBilateralHalfValueStyle = {
+  display: "flex",
+  alignItems: "flex-end",
+  gap: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(28px, 8vw, 38px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const activeWorkoutBilateralHalfMetaStyle = {
+  marginTop: "10px",
+  fontSize: "13px",
+  fontWeight: 800,
+  color: playerInkSoft,
+}
+
+const activeWorkoutBilateralTableStyle = {
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.22)",
+  overflow: "hidden",
+}
+
+const activeWorkoutBilateralTableHeaderStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.2fr) repeat(2, minmax(0, 1fr))",
+  gap: "10px",
+  padding: "12px 14px",
+  borderBottom: `1px solid ${playerLine}`,
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
+}
+
+const activeWorkoutBilateralTableRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.2fr) repeat(2, minmax(0, 1fr))",
+  gap: "10px",
+  padding: "12px 14px",
+  borderBottom: `1px solid rgba(215, 208, 192, 0.6)`,
+  fontFamily: playerMonoFont,
+  fontSize: "13px",
+  fontWeight: 700,
+  color: playerInk,
+}
+
+const activeWorkoutEmptyStateStyle = {
+  padding: "18px",
+  borderRadius: "22px",
+  border: `1px dashed ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.18)",
+  fontSize: "14px",
+  fontWeight: 800,
+  color: playerInkSoft,
 }
 
 const activeWarmupScreenStyle = {
