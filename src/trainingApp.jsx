@@ -11279,49 +11279,6 @@ function TrainingApp() {
             </div>
           ) : null}
 
-          {isMobile && activeWorkoutSlideCount > 1 && (
-            <div style={exerciseCarouselToolbarStyle}>
-              <button
-                type="button"
-                onClick={() => scrollToExerciseCard(Math.max(activeExerciseIndex - 1, 0))}
-                disabled={activeExerciseIndex === 0}
-                style={{
-                  ...secondaryButtonStyle,
-                  padding: "10px 14px",
-                  opacity: activeExerciseIndex === 0 ? 0.45 : 1,
-                  cursor: activeExerciseIndex === 0 ? "default" : "pointer",
-                }}
-              >
-                Föregående
-              </button>
-
-              <div style={exerciseCarouselStatusStyle}>
-                {activeWorkoutProgressSummary}
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  scrollToExerciseCard(
-                    Math.min(
-                      activeExerciseIndex + 1,
-                      activeWorkoutSlideCount - 1
-                    )
-                  )
-                }
-                disabled={activeExerciseIndex === activeWorkoutSlideCount - 1}
-                style={{
-                  ...secondaryButtonStyle,
-                  padding: "10px 14px",
-                  opacity: activeExerciseIndex === activeWorkoutSlideCount - 1 ? 0.45 : 1,
-                  cursor: activeExerciseIndex === activeWorkoutSlideCount - 1 ? "default" : "pointer",
-                }}
-              >
-                Nästa
-              </button>
-            </div>
-          )}
-
           <div
             ref={exerciseCarouselRef}
             style={
@@ -12411,6 +12368,45 @@ function TrainingApp() {
               </div>
             </div>
           </div>
+
+          {isMobile && activeWorkoutSlideCount > 1 ? (
+            <div style={activeWorkoutBottomNavStyle}>
+              <button
+                type="button"
+                onClick={() => scrollToExerciseCard(Math.max(activeExerciseIndex - 1, 0))}
+                disabled={activeExerciseIndex === 0}
+                style={{
+                  ...activeWorkoutBottomNavButtonStyle,
+                  opacity: activeExerciseIndex === 0 ? 0.45 : 1,
+                  cursor: activeExerciseIndex === 0 ? "default" : "pointer",
+                }}
+              >
+                Föregående
+              </button>
+
+              <div style={activeWorkoutBottomNavStatusStyle}>{activeWorkoutProgressSummary}</div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  scrollToExerciseCard(
+                    Math.min(
+                      activeExerciseIndex + 1,
+                      activeWorkoutSlideCount - 1
+                    )
+                  )
+                }
+                disabled={activeExerciseIndex === activeWorkoutSlideCount - 1}
+                style={{
+                  ...activeWorkoutBottomNavButtonStyle,
+                  opacity: activeExerciseIndex === activeWorkoutSlideCount - 1 ? 0.45 : 1,
+                  cursor: activeExerciseIndex === activeWorkoutSlideCount - 1 ? "default" : "pointer",
+                }}
+              >
+                Nästa
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
       </>
@@ -12927,7 +12923,7 @@ const activeWorkoutProgressSegmentStyle = {
 const activeWorkoutPageWrapStyle = {
   width: "100%",
   marginTop: 0,
-  padding: 0,
+  padding: "0 0 calc(104px + env(safe-area-inset-bottom))",
   borderRadius: 0,
   background: "transparent",
 }
@@ -13363,6 +13359,47 @@ const activeWorkoutExerciseCardStyle = {
 const activeWorkoutExerciseShellStyle = {
   display: "grid",
   gap: "14px",
+}
+
+const activeWorkoutBottomNavStyle = {
+  position: "fixed",
+  left: "max(12px, env(safe-area-inset-left))",
+  right: "max(12px, env(safe-area-inset-right))",
+  bottom: "calc(12px + env(safe-area-inset-bottom))",
+  zIndex: 80,
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(96px, auto) minmax(0, 1fr)",
+  alignItems: "center",
+  gap: "10px",
+  padding: "10px",
+  borderRadius: "24px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(243, 239, 230, 0.94)",
+  boxShadow: "0 18px 40px rgba(26, 24, 20, 0.12)",
+  backdropFilter: "blur(14px)",
+}
+
+const activeWorkoutBottomNavButtonStyle = {
+  minHeight: "48px",
+  padding: "12px 14px",
+  borderRadius: "18px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.9)",
+  color: playerInk,
+  fontSize: "14px",
+  fontWeight: 900,
+  boxShadow: "none",
+}
+
+const activeWorkoutBottomNavStatusStyle = {
+  padding: "0 4px",
+  textAlign: "center",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: playerInkSoft,
 }
 
 const activeWorkoutExerciseHeaderRowStyle = {
