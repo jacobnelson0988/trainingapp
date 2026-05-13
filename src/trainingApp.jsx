@@ -11469,7 +11469,6 @@ function TrainingApp() {
             )
             const protocolConfig = getExerciseProtocolConfig(selectedExercise || exercise)
             const isProtocol = Boolean(protocolConfig)
-            const totalExercises = activeWorkoutExerciseCount
             const infoKey = `${exercise.name}-${selectedExercise?.name || exercise.name}`
             const isInfoExpanded = !!expandedInfo[infoKey]
             const latestExerciseSets = selectedExercise ? latestWorkout[selectedExercise.name] || [] : []
@@ -11558,7 +11557,6 @@ function TrainingApp() {
                 >
                 <div style={activeWorkoutExerciseShellStyle}>
                   <div style={activeWorkoutExerciseHeaderRowStyle}>
-                    <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
                     {exerciseOptions.length > 1 ? (
                       <button
                         type="button"
