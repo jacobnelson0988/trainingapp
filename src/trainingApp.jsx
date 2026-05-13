@@ -11513,32 +11513,31 @@ function TrainingApp() {
                 }
                 >
                 <div style={activeWorkoutExerciseShellStyle}>
-                  <div style={activeWorkoutExerciseHeaderRowStyle}>
-                    {exerciseOptions.length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedInfo((prev) => ({
-                            ...prev,
-                            [alternativesInfoKey]: !prev[alternativesInfoKey],
-                          }))
-                        }
-                        style={{
-                          ...activeWorkoutTopPillButtonStyle,
-                          color: isAlternativesExpanded ? playerAccent : playerInk,
-                          borderColor: isAlternativesExpanded ? playerAccent : playerLine,
-                          backgroundColor: isAlternativesExpanded ? "rgba(217, 74, 31, 0.12)" : "transparent",
-                        }}
-                      >
-                        Alternativ
-                      </button>
-                    ) : null}
-                  </div>
-
                   <div style={activeLiftHeroStyle}>
-                    <h3 style={activeLiftTitleStyle}>
-                      {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
-                    </h3>
+                    <div style={activeWorkoutExerciseTitleRowStyle}>
+                      <h3 style={activeWorkoutExerciseTitleStyle}>
+                        {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
+                      </h3>
+                      {exerciseOptions.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedInfo((prev) => ({
+                              ...prev,
+                              [alternativesInfoKey]: !prev[alternativesInfoKey],
+                            }))
+                          }
+                          style={{
+                            ...activeWorkoutTopPillButtonStyle,
+                            color: isAlternativesExpanded ? playerAccent : playerInk,
+                            borderColor: isAlternativesExpanded ? playerAccent : playerLine,
+                            backgroundColor: isAlternativesExpanded ? "rgba(217, 74, 31, 0.12)" : "transparent",
+                          }}
+                        >
+                          Alternativ
+                        </button>
+                      ) : null}
+                    </div>
                     {!isProtocol &&
                     selectedExercise?.executionSide &&
                     selectedExercise.executionSide !== "standard" ? (
@@ -13409,6 +13408,26 @@ const activeWorkoutExerciseHeaderRowStyle = {
   gap: "10px",
 }
 
+const activeWorkoutExerciseTitleRowStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "10px",
+  flexWrap: "wrap",
+}
+
+const activeWorkoutExerciseTitleStyle = {
+  flex: "1 1 220px",
+  minWidth: 0,
+  margin: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 8vw, 46px)",
+  lineHeight: 0.96,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
 const activeWorkoutTopPillButtonStyle = {
   padding: "10px 12px",
   borderRadius: "999px",
@@ -13418,6 +13437,8 @@ const activeWorkoutTopPillButtonStyle = {
   fontSize: "12px",
   fontWeight: 900,
   whiteSpace: "nowrap",
+  alignSelf: "flex-start",
+  flex: "0 0 auto",
 }
 
 const activeWorkoutSummaryGridStyle = (isMobile) => ({
