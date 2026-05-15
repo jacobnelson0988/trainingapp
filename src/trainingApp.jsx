@@ -1282,7 +1282,7 @@ function TrainingApp() {
   const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
   const [activeTimedSetTimer, setActiveTimedSetTimer] = useState(null)
   const [editingLoggedSetKey, setEditingLoggedSetKey] = useState(null)
-  const [focusedWeightInputKey, setFocusedWeightInputKey] = useState(null)
+  const [focusedStepperInputKey, setFocusedStepperInputKey] = useState(null)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -4890,7 +4890,7 @@ function TrainingApp() {
     setLastFinishedWorkoutSummary(null)
     setActiveTargetChangeRequestDraft(null)
     setEditingLoggedSetKey(null)
-    setFocusedWeightInputKey(null)
+    setFocusedStepperInputKey(null)
     setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
     setActiveCalendarGroup(options.calendarEntry?.current_user_group || null)
     setIsActiveCalendarGroupExpanded(false)
@@ -5788,23 +5788,31 @@ function TrainingApp() {
     })
   }
 
-  const handleWeightFieldFocus = (event) => {
-    const inputKey = event.currentTarget.dataset.weightInputKey || null
-    setFocusedWeightInputKey(inputKey)
+  const handleStepperFieldFocus = (event) => {
+    const inputKey = event.currentTarget.dataset.stepperInputKey || null
+    setFocusedStepperInputKey(inputKey)
     window.requestAnimationFrame(() => {
       event.currentTarget.select()
     })
   }
 
-  const handleWeightFieldBlur = () => {
-    setFocusedWeightInputKey(null)
+  const handleStepperFieldBlur = () => {
+    setFocusedStepperInputKey(null)
   }
 
-  const handleWeightFieldKeyDown = (event) => {
+  const handleStepperFieldKeyDown = (event) => {
     if (event.key !== "Enter") return
     event.preventDefault()
     event.stopPropagation()
+    event.nativeEvent?.stopImmediatePropagation?.()
     event.currentTarget.blur()
+  }
+
+  const handleStepperFieldKeyUp = (event) => {
+    if (event.key !== "Enter") return
+    event.preventDefault()
+    event.stopPropagation()
+    event.nativeEvent?.stopImmediatePropagation?.()
   }
 
   const handleExerciseCommentChange = (exerciseIndex, value) => {
@@ -11603,7 +11611,7 @@ function TrainingApp() {
               profile?.individual_goals_enabled === false && latestExerciseTopSet
                 ? formatLatestSetValue(selectedExercise?.type || exercise.type, latestExerciseTopSet)
                 : currentTarget?.target_reps_mode === "max"
-                ? "Max idag"
+                ? "Max antal"
                 : currentTarget
                 ? [
                     formatRepTargetValue(currentTarget),
@@ -11641,12 +11649,12 @@ function TrainingApp() {
               parseStepperNumber(latestExerciseTopSet?.seconds) ?? representativeTargetValue
             const activeTimedSet = exerciseSets[activeSetIndex] || {}
             const activeTimedSide = activeTimedSet.active_side || ""
-            const getWeightInputValue = (setIndex, setWeightValue, suggestedWeightValue) => {
-              const inputKey = `${i}:${setIndex}`
-              if (focusedWeightInputKey === inputKey) return setWeightValue || ""
-              if (setWeightValue) return setWeightValue
-              return suggestedWeightValue != null ? formatStepperValue(suggestedWeightValue) : ""
+            const getStepperInputValue = (inputKey, currentValue, fallbackValue) => {
+              if (focusedStepperInputKey === inputKey) return currentValue || ""
+              if (currentValue) return currentValue
+              return fallbackValue != null ? formatStepperValue(fallbackValue) : ""
             }
+            const getStepperInputKey = (setIndex, field) => `${i}:${setIndex}:${field}`
             const formatSetReceiptValue = (set) => {
               if (exerciseType === "weight_reps") {
                 return `${set.weight || "-"} kg × ${set.reps || "-"}`
@@ -11908,12 +11916,18 @@ function TrainingApp() {
                                         <input
                                           type="text"
                                           inputMode="decimal"
-                                          data-weight-input-key={`${i}:${j}`}
-                                          value={getWeightInputValue(j, set.weight, suggestedWeight)}
+                                          enterKeyHint="done"
+                                          data-stepper-input-key={getStepperInputKey(j, "weight")}
+                                          value={getStepperInputValue(
+                                            getStepperInputKey(j, "weight"),
+                                            set.weight,
+                                            suggestedWeight
+                                          )}
                                           onChange={(event) => handleChange(i, j, "weight", event.target.value)}
-                                          onFocus={handleWeightFieldFocus}
-                                          onBlur={handleWeightFieldBlur}
-                                          onKeyDown={handleWeightFieldKeyDown}
+                                          onFocus={handleStepperFieldFocus}
+                                          onBlur={handleStepperFieldBlur}
+                                          onKeyDown={handleStepperFieldKeyDown}
+                                          onKeyUp={handleStepperFieldKeyUp}
                                           style={activeWorkoutStepperInputStyle}
                                         />
                                         <span style={activeWorkoutStepperUnitStyle}>kg</span>
@@ -11956,7 +11970,23 @@ function TrainingApp() {
                                       −
                                     </button>
                                     <div style={activeWorkoutStepperValueStyle}>
-                                      {set.reps || (representativeTargetValue != null ? formatStepperValue(representativeTargetValue) : "—")}
+                                      <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        enterKeyHint="done"
+                                        data-stepper-input-key={getStepperInputKey(j, "reps")}
+                                        value={getStepperInputValue(
+                                          getStepperInputKey(j, "reps"),
+                                          set.reps,
+                                          representativeTargetValue
+                                        )}
+                                        onChange={(event) => handleChange(i, j, "reps", event.target.value)}
+                                        onFocus={handleStepperFieldFocus}
+                                        onBlur={handleStepperFieldBlur}
+                                        onKeyDown={handleStepperFieldKeyDown}
+                                        onKeyUp={handleStepperFieldKeyUp}
+                                        style={activeWorkoutStepperInputStyle}
+                                      />
                                       <span style={activeWorkoutStepperUnitStyle}>reps</span>
                                     </div>
                                     <button
@@ -12003,14 +12033,14 @@ function TrainingApp() {
                             exerciseType === "weight_reps"
                               ? suggestedWeight != null
                                 ? `Föreslår ${formatStepperValue(suggestedWeight)} kg`
-                                : "Nästa set väntar"
+                                : ""
                               : exerciseType === "reps_only"
                               ? representativeTargetValue != null
                                 ? `Mål ${formatStepperValue(representativeTargetValue)} reps`
-                                : "Nästa set väntar"
+                                : ""
                               : suggestedSeconds != null
                               ? `Föreslår ${formatStepperValue(suggestedSeconds)} sek`
-                              : "Nästa set väntar"
+                              : ""
 
                           return (
                             <div
@@ -12018,7 +12048,9 @@ function TrainingApp() {
                               style={activeWorkoutUpcomingSetStyle}
                             >
                               <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
-                              <div style={activeWorkoutUpcomingValueStyle}>{upcomingSummary}</div>
+                              {upcomingSummary ? (
+                                <div style={activeWorkoutUpcomingValueStyle}>{upcomingSummary}</div>
+                              ) : null}
                             </div>
                           )
                         }
@@ -12056,12 +12088,18 @@ function TrainingApp() {
                                         <input
                                           type="text"
                                           inputMode="decimal"
-                                          data-weight-input-key={`${i}:${j}`}
-                                          value={getWeightInputValue(j, set.weight, suggestedWeight)}
+                                          enterKeyHint="done"
+                                          data-stepper-input-key={getStepperInputKey(j, "weight")}
+                                          value={getStepperInputValue(
+                                            getStepperInputKey(j, "weight"),
+                                            set.weight,
+                                            suggestedWeight
+                                          )}
                                           onChange={(event) => handleChange(i, j, "weight", event.target.value)}
-                                          onFocus={handleWeightFieldFocus}
-                                          onBlur={handleWeightFieldBlur}
-                                          onKeyDown={handleWeightFieldKeyDown}
+                                          onFocus={handleStepperFieldFocus}
+                                          onBlur={handleStepperFieldBlur}
+                                          onKeyDown={handleStepperFieldKeyDown}
+                                          onKeyUp={handleStepperFieldKeyUp}
                                           style={activeWorkoutStepperInputStyle}
                                         />
                                       <span style={activeWorkoutStepperUnitStyle}>kg</span>
@@ -12124,9 +12162,43 @@ function TrainingApp() {
                                     −
                                   </button>
                                   <div style={activeWorkoutStepperValueStyle}>
-                                    {exerciseType === "seconds_only"
-                                      ? set.seconds || (suggestedSeconds != null ? formatStepperValue(suggestedSeconds) : "—")
-                                      : set.reps || (representativeTargetValue != null ? formatStepperValue(representativeTargetValue) : "—")}
+                                    {exerciseType === "seconds_only" ? (
+                                      <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        enterKeyHint="done"
+                                        data-stepper-input-key={getStepperInputKey(j, "seconds")}
+                                        value={getStepperInputValue(
+                                          getStepperInputKey(j, "seconds"),
+                                          set.seconds,
+                                          suggestedSeconds
+                                        )}
+                                        onChange={(event) => handleChange(i, j, "seconds", event.target.value)}
+                                        onFocus={handleStepperFieldFocus}
+                                        onBlur={handleStepperFieldBlur}
+                                        onKeyDown={handleStepperFieldKeyDown}
+                                        onKeyUp={handleStepperFieldKeyUp}
+                                        style={activeWorkoutStepperInputStyle}
+                                      />
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        enterKeyHint="done"
+                                        data-stepper-input-key={getStepperInputKey(j, "reps")}
+                                        value={getStepperInputValue(
+                                          getStepperInputKey(j, "reps"),
+                                          set.reps,
+                                          representativeTargetValue
+                                        )}
+                                        onChange={(event) => handleChange(i, j, "reps", event.target.value)}
+                                        onFocus={handleStepperFieldFocus}
+                                        onBlur={handleStepperFieldBlur}
+                                        onKeyDown={handleStepperFieldKeyDown}
+                                        onKeyUp={handleStepperFieldKeyUp}
+                                        style={activeWorkoutStepperInputStyle}
+                                      />
+                                    )}
                                     <span style={activeWorkoutStepperUnitStyle}>
                                       {exerciseType === "seconds_only" ? "sek" : "reps"}
                                     </span>
