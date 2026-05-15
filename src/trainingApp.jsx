@@ -11465,19 +11465,19 @@ function TrainingApp() {
                     <div style={activeWarmupGridStyle(isMobile)}>
                       {activeWorkoutWarmup.cardio ? (
                         <div style={activeWarmupBlockStyle}>
-                          <div style={activeWarmupBlockLabelStyle}>PULSHÖJANDE UPPVÄRMNING</div>
+                          <div style={activeWarmupBlockLabelStyle}>Pulshöjande uppvärmning</div>
                           <div style={activeWarmupBlockTextStyle}>{activeWorkoutWarmup.cardio}</div>
                         </div>
                       ) : null}
 
                       {activeWorkoutWarmup.technique.length ? (
                         <div style={activeWarmupBlockStyle}>
-                          <div style={activeWarmupBlockLabelStyle}>TEKNIKUPPVÄRMNING</div>
+                          <div style={activeWarmupBlockLabelStyle}>Teknikuppvärmning</div>
                           <div style={activeWarmupStepsStyle}>
                             {activeWorkoutWarmup.technique.map((item, index) => (
                               <div key={index} style={activeWarmupStepStyle}>
-                                <span>{index + 1}</span>
-                                <span>{item}</span>
+                                <span style={activeWarmupStepIndexStyle}>{index + 1}</span>
+                                <span style={activeWarmupStepTextStyle}>{item}</span>
                               </div>
                             ))}
                           </div>
@@ -14263,37 +14263,37 @@ const activeWarmupLeadStyle = {
 
 const activeWarmupGridStyle = (isMobile) => ({
   display: "grid",
-  gap: "10px",
+  gap: isMobile ? "18px" : "24px",
   gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
 })
 
 const activeWarmupBlockStyle = {
-  padding: "15px",
-  borderRadius: "20px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.64)",
+  display: "grid",
+  gap: "10px",
+  alignContent: "start",
 }
 
 const activeWarmupBlockLabelStyle = {
-  marginBottom: "8px",
-  fontFamily: playerMonoFont,
-  fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: playerInkSoft,
+  margin: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(28px, 7.4vw, 38px)",
+  lineHeight: 0.98,
+  fontWeight: 650,
+  letterSpacing: "-0.04em",
+  color: playerInk,
 }
 
 const activeWarmupBlockTextStyle = {
-  fontSize: "17px",
-  lineHeight: 1.35,
-  fontWeight: 900,
-  color: playerInk,
+  maxWidth: "34ch",
+  fontSize: "16px",
+  lineHeight: 1.55,
+  fontWeight: 500,
+  color: playerInkSoft,
 }
 
 const activeWarmupStepsStyle = {
   display: "grid",
-  gap: "8px",
+  gap: "10px",
 }
 
 const activeWarmupStepStyle = {
@@ -14301,10 +14301,23 @@ const activeWarmupStepStyle = {
   gridTemplateColumns: "28px minmax(0, 1fr)",
   gap: "10px",
   alignItems: "start",
-  fontSize: "14px",
-  lineHeight: 1.35,
-  fontWeight: 800,
-  color: playerInk,
+}
+
+const activeWarmupStepIndexStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "11px",
+  lineHeight: 1.6,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  color: playerInkSoft,
+}
+
+const activeWarmupStepTextStyle = {
+  maxWidth: "34ch",
+  fontSize: "16px",
+  lineHeight: 1.55,
+  fontWeight: 500,
+  color: playerInkSoft,
 }
 
 const activeLiftHeroStyle = {
