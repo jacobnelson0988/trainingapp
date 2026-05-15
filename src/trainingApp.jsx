@@ -14136,16 +14136,16 @@ const activeWorkoutRestInlineButtonStyle = {
   minHeight: "58px",
   padding: "12px 16px",
   borderRadius: "18px",
-  border: `1px solid rgba(217, 74, 31, 0.46)`,
-  backgroundColor: "rgba(217, 74, 31, 0.92)",
-  color: playerPaper,
+  border: `1px solid rgba(217, 74, 31, 0.58)`,
+  backgroundColor: "#111111",
+  color: playerAccent,
   cursor: "pointer",
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
   alignItems: "center",
   gap: "10px",
   textAlign: "left",
-  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
+  boxShadow: "0 16px 32px rgba(17, 17, 17, 0.28)",
 }
 
 const activeWorkoutRestInlineLabelStyle = {
@@ -14154,23 +14154,23 @@ const activeWorkoutRestInlineLabelStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(255, 255, 255, 0.82)",
+  color: "rgba(217, 74, 31, 0.8)",
 }
 
 const activeWorkoutRestInlineValueStyle = {
   fontFamily: playerMonoFont,
-  fontSize: "18px",
-  lineHeight: 1,
-  fontWeight: 700,
+  fontSize: "28px",
+  lineHeight: 0.92,
+  fontWeight: 800,
   letterSpacing: "0.02em",
-  color: playerPaper,
+  color: playerAccent,
   justifySelf: "center",
 }
 
 const activeWorkoutRestInlineHintStyle = {
   fontSize: "11px",
   fontWeight: 800,
-  color: "rgba(255, 255, 255, 0.82)",
+  color: "rgba(217, 74, 31, 0.8)",
   whiteSpace: "nowrap",
   justifySelf: "end",
 }
