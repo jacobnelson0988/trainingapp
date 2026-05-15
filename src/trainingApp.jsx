@@ -11618,9 +11618,7 @@ function TrainingApp() {
               selectedExercise?.mediaUrl
             )
             const alternativesInfoKey = `${infoKey}:alternatives`
-            const commentInfoKey = `${infoKey}:comment`
             const isAlternativesExpanded = !!expandedInfo[alternativesInfoKey]
-            const isCommentExpanded = !!expandedInfo[commentInfoKey]
             const exerciseType = selectedExercise?.type || exercise.type
             const executionSide = selectedExercise?.executionSide || "standard"
             const exerciseSets = inputs[i] || []
@@ -11730,11 +11728,11 @@ function TrainingApp() {
                   {!isProtocol ? (
                     <div style={activeWorkoutSummaryStackStyle}>
                       <div style={activeWorkoutSummaryGridStyle(isMobile)}>
-                        <div style={activeWorkoutSummaryCellStyle}>
+                        <div style={activeWorkoutSummaryCellStyle("left")}>
                           <div style={activeWorkoutSummaryLabelStyle}>Mål</div>
                           <div style={activeWorkoutSummaryValueStyle}>{activeLiftTargetSummary}</div>
                         </div>
-                        <div style={activeWorkoutSummaryCellStyle}>
+                        <div style={activeWorkoutSummaryCellStyle("right")}>
                           <div style={activeWorkoutSummaryLabelStyle}>Senast</div>
                           <div style={activeWorkoutSummaryValueStyle}>{activeLiftLatestSummary}</div>
                           {latestExerciseDate ? (
@@ -12444,20 +12442,6 @@ function TrainingApp() {
                         <span style={activeWorkoutGhostActionLabelStyle}>Set</span>
                         <span style={activeWorkoutGhostActionValueStyle}>+ Lägg till</span>
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedInfo((prev) => ({
-                            ...prev,
-                            [commentInfoKey]: !prev[commentInfoKey],
-                          }))
-                        }
-                        style={activeWorkoutGhostActionButtonStyle}
-                      >
-                        <span style={activeWorkoutGhostActionLabelStyle}>Kommentar</span>
-                        <span style={activeWorkoutGhostActionValueStyle}>{isCommentExpanded ? "Dölj" : "Skriv"}</span>
-                      </button>
                     </div>
                   ) : null}
 
@@ -12547,18 +12531,6 @@ function TrainingApp() {
                     </div>
                   ) : null}
 
-                  {isCommentExpanded && isWorkoutActive ? (
-                    <div style={activeWorkoutDetailPanelStyle}>
-                      <textarea
-                        rows={3}
-                        placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
-                        value={exerciseComments[i] || ""}
-                        onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
-                        onBlur={() => handleExerciseCommentSave(i)}
-                        style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "88px" }}
-                      />
-                    </div>
-                  ) : null}
                 </div>
               </div>
             )
@@ -13862,7 +13834,7 @@ const activeWorkoutTopPillButtonStyle = {
 
 const activeWorkoutSummaryGridStyle = (isMobile) => ({
   display: "grid",
-  gap: isMobile ? "8px" : "10px",
+  gap: 0,
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
 })
 
@@ -13871,13 +13843,19 @@ const activeWorkoutSummaryStackStyle = {
   gap: "8px",
 }
 
-const activeWorkoutSummaryCellStyle = {
+const activeWorkoutSummaryCellStyle = (side = "left") => ({
   minWidth: 0,
   padding: "12px 14px",
-  borderRadius: "18px",
+  borderRadius:
+    side === "left"
+      ? "18px 0 0 18px"
+      : side === "right"
+      ? "0 18px 18px 0"
+      : "18px",
   border: `1px solid rgba(215, 208, 192, 0.72)`,
   backgroundColor: "rgba(255, 255, 255, 0.24)",
-}
+  marginLeft: side === "right" ? "-1px" : 0,
+})
 
 const activeWorkoutSummaryLabelStyle = {
   marginBottom: "8px",
@@ -14221,12 +14199,12 @@ const activeWorkoutSubtleHintStyle = {
 }
 
 const activeWorkoutGhostActionsStyle = {
-  display: "flex",
+  display: "grid",
   gap: "8px",
-  flexWrap: "wrap",
 }
 
 const activeWorkoutGhostActionButtonStyle = {
+  width: "100%",
   padding: "12px 14px",
   borderRadius: "18px",
   border: `1px solid ${playerLine}`,
