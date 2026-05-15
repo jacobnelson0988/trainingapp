@@ -5786,6 +5786,18 @@ function TrainingApp() {
     })
   }
 
+  const handleWeightFieldFocus = (event) => {
+    window.requestAnimationFrame(() => {
+      event.currentTarget.select()
+    })
+  }
+
+  const handleWeightFieldKeyDown = (event) => {
+    if (event.key !== "Enter") return
+    event.preventDefault()
+    event.currentTarget.blur()
+  }
+
   const handleExerciseCommentChange = (exerciseIndex, value) => {
     setExerciseComments((prev) => ({
       ...prev,
@@ -11883,11 +11895,14 @@ function TrainingApp() {
                                         <input
                                           type="text"
                                           inputMode="decimal"
-                                          value={set.weight || ""}
-                                          placeholder={
-                                            suggestedWeight != null ? formatStepperValue(suggestedWeight) : "—"
+                                          value={
+                                            set.weight || (
+                                              suggestedWeight != null ? formatStepperValue(suggestedWeight) : ""
+                                            )
                                           }
                                           onChange={(event) => handleChange(i, j, "weight", event.target.value)}
+                                          onFocus={handleWeightFieldFocus}
+                                          onKeyDown={handleWeightFieldKeyDown}
                                           style={activeWorkoutStepperInputStyle}
                                         />
                                         <span style={activeWorkoutStepperUnitStyle}>kg</span>
@@ -12027,16 +12042,19 @@ function TrainingApp() {
                                       −
                                     </button>
                                     <div style={activeWorkoutStepperValueStyle}>
-                                      <input
-                                        type="text"
-                                        inputMode="decimal"
-                                        value={set.weight || ""}
-                                        placeholder={
-                                          suggestedWeight != null ? formatStepperValue(suggestedWeight) : "—"
-                                        }
-                                        onChange={(event) => handleChange(i, j, "weight", event.target.value)}
-                                        style={activeWorkoutStepperInputStyle}
-                                      />
+                                        <input
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={
+                                            set.weight || (
+                                              suggestedWeight != null ? formatStepperValue(suggestedWeight) : ""
+                                            )
+                                          }
+                                          onChange={(event) => handleChange(i, j, "weight", event.target.value)}
+                                          onFocus={handleWeightFieldFocus}
+                                          onKeyDown={handleWeightFieldKeyDown}
+                                          style={activeWorkoutStepperInputStyle}
+                                        />
                                       <span style={activeWorkoutStepperUnitStyle}>kg</span>
                                     </div>
                                     <button
