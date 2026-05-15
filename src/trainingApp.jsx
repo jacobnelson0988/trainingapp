@@ -1281,6 +1281,7 @@ function TrainingApp() {
   const [restStopwatchStartedAt, setRestStopwatchStartedAt] = useState(null)
   const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
   const [activeTimedSetTimer, setActiveTimedSetTimer] = useState(null)
+  const [editingLoggedSetKey, setEditingLoggedSetKey] = useState(null)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -4887,6 +4888,7 @@ function TrainingApp() {
     setExpandedInfo({})
     setLastFinishedWorkoutSummary(null)
     setActiveTargetChangeRequestDraft(null)
+    setEditingLoggedSetKey(null)
     setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
     setActiveCalendarGroup(options.calendarEntry?.current_user_group || null)
     setIsActiveCalendarGroupExpanded(false)
@@ -5161,6 +5163,43 @@ function TrainingApp() {
 
     await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
     resetRestStopwatch()
+  }
+
+  const handleSaveEditedLoggedSet = async (exerciseIndex, setIndex, selectedExercise) => {
+    if (!isWorkoutActive || !currentSessionId || !selectedWorkout || !selectedExercise) return
+
+    const currentRows = inputs[exerciseIndex] || []
+    const currentSet = currentRows[setIndex] || {}
+    const nextSet = {
+      ...currentSet,
+      weight: currentSet.weight || "",
+      reps: currentSet.reps || "",
+      seconds: currentSet.seconds || "",
+      set_type: currentSet.set_type || "work",
+      workout_session_id: currentSessionId,
+      client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
+    }
+
+    if (
+      !isSetCompleteForExercise(
+        selectedExercise.type,
+        nextSet,
+        selectedExercise.executionSide || "standard"
+      )
+    ) {
+      setStatus("Fyll i setet först")
+      return
+    }
+
+    const nextRows = currentRows.slice()
+    nextRows[setIndex] = nextSet
+    setInputs((prev) => ({
+      ...prev,
+      [exerciseIndex]: nextRows,
+    }))
+
+    await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
+    setEditingLoggedSetKey(null)
   }
 
   const handleTimedSetPrimaryAction = async (
@@ -5718,7 +5757,7 @@ function TrainingApp() {
     await saveSet(exerciseIndex, selectedExercise, stepIndex, nextSet)
   }
 
-  const handleChange = async (exerciseIndex, setIndex, field, value) => {
+  const handleChange = (exerciseIndex, setIndex, field, value) => {
     if (!isWorkoutActive || !currentSessionId || !selectedWorkout) return
 
     const current = inputs[exerciseIndex] || []
@@ -5745,17 +5784,6 @@ function TrainingApp() {
       ...inputs,
       [exerciseIndex]: updated,
     })
-
-    const set = updated[setIndex]
-
-    const isComplete =
-      (selectedExercise?.type === "weight_reps" && set.weight && set.reps) ||
-      (selectedExercise?.type === "reps_only" && set.reps) ||
-      (selectedExercise?.type === "seconds_only" && set.seconds)
-
-    if (isComplete && selectedExercise) {
-      await saveSet(exerciseIndex, selectedExercise, setIndex, set)
-    }
   }
 
   const handleExerciseCommentChange = (exerciseIndex, value) => {
@@ -11785,6 +11813,8 @@ function TrainingApp() {
                       {exerciseSets.map((set, j) => {
                         const isCompleted = isSetCompleteForExercise(exerciseType, set, executionSide)
                         const isActiveSet = nextPendingSetIndex !== -1 && j === activeSetIndex && !isCompleted
+                        const loggedSetEditKey = `${i}:${j}`
+                        const isEditingLoggedSet = editingLoggedSetKey === loggedSetEditKey
                         const suggestedWeight =
                           exerciseType === "weight_reps"
                             ? getSuggestedWeightForSet(exerciseSets, j, latestExerciseTopSet)
@@ -11792,7 +11822,7 @@ function TrainingApp() {
                         const suggestedSeconds =
                           parseStepperNumber(set.seconds) ?? suggestedTimedSeconds
 
-                        if (isCompleted) {
+                        if (isCompleted && !isEditingLoggedSet) {
                           return (
                             <div
                               key={set.client_set_id || j}
@@ -11802,7 +11832,142 @@ function TrainingApp() {
                                 <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                                 <div style={activeWorkoutReceiptValueStyle}>{formatSetReceiptValue(set)}</div>
                               </div>
-                              <div style={activeWorkoutReceiptStatusStyle}>Loggat</div>
+                              <div style={activeWorkoutReceiptActionsStyle}>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingLoggedSetKey(loggedSetEditKey)}
+                                  style={activeWorkoutReceiptActionButtonStyle}
+                                >
+                                  Ändra
+                                </button>
+                                <div style={activeWorkoutReceiptStatusStyle}>Loggat</div>
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        if (isCompleted && isEditingLoggedSet) {
+                          return (
+                            <div
+                              key={set.client_set_id || j}
+                              style={activeWorkoutActiveSetStyle}
+                            >
+                              <div style={activeWorkoutActiveSetHeaderStyle}>
+                                <div>
+                                  <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
+                                  <div style={activeWorkoutActiveSetTitleStyle}>Ändra loggat set</div>
+                                </div>
+                              </div>
+
+                              <div style={activeWorkoutStepperGridStyle(exerciseType === "weight_reps" ? isMobile ? 1 : 2 : 1)}>
+                                {exerciseType === "weight_reps" ? (
+                                  <div style={activeWorkoutStepperFieldStyle}>
+                                    <div style={activeWorkoutStepperLabelStyle}>Vikt</div>
+                                    <div style={activeWorkoutStepperControlStyle}>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          adjustSetNumericField(
+                                            i,
+                                            j,
+                                            "weight",
+                                            -1,
+                                            suggestedWeight ?? resolvedCurrentTargetWeight ?? 0
+                                          )
+                                        }
+                                        style={activeWorkoutStepperButtonStyle}
+                                      >
+                                        −
+                                      </button>
+                                      <div style={activeWorkoutStepperValueStyle}>
+                                        <input
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={set.weight || ""}
+                                          placeholder={
+                                            suggestedWeight != null ? formatStepperValue(suggestedWeight) : "—"
+                                          }
+                                          onChange={(event) => handleChange(i, j, "weight", event.target.value)}
+                                          style={activeWorkoutStepperInputStyle}
+                                        />
+                                        <span style={activeWorkoutStepperUnitStyle}>kg</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          adjustSetNumericField(
+                                            i,
+                                            j,
+                                            "weight",
+                                            1,
+                                            suggestedWeight ?? resolvedCurrentTargetWeight ?? 0
+                                          )
+                                        }
+                                        style={activeWorkoutStepperButtonStyle}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                <div style={activeWorkoutStepperFieldStyle}>
+                                  <div style={activeWorkoutStepperLabelStyle}>Reps</div>
+                                  <div style={activeWorkoutStepperControlStyle}>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        adjustSetNumericField(
+                                          i,
+                                          j,
+                                          "reps",
+                                          -1,
+                                          representativeTargetValue ?? 0
+                                        )
+                                      }
+                                      style={activeWorkoutStepperButtonStyle}
+                                    >
+                                      −
+                                    </button>
+                                    <div style={activeWorkoutStepperValueStyle}>
+                                      {set.reps || (representativeTargetValue != null ? formatStepperValue(representativeTargetValue) : "—")}
+                                      <span style={activeWorkoutStepperUnitStyle}>reps</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        adjustSetNumericField(
+                                          i,
+                                          j,
+                                          "reps",
+                                          1,
+                                          representativeTargetValue ?? 0
+                                        )
+                                      }
+                                      style={activeWorkoutStepperButtonStyle}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={activeWorkoutEditActionsStyle}>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingLoggedSetKey(null)}
+                                  style={activeWorkoutEditCancelButtonStyle}
+                                >
+                                  Avbryt
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEditedLoggedSet(i, j, selectedExercise)}
+                                  style={activeWorkoutPrimaryActionStyle}
+                                >
+                                  Spara ändring
+                                </button>
+                              </div>
                             </div>
                           )
                         }
@@ -13733,7 +13898,7 @@ const activeWorkoutRestInlineButtonStyle = {
   color: playerInk,
   cursor: "pointer",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto auto",
+  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
   alignItems: "center",
   gap: "10px",
   textAlign: "left",
@@ -13756,6 +13921,7 @@ const activeWorkoutRestInlineValueStyle = {
   fontWeight: 700,
   letterSpacing: "0.02em",
   color: playerInk,
+  justifySelf: "center",
 }
 
 const activeWorkoutRestInlineHintStyle = {
@@ -13763,6 +13929,7 @@ const activeWorkoutRestInlineHintStyle = {
   fontWeight: 800,
   color: playerInkSoft,
   whiteSpace: "nowrap",
+  justifySelf: "end",
 }
 
 const activeWorkoutSetListStyle = {
@@ -13811,6 +13978,23 @@ const activeWorkoutReceiptStatusStyle = {
   textTransform: "uppercase",
   color: playerInkSoft,
   whiteSpace: "nowrap",
+}
+
+const activeWorkoutReceiptActionsStyle = {
+  display: "grid",
+  gap: "8px",
+  justifyItems: "end",
+}
+
+const activeWorkoutReceiptActionButtonStyle = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.78)",
+  color: playerInk,
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: 900,
 }
 
 const activeWorkoutUpcomingSetStyle = {
@@ -13994,6 +14178,23 @@ const activeWorkoutPrimaryActionStyle = {
   boxShadow: "0 16px 32px rgba(217, 74, 31, 0.18)",
 }
 
+const activeWorkoutEditActionsStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const activeWorkoutEditCancelButtonStyle = {
+  width: "100%",
+  padding: "14px 18px",
+  borderRadius: "20px",
+  border: `1px solid ${playerLine}`,
+  backgroundColor: "rgba(255, 255, 255, 0.24)",
+  color: playerInk,
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: 900,
+}
+
 const activeWorkoutSubtleHintStyle = {
   fontSize: "13px",
   lineHeight: 1.45,
@@ -14142,7 +14343,7 @@ const activeWorkoutEmptyStateStyle = {
 
 const activeWarmupScreenStyle = {
   display: "grid",
-  gap: "14px",
+  gap: "20px",
 }
 
 const activeWarmupTitleStyle = {
@@ -14165,13 +14366,13 @@ const activeWarmupLeadStyle = {
 
 const activeWarmupGridStyle = (isMobile) => ({
   display: "grid",
-  gap: isMobile ? "18px" : "24px",
+  gap: isMobile ? "28px" : "36px",
   gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
 })
 
 const activeWarmupBlockStyle = {
   display: "grid",
-  gap: "10px",
+  gap: "16px",
   alignContent: "start",
 }
 
@@ -14195,7 +14396,7 @@ const activeWarmupBlockTextStyle = {
 
 const activeWarmupStepsStyle = {
   display: "grid",
-  gap: "10px",
+  gap: "14px",
 }
 
 const activeWarmupStepStyle = {
