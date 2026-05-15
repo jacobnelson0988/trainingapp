@@ -8337,12 +8337,18 @@ function TrainingApp() {
       : "Träning"
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
+  const activeWorkoutWarmupTechnique = Array.isArray(activeWorkoutData?.warmup?.technique)
+    ? activeWorkoutData.warmup.technique
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+    : []
   const activeWorkoutWarmup = {
-    cardio: activeWorkoutData?.warmup?.cardio || "",
-    technique: Array.isArray(activeWorkoutData?.warmup?.technique)
-      ? activeWorkoutData.warmup.technique
-      : [],
+    cardio: String(activeWorkoutData?.warmup?.cardio || "").trim(),
+    technique: activeWorkoutWarmupTechnique,
   }
+  const hasActiveWorkoutWarmup = Boolean(
+    activeWorkoutWarmup.cardio || activeWorkoutWarmup.technique.length
+  )
   const activeWorkoutExercises = Array.isArray(activeWorkoutData?.exercises)
     ? activeWorkoutData.exercises
     : []
@@ -8378,16 +8384,21 @@ function TrainingApp() {
     },
   ]
 
-  const activeWorkoutSlideCount = activeWorkoutExerciseCount + 2
-  const isWarmupSlideActive = activeExerciseIndex === 0
+  const activeWorkoutSlideCount = activeWorkoutExerciseCount + 1 + (hasActiveWorkoutWarmup ? 1 : 0)
+  const warmupSlideOffset = hasActiveWorkoutWarmup ? 1 : 0
+  const isWarmupSlideActive = hasActiveWorkoutWarmup && activeExerciseIndex === 0
   const isFinishSlideActive = activeExerciseIndex === activeWorkoutSlideCount - 1
+  const activeWorkoutExercisePosition = Math.min(
+    Math.max(activeExerciseIndex - warmupSlideOffset + 1, 1),
+    Math.max(activeWorkoutExerciseCount, 1)
+  )
   const activeWorkoutProgressSummary = isWarmupSlideActive
     ? "Uppvärmning"
     : isFinishSlideActive
     ? "Avslut"
     : isRunningWorkoutActive
     ? "Löppass"
-    : `Övning ${Math.min(activeExerciseIndex, activeWorkoutExerciseCount)} / ${activeWorkoutExerciseCount}`
+    : `Övning ${activeWorkoutExercisePosition} / ${activeWorkoutExerciseCount}`
   const activeWorkoutProgressSegments = Array.from({ length: Math.max(activeWorkoutSlideCount, 1) }, (_, index) => ({
     key: index,
     isComplete: index < activeExerciseIndex,
@@ -11437,45 +11448,45 @@ function TrainingApp() {
             }}
           >
             <div style={isMobile ? exerciseCarouselTrackStyle : undefined}>
-              <div
-                data-exercise-card="true"
-                style={
-                  isMobile
-                    ? {
-                        ...cardStyle,
-                        ...activeWorkoutExerciseCardStyle,
-                        ...exerciseSwipeCardStyle,
-                      }
-                    : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
-                }
-              >
-                <div style={activeWarmupScreenStyle}>
-                  <div style={activeWarmupGridStyle(isMobile)}>
-                    <div style={activeWarmupBlockStyle}>
-                      <div style={activeWarmupBlockLabelStyle}>PULSHÖJANDE UPPVÄRMNING</div>
-                      <div style={activeWarmupBlockTextStyle}>
-                        {activeWorkoutWarmup.cardio || "Ingen pulshöjande del inlagd."}
-                      </div>
-                    </div>
-
-                    <div style={activeWarmupBlockStyle}>
-                      <div style={activeWarmupBlockLabelStyle}>TEKNIKUPPVÄRMNING</div>
-                      {activeWorkoutWarmup.technique.length ? (
-                        <div style={activeWarmupStepsStyle}>
-                          {activeWorkoutWarmup.technique.map((item, index) => (
-                            <div key={index} style={activeWarmupStepStyle}>
-                              <span>{index + 1}</span>
-                              <span>{item}</span>
-                            </div>
-                          ))}
+              {hasActiveWorkoutWarmup ? (
+                <div
+                  data-exercise-card="true"
+                  style={
+                    isMobile
+                      ? {
+                          ...cardStyle,
+                          ...activeWorkoutExerciseCardStyle,
+                          ...exerciseSwipeCardStyle,
+                        }
+                      : { ...cardStyle, ...activeWorkoutExerciseCardStyle }
+                  }
+                >
+                  <div style={activeWarmupScreenStyle}>
+                    <div style={activeWarmupGridStyle(isMobile)}>
+                      {activeWorkoutWarmup.cardio ? (
+                        <div style={activeWarmupBlockStyle}>
+                          <div style={activeWarmupBlockLabelStyle}>PULSHÖJANDE UPPVÄRMNING</div>
+                          <div style={activeWarmupBlockTextStyle}>{activeWorkoutWarmup.cardio}</div>
                         </div>
-                      ) : (
-                        <div style={activeWarmupBlockTextStyle}>Ingen teknikdel inlagd.</div>
-                      )}
+                      ) : null}
+
+                      {activeWorkoutWarmup.technique.length ? (
+                        <div style={activeWarmupBlockStyle}>
+                          <div style={activeWarmupBlockLabelStyle}>TEKNIKUPPVÄRMNING</div>
+                          <div style={activeWarmupStepsStyle}>
+                            {activeWorkoutWarmup.technique.map((item, index) => (
+                              <div key={index} style={activeWarmupStepStyle}>
+                                <span>{index + 1}</span>
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
           {isRunningWorkoutActive ? (
             <div
