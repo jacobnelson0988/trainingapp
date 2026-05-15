@@ -1282,6 +1282,7 @@ function TrainingApp() {
   const [restStopwatchNow, setRestStopwatchNow] = useState(Date.now())
   const [activeTimedSetTimer, setActiveTimedSetTimer] = useState(null)
   const [editingLoggedSetKey, setEditingLoggedSetKey] = useState(null)
+  const [focusedWeightInputKey, setFocusedWeightInputKey] = useState(null)
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0)
   const [selectedExerciseOptionKeys, setSelectedExerciseOptionKeys] = useState({})
   const [exerciseComments, setExerciseComments] = useState({})
@@ -4889,6 +4890,7 @@ function TrainingApp() {
     setLastFinishedWorkoutSummary(null)
     setActiveTargetChangeRequestDraft(null)
     setEditingLoggedSetKey(null)
+    setFocusedWeightInputKey(null)
     setActiveCalendarEventPlayerId(options.calendarEventPlayerId || null)
     setActiveCalendarGroup(options.calendarEntry?.current_user_group || null)
     setIsActiveCalendarGroupExpanded(false)
@@ -5787,14 +5789,21 @@ function TrainingApp() {
   }
 
   const handleWeightFieldFocus = (event) => {
+    const inputKey = event.currentTarget.dataset.weightInputKey || null
+    setFocusedWeightInputKey(inputKey)
     window.requestAnimationFrame(() => {
       event.currentTarget.select()
     })
   }
 
+  const handleWeightFieldBlur = () => {
+    setFocusedWeightInputKey(null)
+  }
+
   const handleWeightFieldKeyDown = (event) => {
     if (event.key !== "Enter") return
     event.preventDefault()
+    event.stopPropagation()
     event.currentTarget.blur()
   }
 
@@ -11632,6 +11641,12 @@ function TrainingApp() {
               parseStepperNumber(latestExerciseTopSet?.seconds) ?? representativeTargetValue
             const activeTimedSet = exerciseSets[activeSetIndex] || {}
             const activeTimedSide = activeTimedSet.active_side || ""
+            const getWeightInputValue = (setIndex, setWeightValue, suggestedWeightValue) => {
+              const inputKey = `${i}:${setIndex}`
+              if (focusedWeightInputKey === inputKey) return setWeightValue || ""
+              if (setWeightValue) return setWeightValue
+              return suggestedWeightValue != null ? formatStepperValue(suggestedWeightValue) : ""
+            }
             const formatSetReceiptValue = (set) => {
               if (exerciseType === "weight_reps") {
                 return `${set.weight || "-"} kg × ${set.reps || "-"}`
@@ -11893,13 +11908,11 @@ function TrainingApp() {
                                         <input
                                           type="text"
                                           inputMode="decimal"
-                                          value={
-                                            set.weight || (
-                                              suggestedWeight != null ? formatStepperValue(suggestedWeight) : ""
-                                            )
-                                          }
+                                          data-weight-input-key={`${i}:${j}`}
+                                          value={getWeightInputValue(j, set.weight, suggestedWeight)}
                                           onChange={(event) => handleChange(i, j, "weight", event.target.value)}
                                           onFocus={handleWeightFieldFocus}
+                                          onBlur={handleWeightFieldBlur}
                                           onKeyDown={handleWeightFieldKeyDown}
                                           style={activeWorkoutStepperInputStyle}
                                         />
@@ -12043,13 +12056,11 @@ function TrainingApp() {
                                         <input
                                           type="text"
                                           inputMode="decimal"
-                                          value={
-                                            set.weight || (
-                                              suggestedWeight != null ? formatStepperValue(suggestedWeight) : ""
-                                            )
-                                          }
+                                          data-weight-input-key={`${i}:${j}`}
+                                          value={getWeightInputValue(j, set.weight, suggestedWeight)}
                                           onChange={(event) => handleChange(i, j, "weight", event.target.value)}
                                           onFocus={handleWeightFieldFocus}
+                                          onBlur={handleWeightFieldBlur}
                                           onKeyDown={handleWeightFieldKeyDown}
                                           style={activeWorkoutStepperInputStyle}
                                         />
@@ -13889,16 +13900,16 @@ const activeWorkoutRestInlineButtonStyle = {
   minHeight: "58px",
   padding: "12px 16px",
   borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.24)",
-  color: playerInk,
+  border: `1px solid rgba(217, 74, 31, 0.46)`,
+  backgroundColor: "rgba(217, 74, 31, 0.92)",
+  color: playerPaper,
   cursor: "pointer",
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
   alignItems: "center",
   gap: "10px",
   textAlign: "left",
-  boxShadow: "none",
+  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
 }
 
 const activeWorkoutRestInlineLabelStyle = {
@@ -13907,7 +13918,7 @@ const activeWorkoutRestInlineLabelStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: playerInkSoft,
+  color: "rgba(255, 255, 255, 0.82)",
 }
 
 const activeWorkoutRestInlineValueStyle = {
@@ -13916,14 +13927,14 @@ const activeWorkoutRestInlineValueStyle = {
   lineHeight: 1,
   fontWeight: 700,
   letterSpacing: "0.02em",
-  color: playerInk,
+  color: playerPaper,
   justifySelf: "center",
 }
 
 const activeWorkoutRestInlineHintStyle = {
   fontSize: "11px",
   fontWeight: 800,
-  color: playerInkSoft,
+  color: "rgba(255, 255, 255, 0.82)",
   whiteSpace: "nowrap",
   justifySelf: "end",
 }
