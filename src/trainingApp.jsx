@@ -4944,6 +4944,7 @@ function TrainingApp() {
               right_seconds: "",
               active_side: "",
               side_input_seconds: "",
+              is_logged: false,
               set_type: "work",
               client_set_id: generateSetId(index, setIndex),
               workout_session_id: newSessionId,
@@ -4993,7 +4994,7 @@ function TrainingApp() {
     selectedExercise?.type === "seconds_only" &&
     ["single_leg", "single_arm"].includes(selectedExercise?.executionSide || "standard")
 
-  const isSetCompleteForExercise = (exerciseType, set, executionSide = "standard") => {
+  const doesSetHaveRequiredFields = (exerciseType, set, executionSide = "standard") => {
     if (!set) return false
 
     if (exerciseType === "weight_reps") {
@@ -5015,6 +5016,9 @@ function TrainingApp() {
     return false
   }
 
+  const isSetCompleteForExercise = (exerciseType, set, executionSide = "standard") =>
+    Boolean(set?.is_logged) && doesSetHaveRequiredFields(exerciseType, set, executionSide)
+
   const getNextPendingSetIndex = (exerciseType, sets, executionSide = "standard") =>
     (sets || []).findIndex((set) => !isSetCompleteForExercise(exerciseType, set, executionSide))
 
@@ -5031,30 +5035,54 @@ function TrainingApp() {
       ? Math.max(0, (activeTimedSetTimer?.now || 0) - (activeTimedSetTimer?.startedAt || 0))
       : 0
 
-  const getTimedSetElapsedSeconds = (exerciseIndex, setIndex, side = null) =>
-    Math.max(1, Math.round(getTimedSetElapsedMs(exerciseIndex, setIndex, side) / 1000))
+  const getTimedSetRemainingMs = (exerciseIndex, setIndex, side = null) => {
+    if (!isTimedSetTimerRunning(exerciseIndex, setIndex, side)) return 0
 
-  const startTimedSetTimer = (exerciseIndex, setIndex, side = null) => {
+    const durationMs = Math.max(0, Number(activeTimedSetTimer?.durationSeconds || 0) * 1000)
+    if (!durationMs) return 0
+
+    return Math.max(0, durationMs - getTimedSetElapsedMs(exerciseIndex, setIndex, side))
+  }
+
+  const getTimedSetRemainingSeconds = (exerciseIndex, setIndex, side = null) =>
+    Math.max(0, Math.ceil(getTimedSetRemainingMs(exerciseIndex, setIndex, side) / 1000))
+
+  const startTimedSetTimer = (exerciseIndex, setIndex, side = null, durationSeconds = 0) => {
+    const resolvedDurationSeconds = parseStepperNumber(durationSeconds)
+
+    if (resolvedDurationSeconds == null || resolvedDurationSeconds <= 0) {
+      setStatus("Välj sekunder först")
+      return false
+    }
+
     const now = Date.now()
     setActiveTimedSetTimer({
       exerciseIndex,
       setIndex,
       side: side || null,
+      durationSeconds: resolvedDurationSeconds,
       startedAt: now,
       now,
     })
+    return true
   }
 
   const stopTimedSetTimer = () => {
     if (!activeTimedSetTimer) return null
 
-    const elapsedSeconds = Math.max(
-      1,
-      Math.round(((activeTimedSetTimer.now || Date.now()) - activeTimedSetTimer.startedAt) / 1000)
+    const elapsedMs = Math.max(
+      0,
+      (activeTimedSetTimer.now || Date.now()) - activeTimedSetTimer.startedAt
     )
+    const durationSeconds = parseStepperNumber(activeTimedSetTimer.durationSeconds)
+    const elapsedSeconds = Math.max(1, Math.round(elapsedMs / 1000))
+    const loggedSeconds =
+      durationSeconds != null && durationSeconds > 0
+        ? Math.min(durationSeconds, elapsedSeconds)
+        : elapsedSeconds
 
     setActiveTimedSetTimer(null)
-    return elapsedSeconds
+    return loggedSeconds
   }
 
   const clearTimedSetTimer = () => {
@@ -5099,7 +5127,7 @@ function TrainingApp() {
     const step =
       field === "weight"
         ? 2.5
-        : field === "seconds"
+        : field === "seconds" || field === "side_input_seconds"
         ? 5
         : 1
     const nextNumericValue = Math.max(
@@ -5140,13 +5168,14 @@ function TrainingApp() {
         selectedExercise.type === "seconds_only"
           ? currentSet.seconds || (defaults.seconds != null ? formatStepperValue(defaults.seconds) : "")
           : currentSet.seconds || "",
+      is_logged: true,
       set_type: currentSet.set_type || "work",
       workout_session_id: currentSessionId,
       client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
     }
 
     if (
-      !isSetCompleteForExercise(
+      !doesSetHaveRequiredFields(
         selectedExercise.type,
         nextSet,
         selectedExercise.executionSide || "standard"
@@ -5177,13 +5206,14 @@ function TrainingApp() {
       weight: currentSet.weight || "",
       reps: currentSet.reps || "",
       seconds: currentSet.seconds || "",
+      is_logged: true,
       set_type: currentSet.set_type || "work",
       workout_session_id: currentSessionId,
       client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
     }
 
     if (
-      !isSetCompleteForExercise(
+      !doesSetHaveRequiredFields(
         selectedExercise.type,
         nextSet,
         selectedExercise.executionSide || "standard"
@@ -5210,6 +5240,8 @@ function TrainingApp() {
     selectedExercise,
     fallbackSeconds = 0
   ) => {
+    const currentSet = inputs[exerciseIndex]?.[setIndex] || {}
+
     if (isTimedSetTimerRunning(exerciseIndex, setIndex)) {
       const elapsedSeconds = stopTimedSetTimer()
       await handleLogSetAndStartRest(exerciseIndex, setIndex, selectedExercise, {
@@ -5218,8 +5250,10 @@ function TrainingApp() {
       return
     }
 
-    startTimedSetTimer(exerciseIndex, setIndex)
-    setStatus("Timer startad")
+    const selectedSeconds =
+      parseStepperNumber(currentSet.seconds) ?? parseStepperNumber(fallbackSeconds) ?? null
+    const didStartTimer = startTimedSetTimer(exerciseIndex, setIndex, null, selectedSeconds)
+    if (didStartTimer) setStatus("Timer startad")
   }
 
   const handleSelectBilateralTimedSide = (
@@ -5291,6 +5325,7 @@ function TrainingApp() {
         side_input_seconds:
           currentSet[otherField] ||
           (fallbackSeconds != null ? formatStepperValue(fallbackSeconds) : ""),
+        is_logged: false,
         set_type: currentSet.set_type || "work",
         workout_session_id: currentSessionId,
         client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
@@ -5310,6 +5345,7 @@ function TrainingApp() {
           parseStepperNumber(activeSide === "right" ? updatedActiveSeconds : currentSet.right_seconds) ?? 0
         )
       ),
+      is_logged: true,
       set_type: currentSet.set_type || "work",
       workout_session_id: currentSessionId,
       client_set_id: currentSet.client_set_id || generateSetId(exerciseIndex, setIndex),
@@ -5353,8 +5389,12 @@ function TrainingApp() {
       return
     }
 
-    startTimedSetTimer(exerciseIndex, setIndex, activeSide)
-    setStatus(activeSide === "left" ? "Timer startad för vänster" : "Timer startad för höger")
+    const selectedSeconds =
+      parseStepperNumber(currentSet.side_input_seconds) ?? parseStepperNumber(fallbackSeconds) ?? null
+    const didStartTimer = startTimedSetTimer(exerciseIndex, setIndex, activeSide, selectedSeconds)
+    if (didStartTimer) {
+      setStatus(activeSide === "left" ? "Timer startad för vänster" : "Timer startad för höger")
+    }
   }
 
   const finishWorkout = async () => {
@@ -5444,19 +5484,16 @@ function TrainingApp() {
       const exerciseInputs = inputs[exerciseIndex] || []
 
       if (isProtocolExercise(selectedExercise || exercise)) {
-        return total + exerciseInputs.filter((set) => set?.protocolCompleted).length
+      return total + exerciseInputs.filter((set) => set?.protocolCompleted).length
       }
 
-      return (
-        total +
-        exerciseInputs.filter((set) =>
-          Boolean(
-            String(set?.weight || "").trim() ||
-              String(set?.reps || "").trim() ||
-              String(set?.seconds || "").trim()
-          )
-        ).length
-      )
+      return total + exerciseInputs.filter((set) =>
+        isSetCompleteForExercise(
+          selectedExercise?.type || exercise.type,
+          set,
+          selectedExercise?.executionSide || "standard"
+        )
+      ).length
     }, 0)
     const bestWeightSet = activeExercises
       .flatMap((exercise, exerciseIndex) => {
@@ -5631,6 +5668,7 @@ function TrainingApp() {
           right_seconds: "",
           active_side: "",
           side_input_seconds: "",
+          is_logged: false,
           set_type: "work",
           client_set_id: generateSetId(exerciseIndex, current.length),
           workout_session_id: currentSessionId,
@@ -12250,10 +12288,12 @@ function TrainingApp() {
                         const isActiveSet = nextPendingSetIndex !== -1 && j === activeSetIndex && !isCompleted
                         const suggestedSeconds =
                           parseStepperNumber(set.seconds) ?? suggestedTimedSeconds
+                        const selectedSecondsValue =
+                          parseStepperNumber(set.seconds) ?? parseStepperNumber(suggestedSeconds) ?? null
                         const timerIsActive = isTimedSetTimerRunning(i, j)
                         const previewMs = timerIsActive
-                          ? getTimedSetElapsedMs(i, j)
-                          : (parseStepperNumber(set.seconds) ?? suggestedSeconds ?? 0) * 1000
+                          ? getTimedSetRemainingMs(i, j)
+                          : (selectedSecondsValue ?? 0) * 1000
 
                         if (isCompleted) {
                           return (
@@ -12294,7 +12334,63 @@ function TrainingApp() {
                             <div style={activeWorkoutActiveSetHeaderStyle}>
                               <div>
                                 <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
-                                <div style={activeWorkoutActiveSetTitleStyle}>Tid i fokus</div>
+                                <div style={activeWorkoutActiveSetTitleStyle}>Nedräkning</div>
+                              </div>
+                            </div>
+
+                            <div style={activeWorkoutStepperFieldStyle}>
+                              <div style={activeWorkoutStepperLabelStyle}>Tid</div>
+                              <div style={activeWorkoutStepperControlStyle}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    adjustSetNumericField(
+                                      i,
+                                      j,
+                                      "seconds",
+                                      -1,
+                                      suggestedSeconds ?? 0
+                                    )
+                                  }
+                                  style={activeWorkoutStepperButtonStyle}
+                                >
+                                  −
+                                </button>
+                                <div style={activeWorkoutStepperValueStyle}>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    enterKeyHint="done"
+                                    data-stepper-input-key={getStepperInputKey(j, "seconds")}
+                                    value={getStepperInputValue(
+                                      getStepperInputKey(j, "seconds"),
+                                      set.seconds,
+                                      suggestedSeconds
+                                    )}
+                                    onChange={(event) => handleChange(i, j, "seconds", event.target.value)}
+                                    onFocus={handleStepperFieldFocus}
+                                    onBlur={handleStepperFieldBlur}
+                                    onKeyDown={handleStepperFieldKeyDown}
+                                    onKeyUp={handleStepperFieldKeyUp}
+                                    style={activeWorkoutStepperInputStyle}
+                                  />
+                                  <span style={activeWorkoutStepperUnitStyle}>sek</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    adjustSetNumericField(
+                                      i,
+                                      j,
+                                      "seconds",
+                                      1,
+                                      suggestedSeconds ?? 0
+                                    )
+                                  }
+                                  style={activeWorkoutStepperButtonStyle}
+                                >
+                                  +
+                                </button>
                               </div>
                             </div>
 
@@ -12309,10 +12405,12 @@ function TrainingApp() {
                               </div>
                               <div style={activeWorkoutTimedTimerHintStyle}>
                                 {timerIsActive
-                                  ? "Stoppa när setet är klart så loggas tiden direkt."
-                                  : suggestedSeconds != null
-                                  ? `Senast eller mål ligger runt ${formatStepperValue(suggestedSeconds)} sek.`
-                                  : "Starta när du är redo att genomföra setet."}
+                                  ? previewMs > 0
+                                    ? "Timern räknar ner mot noll."
+                                    : "Tiden är ute. Logga setet när du är klar."
+                                  : selectedSecondsValue != null
+                                  ? `Välj tid och starta när du är redo. ${formatStepperValue(selectedSecondsValue)} sek är valt.`
+                                  : "Välj sekunder först och starta sedan timern."}
                               </div>
                             </div>
 
@@ -12323,7 +12421,11 @@ function TrainingApp() {
                               }
                               style={activeWorkoutPrimaryActionStyle}
                             >
-                              {timerIsActive ? "Stoppa · logga set" : "Starta timer"}
+                              {timerIsActive
+                                ? previewMs > 0
+                                  ? "Avsluta tidigare · logga set"
+                                  : "Logga set"
+                                : "Starta timer"}
                             </button>
                           </div>
                         )
@@ -12354,7 +12456,7 @@ function TrainingApp() {
                                 side === "left" ? activeSet.left_seconds : activeSet.right_seconds
                               const previewValue =
                                 timerIsActive
-                                  ? formatStepperValue(getTimedSetElapsedSeconds(i, activeSetIndex, side))
+                                  ? formatStepperValue(getTimedSetRemainingSeconds(i, activeSetIndex, side))
                                   : isActiveSide && !sideValue
                                   ? activeSet.side_input_seconds ||
                                     (suggestedTimedSeconds != null ? formatStepperValue(suggestedTimedSeconds) : "")
@@ -12421,6 +12523,64 @@ function TrainingApp() {
 
                           {activeTimedSide ? (
                             <>
+                              <div style={activeWorkoutStepperFieldStyle}>
+                                <div style={activeWorkoutStepperLabelStyle}>Tid</div>
+                                <div style={activeWorkoutStepperControlStyle}>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      adjustSetNumericField(
+                                        i,
+                                        activeSetIndex,
+                                        "side_input_seconds",
+                                        -1,
+                                        suggestedTimedSeconds ?? 0
+                                      )
+                                    }
+                                    style={activeWorkoutStepperButtonStyle}
+                                  >
+                                    −
+                                  </button>
+                                  <div style={activeWorkoutStepperValueStyle}>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      enterKeyHint="done"
+                                      data-stepper-input-key={getStepperInputKey(activeSetIndex, "side_input_seconds")}
+                                      value={getStepperInputValue(
+                                        getStepperInputKey(activeSetIndex, "side_input_seconds"),
+                                        activeTimedSet.side_input_seconds,
+                                        suggestedTimedSeconds
+                                      )}
+                                      onChange={(event) =>
+                                        handleChange(i, activeSetIndex, "side_input_seconds", event.target.value)
+                                      }
+                                      onFocus={handleStepperFieldFocus}
+                                      onBlur={handleStepperFieldBlur}
+                                      onKeyDown={handleStepperFieldKeyDown}
+                                      onKeyUp={handleStepperFieldKeyUp}
+                                      style={activeWorkoutStepperInputStyle}
+                                    />
+                                    <span style={activeWorkoutStepperUnitStyle}>sek</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      adjustSetNumericField(
+                                        i,
+                                        activeSetIndex,
+                                        "side_input_seconds",
+                                        1,
+                                        suggestedTimedSeconds ?? 0
+                                      )
+                                    }
+                                    style={activeWorkoutStepperButtonStyle}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
                               <div
                                 style={activeWorkoutTimedTimerCardStyle(
                                   bilateralTimedTimerActive ? "active" : "idle"
@@ -12432,7 +12592,7 @@ function TrainingApp() {
                                 <div style={activeWorkoutTimedTimerValueStyle}>
                                   {formatStopwatchTime(
                                     bilateralTimedTimerActive
-                                      ? getTimedSetElapsedMs(i, activeSetIndex, activeTimedSide)
+                                      ? getTimedSetRemainingMs(i, activeSetIndex, activeTimedSide)
                                       : (parseStepperNumber(activeTimedSet.side_input_seconds) ??
                                           suggestedTimedSeconds ??
                                           0) * 1000
@@ -12440,7 +12600,9 @@ function TrainingApp() {
                                 </div>
                                 <div style={activeWorkoutTimedTimerHintStyle}>
                                   {bilateralTimedTimerActive
-                                    ? "Stoppa när den valda sidan är klar."
+                                    ? getTimedSetRemainingMs(i, activeSetIndex, activeTimedSide) > 0
+                                      ? "Timern räknar ner för den valda sidan."
+                                      : "Tiden är ute. Logga sidan när du är klar."
                                     : activeTimedSet.left_seconds || activeTimedSet.right_seconds
                                     ? "Andra sidan i samma set väntar på att loggas."
                                     : "Välj sida ovan och starta när du är redo."}
@@ -12460,7 +12622,9 @@ function TrainingApp() {
                                 style={activeWorkoutPrimaryActionStyle}
                               >
                                 {bilateralTimedTimerActive
-                                  ? `Stoppa · logga ${activeTimedSide === "left" ? "vänster" : "höger"}`
+                                  ? getTimedSetRemainingMs(i, activeSetIndex, activeTimedSide) > 0
+                                    ? `Avsluta tidigare · logga ${activeTimedSide === "left" ? "vänster" : "höger"}`
+                                    : `Logga ${activeTimedSide === "left" ? "vänster" : "höger"}`
                                   : `Starta ${activeTimedSide === "left" ? "vänster" : "höger"}`}
                               </button>
                             </>
@@ -12496,7 +12660,7 @@ function TrainingApp() {
                                 {set.left_seconds ||
                                   (isCurrentRow && activeSide === "left"
                                     ? isTimedSetTimerRunning(i, j, "left")
-                                      ? formatStepperValue(getTimedSetElapsedSeconds(i, j, "left"))
+                                      ? formatStepperValue(getTimedSetRemainingSeconds(i, j, "left"))
                                       : set.side_input_seconds || "—"
                                     : "—")}
                               </span>
@@ -12504,7 +12668,7 @@ function TrainingApp() {
                                 {set.right_seconds ||
                                   (isCurrentRow && activeSide === "right"
                                     ? isTimedSetTimerRunning(i, j, "right")
-                                      ? formatStepperValue(getTimedSetElapsedSeconds(i, j, "right"))
+                                      ? formatStepperValue(getTimedSetRemainingSeconds(i, j, "right"))
                                       : set.side_input_seconds || "—"
                                     : "—")}
                               </span>
@@ -14335,7 +14499,7 @@ const activeWorkoutBilateralPanelStyle = {
 const activeWorkoutBilateralHalvesStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
 })
 
 const activeWorkoutBilateralHalfStyle = {
