@@ -5758,47 +5758,6 @@ function TrainingApp() {
     }
   }
 
-  const handleToggleSetType = async (exerciseIndex, setIndex) => {
-    if (!isWorkoutActive || !currentSessionId || !selectedWorkout) return
-
-    const current = inputs[exerciseIndex] || []
-    const exercise = activeWorkouts[selectedWorkout]?.exercises?.[exerciseIndex]
-    const selectedExercise = exercise
-      ? getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[exerciseIndex])
-      : null
-
-    if (!selectedExercise) return
-
-    const updated = [...current]
-    const currentSet = updated[setIndex]
-    if (!currentSet) return
-
-    const nextSet = {
-      ...currentSet,
-      set_type: currentSet.set_type === "warmup" ? "work" : "warmup",
-      workout_session_id: currentSessionId,
-      client_set_id:
-        currentSet.client_set_id ||
-        generateSetId(exerciseIndex, setIndex),
-    }
-
-    updated[setIndex] = nextSet
-
-    setInputs({
-      ...inputs,
-      [exerciseIndex]: updated,
-    })
-
-    const isComplete =
-      (selectedExercise?.type === "weight_reps" && nextSet.weight && nextSet.reps) ||
-      (selectedExercise?.type === "reps_only" && nextSet.reps) ||
-      (selectedExercise?.type === "seconds_only" && nextSet.seconds)
-
-    if (isComplete) {
-      await saveSet(exerciseIndex, selectedExercise, setIndex, nextSet)
-    }
-  }
-
   const handleExerciseCommentChange = (exerciseIndex, value) => {
     setExerciseComments((prev) => ({
       ...prev,
@@ -11832,24 +11791,15 @@ function TrainingApp() {
                             : null
                         const suggestedSeconds =
                           parseStepperNumber(set.seconds) ?? suggestedTimedSeconds
-                        const warmupStyleOverrides =
-                          set.set_type === "warmup"
-                            ? {
-                                borderColor: "rgba(217, 74, 31, 0.22)",
-                                backgroundColor: "rgba(252, 235, 227, 0.62)",
-                              }
-                            : {}
 
                         if (isCompleted) {
                           return (
                             <div
                               key={set.client_set_id || j}
-                              style={{ ...activeWorkoutReceiptRowStyle, ...warmupStyleOverrides }}
+                              style={activeWorkoutReceiptRowStyle}
                             >
                               <div>
-                                <div style={activeWorkoutReceiptLabelStyle}>
-                                  Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
-                                </div>
+                                <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                                 <div style={activeWorkoutReceiptValueStyle}>{formatSetReceiptValue(set)}</div>
                               </div>
                               <div style={activeWorkoutReceiptStatusStyle}>Loggat</div>
@@ -11874,11 +11824,9 @@ function TrainingApp() {
                           return (
                             <div
                               key={set.client_set_id || j}
-                              style={{ ...activeWorkoutUpcomingSetStyle, ...warmupStyleOverrides }}
+                              style={activeWorkoutUpcomingSetStyle}
                             >
-                              <div style={activeWorkoutReceiptLabelStyle}>
-                                Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
-                              </div>
+                              <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                               <div style={activeWorkoutUpcomingValueStyle}>{upcomingSummary}</div>
                             </div>
                           )
@@ -11887,27 +11835,10 @@ function TrainingApp() {
                         return (
                           <div
                             key={set.client_set_id || j}
-                            style={{ ...activeWorkoutActiveSetStyle, ...warmupStyleOverrides }}
+                            style={activeWorkoutActiveSetStyle}
                           >
                             <div style={activeWorkoutActiveSetHeaderStyle}>
-                              <div>
-                                <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
-                                {set.set_type === "warmup" ? (
-                                  <div style={activeWorkoutActiveSetTitleStyle}>Uppvärmningsset</div>
-                                ) : null}
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleSetType(i, j)}
-                                style={{
-                                  ...activeWorkoutTopPillButtonStyle,
-                                  color: set.set_type === "warmup" ? playerAccent : playerPaper,
-                                  borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
-                                  backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
-                                }}
-                              >
-                                {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
-                              </button>
+                              <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                             </div>
 
                             <div style={activeWorkoutStepperGridStyle(exerciseType === "weight_reps" ? isMobile ? 1 : 2 : 1)}>
@@ -11931,7 +11862,16 @@ function TrainingApp() {
                                       −
                                     </button>
                                     <div style={activeWorkoutStepperValueStyle}>
-                                      {set.weight || (suggestedWeight != null ? formatStepperValue(suggestedWeight) : "—")}
+                                      <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={set.weight || ""}
+                                        placeholder={
+                                          suggestedWeight != null ? formatStepperValue(suggestedWeight) : "—"
+                                        }
+                                        onChange={(event) => handleChange(i, j, "weight", event.target.value)}
+                                        style={activeWorkoutStepperInputStyle}
+                                      />
                                       <span style={activeWorkoutStepperUnitStyle}>kg</span>
                                     </div>
                                     <button
@@ -12020,12 +11960,6 @@ function TrainingApp() {
                               </div>
                             </div>
 
-                            {set.set_type === "warmup" ? (
-                              <div style={activeWorkoutSubtleHintStyle}>
-                                Uppvärmningsset räknas inte i statistik.
-                              </div>
-                            ) : null}
-
                             <button
                               type="button"
                               onClick={() =>
@@ -12056,24 +11990,15 @@ function TrainingApp() {
                         const previewMs = timerIsActive
                           ? getTimedSetElapsedMs(i, j)
                           : (parseStepperNumber(set.seconds) ?? suggestedSeconds ?? 0) * 1000
-                        const warmupStyleOverrides =
-                          set.set_type === "warmup"
-                            ? {
-                                borderColor: "rgba(217, 74, 31, 0.22)",
-                                backgroundColor: "rgba(252, 235, 227, 0.62)",
-                              }
-                            : {}
 
                         if (isCompleted) {
                           return (
                             <div
                               key={set.client_set_id || j}
-                              style={{ ...activeWorkoutReceiptRowStyle, ...warmupStyleOverrides }}
+                              style={activeWorkoutReceiptRowStyle}
                             >
                               <div>
-                                <div style={activeWorkoutReceiptLabelStyle}>
-                                  Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
-                                </div>
+                                <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                                 <div style={activeWorkoutReceiptValueStyle}>{formatSetReceiptValue(set)}</div>
                               </div>
                               <div style={activeWorkoutReceiptStatusStyle}>Loggat</div>
@@ -12085,11 +12010,9 @@ function TrainingApp() {
                           return (
                             <div
                               key={set.client_set_id || j}
-                              style={{ ...activeWorkoutUpcomingSetStyle, ...warmupStyleOverrides }}
+                              style={activeWorkoutUpcomingSetStyle}
                             >
-                              <div style={activeWorkoutReceiptLabelStyle}>
-                                Set {j + 1}{set.set_type === "warmup" ? " · uppvärmning" : ""}
-                              </div>
+                              <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                               <div style={activeWorkoutUpcomingValueStyle}>
                                 {suggestedSeconds != null
                                   ? `Starta timer för ca ${formatStepperValue(suggestedSeconds)} sek`
@@ -12102,25 +12025,13 @@ function TrainingApp() {
                         return (
                           <div
                             key={set.client_set_id || j}
-                            style={{ ...activeWorkoutActiveSetStyle, ...warmupStyleOverrides }}
+                            style={activeWorkoutActiveSetStyle}
                           >
                             <div style={activeWorkoutActiveSetHeaderStyle}>
                               <div>
                                 <div style={activeWorkoutReceiptLabelStyle}>Set {j + 1}</div>
                                 <div style={activeWorkoutActiveSetTitleStyle}>Tid i fokus</div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleSetType(i, j)}
-                                style={{
-                                  ...activeWorkoutTopPillButtonStyle,
-                                  color: set.set_type === "warmup" ? playerAccent : playerPaper,
-                                  borderColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.22)" : playerInk,
-                                  backgroundColor: set.set_type === "warmup" ? "rgba(217, 74, 31, 0.12)" : playerInk,
-                                }}
-                              >
-                                {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
-                              </button>
                             </div>
 
                             <div
@@ -12140,12 +12051,6 @@ function TrainingApp() {
                                   : "Starta när du är redo att genomföra setet."}
                               </div>
                             </div>
-
-                            {set.set_type === "warmup" ? (
-                              <div style={activeWorkoutSubtleHintStyle}>
-                                Uppvärmningsset räknas inte i statistik.
-                              </div>
-                            ) : null}
 
                             <button
                               type="button"
@@ -12171,25 +12076,6 @@ function TrainingApp() {
                               <div style={activeWorkoutReceiptLabelStyle}>Set {activeSetIndex + 1}</div>
                               <div style={activeWorkoutActiveSetTitleStyle}>Båda sidorna i samma set</div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSetType(i, activeSetIndex)}
-                              style={{
-                                ...activeWorkoutTopPillButtonStyle,
-                                color:
-                                  exerciseSets[activeSetIndex]?.set_type === "warmup" ? playerAccent : playerPaper,
-                                borderColor:
-                                  exerciseSets[activeSetIndex]?.set_type === "warmup"
-                                    ? "rgba(217, 74, 31, 0.22)"
-                                    : playerInk,
-                                backgroundColor:
-                                  exerciseSets[activeSetIndex]?.set_type === "warmup"
-                                    ? "rgba(217, 74, 31, 0.12)"
-                                    : playerInk,
-                              }}
-                            >
-                              {exerciseSets[activeSetIndex]?.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
-                            </button>
                           </div>
 
                           <div style={activeWorkoutBilateralHalvesStyle(isMobile)}>
@@ -14050,6 +13936,22 @@ const activeWorkoutStepperValueStyle = {
   alignItems: "flex-end",
   justifyContent: "center",
   gap: "6px",
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(30px, 9vw, 40px)",
+  lineHeight: 0.9,
+  fontWeight: 650,
+  letterSpacing: "-0.05em",
+  color: playerInk,
+}
+
+const activeWorkoutStepperInputStyle = {
+  width: "100%",
+  minWidth: 0,
+  padding: 0,
+  border: "none",
+  outline: "none",
+  backgroundColor: "transparent",
+  textAlign: "center",
   fontFamily: playerDisplayFont,
   fontSize: "clamp(30px, 9vw, 40px)",
   lineHeight: 0.9,
