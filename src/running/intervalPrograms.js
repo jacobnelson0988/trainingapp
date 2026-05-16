@@ -62,6 +62,10 @@ export const createIntervalBlockDraft = (index = 0, overrides = {}) => ({
     overrides.rest_seconds != null && overrides.rest_seconds !== ""
       ? String(overrides.rest_seconds)
       : "",
+  block_rest_seconds:
+    overrides.block_rest_seconds != null && overrides.block_rest_seconds !== ""
+      ? String(overrides.block_rest_seconds)
+      : "",
   repeats:
     overrides.repeats != null && overrides.repeats !== ""
       ? String(overrides.repeats)
@@ -73,10 +77,6 @@ export const createIntervalProgramDraft = (overrides = {}) => ({
     overrides.countdown_seconds != null && overrides.countdown_seconds !== ""
       ? String(overrides.countdown_seconds)
       : "5",
-  set_rest_seconds:
-    overrides.set_rest_seconds != null && overrides.set_rest_seconds !== ""
-      ? String(overrides.set_rest_seconds)
-      : "",
   blocks:
     Array.isArray(overrides.blocks) && overrides.blocks.length > 0
       ? overrides.blocks.map((block, index) => createIntervalBlockDraft(index, block))
@@ -90,6 +90,10 @@ export const normalizeIntervalProgramDraft = (draft) => {
     .map((block, index) => {
       const workSeconds = parseDurationToSeconds(block.work_seconds)
       const restSeconds = parseDurationToSeconds(block.rest_seconds) ?? 0
+      const blockRestSeconds =
+        parseDurationToSeconds(block.block_rest_seconds) ??
+        parseDurationToSeconds(draft.set_rest_seconds) ??
+        0
       const repeats = Number.parseInt(String(block.repeats || "").trim(), 10)
 
       if (!workSeconds || !Number.isFinite(repeats) || repeats <= 0) return null
@@ -98,6 +102,7 @@ export const normalizeIntervalProgramDraft = (draft) => {
         label: String(block.label || "").trim() || `Block ${index + 1}`,
         work_seconds: workSeconds,
         rest_seconds: restSeconds,
+        block_rest_seconds: blockRestSeconds,
         repeats,
       }
     })
@@ -106,11 +111,8 @@ export const normalizeIntervalProgramDraft = (draft) => {
   if (!normalizedBlocks.length) return null
 
   const countdownSeconds = parseDurationToSeconds(draft.countdown_seconds) ?? 5
-  const setRestSeconds = parseDurationToSeconds(draft.set_rest_seconds) ?? 0
-
   return {
     countdown_seconds: countdownSeconds,
-    set_rest_seconds: setRestSeconds,
     blocks: normalizedBlocks,
   }
 }
@@ -128,12 +130,12 @@ export const legacyRunningConfigToProgramDraft = (config = {}) => {
 
   return createIntervalProgramDraft({
     countdown_seconds: 5,
-    set_rest_seconds: "",
     blocks: [
       {
         label: "Block 1",
         work_seconds: String(workSeconds),
         rest_seconds: "",
+        block_rest_seconds: "",
         repeats: String(repeats),
       },
     ],
@@ -145,11 +147,11 @@ export const storedProgramToDraft = (program, fallbackConfig = {}) => {
 
   return createIntervalProgramDraft({
     countdown_seconds: program.countdown_seconds ?? 5,
-    set_rest_seconds: program.set_rest_seconds ?? "",
     blocks: program.blocks.map((block, index) => ({
       label: block.label || `Block ${index + 1}`,
       work_seconds: block.work_seconds,
       rest_seconds: block.rest_seconds ?? "",
+      block_rest_seconds: block.block_rest_seconds ?? program.set_rest_seconds ?? "",
       repeats: block.repeats,
     })),
   })
@@ -166,20 +168,19 @@ export const getIntervalProgramTotalDurationSeconds = (programLike) => {
   if (!program?.blocks?.length) return 0
 
   const countdownSeconds = Number(program.countdown_seconds) || 0
-  const setRestSeconds = Number(program.set_rest_seconds) || 0
-
   return (
     countdownSeconds +
     program.blocks.reduce((total, block, blockIndex) => {
       const workSeconds = Number(block.work_seconds) || 0
       const restSeconds = Number(block.rest_seconds) || 0
+      const blockRestSeconds = Number(block.block_rest_seconds) || 0
       const repeats = Number(block.repeats) || 0
       if (!workSeconds || !repeats) return total
 
       const blockDuration =
         workSeconds * repeats +
         restSeconds * Math.max(0, repeats - 1) +
-        (blockIndex < program.blocks.length - 1 ? setRestSeconds : 0)
+        (blockIndex < program.blocks.length - 1 ? blockRestSeconds : 0)
 
       return total + blockDuration
     }, 0)
@@ -270,12 +271,12 @@ export const buildIntervalProgram = (programLike) => {
       }
     }
 
-    if ((Number(program.set_rest_seconds) || 0) > 0 && blockIndex < program.blocks.length - 1) {
+    if ((Number(block.block_rest_seconds) || 0) > 0 && blockIndex < program.blocks.length - 1) {
       phases.push({
         key: `block-${blockIndex + 1}-set-rest`,
         kind: "set_rest",
         label: "Setvila",
-        durationSeconds: Number(program.set_rest_seconds) || 0,
+        durationSeconds: Number(block.block_rest_seconds) || 0,
         blockIndex: blockIndex + 1,
         totalBlocks: program.blocks.length,
         intervalIndex: totalIntervalCursor,
@@ -289,7 +290,7 @@ export const buildIntervalProgram = (programLike) => {
 
   return {
     countdownSeconds: Number(program.countdown_seconds) || 0,
-    setRestSeconds: Number(program.set_rest_seconds) || 0,
+    setRestSeconds: 0,
     blocks: program.blocks,
     phases,
     totalIntervals: getIntervalProgramTotalIntervals(program),

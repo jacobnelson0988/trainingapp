@@ -122,13 +122,6 @@ export default function IntervalProgramEditor({
     onChange(nextProgram)
   }
 
-  const updateRootField = (field, value) => {
-    updateProgram({
-      ...draft,
-      [field]: value,
-    })
-  }
-
   const updateBlock = (blockId, field, value) => {
     updateProgram({
       ...draft,
@@ -178,19 +171,13 @@ export default function IntervalProgramEditor({
           <input
             type="text"
             value={draft.countdown_seconds}
-            onChange={(event) => updateRootField("countdown_seconds", event.target.value)}
+            onChange={(event) =>
+              updateProgram({
+                ...draft,
+                countdown_seconds: event.target.value,
+              })
+            }
             placeholder="t.ex. 5"
-            style={inputStyle}
-          />
-        </label>
-
-        <label style={fieldStyle}>
-          <span style={labelStyle}>Paus mellan block</span>
-          <input
-            type="text"
-            value={draft.set_rest_seconds}
-            onChange={(event) => updateRootField("set_rest_seconds", event.target.value)}
-            placeholder="t.ex. 120"
             style={inputStyle}
           />
         </label>
@@ -202,7 +189,6 @@ export default function IntervalProgramEditor({
         {(draft.blocks || []).map((block, index) => {
           const normalizedBlock = normalizeIntervalProgramDraft({
             countdown_seconds: draft.countdown_seconds,
-            set_rest_seconds: draft.set_rest_seconds,
             blocks: [block],
           })?.blocks?.[0]
 
@@ -229,7 +215,7 @@ export default function IntervalProgramEditor({
                 />
               </label>
 
-              <div style={gridStyle(isMobile, 3)}>
+              <div style={gridStyle(isMobile, 4)}>
                 <label style={fieldStyle}>
                   <span style={labelStyle}>Löp</span>
                   <input
@@ -253,6 +239,17 @@ export default function IntervalProgramEditor({
                 </label>
 
                 <label style={fieldStyle}>
+                  <span style={labelStyle}>Blockvila</span>
+                  <input
+                    type="text"
+                    value={block.block_rest_seconds}
+                    onChange={(event) => updateBlock(block.id, "block_rest_seconds", event.target.value)}
+                    placeholder={index === (draft.blocks || []).length - 1 ? "valfritt" : "t.ex. 120"}
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label style={fieldStyle}>
                   <span style={labelStyle}>Repetitioner</span>
                   <input
                     type="text"
@@ -266,7 +263,11 @@ export default function IntervalProgramEditor({
 
               <div style={summaryStyle}>
                 {normalizedBlock
-                  ? `${normalizedBlock.label} • ${normalizedBlock.repeats} x ${formatSecondsAsClock(normalizedBlock.work_seconds)} / ${formatSecondsAsClock(normalizedBlock.rest_seconds)}`
+                  ? `${normalizedBlock.label} • ${normalizedBlock.repeats} x ${formatSecondsAsClock(normalizedBlock.work_seconds)} / ${formatSecondsAsClock(normalizedBlock.rest_seconds)}${
+                      normalizedBlock.block_rest_seconds
+                        ? ` • blockvila ${formatSecondsAsClock(normalizedBlock.block_rest_seconds)}`
+                        : ""
+                    }`
                   : "Fyll i arbete och antal repetitioner för att aktivera blocket."}
               </div>
             </div>

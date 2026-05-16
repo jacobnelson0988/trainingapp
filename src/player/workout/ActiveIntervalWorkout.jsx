@@ -324,7 +324,11 @@ export default function ActiveIntervalWorkout({
     }
 
     if (timerSession.status === "running") {
-      playIntervalSignal(snapshot.currentPhase.kind === "rest" ? "rest" : "work")
+      if (snapshot.currentPhase.kind === "rest" || snapshot.currentPhase.kind === "set_rest") {
+        playIntervalSignal(snapshot.currentPhase.kind)
+      } else if (snapshot.currentPhase.kind === "work") {
+        playIntervalSignal("work")
+      }
     }
   }, [snapshot, timerSession])
 
@@ -345,7 +349,7 @@ export default function ActiveIntervalWorkout({
 
   const startTimer = async () => {
     if (!resolvedProgram) {
-      onStatusChange?.("Välj giltig tid per intervall och antal intervaller")
+      onStatusChange?.("Välj ett giltigt intervallupplägg")
       return
     }
 
@@ -353,17 +357,20 @@ export default function ActiveIntervalWorkout({
     const createdSession = createIntervalTimerSession(resolvedProgram, Date.now())
     setTimerSession(createdSession)
     setNow(Date.now())
+    playIntervalSignal("start")
     onStatusChange?.("Intervalltimer startad")
   }
 
   const pauseTimer = () => {
     setTimerSession((prev) => pauseIntervalTimerSession(prev, Date.now()))
+    playIntervalSignal("pause")
     onStatusChange?.("Intervalltimer pausad")
   }
 
   const resumeTimer = async () => {
     setTimerSession((prev) => resumeIntervalTimerSession(prev, Date.now()))
     setNow(Date.now())
+    playIntervalSignal("resume")
     onStatusChange?.("Intervalltimer återupptagen")
   }
 
