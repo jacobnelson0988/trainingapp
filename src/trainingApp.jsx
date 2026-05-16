@@ -1376,6 +1376,7 @@ function TrainingApp() {
     comment: "",
   })
   const [isSavingRunningSession, setIsSavingRunningSession] = useState(false)
+  const [isSavingFinishedRunningSummary, setIsSavingFinishedRunningSummary] = useState(false)
   const [selectedPlayerHistory, setSelectedPlayerHistory] = useState([])
   const [selectedPlayerCompletedSessions, setSelectedPlayerCompletedSessions] = useState([])
   const [selectedPlayerExerciseGoals, setSelectedPlayerExerciseGoals] = useState({})
@@ -3459,20 +3460,30 @@ function TrainingApp() {
 
     setIsLoadingSelectedPlayerHistory(true)
 
-    const [
-      { data: historyRows, error: historyError },
-      { data: goalRows, error: goalsError },
-      { data: repTargetRows, error: repTargetsError },
-    ] =
+    const historyQuery = () =>
+      supabase
+        .from("workout_logs")
+        .select(
+          "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type, running_interval_execution, running_total_elapsed_seconds"
+        )
+        .eq("user_id", playerId)
+        .eq("is_completed", true)
+        .order("created_at", { ascending: false })
+
+    let historyResult = await historyQuery()
+    if (historyResult.error && isMissingRunningLogColumnsError(historyResult.error)) {
+      historyResult = await supabase
+        .from("workout_logs")
+        .select(
+          "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type"
+        )
+        .eq("user_id", playerId)
+        .eq("is_completed", true)
+        .order("created_at", { ascending: false })
+    }
+
+    const [{ data: goalRows, error: goalsError }, { data: repTargetRows, error: repTargetsError }] =
       await Promise.all([
-        supabase
-          .from("workout_logs")
-          .select(
-            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type, running_interval_execution, running_total_elapsed_seconds"
-          )
-          .eq("user_id", playerId)
-          .eq("is_completed", true)
-          .order("created_at", { ascending: false }),
         supabase
           .from("player_exercise_goals")
           .select("exercise_id, target_sets, target_reps, comment")
@@ -3482,6 +3493,8 @@ function TrainingApp() {
           .select("exercise_id, rep_range_key, target_weight")
           .eq("player_id", playerId),
       ])
+
+    const { data: historyRows, error: historyError } = historyResult
 
     if (historyError || goalsError || repTargetsError) {
       console.error(historyError || goalsError || repTargetsError)
@@ -3616,7 +3629,7 @@ function TrainingApp() {
 
     setIsLoadingCompletedWorkoutSessions(true)
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("workout_logs")
       .select(
         "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type, running_interval_execution, running_total_elapsed_seconds"
@@ -3624,6 +3637,17 @@ function TrainingApp() {
       .eq("user_id", userId)
       .eq("is_completed", true)
       .order("created_at", { ascending: false })
+
+    if (error && isMissingRunningLogColumnsError(error)) {
+      ;({ data, error } = await supabase
+        .from("workout_logs")
+        .select(
+          "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type"
+        )
+        .eq("user_id", userId)
+        .eq("is_completed", true)
+        .order("created_at", { ascending: false }))
+    }
 
     if (error) {
       console.error(error)
@@ -3843,6 +3867,37 @@ function TrainingApp() {
         message.includes("schema cache") ||
         message.includes("could not find"))
     )
+  }
+
+  const isMissingRunningLogColumnsError = (error) => {
+    const message = String(error?.message || "").toLowerCase()
+
+    return (
+      (message.includes("running_interval_execution") ||
+        message.includes("running_total_elapsed_seconds")) &&
+      (message.includes("column") ||
+        message.includes("schema cache") ||
+        message.includes("could not find"))
+    )
+  }
+
+  const stripExtendedRunningLogFields = (payload) => {
+    const nextPayload = { ...payload }
+    delete nextPayload.running_interval_execution
+    delete nextPayload.running_total_elapsed_seconds
+    return nextPayload
+  }
+
+  const saveRunningWorkoutLog = async (payload) => {
+    let { error } = await supabase.from("workout_logs").insert(payload)
+
+    if (error && isMissingRunningLogColumnsError(error)) {
+      ;({ error } = await supabase
+        .from("workout_logs")
+        .insert(stripExtendedRunningLogFields(payload)))
+    }
+
+    return { error }
   }
 
   const resetPassEditorState = (templateCode = selectedTemplateCode) => {
@@ -5489,6 +5544,10 @@ function TrainingApp() {
 
     if (activeWorkouts[selectedWorkout]?.workoutKind === "running") {
       const activeRunningWorkout = activeWorkouts[selectedWorkout]
+      const runningDistanceValue = String(activeRunningInput.running_distance || "").trim()
+      const runningTimeValue = String(activeRunningInput.running_time || "").trim()
+      const averagePulseValue = String(activeRunningInput.average_pulse || "").trim()
+      const passCommentValue = passComment.trim()
       const normalizedIntervalProgram =
         activeRunningWorkout.runningType === "intervals"
           ? normalizeIntervalProgramDraft(activeRunningInput.interval_program) ||
@@ -5505,13 +5564,29 @@ function TrainingApp() {
           interval_time: legacyIntervalFields.interval_time || activeRunningWorkout.runningConfig?.interval_time,
           intervals_count:
             legacyIntervalFields.intervals_count ?? activeRunningWorkout.runningConfig?.intervals_count,
-          running_distance: activeRunningWorkout.runningConfig?.running_distance,
-          running_time: activeRunningWorkout.runningConfig?.running_time,
+          running_distance: runningDistanceValue ? parseLoggedNumber(runningDistanceValue) : null,
+          running_time: runningTimeValue || null,
+          average_pulse: averagePulseValue ? Number(averagePulseValue) : null,
         }),
-        highlightLabel: "Loggat",
-        highlightValue: "Löpningen är sparad",
+        highlightLabel: activeRunningWorkout.runningType === "distance" ? "Sammanfattning" : "Loggat",
+        highlightValue:
+          activeRunningWorkout.runningType === "distance"
+            ? "Justera distans, tid eller puls om du vill."
+            : "Löpningen är sparad",
+        workoutKind: "running",
+        sessionId: currentSessionId,
+        runningType: activeRunningWorkout.runningType || "intervals",
+        intervalProgram: normalizedIntervalProgram,
+        legacyIntervalTime: legacyIntervalFields.interval_time,
+        legacyIntervalsCount: legacyIntervalFields.intervals_count,
+        draft: {
+          running_distance: runningDistanceValue,
+          running_time: runningTimeValue,
+          average_pulse: averagePulseValue,
+          pass_comment: passCommentValue,
+        },
       }
-      const { error } = await supabase.from("workout_logs").insert({
+      const { error } = await saveRunningWorkoutLog({
         client_set_id: `running-${currentSessionId}`,
         user_id: user.id,
         workout_session_id: currentSessionId,
@@ -5535,14 +5610,14 @@ function TrainingApp() {
           activeRunningWorkout.runningType === "intervals"
             ? legacyIntervalFields.intervals_count
             : null,
-        running_distance: String(activeRunningInput.running_distance || "").trim()
-          ? parseLoggedNumber(activeRunningInput.running_distance)
+        running_distance: runningDistanceValue
+          ? parseLoggedNumber(runningDistanceValue)
           : null,
-        running_time: String(activeRunningInput.running_time || "").trim() || null,
-        average_pulse: String(activeRunningInput.average_pulse || "").trim()
-          ? Number(activeRunningInput.average_pulse)
+        running_time: runningTimeValue || null,
+        average_pulse: averagePulseValue
+          ? Number(averagePulseValue)
           : null,
-        pass_comment: passComment.trim() || null,
+        pass_comment: passCommentValue || null,
         calendar_event_player_id: calendarEventPlayerId,
       })
 
@@ -5564,11 +5639,13 @@ function TrainingApp() {
       setActiveTargetChangeRequestDraft(null)
       setActiveCalendarEventPlayerId(null)
       setActiveRunningInput({
+        interval_program: null,
         interval_time: "",
         intervals_count: "",
         running_distance: "",
         running_time: "",
         average_pulse: "",
+        location_enabled: false,
       })
       setPlayerView("overview")
       setStatus(`${activeRunningWorkout.label} avslutat`)
@@ -6228,6 +6305,82 @@ function TrainingApp() {
     setDeletingPlayerRunningPresetId(null)
   }
 
+  const handleFinishedRunningSummaryDraftChange = (field, value) => {
+    setLastFinishedWorkoutSummary((prev) =>
+      prev?.workoutKind === "running"
+        ? {
+            ...prev,
+            draft: {
+              ...(prev.draft || {}),
+              [field]: value,
+            },
+          }
+        : prev
+    )
+  }
+
+  const handleSaveFinishedRunningSummary = async () => {
+    if (!user || !lastFinishedWorkoutSummary?.sessionId || lastFinishedWorkoutSummary.workoutKind !== "running") {
+      return
+    }
+
+    const draft = lastFinishedWorkoutSummary.draft || {}
+    setIsSavingFinishedRunningSummary(true)
+
+    const payload = {
+      running_distance: String(draft.running_distance || "").trim()
+        ? parseLoggedNumber(draft.running_distance)
+        : null,
+      running_time: String(draft.running_time || "").trim() || null,
+      average_pulse: String(draft.average_pulse || "").trim()
+        ? Number(draft.average_pulse)
+        : null,
+      pass_comment: String(draft.pass_comment || "").trim() || null,
+    }
+
+    const { error } = await supabase
+      .from("workout_logs")
+      .update(payload)
+      .eq("user_id", user.id)
+      .eq("workout_session_id", lastFinishedWorkoutSummary.sessionId)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara sammanfattningen")
+      setIsSavingFinishedRunningSummary(false)
+      return
+    }
+
+    setLastFinishedWorkoutSummary((prev) =>
+      prev
+        ? {
+            ...prev,
+            meta: buildRunningSummary({
+              running_type: prev.runningType,
+              interval_program: prev.intervalProgram,
+              interval_time: prev.legacyIntervalTime,
+              intervals_count: prev.legacyIntervalsCount,
+              running_distance: payload.running_distance,
+              running_time: payload.running_time,
+              average_pulse: payload.average_pulse,
+            }),
+            draft: {
+              ...draft,
+              running_distance:
+                payload.running_distance != null ? String(payload.running_distance).replace(".", ",") : "",
+              running_time: payload.running_time || "",
+              average_pulse: payload.average_pulse != null ? String(payload.average_pulse) : "",
+              pass_comment: payload.pass_comment || "",
+            },
+          }
+        : prev
+    )
+    setStatus("Löppasset uppdaterat ✅")
+    setIsSavingFinishedRunningSummary(false)
+    await loadCompletedWorkoutSessions(user.id)
+    await loadLatestData(user.id)
+  }
+
   const startCustomRunningWorkout = ({
     label,
     runningType,
@@ -6408,7 +6561,7 @@ function TrainingApp() {
       calendar_event_player_id: pendingFreeActivityCalendarEvent?.id || null,
     }
 
-    const { error } = await supabase.from("workout_logs").insert(payload)
+    const { error } = await saveRunningWorkoutLog(payload)
 
     if (error) {
       console.error(error)
@@ -10898,6 +11051,74 @@ function TrainingApp() {
                     <div style={playerTodayMonoLabelStyle}>{lastFinishedWorkoutSummary.highlightLabel}</div>
                     <div style={playerWorkoutHighlightValueStyle}>{lastFinishedWorkoutSummary.highlightValue}</div>
                   </div>
+                  {lastFinishedWorkoutSummary.workoutKind === "running" ? (
+                    <div style={{ display: "grid", gap: "12px", marginTop: "4px" }}>
+                      <div style={playerRunningRegistrationGridStyle(isMobile)}>
+                        <label style={fieldLabelStyle}>
+                          Distans
+                          <input
+                            placeholder="t.ex. 6,4"
+                            value={lastFinishedWorkoutSummary.draft?.running_distance || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("running_distance", event.target.value)
+                            }
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Tid
+                          <input
+                            placeholder="t.ex. 31:20"
+                            value={lastFinishedWorkoutSummary.draft?.running_time || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("running_time", event.target.value)
+                            }
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Snittpuls
+                          <input
+                            placeholder="valfritt"
+                            value={lastFinishedWorkoutSummary.draft?.average_pulse || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("average_pulse", event.target.value)
+                            }
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
+                          Kommentar
+                          <textarea
+                            rows={3}
+                            placeholder="Valfritt"
+                            value={lastFinishedWorkoutSummary.draft?.pass_comment || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("pass_comment", event.target.value)
+                            }
+                            style={playerActivityTextareaStyle}
+                          />
+                        </label>
+                      </div>
+                      <div style={playerWorkoutCompleteActionsStyle(isMobile)}>
+                        <button
+                          type="button"
+                          onClick={handleSaveFinishedRunningSummary}
+                          disabled={isSavingFinishedRunningSummary}
+                          style={{ ...buttonStyle, ...playerTodayPrimaryButtonStyle, opacity: isSavingFinishedRunningSummary ? 0.7 : 1 }}
+                        >
+                          {isSavingFinishedRunningSummary ? "Sparar..." : "Spara sammanfattning"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLastFinishedWorkoutSummary(null)}
+                          style={{ ...secondaryButtonStyle, ...playerTodaySecondaryButtonStyle }}
+                        >
+                          Klar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                   <div style={playerWorkoutCompleteActionsStyle(isMobile)}>
                     <button
                       type="button"
@@ -10917,6 +11138,7 @@ function TrainingApp() {
                       Tillbaka till idag
                     </button>
                   </div>
+                  )}
                 </div>
               )}
 
@@ -13436,7 +13658,9 @@ function TrainingApp() {
 
                 <h3 style={activeWorkoutFinishTitleStyle}>Pass klart?</h3>
                 <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-                  Lägg en kort kommentar om känslan idag och spara passet.
+                  {isRunningWorkoutActive
+                    ? "Avsluta passet först. Du får sedan en sammanfattning där du kan justera distans, tid, puls och annat."
+                    : "Lägg en kort kommentar om känslan idag och spara passet."}
                 </p>
 
                 {!isLoadingPlayerTargets && activeWorkoutTargetRequestOptions.length > 0 && (
@@ -13589,16 +13813,18 @@ function TrainingApp() {
                   </div>
                 )}
 
-                <div style={exerciseCommentCardStyle}>
-                  <div style={exerciseCommentTitleStyle}>Kommentar på passet</div>
-                  <textarea
-                    rows={4}
-                    placeholder="T.ex. tungt pass idag, ont i knä eller något tränaren bör veta"
-                    value={passComment}
-                    onChange={(e) => setPassComment(e.target.value)}
-                    style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "104px" }}
-                  />
-                </div>
+                {!isRunningWorkoutActive ? (
+                  <div style={exerciseCommentCardStyle}>
+                    <div style={exerciseCommentTitleStyle}>Kommentar på passet</div>
+                    <textarea
+                      rows={4}
+                      placeholder="T.ex. tungt pass idag, ont i knä eller något tränaren bör veta"
+                      value={passComment}
+                      onChange={(e) => setPassComment(e.target.value)}
+                      style={{ ...playerActivityTextareaStyle, width: "100%", minHeight: "104px" }}
+                    />
+                  </div>
+                ) : null}
 
                 <button
                   type="button"

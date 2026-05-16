@@ -150,41 +150,6 @@ const infoPanelStyle = {
   gap: "8px",
 }
 
-const fieldGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-})
-
-const fieldShellStyle = {
-  display: "grid",
-  gap: "8px",
-}
-
-const fieldLabelStyle = {
-  fontFamily: redesignMonoFont,
-  fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: redesignMuted,
-}
-
-const fieldInputStyle = {
-  width: "100%",
-  minHeight: "56px",
-  padding: "14px 16px",
-  borderRadius: "18px",
-  border: `1px solid ${redesignLine}`,
-  backgroundColor: redesignSurfaceSoft,
-  boxSizing: "border-box",
-  fontFamily: redesignDisplayFont,
-  fontSize: "18px",
-  lineHeight: 1.2,
-  fontWeight: 700,
-  color: redesignInk,
-}
-
 const formatDistanceKm = (distanceKm) => {
   if (!Number.isFinite(distanceKm)) return "0.00"
   return distanceKm.toFixed(2)
@@ -220,7 +185,6 @@ function ActiveDistanceRunningWorkout({
   onChangeField,
   onTotalTimeChange,
   onStatusChange,
-  onFinish,
   isMobile,
 }) {
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -390,32 +354,6 @@ function ActiveDistanceRunningWorkout({
           </div>
         </div>
       </div>
-
-      <div style={fieldGridStyle(isMobile)}>
-        <label style={fieldShellStyle}>
-          <span style={fieldLabelStyle}>Distans</span>
-          <input
-            placeholder="Distans i km"
-            value={input.running_distance}
-            onChange={(event) => onChangeField("running_distance", event.target.value)}
-            style={fieldInputStyle}
-          />
-        </label>
-
-        <label style={fieldShellStyle}>
-          <span style={fieldLabelStyle}>Snittpuls</span>
-          <input
-            placeholder="Valfritt"
-            value={input.average_pulse}
-            onChange={(event) => onChangeField("average_pulse", event.target.value)}
-            style={fieldInputStyle}
-          />
-        </label>
-      </div>
-
-      <button type="button" onClick={onFinish} style={primaryButtonStyle}>
-        Avsluta och spara
-      </button>
     </div>
   )
 }
