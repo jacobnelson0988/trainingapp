@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { supabase } from "./supabase"
 import ExerciseBankPage from "./pages/ExerciseBankPage"
 import PlayersPage from "./pages/PlayersPage"
@@ -13,6 +13,7 @@ import MessagesPage from "./pages/MessagesPage"
 import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
 import StatsPage from "./pages/StatsPage"
+import ActiveRunningWorkout from "./player/workout/ActiveRunningWorkout"
 import {
   bodyTextStyleToken,
   compactBodyTextStyleToken,
@@ -1134,14 +1135,26 @@ const getInitialGlobalView = () => {
   return window.location.pathname === "/gdpr" ? "gdpr" : "app"
 }
 
+const CUSTOM_INTERVAL_WORKOUT_KEY = "__design_player_custom_interval__"
+const isCustomIntervalWorkoutKey = (workoutKey) => workoutKey === CUSTOM_INTERVAL_WORKOUT_KEY
+
 function TrainingApp() {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth <= 768 : false
   )
   const [user, setUser] = useState(null)
   const [workoutsFromDB, setWorkoutsFromDB] = useState({})
-
-  const activeWorkouts = workoutsFromDB
+  const [customRunningWorkout, setCustomRunningWorkout] = useState(null)
+  const activeWorkouts = useMemo(
+    () =>
+      customRunningWorkout
+        ? {
+            ...workoutsFromDB,
+            [CUSTOM_INTERVAL_WORKOUT_KEY]: customRunningWorkout,
+          }
+        : workoutsFromDB,
+    [customRunningWorkout, workoutsFromDB]
+  )
   const [profile, setProfile] = useState(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [players, setPlayers] = useState([])
@@ -1555,17 +1568,28 @@ function TrainingApp() {
       return
     }
 
+    if (isCustomIntervalWorkoutKey(selectedWorkout)) {
+      setLatestWorkout({})
+      return
+    }
+
     loadLatestWorkoutForPass(selectedWorkout, user.id)
   }, [user, profile?.role, selectedWorkout])
 
   useEffect(() => {
     if (profile?.role !== "player") return
     if (!assignedWorkoutCodes.length) {
-      setSelectedWorkout(null)
+      if (!isCustomIntervalWorkoutKey(selectedWorkout)) {
+        setSelectedWorkout(null)
+      }
       return
     }
 
-    if (selectedWorkout && !assignedWorkoutCodes.includes(selectedWorkout)) {
+    if (
+      selectedWorkout &&
+      !assignedWorkoutCodes.includes(selectedWorkout) &&
+      !isCustomIntervalWorkoutKey(selectedWorkout)
+    ) {
       setSelectedWorkout(null)
     }
   }, [assignedWorkoutCodes, profile?.role, selectedWorkout])
@@ -5418,7 +5442,7 @@ function TrainingApp() {
         highlightValue: "Löpningen är sparad",
       }
       const { error } = await supabase.from("workout_logs").insert({
-        client_set_id: `assigned-running-${currentSessionId}`,
+        client_set_id: `running-${currentSessionId}`,
         user_id: user.id,
         workout_session_id: currentSessionId,
         pass_name: activeRunningWorkout.label,
@@ -5426,7 +5450,9 @@ function TrainingApp() {
         set_number: 1,
         is_completed: true,
         workout_kind: "running",
-        running_origin: "assigned",
+        running_origin: activeRunningWorkout.runningOrigin || "assigned",
+        free_activity_type:
+          activeRunningWorkout.runningOrigin === "free" ? "running" : null,
         running_type: activeRunningWorkout.runningType || "intervals",
         interval_time: String(activeRunningInput.interval_time || "").trim() || null,
         intervals_count: String(activeRunningInput.intervals_count || "").trim()
@@ -5452,6 +5478,7 @@ function TrainingApp() {
       setIsWorkoutActive(false)
       setLastFinishedWorkoutSummary(finishedSummary)
       setCurrentSessionId(null)
+      setCustomRunningWorkout(null)
       setInputs({})
       setSelectedExerciseOptionKeys({})
       setExerciseComments({})
@@ -5587,6 +5614,7 @@ function TrainingApp() {
     setIsWorkoutActive(false)
     setLastFinishedWorkoutSummary(finishedSummary)
     setCurrentSessionId(null)
+    setCustomRunningWorkout(null)
     setInputs({})
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
@@ -5598,7 +5626,9 @@ function TrainingApp() {
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
     await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
-    await loadLatestWorkoutForPass(selectedWorkout, user.id)
+    if (!isCustomIntervalWorkoutKey(selectedWorkout)) {
+      await loadLatestWorkoutForPass(selectedWorkout, user.id)
+    }
     await loadLatestData(user.id)
   }
 
@@ -5628,6 +5658,7 @@ function TrainingApp() {
 
     setIsWorkoutActive(false)
     setCurrentSessionId(null)
+    setCustomRunningWorkout(null)
     setInputs({})
     setSelectedExerciseOptionKeys({})
     setExerciseComments({})
@@ -8389,7 +8420,7 @@ function TrainingApp() {
       : playerPassFamily === "prehab"
       ? "Skadeförebyggande"
       : "Träning"
-  const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
+  const activeWorkoutData = selectedWorkout ? activeWorkouts[selectedWorkout] || null : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmupTechnique = Array.isArray(activeWorkoutData?.warmup?.technique)
     ? activeWorkoutData.warmup.technique
@@ -8776,12 +8807,14 @@ function TrainingApp() {
     setPlayerPassFamily(familyKey)
     setPlayerRunningView(null)
     setSelectedWorkout(null)
+    setCustomRunningWorkout(null)
     setPlayerOverviewPanel(null)
     navigatePlayerSection("pass")
   }
   const openPlayerRunningView = (viewKey) => {
     setPlayerRunningView(viewKey)
     setSelectedWorkout(null)
+    setCustomRunningWorkout(null)
 
     if (viewKey === "ownInterval" || viewKey === "distance") {
       setRunningDraft((prev) => ({
@@ -8821,6 +8854,64 @@ function TrainingApp() {
     setPendingFreeActivityCalendarEvent(null)
     setPlayerOverviewPanel(panelKey)
     setPlayerView("activity")
+  }
+  const startOwnIntervalWorkout = async () => {
+    if (!user) return
+
+    const intervalTime = String(runningDraft.interval_time || "").trim()
+    const intervalsCount = String(runningDraft.intervals_count || "").trim()
+
+    if (!intervalTime || !intervalsCount) {
+      setStatus("Fyll i tid per intervall och antal intervaller först")
+      return
+    }
+
+    const newSessionId = generateSessionId()
+    const customWorkout = {
+      id: CUSTOM_INTERVAL_WORKOUT_KEY,
+      label: "Eget intervallpass",
+      workoutKind: "running",
+      runningType: "intervals",
+      runningOrigin: "free",
+      runningConfig: {
+        interval_time: intervalTime,
+        intervals_count: Number(intervalsCount),
+        running_distance: null,
+        running_time: "",
+      },
+      exercises: [],
+      warmup: null,
+    }
+
+    setCustomRunningWorkout(customWorkout)
+    setSelectedWorkout(CUSTOM_INTERVAL_WORKOUT_KEY)
+    setCurrentSessionId(newSessionId)
+    setIsWorkoutActive(true)
+    setExpandedInfo({})
+    setLastFinishedWorkoutSummary(null)
+    setActiveTargetChangeRequestDraft(null)
+    setEditingLoggedSetKey(null)
+    setFocusedStepperInputKey(null)
+    setActiveCalendarEventPlayerId(null)
+    setActiveCalendarGroup(null)
+    setIsActiveCalendarGroupExpanded(false)
+    setPendingFreeActivityCalendarEvent(null)
+    setActiveTimedSetTimer(null)
+    setRestStopwatchStartedAt(null)
+    setInputs({})
+    setSelectedExerciseOptionKeys({})
+    setExerciseComments({})
+    setPassComment(String(runningDraft.comment || "").trim())
+    setActiveRunningInput({
+      interval_time: intervalTime,
+      intervals_count: intervalsCount,
+      running_distance: "",
+      running_time: "",
+      average_pulse: "",
+    })
+    setPlayerRunningView("ownInterval")
+    setPlayerView("workout")
+    setStatus("Eget intervallpass startat")
   }
   const getPlayerPassDisplayType = (workout) => {
     if (workout.workoutKind === "running") return getWorkoutKindLabel(workout.workoutKind)
@@ -10718,15 +10809,6 @@ function TrainingApp() {
                       </div>
                       <div style={playerRunningRegistrationGridStyle(isMobile)}>
                         <label style={fieldLabelStyle}>
-                          Datum
-                          <input
-                            type="date"
-                            value={runningDraft.log_date}
-                            onChange={(e) => handleRunningDraftChange("log_date", e.target.value)}
-                            style={playerActivityInputStyle}
-                          />
-                        </label>
-                        <label style={fieldLabelStyle}>
                           Tid per intervall
                           <input
                             placeholder="t.ex. 1 min eller 45 sek"
@@ -10745,10 +10827,10 @@ function TrainingApp() {
                           />
                         </label>
                         <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
-                          Tid eller kommentar
+                          Kommentar
                           <textarea
                             rows={3}
-                            placeholder="T.ex. känsla, vila eller total tid"
+                            placeholder="T.ex. känsla eller upplägg"
                             value={runningDraft.comment}
                             onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
                             style={playerActivityTextareaStyle}
@@ -10757,16 +10839,14 @@ function TrainingApp() {
                       </div>
                       <button
                         type="button"
-                        onClick={handleSaveRunningSession}
-                        disabled={isSavingRunningSession}
+                        onClick={startOwnIntervalWorkout}
                         style={{
                           ...buttonStyle,
                           ...playerPassStartButtonStyle,
                           width: "100%",
-                          opacity: isSavingRunningSession ? 0.7 : 1,
                         }}
                       >
-                        {isSavingRunningSession ? "Sparar..." : "Spara intervallpass"}
+                        Starta intervallpass
                       </button>
                     </section>
                   )}
@@ -11555,72 +11635,20 @@ function TrainingApp() {
                   : { ...activeRunningWorkoutCardStyle, ...activeWorkoutExerciseCardStyle }
               }
             >
-              <div style={exerciseProgressStyle}>Löppass</div>
-              <div style={activeRunningWorkoutHeaderStyle}>
-                <h3 style={activeRunningWorkoutTitleStyle}>{activeWorkoutData?.label || "Löppass"}</h3>
-                <div style={activeRunningWorkoutSummaryStyle}>
-                  {buildRunningSummary({
-                    running_type: activeWorkoutData?.runningType,
-                    interval_time: activeWorkoutData?.runningConfig?.interval_time,
-                    intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
-                    running_distance: activeWorkoutData?.runningConfig?.running_distance,
-                    running_time: activeWorkoutData?.runningConfig?.running_time,
-                  })}
-                </div>
-              </div>
-
-              {activeWorkoutData?.runningType === "intervals" ? (
-                <div style={activeRunningWorkoutFieldsStyle}>
-                  <div style={playerActivityFieldStyle}>
-                    <div style={playerActivityFieldLabelStyle}>Tid per intervall</div>
-                    <input
-                      placeholder="Tid per intervall"
-                      value={activeRunningInput.interval_time}
-                      onChange={(e) => handleActiveRunningInputChange("interval_time", e.target.value)}
-                      style={playerActivityInputStyle}
-                    />
-                  </div>
-                  <div style={playerActivityFieldStyle}>
-                    <div style={playerActivityFieldLabelStyle}>Antal intervaller</div>
-                    <input
-                      placeholder="Antal intervaller"
-                      value={activeRunningInput.intervals_count}
-                      onChange={(e) => handleActiveRunningInputChange("intervals_count", e.target.value)}
-                      style={playerActivityInputStyle}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div style={activeRunningWorkoutFieldsStyle}>
-                  <div style={playerActivityFieldStyle}>
-                    <div style={playerActivityFieldLabelStyle}>Distans</div>
-                    <input
-                      placeholder="Distans i km"
-                      value={activeRunningInput.running_distance}
-                      onChange={(e) => handleActiveRunningInputChange("running_distance", e.target.value)}
-                      style={playerActivityInputStyle}
-                    />
-                  </div>
-                  <div style={playerActivityFieldStyle}>
-                    <div style={playerActivityFieldLabelStyle}>Tid</div>
-                    <input
-                      placeholder="Tid, t.ex. 24:30"
-                      value={activeRunningInput.running_time}
-                      onChange={(e) => handleActiveRunningInputChange("running_time", e.target.value)}
-                      style={playerActivityInputStyle}
-                    />
-                  </div>
-                  <div style={playerActivityFieldFullStyle}>
-                    <div style={playerActivityFieldLabelStyle}>Snittpuls</div>
-                    <input
-                      placeholder="Snittpuls"
-                      value={activeRunningInput.average_pulse}
-                      onChange={(e) => handleActiveRunningInputChange("average_pulse", e.target.value)}
-                      style={playerActivityInputStyle}
-                    />
-                  </div>
-                </div>
-              )}
+              <ActiveRunningWorkout
+                workout={activeWorkoutData}
+                summaryText={buildRunningSummary({
+                  running_type: activeWorkoutData?.runningType,
+                  interval_time: activeWorkoutData?.runningConfig?.interval_time,
+                  intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
+                  running_distance: activeWorkoutData?.runningConfig?.running_distance,
+                  running_time: activeWorkoutData?.runningConfig?.running_time,
+                })}
+                input={activeRunningInput}
+                onChangeField={handleActiveRunningInputChange}
+                onStatusChange={setStatus}
+                isMobile={isMobile}
+              />
             </div>
           ) : activeWorkoutExercises.map((exercise, i) => {
             const exerciseOptions = getExerciseExecutionOptions(exercise)
