@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
+import IntervalProgramEditor from "../running/IntervalProgramEditor"
+import { getIntervalProgramSummary } from "../running/intervalPrograms"
 import { getExerciseProtocolConfig, isProtocolExercise } from "../utils/exerciseProtocols"
 import {
   bodyTextStyleToken,
@@ -184,9 +186,7 @@ const buildRunningWorkoutSummary = (workoutKind, runningType, runningConfig) => 
   if (workoutKind !== "running") return ""
 
   if (runningType === "intervals") {
-    const count = runningConfig?.intervals_count ? `${runningConfig.intervals_count} intervaller` : null
-    const time = runningConfig?.interval_time ? `${runningConfig.interval_time}/intervall` : null
-    return [count, time].filter(Boolean).join(" • ") || "Intervaller"
+    return getIntervalProgramSummary(runningConfig?.intervalProgram) || "Intervaller"
   }
 
   const distance =
@@ -302,10 +302,8 @@ function PassBuilderPage({
   setNewPassGymPassType,
   newPassRunningType,
   setNewPassRunningType,
-  newPassRunningIntervalTime,
-  setNewPassRunningIntervalTime,
-  newPassRunningIntervalsCount,
-  setNewPassRunningIntervalsCount,
+  newPassRunningIntervalProgram,
+  setNewPassRunningIntervalProgram,
   newPassRunningDistance,
   setNewPassRunningDistance,
   newPassRunningTime,
@@ -328,10 +326,8 @@ function PassBuilderPage({
   setRenamePassGymPassType,
   renamePassRunningType,
   setRenamePassRunningType,
-  renamePassRunningIntervalTime,
-  setRenamePassRunningIntervalTime,
-  renamePassRunningIntervalsCount,
-  setRenamePassRunningIntervalsCount,
+  renamePassRunningIntervalProgram,
+  setRenamePassRunningIntervalProgram,
   renamePassRunningDistance,
   setRenamePassRunningDistance,
   renamePassRunningTime,
@@ -705,26 +701,11 @@ function PassBuilderPage({
                   </div>
 
                   {newPassRunningType === "intervals" ? (
-                    <div style={targetGridStyle}>
-                      <div>
-                        <div style={fieldLabelStyle}>Tid per intervall</div>
-                        <input
-                          type="text"
-                          value={newPassRunningIntervalTime}
-                          onChange={(e) => setNewPassRunningIntervalTime(e.target.value)}
-                          style={{ ...inputStyle, width: "100%" }}
-                        />
-                      </div>
-                      <div>
-                        <div style={fieldLabelStyle}>Antal intervaller</div>
-                        <input
-                          type="number"
-                          value={newPassRunningIntervalsCount}
-                          onChange={(e) => setNewPassRunningIntervalsCount(e.target.value)}
-                          style={{ ...inputStyle, width: "100%" }}
-                        />
-                      </div>
-                    </div>
+                    <IntervalProgramEditor
+                      programDraft={newPassRunningIntervalProgram}
+                      onChange={setNewPassRunningIntervalProgram}
+                      isMobile={isMobile}
+                    />
                   ) : (
                     <div style={targetGridStyle}>
                       <div>
@@ -1007,26 +988,11 @@ function PassBuilderPage({
                   </div>
 
                   {renamePassRunningType === "intervals" ? (
-                    <div style={targetGridStyle}>
-                      <div>
-                        <div style={fieldLabelStyle}>Tid per intervall</div>
-                        <input
-                          type="text"
-                          value={renamePassRunningIntervalTime}
-                          onChange={(e) => setRenamePassRunningIntervalTime(e.target.value)}
-                          style={{ ...inputStyle, width: "100%" }}
-                        />
-                      </div>
-                      <div>
-                        <div style={fieldLabelStyle}>Antal intervaller</div>
-                        <input
-                          type="number"
-                          value={renamePassRunningIntervalsCount}
-                          onChange={(e) => setRenamePassRunningIntervalsCount(e.target.value)}
-                          style={{ ...inputStyle, width: "100%" }}
-                        />
-                      </div>
-                    </div>
+                    <IntervalProgramEditor
+                      programDraft={renamePassRunningIntervalProgram}
+                      onChange={setRenamePassRunningIntervalProgram}
+                      isMobile={isMobile}
+                    />
                   ) : (
                     <div style={targetGridStyle}>
                       <div>

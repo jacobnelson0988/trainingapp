@@ -19,7 +19,6 @@ import {
   syncIntervalMediaSession,
 } from "../../app/device/intervalDevice"
 import {
-  buildLegacyIntervalProgram,
   completeIntervalTimerSession,
   createIntervalTimerSession,
   formatSecondsAsClock,
@@ -27,6 +26,7 @@ import {
   pauseIntervalTimerSession,
   resumeIntervalTimerSession,
 } from "../../timers/intervalTimerEngine"
+import { buildIntervalProgram, getIntervalProgramSummary } from "../../running/intervalPrograms"
 
 const workoutShellStyle = {
   display: "grid",
@@ -226,8 +226,8 @@ const getPhaseDisplayLabel = (snapshot) => snapshot?.currentPhase?.label || "Kla
 
 export default function ActiveIntervalWorkout({
   workoutLabel,
-  input,
-  onChangeField,
+  intervalProgram,
+  onTotalTimeChange,
   onStatusChange,
   isMobile,
 }) {
@@ -236,13 +236,9 @@ export default function ActiveIntervalWorkout({
   const lastSignalKeyRef = useRef(null)
   const completionHandledRef = useRef(false)
 
-  const program = useMemo(
-    () =>
-      buildLegacyIntervalProgram({
-        interval_time: input.interval_time,
-        intervals_count: input.intervals_count,
-      }),
-    [input.interval_time, input.intervals_count]
+  const resolvedProgram = useMemo(
+    () => buildIntervalProgram(intervalProgram),
+    [intervalProgram]
   )
 
   const snapshot = useMemo(
@@ -336,8 +332,8 @@ export default function ActiveIntervalWorkout({
     if (!snapshot) return
 
     const totalSeconds = Math.round((snapshot.totalElapsedMs || 0) / 1000)
-    onChangeField("running_time", formatSecondsAsClock(totalSeconds))
-  }, [snapshot?.totalElapsedMs, onChangeField])
+    onTotalTimeChange?.(formatSecondsAsClock(totalSeconds))
+  }, [snapshot?.totalElapsedMs, onTotalTimeChange])
 
   useEffect(() => {
     if (!snapshot?.isComplete || !timerSession || completionHandledRef.current) return
@@ -348,13 +344,13 @@ export default function ActiveIntervalWorkout({
   }, [snapshot?.isComplete, timerSession, onStatusChange])
 
   const startTimer = async () => {
-    if (!program) {
+    if (!resolvedProgram) {
       onStatusChange?.("Välj giltig tid per intervall och antal intervaller")
       return
     }
 
     completionHandledRef.current = false
-    const createdSession = createIntervalTimerSession(program, Date.now())
+    const createdSession = createIntervalTimerSession(resolvedProgram, Date.now())
     setTimerSession(createdSession)
     setNow(Date.now())
     onStatusChange?.("Intervalltimer startad")
@@ -377,9 +373,9 @@ export default function ActiveIntervalWorkout({
   const showExpandedTimer = isRunning || isPaused || isComplete
   const currentPhase = snapshot?.currentPhase
   const nextPhaseLabel = snapshot?.nextPhase?.label || "Klar"
-  const selectedIntervalSummary = program
-    ? `${program.repeats} intervaller · ${formatSecondsAsClock(program.workSeconds)} / intervall`
-    : "Välj giltig tid och antal"
+  const selectedIntervalSummary = resolvedProgram
+    ? getIntervalProgramSummary(resolvedProgram)
+    : "Välj giltigt intervallupplägg"
 
   return (
     <div style={workoutShellStyle}>
@@ -391,53 +387,31 @@ export default function ActiveIntervalWorkout({
 
       {!showExpandedTimer ? (
         <>
-          <div style={intervalSetupGridStyle(isMobile)}>
-            <label style={fieldShellStyle}>
-              <span style={fieldLabelStyle}>Tid per intervall</span>
-              <input
-                type="text"
-                placeholder="t.ex. 45 sek eller 01:00"
-                value={input.interval_time}
-                onChange={(event) => onChangeField("interval_time", event.target.value)}
-                style={fieldInputStyle}
-              />
-            </label>
-            <label style={fieldShellStyle}>
-              <span style={fieldLabelStyle}>Antal intervaller</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="t.ex. 8"
-                value={input.intervals_count}
-                onChange={(event) => onChangeField("intervals_count", event.target.value)}
-                style={fieldInputStyle}
-              />
-            </label>
-          </div>
-
           <div style={timerCardStyle(false)}>
-            <div style={timerPhaseLabelStyle(false)}>Valt upplägg</div>
-            <div style={timerValueStyle(false)}>
-              {program ? formatSecondsAsClock(program.totalDurationSeconds) : "00:00"}
-            </div>
-            <div style={timerMetaGridStyle(isMobile)}>
-              <div style={timerMetaCellStyle(false)}>
-                <div style={timerMetaLabelStyle}>Start</div>
-                <div style={timerMetaValueStyle(false)}>Nedräkning</div>
+              <div style={timerPhaseLabelStyle(false)}>Valt upplägg</div>
+              <div style={timerValueStyle(false)}>
+              {resolvedProgram ? formatSecondsAsClock(resolvedProgram.totalDurationSeconds) : "00:00"}
               </div>
-              <div style={timerMetaCellStyle(false)}>
-                <div style={timerMetaLabelStyle}>Intervaller</div>
-                <div style={timerMetaValueStyle(false)}>
-                  {program ? `${program.repeats} st` : "—"}
+              <div style={timerMetaGridStyle(isMobile)}>
+                <div style={timerMetaCellStyle(false)}>
+                  <div style={timerMetaLabelStyle}>Start</div>
+                  <div style={timerMetaValueStyle(false)}>
+                  {resolvedProgram?.countdownSeconds ? `${resolvedProgram.countdownSeconds} sek` : "Direkt"}
+                  </div>
+                </div>
+                <div style={timerMetaCellStyle(false)}>
+                  <div style={timerMetaLabelStyle}>Intervaller</div>
+                  <div style={timerMetaValueStyle(false)}>
+                  {resolvedProgram ? `${resolvedProgram.totalIntervals} st` : "—"}
+                  </div>
+                </div>
+                <div style={timerMetaCellStyle(false)}>
+                <div style={timerMetaLabelStyle}>Block</div>
+                <div style={timerMetaValueStyle(false)}>{resolvedProgram ? `${resolvedProgram.blocks.length} st` : "—"}</div>
                 </div>
               </div>
-              <div style={timerMetaCellStyle(false)}>
-                <div style={timerMetaLabelStyle}>Nästa fas</div>
-                <div style={timerMetaValueStyle(false)}>{program ? "Löp" : "—"}</div>
-              </div>
-            </div>
             <div style={timerHintStyle(false)}>
-              Timern startar först när du trycker på start och räknar sedan ner i ett enda stort läge.
+              Timern följer det färdiga upplägget och räknar sedan ner i ett enda stort läge.
             </div>
           </div>
 

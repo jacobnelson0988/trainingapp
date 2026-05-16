@@ -61,6 +61,7 @@ export default function ActiveRunningWorkout({
   summaryText,
   input,
   onChangeField,
+  onTotalTimeChange,
   onStatusChange,
   isMobile,
 }) {
@@ -68,8 +69,8 @@ export default function ActiveRunningWorkout({
     return (
       <ActiveIntervalWorkout
         workoutLabel={workout?.label || "Intervallpass"}
-        input={input}
-        onChangeField={onChangeField}
+        intervalProgram={workout?.runningConfig?.intervalProgram}
+        onTotalTimeChange={onTotalTimeChange}
         onStatusChange={onStatusChange}
         isMobile={isMobile}
       />

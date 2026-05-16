@@ -14,6 +14,18 @@ import FeedbackPage from "./pages/FeedbackPage"
 import GdprPage from "./pages/GdprPage"
 import StatsPage from "./pages/StatsPage"
 import ActiveRunningWorkout from "./player/workout/ActiveRunningWorkout"
+import IntervalProgramEditor from "./running/IntervalProgramEditor"
+import {
+  createIntervalProgramDraft,
+  formatSecondsAsClock,
+  getIntervalProgramSummary,
+  getRunningProgramFromTemplate,
+  intervalProgramToLegacyFields,
+  legacyRunningConfigToProgramDraft,
+  normalizeIntervalProgramDraft,
+  parseDurationToSeconds,
+  storedProgramToDraft,
+} from "./running/intervalPrograms"
 import {
   bodyTextStyleToken,
   compactBodyTextStyleToken,
@@ -399,6 +411,24 @@ const FREE_ACTIVITY_OPTIONS = [
 const getFreeActivityLabel = (activityType) =>
   FREE_ACTIVITY_OPTIONS.find((option) => option.value === activityType)?.label || "Egen aktivitet"
 
+const buildRunningProgramSummary = (session) => {
+  const programSummary = getIntervalProgramSummary(
+    session?.running_interval_execution || session?.running_interval_program || session?.interval_program
+  )
+  if (programSummary && programSummary !== "Inga intervallblock") return programSummary
+
+  const legacyFields = intervalProgramToLegacyFields(
+    session?.running_interval_execution || session?.running_interval_program || session?.interval_program
+  )
+  const intervalsCount = legacyFields.intervals_count
+    ? `${legacyFields.intervals_count} intervaller`
+    : session?.intervals_count
+    ? `${session.intervals_count} intervaller`
+    : null
+  const intervalTime = legacyFields.interval_time || session?.interval_time || null
+  return [intervalsCount, intervalTime ? `${intervalTime}/intervall` : null].filter(Boolean).join(" • ") || "Intervaller"
+}
+
 const buildRunningSummary = (session) => {
   if (!session) return ""
 
@@ -409,9 +439,7 @@ const buildRunningSummary = (session) => {
   }
 
   if (session.running_type === "intervals") {
-    const intervalsCount = session.intervals_count ? `${session.intervals_count} intervaller` : null
-    const intervalTime = session.interval_time ? `${session.interval_time}/intervall` : null
-    return [intervalsCount, intervalTime].filter(Boolean).join(" • ") || "Intervaller"
+    return buildRunningProgramSummary(session)
   }
 
   const distance = session.running_distance != null && session.running_distance !== ""
@@ -892,6 +920,8 @@ const buildCoachPlayerCompletedSessions = (rows, exercises) => {
         }),
         workout_kind: row.workout_kind || "gym",
         running_type: row.running_type || null,
+        running_interval_execution: row.running_interval_execution || null,
+        running_total_elapsed_seconds: row.running_total_elapsed_seconds ?? null,
         interval_time: row.interval_time || null,
         intervals_count: row.intervals_count ?? null,
         running_distance: row.running_distance ?? null,
@@ -1135,8 +1165,8 @@ const getInitialGlobalView = () => {
   return window.location.pathname === "/gdpr" ? "gdpr" : "app"
 }
 
-const CUSTOM_INTERVAL_WORKOUT_KEY = "__design_player_custom_interval__"
-const isCustomIntervalWorkoutKey = (workoutKey) => workoutKey === CUSTOM_INTERVAL_WORKOUT_KEY
+const CUSTOM_RUNNING_WORKOUT_KEY = "__design_player_custom_running__"
+const isCustomRunningWorkoutKey = (workoutKey) => workoutKey === CUSTOM_RUNNING_WORKOUT_KEY
 
 function TrainingApp() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -1150,7 +1180,7 @@ function TrainingApp() {
       customRunningWorkout
         ? {
             ...workoutsFromDB,
-            [CUSTOM_INTERVAL_WORKOUT_KEY]: customRunningWorkout,
+            [CUSTOM_RUNNING_WORKOUT_KEY]: customRunningWorkout,
           }
         : workoutsFromDB,
     [customRunningWorkout, workoutsFromDB]
@@ -1211,6 +1241,13 @@ function TrainingApp() {
   const [playerOverviewPanel, setPlayerOverviewPanel] = useState(null)
   const [playerPassFamily, setPlayerPassFamily] = useState(null)
   const [playerRunningView, setPlayerRunningView] = useState(null)
+  const [playerRunningPresets, setPlayerRunningPresets] = useState([])
+  const [isLoadingPlayerRunningPresets, setIsLoadingPlayerRunningPresets] = useState(false)
+  const [isSavingPlayerRunningPreset, setIsSavingPlayerRunningPreset] = useState(false)
+  const [deletingPlayerRunningPresetId, setDeletingPlayerRunningPresetId] = useState(null)
+  const [selectedPlayerRunningPresetId, setSelectedPlayerRunningPresetId] = useState("")
+  const [playerRunningPresetName, setPlayerRunningPresetName] = useState("")
+  const [playerRunningPresetDraft, setPlayerRunningPresetDraft] = useState(() => createIntervalProgramDraft())
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseIds, setSelectedPlayerStatsExerciseIds] = useState([])
@@ -1232,8 +1269,9 @@ function TrainingApp() {
   const [newPassWorkoutKind, setNewPassWorkoutKind] = useState("gym")
   const [newPassGymPassType, setNewPassGymPassType] = useState("individual")
   const [newPassRunningType, setNewPassRunningType] = useState("intervals")
-  const [newPassRunningIntervalTime, setNewPassRunningIntervalTime] = useState("")
-  const [newPassRunningIntervalsCount, setNewPassRunningIntervalsCount] = useState("")
+  const [newPassRunningIntervalProgram, setNewPassRunningIntervalProgram] = useState(() =>
+    createIntervalProgramDraft()
+  )
   const [newPassRunningDistance, setNewPassRunningDistance] = useState("")
   const [newPassRunningTime, setNewPassRunningTime] = useState("")
   const [newWarmupTemplateName, setNewWarmupTemplateName] = useState("")
@@ -1245,8 +1283,9 @@ function TrainingApp() {
   const [renamePassWorkoutKind, setRenamePassWorkoutKind] = useState("gym")
   const [renamePassGymPassType, setRenamePassGymPassType] = useState("individual")
   const [renamePassRunningType, setRenamePassRunningType] = useState("intervals")
-  const [renamePassRunningIntervalTime, setRenamePassRunningIntervalTime] = useState("")
-  const [renamePassRunningIntervalsCount, setRenamePassRunningIntervalsCount] = useState("")
+  const [renamePassRunningIntervalProgram, setRenamePassRunningIntervalProgram] = useState(() =>
+    createIntervalProgramDraft()
+  )
   const [renamePassRunningDistance, setRenamePassRunningDistance] = useState("")
   const [renamePassRunningTime, setRenamePassRunningTime] = useState("")
   const [renameWarmupTemplateName, setRenameWarmupTemplateName] = useState("")
@@ -1327,6 +1366,7 @@ function TrainingApp() {
     free_activity_type: "",
     custom_activity_title: "",
     running_type: "distance",
+    interval_program: createIntervalProgramDraft(),
     interval_time: "",
     intervals_count: "",
     running_distance: "",
@@ -1349,6 +1389,7 @@ function TrainingApp() {
   const [activeTargetChangeRequestDraft, setActiveTargetChangeRequestDraft] = useState(null)
   const [isSubmittingTargetChangeRequest, setIsSubmittingTargetChangeRequest] = useState(false)
   const [activeRunningInput, setActiveRunningInput] = useState({
+    interval_program: null,
     interval_time: "",
     intervals_count: "",
     running_distance: "",
@@ -1561,6 +1602,16 @@ function TrainingApp() {
   }, [user, selectedWorkout, profile?.individual_goals_enabled])
 
   useEffect(() => {
+    if (!user || profile?.role !== "player") {
+      setPlayerRunningPresets([])
+      resetPlayerRunningPresetEditor()
+      return
+    }
+
+    loadPlayerRunningPresets(user.id)
+  }, [user, profile?.role])
+
+  useEffect(() => {
     if (!user || profile?.role !== "player") return
 
     if (!selectedWorkout) {
@@ -1568,7 +1619,7 @@ function TrainingApp() {
       return
     }
 
-    if (isCustomIntervalWorkoutKey(selectedWorkout)) {
+    if (isCustomRunningWorkoutKey(selectedWorkout)) {
       setLatestWorkout({})
       return
     }
@@ -1579,7 +1630,7 @@ function TrainingApp() {
   useEffect(() => {
     if (profile?.role !== "player") return
     if (!assignedWorkoutCodes.length) {
-      if (!isCustomIntervalWorkoutKey(selectedWorkout)) {
+      if (!isCustomRunningWorkoutKey(selectedWorkout)) {
         setSelectedWorkout(null)
       }
       return
@@ -1588,7 +1639,7 @@ function TrainingApp() {
     if (
       selectedWorkout &&
       !assignedWorkoutCodes.includes(selectedWorkout) &&
-      !isCustomIntervalWorkoutKey(selectedWorkout)
+      !isCustomRunningWorkoutKey(selectedWorkout)
     ) {
       setSelectedWorkout(null)
     }
@@ -1625,11 +1676,11 @@ function TrainingApp() {
     setRenamePassWorkoutKind(selectedTemplate?.workout_kind || "gym")
     setRenamePassGymPassType(selectedTemplate?.gym_pass_type || "individual")
     setRenamePassRunningType(selectedTemplate?.running_type || "intervals")
-    setRenamePassRunningIntervalTime(selectedTemplate?.running_interval_time || "")
-    setRenamePassRunningIntervalsCount(
-      selectedTemplate?.running_intervals_count != null
-        ? String(selectedTemplate.running_intervals_count)
-        : ""
+    setRenamePassRunningIntervalProgram(
+      storedProgramToDraft(selectedTemplate?.running_interval_program, {
+        interval_time: selectedTemplate?.running_interval_time,
+        intervals_count: selectedTemplate?.running_intervals_count,
+      })
     )
     setRenamePassRunningDistance(
       selectedTemplate?.running_distance != null ? String(selectedTemplate.running_distance) : ""
@@ -1859,6 +1910,9 @@ function TrainingApp() {
           }
         })
 
+      const intervalProgram = getRunningProgramFromTemplate(template)
+      const legacyIntervalFields = intervalProgramToLegacyFields(intervalProgram)
+
       acc[template.code] = {
         id: template.id,
         label: template.label,
@@ -1867,8 +1921,9 @@ function TrainingApp() {
         gymPassType: template.gym_pass_type || "individual",
         runningType: template.running_type || "intervals",
         runningConfig: {
-          interval_time: template.running_interval_time || "",
-          intervals_count: template.running_intervals_count ?? null,
+          intervalProgram,
+          interval_time: legacyIntervalFields.interval_time || template.running_interval_time || "",
+          intervals_count: legacyIntervalFields.intervals_count ?? template.running_intervals_count ?? null,
           running_distance: template.running_distance ?? null,
           running_time: template.running_time || "",
         },
@@ -3411,7 +3466,7 @@ function TrainingApp() {
         supabase
           .from("workout_logs")
           .select(
-            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type"
+            "workout_session_id, created_at, pass_name, exercise, set_number, weight, reps, seconds, set_type, exercise_comment, pass_comment, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type, running_interval_execution, running_total_elapsed_seconds"
           )
           .eq("user_id", playerId)
           .eq("is_completed", true)
@@ -3562,7 +3617,7 @@ function TrainingApp() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type"
+        "workout_session_id, created_at, pass_name, exercise, set_number, set_type, is_completed, workout_kind, running_type, interval_time, intervals_count, running_distance, running_time, average_pulse, running_origin, free_activity_type, running_interval_execution, running_total_elapsed_seconds"
       )
       .eq("user_id", userId)
       .eq("is_completed", true)
@@ -3593,6 +3648,8 @@ function TrainingApp() {
           }),
           workout_kind: row.workout_kind || "gym",
           running_type: row.running_type || null,
+          running_interval_execution: row.running_interval_execution || null,
+          running_total_elapsed_seconds: row.running_total_elapsed_seconds ?? null,
           interval_time: row.interval_time || null,
           intervals_count: row.intervals_count ?? null,
           running_distance: row.running_distance ?? null,
@@ -3796,11 +3853,11 @@ function TrainingApp() {
     setRenamePassWorkoutKind(selectedTemplate?.workout_kind || "gym")
     setRenamePassGymPassType(selectedTemplate?.gym_pass_type || "individual")
     setRenamePassRunningType(selectedTemplate?.running_type || "intervals")
-    setRenamePassRunningIntervalTime(selectedTemplate?.running_interval_time || "")
-    setRenamePassRunningIntervalsCount(
-      selectedTemplate?.running_intervals_count != null
-        ? String(selectedTemplate.running_intervals_count)
-        : ""
+    setRenamePassRunningIntervalProgram(
+      storedProgramToDraft(selectedTemplate?.running_interval_program, {
+        interval_time: selectedTemplate?.running_interval_time,
+        intervals_count: selectedTemplate?.running_intervals_count,
+      })
     )
     setRenamePassRunningDistance(
       selectedTemplate?.running_distance != null ? String(selectedTemplate.running_distance) : ""
@@ -4924,6 +4981,7 @@ function TrainingApp() {
     if (workout.workoutKind === "running") {
       setRestStopwatchStartedAt(null)
       setActiveRunningInput({
+        interval_program: workout.runningConfig?.intervalProgram || null,
         interval_time: workout.runningConfig?.interval_time || "",
         intervals_count:
           workout.runningConfig?.intervals_count != null
@@ -5428,13 +5486,22 @@ function TrainingApp() {
 
     if (activeWorkouts[selectedWorkout]?.workoutKind === "running") {
       const activeRunningWorkout = activeWorkouts[selectedWorkout]
+      const normalizedIntervalProgram =
+        activeRunningWorkout.runningType === "intervals"
+          ? normalizeIntervalProgramDraft(activeRunningInput.interval_program) ||
+            activeRunningWorkout.runningConfig?.intervalProgram
+          : null
+      const legacyIntervalFields = intervalProgramToLegacyFields(normalizedIntervalProgram)
+      const runningTotalElapsedSeconds = parseDurationToSeconds(activeRunningInput.running_time)
       const finishedSummary = {
         label: activeRunningWorkout.label,
         kind: "Löppass",
         meta: buildRunningSummary({
           running_type: activeRunningWorkout.runningType,
-          interval_time: activeRunningWorkout.runningConfig?.interval_time,
-          intervals_count: activeRunningWorkout.runningConfig?.intervals_count,
+          interval_program: normalizedIntervalProgram,
+          interval_time: legacyIntervalFields.interval_time || activeRunningWorkout.runningConfig?.interval_time,
+          intervals_count:
+            legacyIntervalFields.intervals_count ?? activeRunningWorkout.runningConfig?.intervals_count,
           running_distance: activeRunningWorkout.runningConfig?.running_distance,
           running_time: activeRunningWorkout.runningConfig?.running_time,
         }),
@@ -5454,10 +5521,17 @@ function TrainingApp() {
         free_activity_type:
           activeRunningWorkout.runningOrigin === "free" ? "running" : null,
         running_type: activeRunningWorkout.runningType || "intervals",
-        interval_time: String(activeRunningInput.interval_time || "").trim() || null,
-        intervals_count: String(activeRunningInput.intervals_count || "").trim()
-          ? Number(activeRunningInput.intervals_count)
-          : null,
+        running_interval_execution:
+          activeRunningWorkout.runningType === "intervals" ? normalizedIntervalProgram : null,
+        running_total_elapsed_seconds: runningTotalElapsedSeconds || null,
+        interval_time:
+          activeRunningWorkout.runningType === "intervals"
+            ? legacyIntervalFields.interval_time
+            : null,
+        intervals_count:
+          activeRunningWorkout.runningType === "intervals"
+            ? legacyIntervalFields.intervals_count
+            : null,
         running_distance: String(activeRunningInput.running_distance || "").trim()
           ? parseLoggedNumber(activeRunningInput.running_distance)
           : null,
@@ -5626,7 +5700,7 @@ function TrainingApp() {
     setStatus(`${activeWorkouts[selectedWorkout].label} avslutat`)
 
     await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
-    if (!isCustomIntervalWorkoutKey(selectedWorkout)) {
+    if (!isCustomRunningWorkoutKey(selectedWorkout)) {
       await loadLatestWorkoutForPass(selectedWorkout, user.id)
     }
     await loadLatestData(user.id)
@@ -6007,6 +6081,217 @@ function TrainingApp() {
     setUpdatingGoalAvailabilityIds([])
   }
 
+  const resetRunningDraft = (overrides = {}) => {
+    setRunningDraft({
+      log_date: getTodayDateInputValue(),
+      free_activity_type: "",
+      custom_activity_title: "",
+      running_type: "distance",
+      interval_program: createIntervalProgramDraft(),
+      interval_time: "",
+      intervals_count: "",
+      running_distance: "",
+      running_time: "",
+      average_pulse: "",
+      comment: "",
+      ...overrides,
+    })
+  }
+
+  const loadPlayerRunningPresets = async (userId) => {
+    if (!userId) return
+
+    setIsLoadingPlayerRunningPresets(true)
+
+    const { data, error } = await supabase
+      .from("player_running_presets")
+      .select("id, name, running_interval_program, created_at, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setIsLoadingPlayerRunningPresets(false)
+      return
+    }
+
+    setPlayerRunningPresets(data || [])
+    setIsLoadingPlayerRunningPresets(false)
+  }
+
+  const resetPlayerRunningPresetEditor = () => {
+    setSelectedPlayerRunningPresetId("")
+    setPlayerRunningPresetName("")
+    setPlayerRunningPresetDraft(createIntervalProgramDraft())
+  }
+
+  const handleSelectPlayerRunningPreset = (presetId) => {
+    const preset = playerRunningPresets.find((entry) => String(entry.id) === String(presetId))
+
+    if (!preset) {
+      resetPlayerRunningPresetEditor()
+      return
+    }
+
+    setSelectedPlayerRunningPresetId(String(preset.id))
+    setPlayerRunningPresetName(preset.name || "")
+    setPlayerRunningPresetDraft(storedProgramToDraft(preset.running_interval_program))
+  }
+
+  const handleSavePlayerRunningPreset = async () => {
+    if (!user) return
+
+    const presetName = String(playerRunningPresetName || "").trim()
+    if (!presetName) {
+      setStatus("Skriv namn på ditt intervallpass")
+      return
+    }
+
+    const normalizedProgram = normalizeIntervalProgramDraft(playerRunningPresetDraft)
+    if (!normalizedProgram) {
+      setStatus("Lägg in minst ett giltigt intervallblock")
+      return
+    }
+
+    setIsSavingPlayerRunningPreset(true)
+
+    const payload = {
+      user_id: user.id,
+      name: presetName,
+      running_interval_program: normalizedProgram,
+    }
+
+    const query = selectedPlayerRunningPresetId
+      ? supabase
+          .from("player_running_presets")
+          .update(payload)
+          .eq("id", selectedPlayerRunningPresetId)
+          .eq("user_id", user.id)
+          .select("id, name, running_interval_program, created_at, updated_at")
+          .single()
+      : supabase
+          .from("player_running_presets")
+          .insert(payload)
+          .select("id, name, running_interval_program, created_at, updated_at")
+          .single()
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte spara det egna intervallpasset")
+      setIsSavingPlayerRunningPreset(false)
+      return
+    }
+
+    setPlayerRunningPresets((prev) =>
+      [...prev.filter((entry) => String(entry.id) !== String(data.id)), data].sort((a, b) =>
+        String(b.updated_at || "").localeCompare(String(a.updated_at || ""))
+      )
+    )
+    setSelectedPlayerRunningPresetId(String(data.id))
+    setPlayerRunningPresetDraft(storedProgramToDraft(data.running_interval_program))
+    setStatus("Eget intervallpass sparat ✅")
+    setIsSavingPlayerRunningPreset(false)
+  }
+
+  const handleDeletePlayerRunningPreset = async (presetId) => {
+    if (!user || !presetId) return
+
+    const preset = playerRunningPresets.find((entry) => String(entry.id) === String(presetId))
+    const confirmed = window.confirm(`Vill du ta bort ${preset?.name || "detta pass"}?`)
+    if (!confirmed) return
+
+    setDeletingPlayerRunningPresetId(String(presetId))
+
+    const { error } = await supabase
+      .from("player_running_presets")
+      .delete()
+      .eq("id", presetId)
+      .eq("user_id", user.id)
+
+    if (error) {
+      console.error(error)
+      setStatus("Kunde inte ta bort det egna passet")
+      setDeletingPlayerRunningPresetId(null)
+      return
+    }
+
+    setPlayerRunningPresets((prev) => prev.filter((entry) => String(entry.id) !== String(presetId)))
+    if (String(selectedPlayerRunningPresetId) === String(presetId)) {
+      resetPlayerRunningPresetEditor()
+    }
+    setStatus("Eget intervallpass borttaget ✅")
+    setDeletingPlayerRunningPresetId(null)
+  }
+
+  const startCustomRunningWorkout = ({
+    label,
+    runningType,
+    runningConfig,
+    passCommentValue = "",
+    statusMessage,
+  }) => {
+    const newSessionId = generateSessionId()
+    const intervalProgram =
+      runningType === "intervals"
+        ? normalizeIntervalProgramDraft(runningConfig?.intervalProgram) ||
+          getRunningProgramFromTemplate({
+            running_interval_program: runningConfig?.intervalProgram,
+            running_interval_time: runningConfig?.interval_time,
+            running_intervals_count: runningConfig?.intervals_count,
+          })
+        : null
+    const legacyFields = intervalProgramToLegacyFields(intervalProgram)
+    const customWorkout = {
+      id: CUSTOM_RUNNING_WORKOUT_KEY,
+      label,
+      workoutKind: "running",
+      runningType,
+      runningOrigin: "free",
+      runningConfig: {
+        intervalProgram,
+        interval_time: legacyFields.interval_time || "",
+        intervals_count: legacyFields.intervals_count ?? null,
+        running_distance: runningConfig?.running_distance ?? null,
+        running_time: runningConfig?.running_time || "",
+      },
+      exercises: [],
+      warmup: null,
+    }
+
+    setCustomRunningWorkout(customWorkout)
+    setSelectedWorkout(CUSTOM_RUNNING_WORKOUT_KEY)
+    setCurrentSessionId(newSessionId)
+    setIsWorkoutActive(true)
+    setExpandedInfo({})
+    setLastFinishedWorkoutSummary(null)
+    setActiveTargetChangeRequestDraft(null)
+    setEditingLoggedSetKey(null)
+    setFocusedStepperInputKey(null)
+    setActiveCalendarEventPlayerId(null)
+    setActiveCalendarGroup(null)
+    setIsActiveCalendarGroupExpanded(false)
+    setPendingFreeActivityCalendarEvent(null)
+    setActiveTimedSetTimer(null)
+    setRestStopwatchStartedAt(null)
+    setInputs({})
+    setSelectedExerciseOptionKeys({})
+    setExerciseComments({})
+    setPassComment(passCommentValue)
+    setActiveRunningInput({
+      interval_program: intervalProgram,
+      interval_time: legacyFields.interval_time || "",
+      intervals_count: legacyFields.intervals_count != null ? String(legacyFields.intervals_count) : "",
+      running_distance:
+        runningConfig?.running_distance != null ? String(runningConfig.running_distance) : "",
+      running_time: runningConfig?.running_time || "",
+      average_pulse: "",
+    })
+    setPlayerView("workout")
+    setStatus(statusMessage || `${label} startat`)
+  }
+
   const handleRunningDraftChange = (field, value) => {
     setRunningDraft((prev) => ({
       ...prev,
@@ -6055,6 +6340,25 @@ function TrainingApp() {
         ? String(runningDraft.custom_activity_title || "").trim()
         : pendingFreeActivityCalendarEvent?.title || getFreeActivityLabel(freeActivityType)
     const isFreeRunning = freeActivityType === "running"
+    const normalizedIntervalProgram =
+      isFreeRunning && runningDraft.running_type === "intervals"
+        ? normalizeIntervalProgramDraft(runningDraft.interval_program) ||
+          normalizeIntervalProgramDraft(
+            legacyRunningConfigToProgramDraft({
+              interval_time: runningDraft.interval_time,
+              intervals_count: runningDraft.intervals_count,
+            })
+          )
+        : null
+    const legacyIntervalFields = intervalProgramToLegacyFields(normalizedIntervalProgram)
+    const runningTotalElapsedSeconds = parseDurationToSeconds(runningDraft.running_time)
+
+    if (isFreeRunning && runningDraft.running_type === "intervals" && !normalizedIntervalProgram) {
+      setStatus("Lägg in minst ett giltigt intervallblock")
+      setIsSavingRunningSession(false)
+      return
+    }
+
     const payload = {
       client_set_id: `running-${workoutSessionId}`,
       user_id: user.id,
@@ -6068,13 +6372,17 @@ function TrainingApp() {
       running_origin: "free",
       free_activity_type: freeActivityType,
       running_type: isFreeRunning ? runningDraft.running_type : "distance",
+      running_interval_execution:
+        isFreeRunning && runningDraft.running_type === "intervals" ? normalizedIntervalProgram : null,
+      running_total_elapsed_seconds:
+        isFreeRunning ? runningTotalElapsedSeconds || null : runningTotalElapsedSeconds || null,
       interval_time:
-        isFreeRunning && runningDraft.running_type === "intervals" && String(runningDraft.interval_time || "").trim()
-          ? String(runningDraft.interval_time || "").trim()
+        isFreeRunning && runningDraft.running_type === "intervals"
+          ? legacyIntervalFields.interval_time
           : null,
       intervals_count:
-        isFreeRunning && runningDraft.running_type === "intervals" && String(runningDraft.intervals_count || "").trim()
-          ? Number(runningDraft.intervals_count)
+        isFreeRunning && runningDraft.running_type === "intervals"
+          ? legacyIntervalFields.intervals_count
           : null,
       running_distance:
         isFreeRunning && runningDraft.running_type === "distance" && String(runningDraft.running_distance || "").trim()
@@ -6105,18 +6413,7 @@ function TrainingApp() {
       return
     }
 
-    setRunningDraft((prev) => ({
-      ...prev,
-      log_date: getTodayDateInputValue(),
-      free_activity_type: "",
-      custom_activity_title: "",
-      interval_time: "",
-      intervals_count: "",
-      running_distance: "",
-      running_time: "",
-      average_pulse: "",
-      comment: "",
-    }))
+    resetRunningDraft()
     setPlayerRunningView(null)
     setPlayerView(pendingFreeActivityCalendarEvent?.id ? "calendar" : playerView)
     await markCalendarEventPlayerCompleted(pendingFreeActivityCalendarEvent?.id, workoutSessionId)
@@ -7831,8 +8128,8 @@ function TrainingApp() {
     const nextWorkoutKind = renamePassWorkoutKind || "gym"
     const nextGymPassType = renamePassGymPassType || "individual"
     const nextRunningType = renamePassRunningType || "intervals"
-    const nextRunningIntervalTime = renamePassRunningIntervalTime.trim()
-    const nextRunningIntervalsCount = renamePassRunningIntervalsCount.trim()
+    const normalizedRenameIntervalProgram = normalizeIntervalProgramDraft(renamePassRunningIntervalProgram)
+    const renameLegacyIntervalFields = intervalProgramToLegacyFields(normalizedRenameIntervalProgram)
     const nextRunningDistance = renamePassRunningDistance.trim()
     const nextRunningTime = renamePassRunningTime.trim()
     const hasInfoChange = nextInfoValue !== (selectedTemplate.info || "")
@@ -7843,9 +8140,8 @@ function TrainingApp() {
     const hasGymPassTypeChange = nextGymPassType !== (selectedTemplate.gym_pass_type || "individual")
     const hasRunningConfigChange =
       nextRunningType !== (selectedTemplate.running_type || "intervals") ||
-      nextRunningIntervalTime !== (selectedTemplate.running_interval_time || "") ||
-      nextRunningIntervalsCount !==
-        String(selectedTemplate.running_intervals_count != null ? selectedTemplate.running_intervals_count : "") ||
+      JSON.stringify(normalizedRenameIntervalProgram || null) !==
+        JSON.stringify(getRunningProgramFromTemplate(selectedTemplate) || null) ||
       nextRunningDistance !==
         String(selectedTemplate.running_distance != null ? selectedTemplate.running_distance : "") ||
       nextRunningTime !== (selectedTemplate.running_time || "")
@@ -7854,6 +8150,11 @@ function TrainingApp() {
       const update = buildPassExerciseUpdateFromDraft(existingRow, draft)
       return update ? [update] : []
     })
+
+    if (nextWorkoutKind === "running" && nextRunningType === "intervals" && !normalizedRenameIntervalProgram) {
+      setStatus("Lägg in minst ett giltigt intervallblock")
+      return false
+    }
 
     if (
       !hasRenameChange &&
@@ -7891,13 +8192,20 @@ function TrainingApp() {
           workout_kind: nextWorkoutKind,
           gym_pass_type: nextWorkoutKind === "gym" ? nextGymPassType : null,
           running_type: nextWorkoutKind === "running" ? nextRunningType : null,
-          running_interval_time: nextWorkoutKind === "running" ? nextRunningIntervalTime || null : null,
+          running_interval_program:
+            nextWorkoutKind === "running" && nextRunningType === "intervals"
+              ? normalizedRenameIntervalProgram
+              : null,
+          running_interval_time:
+            nextWorkoutKind === "running" && nextRunningType === "intervals"
+              ? renameLegacyIntervalFields.interval_time
+              : null,
           running_intervals_count:
-            nextWorkoutKind === "running" && nextRunningIntervalsCount
-              ? Number(nextRunningIntervalsCount)
+            nextWorkoutKind === "running" && nextRunningType === "intervals"
+              ? renameLegacyIntervalFields.intervals_count
               : null,
           running_distance:
-            nextWorkoutKind === "running" && nextRunningDistance
+            nextWorkoutKind === "running" && nextRunningType === "distance" && nextRunningDistance
               ? parseLoggedNumber(nextRunningDistance)
               : null,
           running_time: nextWorkoutKind === "running" ? nextRunningTime || null : null,
@@ -7917,13 +8225,20 @@ function TrainingApp() {
             workout_kind: nextWorkoutKind,
             gym_pass_type: nextWorkoutKind === "gym" ? nextGymPassType : null,
             running_type: nextWorkoutKind === "running" ? nextRunningType : null,
-            running_interval_time: nextWorkoutKind === "running" ? nextRunningIntervalTime || null : null,
+            running_interval_program:
+              nextWorkoutKind === "running" && nextRunningType === "intervals"
+                ? normalizedRenameIntervalProgram
+                : null,
+            running_interval_time:
+              nextWorkoutKind === "running" && nextRunningType === "intervals"
+                ? renameLegacyIntervalFields.interval_time
+                : null,
             running_intervals_count:
-              nextWorkoutKind === "running" && nextRunningIntervalsCount
-                ? Number(nextRunningIntervalsCount)
+              nextWorkoutKind === "running" && nextRunningType === "intervals"
+                ? renameLegacyIntervalFields.intervals_count
                 : null,
             running_distance:
-              nextWorkoutKind === "running" && nextRunningDistance
+              nextWorkoutKind === "running" && nextRunningType === "distance" && nextRunningDistance
                 ? parseLoggedNumber(nextRunningDistance)
                 : null,
             running_time: nextWorkoutKind === "running" ? nextRunningTime || null : null,
@@ -7947,6 +8262,8 @@ function TrainingApp() {
         const next = { ...prev }
 
         if (data.code && next[data.code]) {
+          const nextIntervalProgram = getRunningProgramFromTemplate(data)
+          const nextLegacyIntervalFields = intervalProgramToLegacyFields(nextIntervalProgram)
           next[data.code] = {
             ...next[data.code],
             label: data.label,
@@ -7955,8 +8272,9 @@ function TrainingApp() {
             gymPassType: data.gym_pass_type || "individual",
             runningType: data.running_type || "intervals",
             runningConfig: {
-              interval_time: data.running_interval_time || "",
-              intervals_count: data.running_intervals_count ?? null,
+              intervalProgram: nextIntervalProgram,
+              interval_time: nextLegacyIntervalFields.interval_time || data.running_interval_time || "",
+              intervals_count: nextLegacyIntervalFields.intervals_count ?? data.running_intervals_count ?? null,
               running_distance: data.running_distance ?? null,
               running_time: data.running_time || "",
             },
@@ -8101,6 +8419,14 @@ function TrainingApp() {
       return false
     }
 
+    const normalizedNewIntervalProgram = normalizeIntervalProgramDraft(newPassRunningIntervalProgram)
+    const newLegacyIntervalFields = intervalProgramToLegacyFields(normalizedNewIntervalProgram)
+
+    if (newPassWorkoutKind === "running" && newPassRunningType === "intervals" && !normalizedNewIntervalProgram) {
+      setStatus("Lägg in minst ett giltigt intervallblock")
+      return false
+    }
+
     setIsCreatingPass(true)
 
     const normalizedCode = newPassName
@@ -8140,14 +8466,20 @@ function TrainingApp() {
         workout_kind: newPassWorkoutKind || "gym",
         gym_pass_type: (newPassWorkoutKind || "gym") === "gym" ? newPassGymPassType || "individual" : null,
         running_type: newPassWorkoutKind === "running" ? newPassRunningType : null,
+        running_interval_program:
+          newPassWorkoutKind === "running" && newPassRunningType === "intervals"
+            ? normalizedNewIntervalProgram
+            : null,
         running_interval_time:
-          newPassWorkoutKind === "running" ? newPassRunningIntervalTime.trim() || null : null,
+          newPassWorkoutKind === "running" && newPassRunningType === "intervals"
+            ? newLegacyIntervalFields.interval_time
+            : null,
         running_intervals_count:
-          newPassWorkoutKind === "running" && newPassRunningIntervalsCount.trim()
-            ? Number(newPassRunningIntervalsCount)
+          newPassWorkoutKind === "running" && newPassRunningType === "intervals"
+            ? newLegacyIntervalFields.intervals_count
             : null,
         running_distance:
-          newPassWorkoutKind === "running" && newPassRunningDistance.trim()
+          newPassWorkoutKind === "running" && newPassRunningType === "distance" && newPassRunningDistance.trim()
             ? parseLoggedNumber(newPassRunningDistance)
             : null,
         running_time: newPassWorkoutKind === "running" ? newPassRunningTime.trim() || null : null,
@@ -8170,14 +8502,20 @@ function TrainingApp() {
           workout_kind: newPassWorkoutKind || "gym",
           gym_pass_type: (newPassWorkoutKind || "gym") === "gym" ? newPassGymPassType || "individual" : null,
           running_type: newPassWorkoutKind === "running" ? newPassRunningType : null,
+          running_interval_program:
+            newPassWorkoutKind === "running" && newPassRunningType === "intervals"
+              ? normalizedNewIntervalProgram
+              : null,
           running_interval_time:
-            newPassWorkoutKind === "running" ? newPassRunningIntervalTime.trim() || null : null,
+            newPassWorkoutKind === "running" && newPassRunningType === "intervals"
+              ? newLegacyIntervalFields.interval_time
+              : null,
           running_intervals_count:
-            newPassWorkoutKind === "running" && newPassRunningIntervalsCount.trim()
-              ? Number(newPassRunningIntervalsCount)
+            newPassWorkoutKind === "running" && newPassRunningType === "intervals"
+              ? newLegacyIntervalFields.intervals_count
               : null,
           running_distance:
-            newPassWorkoutKind === "running" && newPassRunningDistance.trim()
+            newPassWorkoutKind === "running" && newPassRunningType === "distance" && newPassRunningDistance.trim()
               ? parseLoggedNumber(newPassRunningDistance)
               : null,
           running_time: newPassWorkoutKind === "running" ? newPassRunningTime.trim() || null : null,
@@ -8202,8 +8540,7 @@ function TrainingApp() {
     setNewPassWorkoutKind("gym")
     setNewPassGymPassType("individual")
     setNewPassRunningType("intervals")
-    setNewPassRunningIntervalTime("")
-    setNewPassRunningIntervalsCount("")
+    setNewPassRunningIntervalProgram(createIntervalProgramDraft())
     setNewPassRunningDistance("")
     setNewPassRunningTime("")
     setNewWarmupTemplateName("")
@@ -8405,17 +8742,27 @@ function TrainingApp() {
   const recommendedPlayerPassEntries = selectedPlayerPassEntries.slice(0, recommendedPlayerPassCount)
   const shelfPlayerPassEntries = selectedPlayerPassEntries.slice(recommendedPlayerPassEntries.length)
   const shouldShowPlayerPassList =
-    playerPassFamily && (playerPassFamily !== "running" || playerRunningView === "assigned")
+    playerPassFamily && (playerPassFamily !== "running" || playerRunningView === "startAssigned")
   const playerPassFamilyTitle =
     playerPassFamily === "strength"
       ? "Styrka"
       : playerPassFamily === "running"
-      ? playerRunningView === "assigned"
-        ? "Färdiga intervallpass"
-        : playerRunningView === "ownInterval"
-        ? "Skapa intervallpass"
-        : playerRunningView === "distance"
-        ? "Distanspass"
+      ? playerRunningView === "start"
+        ? "Starta pass"
+        : playerRunningView === "startDistance"
+        ? "Distans"
+        : playerRunningView === "startIntervals"
+        ? "Intervaller"
+        : playerRunningView === "startAssigned"
+        ? "Färdiga intervaller"
+        : playerRunningView === "startOwn"
+        ? "Egna pass"
+        : playerRunningView === "log"
+        ? "Registrera i efterhand"
+        : playerRunningView === "logDistance"
+        ? "Registrera distans"
+        : playerRunningView === "logIntervals"
+        ? "Registrera intervaller"
         : "Löpning"
       : playerPassFamily === "prehab"
       ? "Skadeförebyggande"
@@ -8816,20 +9163,16 @@ function TrainingApp() {
     setSelectedWorkout(null)
     setCustomRunningWorkout(null)
 
-    if (viewKey === "ownInterval" || viewKey === "distance") {
-      setRunningDraft((prev) => ({
-        ...prev,
-        log_date: prev.log_date || getTodayDateInputValue(),
+    if (viewKey === "startOwn") {
+      resetPlayerRunningPresetEditor()
+    }
+
+    if (viewKey === "logDistance" || viewKey === "logIntervals") {
+      resetRunningDraft({
+        log_date: getTodayDateInputValue(),
         free_activity_type: "running",
-        custom_activity_title: "",
-        running_type: viewKey === "ownInterval" ? "intervals" : "distance",
-        interval_time: "",
-        intervals_count: "",
-        running_distance: "",
-        running_time: "",
-        average_pulse: "",
-        comment: "",
-      }))
+        running_type: viewKey === "logIntervals" ? "intervals" : "distance",
+      })
       setPendingFreeActivityCalendarEvent(null)
     }
   }
@@ -8839,6 +9182,7 @@ function TrainingApp() {
       free_activity_type: panelKey === "running" ? "" : "running",
       custom_activity_title: "",
       running_type: panelKey === "ownInterval" ? "intervals" : "distance",
+      interval_program: createIntervalProgramDraft(),
       interval_time: "",
       intervals_count: "",
       running_distance: "",
@@ -8856,62 +9200,57 @@ function TrainingApp() {
     setPlayerView("activity")
   }
   const startOwnIntervalWorkout = async () => {
-    if (!user) return
+    const presetName = String(playerRunningPresetName || "").trim() || "Eget intervallpass"
+    const normalizedProgram = normalizeIntervalProgramDraft(playerRunningPresetDraft)
 
-    const intervalTime = String(runningDraft.interval_time || "").trim()
-    const intervalsCount = String(runningDraft.intervals_count || "").trim()
-
-    if (!intervalTime || !intervalsCount) {
-      setStatus("Fyll i tid per intervall och antal intervaller först")
+    if (!normalizedProgram) {
+      setStatus("Lägg in minst ett giltigt intervallblock först")
       return
     }
 
-    const newSessionId = generateSessionId()
-    const customWorkout = {
-      id: CUSTOM_INTERVAL_WORKOUT_KEY,
-      label: "Eget intervallpass",
-      workoutKind: "running",
+    startCustomRunningWorkout({
+      label: presetName,
       runningType: "intervals",
-      runningOrigin: "free",
       runningConfig: {
-        interval_time: intervalTime,
-        intervals_count: Number(intervalsCount),
+        intervalProgram: normalizedProgram,
+      },
+      statusMessage: `${presetName} startat`,
+    })
+  }
+  const startOwnDistanceWorkout = () => {
+    startCustomRunningWorkout({
+      label: "Distanspass",
+      runningType: "distance",
+      runningConfig: {
         running_distance: null,
         running_time: "",
       },
-      exercises: [],
-      warmup: null,
+      statusMessage: "Distanspass startat",
+    })
+  }
+  const goBackFromPlayerRunningView = () => {
+    if (playerRunningView === "startDistance" || playerRunningView === "startIntervals") {
+      setPlayerRunningView("start")
+      setSelectedWorkout(null)
+      return
     }
 
-    setCustomRunningWorkout(customWorkout)
-    setSelectedWorkout(CUSTOM_INTERVAL_WORKOUT_KEY)
-    setCurrentSessionId(newSessionId)
-    setIsWorkoutActive(true)
-    setExpandedInfo({})
-    setLastFinishedWorkoutSummary(null)
-    setActiveTargetChangeRequestDraft(null)
-    setEditingLoggedSetKey(null)
-    setFocusedStepperInputKey(null)
-    setActiveCalendarEventPlayerId(null)
-    setActiveCalendarGroup(null)
-    setIsActiveCalendarGroupExpanded(false)
-    setPendingFreeActivityCalendarEvent(null)
-    setActiveTimedSetTimer(null)
-    setRestStopwatchStartedAt(null)
-    setInputs({})
-    setSelectedExerciseOptionKeys({})
-    setExerciseComments({})
-    setPassComment(String(runningDraft.comment || "").trim())
-    setActiveRunningInput({
-      interval_time: intervalTime,
-      intervals_count: intervalsCount,
-      running_distance: "",
-      running_time: "",
-      average_pulse: "",
-    })
-    setPlayerRunningView("ownInterval")
-    setPlayerView("workout")
-    setStatus("Eget intervallpass startat")
+    if (playerRunningView === "startAssigned" || playerRunningView === "startOwn") {
+      setPlayerRunningView("startIntervals")
+      setSelectedWorkout(null)
+      return
+    }
+
+    if (playerRunningView === "logDistance" || playerRunningView === "logIntervals") {
+      setPlayerRunningView("log")
+      setSelectedWorkout(null)
+      return
+    }
+
+    if (playerRunningView === "start" || playerRunningView === "log") {
+      setPlayerRunningView(null)
+      setSelectedWorkout(null)
+    }
   }
   const getPlayerPassDisplayType = (workout) => {
     if (workout.workoutKind === "running") return getWorkoutKindLabel(workout.workoutKind)
@@ -8922,6 +9261,7 @@ function TrainingApp() {
     if (workout.workoutKind === "running") {
       return buildRunningSummary({
         running_type: workout.runningType,
+        interval_program: workout.runningConfig?.intervalProgram,
         interval_time: workout.runningConfig?.interval_time,
         intervals_count: workout.runningConfig?.intervals_count,
         running_distance: workout.runningConfig?.running_distance,
@@ -10175,10 +10515,8 @@ function TrainingApp() {
                 setNewPassGymPassType={setNewPassGymPassType}
                 newPassRunningType={newPassRunningType}
                 setNewPassRunningType={setNewPassRunningType}
-                newPassRunningIntervalTime={newPassRunningIntervalTime}
-                setNewPassRunningIntervalTime={setNewPassRunningIntervalTime}
-                newPassRunningIntervalsCount={newPassRunningIntervalsCount}
-                setNewPassRunningIntervalsCount={setNewPassRunningIntervalsCount}
+                newPassRunningIntervalProgram={newPassRunningIntervalProgram}
+                setNewPassRunningIntervalProgram={setNewPassRunningIntervalProgram}
                 newPassRunningDistance={newPassRunningDistance}
                 setNewPassRunningDistance={setNewPassRunningDistance}
                 newPassRunningTime={newPassRunningTime}
@@ -10201,10 +10539,8 @@ function TrainingApp() {
                 setRenamePassGymPassType={setRenamePassGymPassType}
                 renamePassRunningType={renamePassRunningType}
                 setRenamePassRunningType={setRenamePassRunningType}
-                renamePassRunningIntervalTime={renamePassRunningIntervalTime}
-                setRenamePassRunningIntervalTime={setRenamePassRunningIntervalTime}
-                renamePassRunningIntervalsCount={renamePassRunningIntervalsCount}
-                setRenamePassRunningIntervalsCount={setRenamePassRunningIntervalsCount}
+                renamePassRunningIntervalProgram={renamePassRunningIntervalProgram}
+                setRenamePassRunningIntervalProgram={setRenamePassRunningIntervalProgram}
                 renamePassRunningDistance={renamePassRunningDistance}
                 setRenamePassRunningDistance={setRenamePassRunningDistance}
                 renamePassRunningTime={renamePassRunningTime}
@@ -10726,8 +11062,7 @@ function TrainingApp() {
                   type="button"
                   onClick={() => {
                     if (playerPassFamily === "running" && playerRunningView) {
-                      setPlayerRunningView(null)
-                      setSelectedWorkout(null)
+                      goBackFromPlayerRunningView()
                       return
                     }
 
@@ -10771,90 +11106,235 @@ function TrainingApp() {
                       <div style={playerRunningHubGridStyle(isMobile)}>
                         <button
                           type="button"
-                          onClick={() => openPlayerRunningView("assigned")}
+                          onClick={() => openPlayerRunningView("start")}
                           style={playerRunningHubCardStyle("assigned")}
                         >
-                          <div style={playerRunningHubCardKickerStyle("assigned")}>Coachpass</div>
-                          <div style={playerRunningHubCardTitleStyle("assigned")}>Färdiga intervallpass</div>
+                          <div style={playerRunningHubCardKickerStyle("assigned")}>Använd appen</div>
+                          <div style={playerRunningHubCardTitleStyle("assigned")}>Starta pass</div>
                           <div style={playerRunningHubCardTextStyle("assigned")}>
-                            {playerFamilyCounts.running ? `${playerFamilyCounts.running} pass nedan` : "Inga färdiga löppass ännu"}
+                            Distans eller intervaller med timer och aktiv passvy
                           </div>
                         </button>
                         <button
                           type="button"
-                          onClick={() => openPlayerRunningView("ownInterval")}
+                          onClick={() => openPlayerRunningView("log")}
                           style={playerRunningHubCardStyle("ownInterval")}
                         >
-                          <div style={playerRunningHubCardKickerStyle("ownInterval")}>Eget upplägg</div>
-                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Skapa intervallpass</div>
-                          <div style={playerRunningHubCardTextStyle("ownInterval")}>Tid per intervall och antal intervaller</div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openPlayerRunningView("distance")}
-                          style={playerRunningHubCardStyle("distance")}
-                        >
-                          <div style={playerRunningHubCardKickerStyle("distance")}>Fri löpning</div>
-                          <div style={playerRunningHubCardTitleStyle("distance")}>Distanspass</div>
-                          <div style={playerRunningHubCardTextStyle("distance")}>Datum, kilometer, tid och puls</div>
+                          <div style={playerRunningHubCardKickerStyle("ownInterval")}>Logga efteråt</div>
+                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Registrera pass i efterhand</div>
+                          <div style={playerRunningHubCardTextStyle("ownInterval")}>
+                            Distans eller intervaller med flera block och vilor
+                          </div>
                         </button>
                       </div>
                     </section>
                   )}
 
-                  {playerPassFamily === "running" && playerRunningView === "ownInterval" && (
+                  {playerPassFamily === "running" && playerRunningView === "start" && (
+                    <section style={playerRunningHubStyle}>
+                      <div style={playerRunningHubGridStyle(isMobile)}>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("startDistance")}
+                          style={playerRunningHubCardStyle("distance")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("distance")}>Starta nu</div>
+                          <div style={playerRunningHubCardTitleStyle("distance")}>Distans</div>
+                          <div style={playerRunningHubCardTextStyle("distance")}>
+                            Starta ett distanspass och fyll i tid, distans och puls efter passet
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("startIntervals")}
+                          style={playerRunningHubCardStyle("assigned")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("assigned")}>Starta nu</div>
+                          <div style={playerRunningHubCardTitleStyle("assigned")}>Intervaller</div>
+                          <div style={playerRunningHubCardTextStyle("assigned")}>
+                            Välj mellan färdiga coachpass och egna blockpass
+                          </div>
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                  {playerPassFamily === "running" && playerRunningView === "startDistance" && (
                     <section style={playerRunningRegistrationPageStyle}>
                       <div style={playerRunningRegistrationHeaderStyle}>
-                        <div style={playerTodayMonoLabelStyle}>Eget upplägg</div>
+                        <div style={playerTodayMonoLabelStyle}>Starta pass</div>
                       </div>
-                      <div style={playerRunningRegistrationGridStyle(isMobile)}>
-                        <label style={fieldLabelStyle}>
-                          Tid per intervall
-                          <input
-                            placeholder="t.ex. 1 min eller 45 sek"
-                            value={runningDraft.interval_time}
-                            onChange={(e) => handleRunningDraftChange("interval_time", e.target.value)}
-                            style={playerActivityInputStyle}
-                          />
-                        </label>
-                        <label style={fieldLabelStyle}>
-                          Antal intervaller
-                          <input
-                            placeholder="t.ex. 8"
-                            value={runningDraft.intervals_count}
-                            onChange={(e) => handleRunningDraftChange("intervals_count", e.target.value)}
-                            style={playerActivityInputStyle}
-                          />
-                        </label>
-                        <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
-                          Kommentar
-                          <textarea
-                            rows={3}
-                            placeholder="T.ex. känsla eller upplägg"
-                            value={runningDraft.comment}
-                            onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
-                            style={playerActivityTextareaStyle}
-                          />
-                        </label>
+                      <div style={{ ...mutedTextStyle, marginBottom: "18px" }}>
+                        Starta ett distanspass och fyll i distans, tid och puls när passet är klart.
                       </div>
                       <button
                         type="button"
-                        onClick={startOwnIntervalWorkout}
+                        onClick={startOwnDistanceWorkout}
                         style={{
                           ...buttonStyle,
                           ...playerPassStartButtonStyle,
                           width: "100%",
                         }}
                       >
-                        Starta intervallpass
+                        Starta distanspass
                       </button>
                     </section>
                   )}
 
-                  {playerPassFamily === "running" && playerRunningView === "distance" && (
+                  {playerPassFamily === "running" && playerRunningView === "startIntervals" && (
+                    <section style={playerRunningHubStyle}>
+                      <div style={playerRunningHubGridStyle(isMobile)}>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("startAssigned")}
+                          style={playerRunningHubCardStyle("assigned")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("assigned")}>Coachpass</div>
+                          <div style={playerRunningHubCardTitleStyle("assigned")}>Färdiga intervaller</div>
+                          <div style={playerRunningHubCardTextStyle("assigned")}>
+                            {playerFamilyCounts.running
+                              ? `${playerFamilyCounts.running} löppass tillgängliga`
+                              : "Inga färdiga intervallpass ännu"}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("startOwn")}
+                          style={playerRunningHubCardStyle("ownInterval")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("ownInterval")}>Sparbara upplägg</div>
+                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Egna pass</div>
+                          <div style={playerRunningHubCardTextStyle("ownInterval")}>
+                            Skapa, spara, redigera och starta egna intervallblock
+                          </div>
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                  {playerPassFamily === "running" && playerRunningView === "startOwn" && (
                     <section style={playerRunningRegistrationPageStyle}>
                       <div style={playerRunningRegistrationHeaderStyle}>
-                        <div style={playerTodayMonoLabelStyle}>Fri löpning</div>
+                        <div style={playerTodayMonoLabelStyle}>Egna pass</div>
+                      </div>
+                      {playerRunningPresets.length > 0 && (
+                        <div style={{ display: "grid", gap: "10px", marginBottom: "18px" }}>
+                          {playerRunningPresets.map((preset) => {
+                            const isSelectedPreset =
+                              String(selectedPlayerRunningPresetId) === String(preset.id)
+
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => handleSelectPlayerRunningPreset(preset.id)}
+                                style={{
+                                  ...playerHistoryItemStyle,
+                                  textAlign: "left",
+                                  border: isSelectedPreset ? `1px solid ${playerAccent}` : playerHistoryItemStyle.border,
+                                  backgroundColor: isSelectedPreset ? "rgba(217, 74, 31, 0.08)" : playerHistoryItemStyle.backgroundColor,
+                                }}
+                              >
+                                <div style={playerHistoryItemTitleStyle}>{preset.name}</div>
+                                <div style={playerHistoryItemMetaStyle}>
+                                  {buildRunningProgramSummary({
+                                    running_type: "intervals",
+                                    interval_program: preset.running_interval_program,
+                                  })}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                      <div style={{ display: "grid", gap: "16px" }}>
+                        <label style={fieldLabelStyle}>
+                          Namn på passet
+                          <input
+                            placeholder="T.ex. 4x1 min + 6x45 sek"
+                            value={playerRunningPresetName}
+                            onChange={(e) => setPlayerRunningPresetName(e.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <IntervalProgramEditor
+                          programDraft={playerRunningPresetDraft}
+                          onChange={setPlayerRunningPresetDraft}
+                          isMobile={isMobile}
+                        />
+                        <div style={{ display: "grid", gap: "10px", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))" }}>
+                          <button
+                            type="button"
+                            onClick={handleSavePlayerRunningPreset}
+                            disabled={isSavingPlayerRunningPreset}
+                            style={{
+                              ...buttonStyle,
+                              opacity: isSavingPlayerRunningPreset ? 0.7 : 1,
+                            }}
+                          >
+                            {isSavingPlayerRunningPreset ? "Sparar..." : "Spara pass"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={startOwnIntervalWorkout}
+                            style={secondaryButtonStyle}
+                          >
+                            Starta pass
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              selectedPlayerRunningPresetId
+                                ? handleDeletePlayerRunningPreset(selectedPlayerRunningPresetId)
+                                : resetPlayerRunningPresetEditor()
+                            }
+                            disabled={Boolean(selectedPlayerRunningPresetId) && deletingPlayerRunningPresetId === selectedPlayerRunningPresetId}
+                            style={secondaryButtonStyle}
+                          >
+                            {selectedPlayerRunningPresetId
+                              ? deletingPlayerRunningPresetId === selectedPlayerRunningPresetId
+                                ? "Tar bort..."
+                                : "Ta bort"
+                              : "Nytt pass"}
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {playerPassFamily === "running" && playerRunningView === "log" && (
+                    <section style={playerRunningHubStyle}>
+                      <div style={playerRunningHubGridStyle(isMobile)}>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("logDistance")}
+                          style={playerRunningHubCardStyle("distance")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("distance")}>Efterhand</div>
+                          <div style={playerRunningHubCardTitleStyle("distance")}>Distans</div>
+                          <div style={playerRunningHubCardTextStyle("distance")}>
+                            Datum, kilometer, tid, puls och kommentar
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPlayerRunningView("logIntervals")}
+                          style={playerRunningHubCardStyle("ownInterval")}
+                        >
+                          <div style={playerRunningHubCardKickerStyle("ownInterval")}>Efterhand</div>
+                          <div style={playerRunningHubCardTitleStyle("ownInterval")}>Intervaller</div>
+                          <div style={playerRunningHubCardTextStyle("ownInterval")}>
+                            Flera block, intervallvila och paus mellan block
+                          </div>
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                  {playerPassFamily === "running" && playerRunningView === "logDistance" && (
+                    <section style={playerRunningRegistrationPageStyle}>
+                      <div style={playerRunningRegistrationHeaderStyle}>
+                        <div style={playerTodayMonoLabelStyle}>Efterhandslogg</div>
                       </div>
                       <div style={playerRunningRegistrationGridStyle(isMobile)}>
                         <label style={fieldLabelStyle}>
@@ -10916,6 +11396,64 @@ function TrainingApp() {
                         }}
                       >
                         {isSavingRunningSession ? "Sparar..." : "Spara distans"}
+                      </button>
+                    </section>
+                  )}
+
+                  {playerPassFamily === "running" && playerRunningView === "logIntervals" && (
+                    <section style={playerRunningRegistrationPageStyle}>
+                      <div style={playerRunningRegistrationHeaderStyle}>
+                        <div style={playerTodayMonoLabelStyle}>Efterhandslogg</div>
+                      </div>
+                      <div style={{ display: "grid", gap: "16px" }}>
+                        <label style={fieldLabelStyle}>
+                          Datum
+                          <input
+                            type="date"
+                            value={runningDraft.log_date}
+                            onChange={(e) => handleRunningDraftChange("log_date", e.target.value)}
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <IntervalProgramEditor
+                          programDraft={runningDraft.interval_program}
+                          onChange={(value) => handleRunningDraftChange("interval_program", value)}
+                          isMobile={isMobile}
+                        />
+                        <div style={playerRunningRegistrationGridStyle(isMobile)}>
+                          <label style={fieldLabelStyle}>
+                            Total tid
+                            <input
+                              placeholder="t.ex. 32:00"
+                              value={runningDraft.running_time}
+                              onChange={(e) => handleRunningDraftChange("running_time", e.target.value)}
+                              style={playerActivityInputStyle}
+                            />
+                          </label>
+                          <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
+                            Kommentar
+                            <textarea
+                              rows={3}
+                              placeholder="T.ex. känsla, fart eller underlag"
+                              value={runningDraft.comment}
+                              onChange={(e) => handleRunningDraftChange("comment", e.target.value)}
+                              style={playerActivityTextareaStyle}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveRunningSession}
+                        disabled={isSavingRunningSession}
+                        style={{
+                          ...buttonStyle,
+                          ...playerPassStartButtonStyle,
+                          width: "100%",
+                          opacity: isSavingRunningSession ? 0.7 : 1,
+                        }}
+                      >
+                        {isSavingRunningSession ? "Sparar..." : "Spara intervallpass"}
                       </button>
                     </section>
                   )}
@@ -11639,6 +12177,7 @@ function TrainingApp() {
                 workout={activeWorkoutData}
                 summaryText={buildRunningSummary({
                   running_type: activeWorkoutData?.runningType,
+                  interval_program: activeWorkoutData?.runningConfig?.intervalProgram,
                   interval_time: activeWorkoutData?.runningConfig?.interval_time,
                   intervals_count: activeWorkoutData?.runningConfig?.intervals_count,
                   running_distance: activeWorkoutData?.runningConfig?.running_distance,
@@ -11646,6 +12185,7 @@ function TrainingApp() {
                 })}
                 input={activeRunningInput}
                 onChangeField={handleActiveRunningInputChange}
+                onTotalTimeChange={(value) => handleActiveRunningInputChange("running_time", value)}
                 onStatusChange={setStatus}
                 isMobile={isMobile}
               />
