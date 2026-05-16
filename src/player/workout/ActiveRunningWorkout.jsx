@@ -188,7 +188,7 @@ function ActiveDistanceRunningWorkout({
   isMobile,
 }) {
   const [elapsedMs, setElapsedMs] = useState(0)
-  const [isLocationEnabled, setIsLocationEnabled] = useState(false)
+  const [isLocationEnabled] = useState(Boolean(input.location_enabled))
   const [locationStatus, setLocationStatus] = useState("Platsdelning är avstängd")
   const stopwatchStartedAtRef = useRef(Date.now())
   const elapsedOffsetMsRef = useRef(0)
@@ -229,10 +229,9 @@ function ActiveDistanceRunningWorkout({
     }
 
     if (typeof navigator === "undefined" || !navigator.geolocation?.watchPosition) {
-      setLocationStatus("Den här enheten stödjer inte platsdelning")
-      setIsLocationEnabled(false)
-      return
-    }
+        setLocationStatus("Den här enheten stödjer inte platsdelning")
+        return
+      }
 
     setLocationStatus("Hämtar position...")
 
@@ -260,7 +259,6 @@ function ActiveDistanceRunningWorkout({
       (error) => {
         console.error(error)
         setLocationStatus("Kunde inte hämta plats. Kontrollera GPS och behörighet.")
-        setIsLocationEnabled(false)
         onStatusChange?.("Kunde inte starta platsdelning")
       },
       {
@@ -333,18 +331,10 @@ function ActiveDistanceRunningWorkout({
       </div>
 
       <div style={actionGridStyle(isMobile)}>
-        <button
-          type="button"
-          onClick={() => setIsLocationEnabled((current) => !current)}
-          style={isLocationEnabled ? primaryButtonStyle : secondaryButtonStyle}
-        >
-          {isLocationEnabled ? "Stoppa platsdelning" : "Dela plats och mata distans"}
-        </button>
-
         <div style={infoPanelStyle}>
           <div style={statLabelStyle}>Hur det fungerar</div>
           <div style={helperTextStyle}>
-            Klockan startar automatiskt. Platsdelning är frivillig och används bara för att räkna ut distansen under passet.
+            Klockan startar automatiskt. Platsdelningen följer valet du gjorde innan passet startade.
           </div>
         </div>
       </div>

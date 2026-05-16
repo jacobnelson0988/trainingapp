@@ -1248,6 +1248,7 @@ function TrainingApp() {
   const [selectedPlayerRunningPresetId, setSelectedPlayerRunningPresetId] = useState("")
   const [playerRunningPresetName, setPlayerRunningPresetName] = useState("")
   const [playerRunningPresetDraft, setPlayerRunningPresetDraft] = useState(() => createIntervalProgramDraft())
+  const [startDistanceShareLocation, setStartDistanceShareLocation] = useState(false)
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseIds, setSelectedPlayerStatsExerciseIds] = useState([])
@@ -1395,6 +1396,7 @@ function TrainingApp() {
     running_distance: "",
     running_time: "",
     average_pulse: "",
+    location_enabled: false,
   })
   const exerciseCarouselRef = useRef(null)
   const calendarAutoSyncInFlightRef = useRef(false)
@@ -4993,6 +4995,7 @@ function TrainingApp() {
             : "",
         running_time: workout.runningConfig?.running_time || "",
         average_pulse: "",
+        location_enabled: false,
       })
       setInputs({})
       setSelectedExerciseOptionKeys({})
@@ -6287,6 +6290,7 @@ function TrainingApp() {
         runningConfig?.running_distance != null ? String(runningConfig.running_distance) : "",
       running_time: runningConfig?.running_time || "",
       average_pulse: "",
+      location_enabled: Boolean(runningConfig?.shareLocationEnabled),
     })
     setPlayerView("workout")
     setStatus(statusMessage || `${label} startat`)
@@ -9163,6 +9167,10 @@ function TrainingApp() {
     setSelectedWorkout(null)
     setCustomRunningWorkout(null)
 
+    if (viewKey === "startDistance") {
+      setStartDistanceShareLocation(false)
+    }
+
     if (viewKey === "startOwn") {
       resetPlayerRunningPresetEditor()
     }
@@ -9224,6 +9232,7 @@ function TrainingApp() {
       runningConfig: {
         running_distance: null,
         running_time: "",
+        shareLocationEnabled: startDistanceShareLocation,
       },
       statusMessage: "Distanspass startat",
     })
@@ -11165,7 +11174,28 @@ function TrainingApp() {
                         <div style={playerTodayMonoLabelStyle}>Starta pass</div>
                       </div>
                       <div style={{ ...mutedTextStyle, marginBottom: "18px" }}>
-                        Starta ett distanspass och fyll i distans, tid och puls när passet är klart.
+                        Välj först om du vill dela plats under passet. När du sedan trycker på start går klockan igång direkt.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStartDistanceShareLocation((current) => !current)}
+                        style={{
+                          ...secondaryButtonStyle,
+                          width: "100%",
+                          marginBottom: "12px",
+                          borderColor: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.borderColor,
+                          color: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.color,
+                          backgroundColor: startDistanceShareLocation ? "rgba(217, 74, 31, 0.08)" : secondaryButtonStyle.backgroundColor,
+                        }}
+                      >
+                        {startDistanceShareLocation
+                          ? "Platsdelning på vid start"
+                          : "Platsdelning av vid start"}
+                      </button>
+                      <div style={{ ...mutedTextStyle, marginBottom: "18px" }}>
+                        {startDistanceShareLocation
+                          ? "Distansen matas live så fort passet startar."
+                          : "Du kan springa utan platsdelning och fylla i distansen efteråt."}
                       </div>
                       <button
                         type="button"
