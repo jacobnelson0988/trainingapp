@@ -150,6 +150,41 @@ const infoPanelStyle = {
   gap: "8px",
 }
 
+const fieldGridStyle = (isMobile) => ({
+  display: "grid",
+  gap: "10px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+})
+
+const fieldShellStyle = {
+  display: "grid",
+  gap: "8px",
+}
+
+const fieldLabelStyle = {
+  fontFamily: redesignMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: redesignMuted,
+}
+
+const fieldInputStyle = {
+  width: "100%",
+  minHeight: "56px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  border: `1px solid ${redesignLine}`,
+  backgroundColor: redesignSurfaceSoft,
+  boxSizing: "border-box",
+  fontFamily: redesignDisplayFont,
+  fontSize: "18px",
+  lineHeight: 1.2,
+  fontWeight: 700,
+  color: redesignInk,
+}
+
 const formatDistanceKm = (distanceKm) => {
   if (!Number.isFinite(distanceKm)) return "0.00"
   return distanceKm.toFixed(2)
@@ -185,6 +220,7 @@ function ActiveDistanceRunningWorkout({
   onChangeField,
   onTotalTimeChange,
   onStatusChange,
+  onFinish,
   isMobile,
 }) {
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -228,45 +264,61 @@ function ActiveDistanceRunningWorkout({
       return
     }
 
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setLocationStatus("Platsdelning kräver en säker anslutning")
+      onStatusChange?.("Platsdelning kräver en säker anslutning")
+      return
+    }
+
     if (typeof navigator === "undefined" || !navigator.geolocation?.watchPosition) {
-        setLocationStatus("Den här enheten stödjer inte platsdelning")
-        return
-      }
+      setLocationStatus("Den här enheten stödjer inte platsdelning")
+      return
+    }
 
     setLocationStatus("Hämtar position...")
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const currentPoint = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        }
-
-        if (lastPointRef.current) {
-          const deltaMeters = calculateDistanceMeters(lastPointRef.current, currentPoint)
-          const accuracyPenalty = Math.max(lastPointRef.current.accuracy || 0, currentPoint.accuracy || 0)
-
-          if (deltaMeters > 3 && deltaMeters < 1000 && accuracyPenalty < 120) {
-            totalDistanceMetersRef.current += deltaMeters
-            onChangeField("running_distance", formatDistanceKm(totalDistanceMetersRef.current / 1000))
+    try {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const currentPoint = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
           }
-        }
 
-        lastPointRef.current = currentPoint
-        setLocationStatus(`Platsdelning aktiv${position.coords.accuracy ? ` · ±${Math.round(position.coords.accuracy)} m` : ""}`)
-      },
-      (error) => {
-        console.error(error)
-        setLocationStatus("Kunde inte hämta plats. Kontrollera GPS och behörighet.")
-        onStatusChange?.("Kunde inte starta platsdelning")
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 10000,
-      }
-    )
+          if (lastPointRef.current) {
+            const deltaMeters = calculateDistanceMeters(lastPointRef.current, currentPoint)
+            const accuracyPenalty = Math.max(lastPointRef.current.accuracy || 0, currentPoint.accuracy || 0)
+
+            if (deltaMeters > 3 && deltaMeters < 1000 && accuracyPenalty < 120) {
+              totalDistanceMetersRef.current += deltaMeters
+              onChangeField("running_distance", formatDistanceKm(totalDistanceMetersRef.current / 1000))
+            }
+          }
+
+          lastPointRef.current = currentPoint
+          setLocationStatus(
+            `Platsdelning aktiv${position.coords.accuracy ? ` · ±${Math.round(position.coords.accuracy)} m` : ""}`
+          )
+        },
+        (error) => {
+          console.error(error)
+          setLocationStatus("Kunde inte hämta plats. Kontrollera GPS och behörighet.")
+          onStatusChange?.("Kunde inte starta platsdelning")
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 1000,
+          timeout: 10000,
+        }
+      )
+    } catch (error) {
+      console.error(error)
+      setLocationStatus("Platsdelning kunde inte startas på den här enheten")
+      onStatusChange?.("Kunde inte starta platsdelning")
+      watchIdRef.current = null
+      return
+    }
 
     return () => {
       if (watchIdRef.current != null && navigator.geolocation) {
@@ -338,6 +390,32 @@ function ActiveDistanceRunningWorkout({
           </div>
         </div>
       </div>
+
+      <div style={fieldGridStyle(isMobile)}>
+        <label style={fieldShellStyle}>
+          <span style={fieldLabelStyle}>Distans</span>
+          <input
+            placeholder="Distans i km"
+            value={input.running_distance}
+            onChange={(event) => onChangeField("running_distance", event.target.value)}
+            style={fieldInputStyle}
+          />
+        </label>
+
+        <label style={fieldShellStyle}>
+          <span style={fieldLabelStyle}>Snittpuls</span>
+          <input
+            placeholder="Valfritt"
+            value={input.average_pulse}
+            onChange={(event) => onChangeField("average_pulse", event.target.value)}
+            style={fieldInputStyle}
+          />
+        </label>
+      </div>
+
+      <button type="button" onClick={onFinish} style={primaryButtonStyle}>
+        Avsluta och spara
+      </button>
     </div>
   )
 }

@@ -12217,6 +12217,7 @@ function TrainingApp() {
                 onChangeField={handleActiveRunningInputChange}
                 onTotalTimeChange={(value) => handleActiveRunningInputChange("running_time", value)}
                 onStatusChange={setStatus}
+                onFinish={finishWorkout}
                 isMobile={isMobile}
               />
             </div>
