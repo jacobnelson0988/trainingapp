@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="120" fill="#f3efe6"/>
-  <rect x="86" y="94" width="340" height="324" rx="88" fill="#1a1814"/>
-  <rect x="122" y="138" width="268" height="40" rx="20" fill="#d94a1f"/>
-  <rect x="150" y="228" width="212" height="34" rx="17" fill="#f3efe6"/>
-  <rect x="150" y="288" width="126" height="34" rx="17" fill="#f3efe6" opacity="0.9"/>
-  <circle cx="330" cy="305" r="38" fill="#d94a1f"/>
-  <path d="M328 284h6v18h18v6h-18v18h-6v-18h-18v-6h18z" fill="#f3efe6"/>
+  <rect width="512" height="512" rx="120" fill="#ffffff"/>
+  <rect x="86" y="94" width="340" height="324" rx="88" fill="#111827"/>
+  <rect x="122" y="138" width="268" height="40" rx="20" fill="#4f46e5"/>
+  <rect x="150" y="228" width="212" height="34" rx="17" fill="#ffffff"/>
+  <rect x="150" y="288" width="126" height="34" rx="17" fill="#ffffff" opacity="0.94"/>
+  <circle cx="330" cy="305" r="38" fill="#4f46e5"/>
+  <path d="M328 284h6v18h18v6h-18v18h-6v-18h-18v-6h18z" fill="#ffffff"/>
 </svg>

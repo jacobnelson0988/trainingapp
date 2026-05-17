@@ -27,6 +27,9 @@ import {
   storedProgramToDraft,
 } from "./running/intervalPrograms"
 import {
+  redesignAccent,
+  redesignAccentDark,
+  redesignAccentSoft,
   bodyTextStyleToken,
   compactBodyTextStyleToken,
   fieldLabelStyleToken,
@@ -3832,8 +3835,8 @@ function TrainingApp() {
     if (diffDays <= 7) {
       return {
         label: "Dags snart igen",
-        backgroundColor: "#fff7ed",
-        color: "#c2410c",
+        backgroundColor: "#ffffff",
+        color: "#4338ca",
       }
     }
 
@@ -10864,10 +10867,10 @@ function TrainingApp() {
                             : coachBottomNavIconWrapStyle),
                           backgroundColor: useManagementRedesignShell
                             ? isActive
-                              ? "rgba(217, 74, 31, 0.12)"
+                              ? "rgba(79, 70, 229, 0.12)"
                               : "transparent"
                             : isActive
-                            ? "#fff1f1"
+                            ? "#eef2ff"
                             : "transparent",
                         }}
                       >
@@ -10910,7 +10913,7 @@ function TrainingApp() {
                             ? playerAccent
                             : playerInkSoft
                           : isActive
-                          ? "#b61e24"
+                          ? "#4f46e5"
                           : "#6b7280",
                       }}
                     >
@@ -10921,10 +10924,10 @@ function TrainingApp() {
                             : coachBottomNavIconWrapStyle),
                           backgroundColor: useManagementRedesignShell
                             ? isActive
-                              ? "rgba(217, 74, 31, 0.12)"
+                              ? "rgba(79, 70, 229, 0.12)"
                               : "transparent"
                             : isActive
-                            ? "#fff1f1"
+                            ? "#eef2ff"
                             : "transparent",
                         }}
                       >
@@ -11001,9 +11004,9 @@ function TrainingApp() {
                     style={{
                       ...activeWorkoutProgressSegmentStyle,
                       backgroundColor: segment.isCurrent
-                        ? "#d94a1f"
+                        ? "#4f46e5"
                         : segment.isComplete
-                        ? "#1a1814"
+                        ? "#111827"
                         : "rgba(26, 24, 20, 0.14)",
                     }}
                   />
@@ -11407,7 +11410,7 @@ function TrainingApp() {
                           marginBottom: "12px",
                           borderColor: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.borderColor,
                           color: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.color,
-                          backgroundColor: startDistanceShareLocation ? "rgba(217, 74, 31, 0.08)" : secondaryButtonStyle.backgroundColor,
+                          backgroundColor: startDistanceShareLocation ? "rgba(79, 70, 229, 0.08)" : secondaryButtonStyle.backgroundColor,
                         }}
                       >
                         {startDistanceShareLocation
@@ -11484,7 +11487,7 @@ function TrainingApp() {
                                   ...playerHistoryItemStyle,
                                   textAlign: "left",
                                   border: isSelectedPreset ? `1px solid ${playerAccent}` : playerHistoryItemStyle.border,
-                                  backgroundColor: isSelectedPreset ? "rgba(217, 74, 31, 0.08)" : playerHistoryItemStyle.backgroundColor,
+                                  backgroundColor: isSelectedPreset ? "rgba(79, 70, 229, 0.08)" : playerHistoryItemStyle.backgroundColor,
                                 }}
                               >
                                 <div style={playerHistoryItemTitleStyle}>{preset.name}</div>
@@ -12292,7 +12295,7 @@ function TrainingApp() {
                         ? playerAccent
                         : playerInkSoft
                       : isActive
-                      ? "#b61e24"
+                      ? "#4f46e5"
                       : "#6b7280",
                   }}
                 >
@@ -12301,10 +12304,10 @@ function TrainingApp() {
                       ...(usePlayerRedesignShell ? playerBottomNavIconWrapStyle : coachBottomNavIconWrapStyle),
                       backgroundColor: usePlayerRedesignShell
                         ? isActive
-                          ? "rgba(217, 74, 31, 0.12)"
+                          ? "rgba(79, 70, 229, 0.12)"
                           : "transparent"
                         : isActive
-                        ? "#fff1f1"
+                        ? "#eef2ff"
                         : "transparent",
                     }}
                   >
@@ -12568,7 +12571,7 @@ function TrainingApp() {
                               ...activeWorkoutInfoIconButtonStyle,
                               color: isInfoExpanded ? playerAccent : playerInkSoft,
                               borderColor: isInfoExpanded ? playerAccent : playerLine,
-                              backgroundColor: isInfoExpanded ? "rgba(217, 74, 31, 0.12)" : "transparent",
+                              backgroundColor: isInfoExpanded ? "rgba(79, 70, 229, 0.12)" : "transparent",
                             }}
                           >
                             i
@@ -12588,7 +12591,7 @@ function TrainingApp() {
                             ...activeWorkoutTopPillButtonStyle,
                             color: isAlternativesExpanded ? playerAccent : playerInk,
                             borderColor: isAlternativesExpanded ? playerAccent : playerLine,
-                            backgroundColor: isAlternativesExpanded ? "rgba(217, 74, 31, 0.12)" : "transparent",
+                            backgroundColor: isAlternativesExpanded ? "rgba(79, 70, 229, 0.12)" : "transparent",
                           }}
                         >
                           Alternativ
@@ -12647,7 +12650,7 @@ function TrainingApp() {
                           padding: "14px",
                           borderRadius: "16px",
                           border: "1px solid #e5e7eb",
-                          backgroundColor: "#fffaf5",
+                          backgroundColor: "#ffffff",
                         }}
                       >
                         <div style={{ ...exerciseCommentTitleStyle, marginBottom: "6px" }}>Kastprotokoll</div>
@@ -12668,7 +12671,7 @@ function TrainingApp() {
                               style={{
                                 fontSize: "22px",
                                 fontWeight: "800",
-                                color: "#18202b",
+                                color: "#111827",
                                 marginBottom: "6px",
                               }}
                             >
@@ -12689,7 +12692,7 @@ function TrainingApp() {
                                 marginTop: "12px",
                                 backgroundColor: isCompleted ? "#ecfdf3" : "#ffffff",
                                 borderColor: isCompleted ? "#16a34a" : "#d1d5db",
-                                color: isCompleted ? "#166534" : "#18202b",
+                                color: isCompleted ? "#166534" : "#111827",
                               }}
                             >
                               {isCompleted ? "Klart, tryck för att ångra" : "Markera block som klart"}
@@ -13317,13 +13320,13 @@ function TrainingApp() {
                                       ...activeWorkoutBilateralHalfStyle,
                                       backgroundColor:
                                         timerIsActive || isActiveSide
-                                          ? "rgba(217, 74, 31, 0.14)"
+                                          ? "rgba(79, 70, 229, 0.14)"
                                           : previewValue
                                           ? "rgba(255, 255, 255, 0.72)"
                                           : "rgba(26, 24, 20, 0.05)",
                                       borderColor:
                                         timerIsActive || isActiveSide
-                                          ? "rgba(217, 74, 31, 0.34)"
+                                          ? "rgba(79, 70, 229, 0.34)"
                                           : playerLine,
                                       cursor: canSelectSide ? "pointer" : "default",
                                       textAlign: "left",
@@ -13510,7 +13513,7 @@ function TrainingApp() {
                               key={set.client_set_id || j}
                               style={{
                                 ...activeWorkoutBilateralTableRowStyle,
-                                backgroundColor: isCurrentRow ? "rgba(217, 74, 31, 0.08)" : "transparent",
+                                backgroundColor: isCurrentRow ? "rgba(79, 70, 229, 0.08)" : "transparent",
                               }}
                             >
                               <span>Set {j + 1}</span>
@@ -13563,7 +13566,7 @@ function TrainingApp() {
                               style={{
                                 ...alternativeSelectionOptionStyle,
                                 borderColor: isSelectedOption ? playerAccent : playerLine,
-                                backgroundColor: isSelectedOption ? "rgba(217, 74, 31, 0.12)" : "rgba(255, 255, 255, 0.28)",
+                                backgroundColor: isSelectedOption ? "rgba(79, 70, 229, 0.12)" : "rgba(255, 255, 255, 0.28)",
                                 color: isSelectedOption ? playerAccent : playerInk,
                               }}
                             >
@@ -13945,7 +13948,7 @@ function PlayerProgressChart({ entries }) {
 
       <polyline
         fill="none"
-        stroke="#b61e24"
+        stroke="#4f46e5"
         strokeWidth="4"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -13954,7 +13957,7 @@ function PlayerProgressChart({ entries }) {
 
       {chartPoints.map((point) => (
         <g key={`${point.created_at}-${point.top_weight}`}>
-          <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#b61e24" strokeWidth="3" />
+          <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#4f46e5" strokeWidth="3" />
           <text x={point.x} y={chartHeight - 10} textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="700">
             {point.label}
           </text>
@@ -13983,21 +13986,23 @@ const uiBorderStrong = "var(--ghf-line-strong)"
 const uiShadowSm = "var(--ghf-shadow-sm)"
 const uiShadowMd = "var(--ghf-shadow-md)"
 const uiShadowLg = "var(--ghf-shadow-lg)"
-const playerPaper = "#f3efe6"
-const playerInk = "#1a1814"
-const playerInkSoft = "#6f6659"
-const playerAccent = "#d94a1f"
-const playerLine = "rgba(26, 24, 20, 0.14)"
+const playerPaper = redesignPaper
+const playerInk = redesignInk
+const playerInkSoft = redesignMuted
+const playerAccent = redesignAccent
+const playerAccentSoft = redesignAccentSoft
+const playerAccentDark = redesignAccentDark
+const playerLine = redesignLine
 const playerDisplayFont = '"Manrope", sans-serif'
 const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
 
 const playerShellPageStyle = (isMobile) => ({
   maxWidth: isMobile ? "100%" : "760px",
   background:
-    "radial-gradient(circle at 18% -6%, rgba(217, 74, 31, 0.16), transparent 34%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
+    "radial-gradient(circle at 18% -6%, rgba(79, 70, 229, 0.14), transparent 34%), linear-gradient(180deg, #ffffff 0%, #f8faff 100%)",
   color: playerInk,
   fontFamily: '"Manrope", sans-serif',
-  boxShadow: isMobile ? "none" : "0 30px 70px rgba(26, 24, 20, 0.08)",
+  boxShadow: isMobile ? "none" : "0 30px 70px rgba(17, 24, 39, 0.08)",
 })
 
 const playerShellMenuWrapStyle = (isMobile) => ({
@@ -14034,10 +14039,10 @@ const playerShellMenuIconLineStyle = {
 const managementShellPageStyle = (isMobile) => ({
   maxWidth: isMobile ? "100%" : "1120px",
   background:
-    "radial-gradient(circle at 16% -8%, rgba(217, 74, 31, 0.14), transparent 32%), linear-gradient(180deg, #f3efe6 0%, #e9dfcf 100%)",
+    "radial-gradient(circle at 16% -8%, rgba(79, 70, 229, 0.12), transparent 32%), linear-gradient(180deg, #ffffff 0%, #f8faff 100%)",
   color: playerInk,
   fontFamily: playerDisplayFont,
-  boxShadow: isMobile ? "none" : "0 30px 70px rgba(26, 24, 20, 0.08)",
+  boxShadow: isMobile ? "none" : "0 30px 70px rgba(17, 24, 39, 0.08)",
 })
 
 const managementShellMenuWrapStyle = (isMobile) => ({
@@ -14104,13 +14109,13 @@ const managementButtonStyle = {
   padding: "12px 16px",
   borderRadius: "18px",
   border: "none",
-  background: `linear-gradient(135deg, ${playerAccent} 0%, #b93617 100%)`,
+  background: `linear-gradient(135deg, ${playerAccent} 0%, ${playerAccentDark} 100%)`,
   color: playerPaper,
   fontFamily: playerDisplayFont,
   fontSize: "15px",
   fontWeight: "800",
   cursor: "pointer",
-  boxShadow: "0 16px 28px rgba(217, 74, 31, 0.2)",
+  boxShadow: "0 16px 28px rgba(79, 70, 229, 0.2)",
 }
 
 const managementSecondaryButtonStyle = {
@@ -14242,7 +14247,7 @@ const managementAccountWarningCardStyle = {
 
 const managementAccountWarningTitleStyle = {
   ...managementAccountSectionTitleStyle,
-  color: "#991b1b",
+  color: "#4338ca",
 }
 
 const managementAccountWarningTextStyle = {
@@ -14255,7 +14260,7 @@ const appTitleStyle = {
   fontSize: "clamp(2rem, 4vw, 3.4rem)",
   lineHeight: 0.95,
   fontWeight: "900",
-  color: "#18202b",
+  color: "#111827",
 }
 
 const appSubtitleStyle = {
@@ -14280,7 +14285,7 @@ const eyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#4338ca",
 }
 
 const heroCardStyle = {
@@ -14435,7 +14440,7 @@ const restStopwatchLabelStyle = {
   fontWeight: "700",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.64)",
+  color: "rgba(255, 255, 255, 0.64)",
 }
 
 const restStopwatchValueStyle = {
@@ -14451,7 +14456,7 @@ const restStopwatchHintStyle = {
   marginTop: "6px",
   fontSize: "10px",
   fontWeight: "700",
-  color: "rgba(243, 239, 230, 0.68)",
+  color: "rgba(255, 255, 255, 0.68)",
 }
 
 const activeWorkoutGroupCardStyle = {
@@ -14459,7 +14464,7 @@ const activeWorkoutGroupCardStyle = {
   padding: "14px 16px",
   borderRadius: "18px",
   border: `1px solid ${uiBorder}`,
-  backgroundColor: "#fffaf5",
+  backgroundColor: "#ffffff",
   boxShadow: uiShadowSm,
 }
 
@@ -14474,7 +14479,7 @@ const activeWorkoutGroupButtonStyle = {
   gap: "12px",
   textAlign: "left",
   cursor: "pointer",
-  color: "#18202b",
+  color: "#111827",
 }
 
 const activeWorkoutGroupLabelStyle = {
@@ -14482,7 +14487,7 @@ const activeWorkoutGroupLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "#4338ca",
   marginBottom: "6px",
 }
 
@@ -14490,14 +14495,14 @@ const activeWorkoutGroupNameStyle = {
   fontSize: "20px",
   lineHeight: 1.1,
   fontWeight: "900",
-  color: "#18202b",
+  color: "#111827",
 }
 
 const activeWorkoutGroupToggleStyle = {
   fontSize: "22px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#991b1b",
+  color: "#4338ca",
 }
 
 const activeWorkoutGroupMembersStyle = {
@@ -14520,8 +14525,8 @@ const activeWorkoutGroupMemberRowStyle = {
 const activeWorkoutGroupMemberYouStyle = {
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: "#eef2ff",
+  color: "#4f46e5",
   fontSize: "11px",
   fontWeight: "800",
 }
@@ -14543,14 +14548,14 @@ const feedbackActionTitleStyle = {
   marginBottom: "4px",
   fontSize: "16px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "#111827",
 }
 
 const compactFieldLabelStyle = {
   marginBottom: "8px",
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "#111827",
 }
 
 const fieldLabelStyle = {
@@ -14580,7 +14585,7 @@ const logoutButtonStyle = {
   borderRadius: "16px",
   border: `1px solid ${uiBorderStrong}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "#111827",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
@@ -14613,7 +14618,7 @@ const menuButtonStyle = {
   borderRadius: "14px",
   border: `1px solid ${uiBorderStrong}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "#111827",
   cursor: "pointer",
   boxShadow: uiShadowSm,
 }
@@ -14622,7 +14627,7 @@ const menuIconLineStyle = {
   width: "18px",
   height: "2px",
   borderRadius: "999px",
-  backgroundColor: "#18202b",
+  backgroundColor: "#111827",
 }
 
 const menuDropdownStyle = (isMobile) => ({
@@ -14647,7 +14652,7 @@ const menuItemButtonStyle = {
   border: "none",
   borderRadius: "12px",
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "#111827",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
@@ -14672,7 +14677,7 @@ const coachTabButtonStyle = {
   borderRadius: "16px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "#111827",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
@@ -14680,7 +14685,7 @@ const coachTabButtonStyle = {
 }
 
 const activeCoachTabButtonStyle = {
-  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
+  background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
   color: "#ffffff",
   borderColor: "#b91c1c",
   boxShadow: "0 16px 28px rgba(198, 40, 40, 0.24)",
@@ -14728,7 +14733,7 @@ const guideStyle = {
 const exerciseDescriptionStyle = {
   margin: 0,
   fontSize: "14px",
-  color: "#18202b",
+  color: "#111827",
   lineHeight: 1.6,
   fontWeight: "700",
 }
@@ -14765,7 +14770,7 @@ const exerciseProgressStyle = {
   marginBottom: "12px",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  backgroundColor: "rgba(79, 70, 229, 0.12)",
   color: playerAccent,
   fontFamily: playerMonoFont,
   fontSize: "10px",
@@ -14842,7 +14847,7 @@ const activeWorkoutBottomNavStyle = {
   padding: "10px",
   borderRadius: "24px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.94)",
+  backgroundColor: "rgba(255, 255, 255, 0.94)",
   boxShadow: "0 18px 40px rgba(26, 24, 20, 0.12)",
   backdropFilter: "blur(14px)",
 }
@@ -14957,7 +14962,7 @@ const activeWorkoutSummaryCellStyle = (side = "left") => ({
       : side === "right"
       ? "0 18px 18px 0"
       : "18px",
-  border: `1px solid rgba(215, 208, 192, 0.72)`,
+  border: `1px solid rgba(199, 210, 254, 0.72)`,
   backgroundColor: "rgba(255, 255, 255, 0.24)",
   marginLeft: side === "right" ? "-1px" : 0,
 })
@@ -14994,7 +14999,7 @@ const activeWorkoutRestInlineButtonStyle = {
   minHeight: "58px",
   padding: "12px 16px",
   borderRadius: "18px",
-  border: `1px solid rgba(217, 74, 31, 0.58)`,
+  border: `1px solid rgba(79, 70, 229, 0.58)`,
   backgroundColor: "#111111",
   color: playerAccent,
   cursor: "pointer",
@@ -15012,7 +15017,7 @@ const activeWorkoutRestInlineLabelStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(217, 74, 31, 0.8)",
+  color: "rgba(79, 70, 229, 0.8)",
 }
 
 const activeWorkoutRestInlineValueStyle = {
@@ -15028,7 +15033,7 @@ const activeWorkoutRestInlineValueStyle = {
 const activeWorkoutRestInlineHintStyle = {
   fontSize: "11px",
   fontWeight: 800,
-  color: "rgba(217, 74, 31, 0.8)",
+  color: "rgba(79, 70, 229, 0.8)",
   whiteSpace: "nowrap",
   justifySelf: "end",
 }
@@ -15101,7 +15106,7 @@ const activeWorkoutReceiptActionButtonStyle = {
 const activeWorkoutUpcomingSetStyle = {
   padding: "12px 16px",
   borderRadius: "20px",
-  border: `1px solid rgba(215, 208, 192, 0.72)`,
+  border: `1px solid rgba(199, 210, 254, 0.72)`,
   backgroundColor: "rgba(255, 255, 255, 0.18)",
 }
 
@@ -15140,10 +15145,10 @@ const activeWorkoutTimedTimerCardStyle = (state = "idle", expanded = false) => (
   padding: "16px 18px",
   borderRadius: "24px",
   border: `1px solid ${
-    state === "active" ? "rgba(217, 74, 31, 0.36)" : "rgba(215, 208, 192, 0.82)"
+    state === "active" ? "rgba(79, 70, 229, 0.36)" : "rgba(199, 210, 254, 0.82)"
   }`,
   backgroundColor:
-    state === "active" ? "rgba(252, 235, 227, 0.92)" : "rgba(255, 255, 255, 0.24)",
+    state === "active" ? "rgba(238, 242, 255, 0.92)" : "rgba(255, 255, 255, 0.24)",
   display: "grid",
   gap: expanded ? "12px" : "8px",
   minHeight: expanded ? "280px" : undefined,
@@ -15220,7 +15225,7 @@ const activeWorkoutStepperValueStyle = {
   padding: "12px 14px",
   borderRadius: "20px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.72)",
+  backgroundColor: "rgba(255, 255, 255, 0.72)",
   display: "flex",
   alignItems: "flex-end",
   justifyContent: "center",
@@ -15280,7 +15285,7 @@ const activeWorkoutPrimaryActionStyle = {
   cursor: "pointer",
   fontSize: "16px",
   fontWeight: 900,
-  boxShadow: "0 16px 32px rgba(217, 74, 31, 0.18)",
+  boxShadow: "0 16px 32px rgba(79, 70, 229, 0.18)",
 }
 
 const activeWorkoutEditActionsStyle = {
@@ -15345,7 +15350,7 @@ const activeWorkoutDetailPanelStyle = {
   padding: "14px",
   borderRadius: "20px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.72)",
+  backgroundColor: "rgba(255, 255, 255, 0.72)",
 }
 
 const activeWorkoutBilateralPanelStyle = {
@@ -15429,7 +15434,7 @@ const activeWorkoutBilateralTableRowStyle = {
   gridTemplateColumns: "minmax(0, 1.2fr) repeat(2, minmax(0, 1fr))",
   gap: "10px",
   padding: "12px 14px",
-  borderBottom: `1px solid rgba(215, 208, 192, 0.6)`,
+  borderBottom: `1px solid rgba(199, 210, 254, 0.6)`,
   fontFamily: playerMonoFont,
   fontSize: "13px",
   fontWeight: 700,
@@ -15547,7 +15552,7 @@ const activeLiftSideHintStyle = {
   display: "inline-flex",
   padding: "7px 10px",
   borderRadius: "999px",
-  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  backgroundColor: "rgba(79, 70, 229, 0.12)",
   color: playerAccent,
   fontSize: "12px",
   fontWeight: 900,
@@ -15565,7 +15570,7 @@ const activeWorkoutFinishTitleStyle = {
 
 const activeWorkoutFinishButtonStyle = {
   background: playerAccent,
-  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
+  boxShadow: "0 14px 28px rgba(79, 70, 229, 0.18)",
 }
 
 const activeLiftDataGridStyle = (isMobile) => ({
@@ -15579,7 +15584,7 @@ const activeLiftDataCardStyle = {
   padding: "15px",
   borderRadius: "20px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.58)",
+  backgroundColor: "rgba(255, 255, 255, 0.58)",
 }
 
 const activeLiftDataLabelStyle = {
@@ -15634,7 +15639,7 @@ const activeLiftAddSetButtonStyle = {
   cursor: "pointer",
   fontSize: "16px",
   fontWeight: 900,
-  boxShadow: "0 16px 30px rgba(217, 74, 31, 0.18)",
+  boxShadow: "0 16px 30px rgba(79, 70, 229, 0.18)",
 }
 
 const activeLiftSupportGridStyle = (isMobile) => ({
@@ -15703,7 +15708,7 @@ const activeLiftComposerStyle = {
   padding: "14px",
   borderRadius: "18px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.72)",
+  backgroundColor: "rgba(255, 255, 255, 0.72)",
 }
 
 const targetSectionLabelStyle = {
@@ -15747,7 +15752,7 @@ const activeLiftChoiceButtonStyle = {
 }
 
 const activeLiftChoiceButtonActiveStyle = {
-  backgroundColor: "rgba(217, 74, 31, 0.12)",
+  backgroundColor: "rgba(79, 70, 229, 0.12)",
   borderColor: playerAccent,
   color: playerAccent,
 }
@@ -15756,7 +15761,7 @@ const activeSetCardStyle = {
   marginBottom: "8px",
   padding: "13px",
   borderRadius: "20px",
-  backgroundColor: "rgba(243, 239, 230, 0.72)",
+  backgroundColor: "rgba(255, 255, 255, 0.72)",
   border: `1px solid ${playerLine}`,
 }
 
@@ -15778,7 +15783,7 @@ const alternativeSelectionCardStyle = {
   marginBottom: "12px",
   padding: "14px",
   borderRadius: "20px",
-  backgroundColor: "rgba(243, 239, 230, 0.58)",
+  backgroundColor: "rgba(255, 255, 255, 0.58)",
   border: `1px solid ${playerLine}`,
 }
 
@@ -15894,7 +15899,7 @@ const inputStyle = {
   fontSize: "14px",
   minWidth: "120px",
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "#111827",
   boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 }
 
@@ -15902,7 +15907,7 @@ const buttonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
   border: "none",
-  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
+  background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
   color: "#ffffff",
   cursor: "pointer",
   fontSize: "14px",
@@ -15915,7 +15920,7 @@ const secondaryButtonStyle = {
   borderRadius: "16px",
   border: `1px solid ${uiBorderStrong}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "#111827",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
@@ -16039,7 +16044,7 @@ const playerRunningRegistrationPageStyle = {
   borderRadius: "26px",
   border: `1px solid ${playerLine}`,
   background:
-    "radial-gradient(circle at 90% 8%, rgba(217, 74, 31, 0.18), transparent 28%), rgba(243, 239, 230, 0.66)",
+    "radial-gradient(circle at 90% 8%, rgba(79, 70, 229, 0.18), transparent 28%), rgba(255, 255, 255, 0.66)",
   display: "grid",
   gap: "14px",
 }
@@ -16121,8 +16126,8 @@ const playerFeaturedPassCardStyle = (index = 0) => ({
   border: `1px solid ${index === 0 ? playerInk : playerAccent}`,
   background:
     index === 0
-      ? `radial-gradient(circle at 88% 12%, rgba(217, 74, 31, 0.32), transparent 30%), ${playerInk}`
-      : `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`,
+      ? `radial-gradient(circle at 88% 12%, rgba(79, 70, 229, 0.32), transparent 30%), ${playerInk}`
+      : `linear-gradient(135deg, ${playerAccent} 0%, #4338ca 100%)`,
   color: playerPaper,
   textAlign: "left",
   cursor: "pointer",
@@ -16140,7 +16145,7 @@ const playerFeaturedPassMetaRowStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.68)",
+  color: "rgba(255, 255, 255, 0.68)",
 }
 
 const playerFeaturedPassTitleStyle = {
@@ -16156,7 +16161,7 @@ const playerFeaturedPassSummaryStyle = {
   fontSize: "15px",
   lineHeight: 1.4,
   fontWeight: 800,
-  color: "rgba(243, 239, 230, 0.72)",
+  color: "rgba(255, 255, 255, 0.72)",
 }
 
 const playerFeaturedPassFooterStyle = {
@@ -16165,13 +16170,13 @@ const playerFeaturedPassFooterStyle = {
   gap: "12px",
   marginTop: "20px",
   paddingTop: "14px",
-  borderTop: "1px solid rgba(243, 239, 230, 0.16)",
+  borderTop: "1px solid rgba(255, 255, 255, 0.16)",
   fontFamily: playerMonoFont,
   fontSize: "10px",
   fontWeight: 700,
   letterSpacing: "0.1em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.66)",
+  color: "rgba(255, 255, 255, 0.66)",
 }
 
 const playerFeaturedPassDetailsStyle = {
@@ -16180,7 +16185,7 @@ const playerFeaturedPassDetailsStyle = {
   border: `1px solid ${playerLine}`,
   borderTop: "none",
   background:
-    "linear-gradient(180deg, rgba(243, 239, 230, 0.86), rgba(235, 224, 208, 0.72))",
+    "linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(238, 242, 255, 0.72))",
 }
 
 const playerShelfPassSectionStyle = {
@@ -16267,14 +16272,14 @@ const playerShelfPassDetailsStyle = {
 
 const playerPassStartButtonStyle = {
   background: playerAccent,
-  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
+  boxShadow: "0 14px 28px rgba(79, 70, 229, 0.18)",
 }
 
 const passPreviewContentCardStyle = {
   padding: "16px",
   borderRadius: "20px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.66)",
+  backgroundColor: "rgba(255, 255, 255, 0.66)",
   marginBottom: "14px",
 }
 
@@ -16283,7 +16288,7 @@ const runningPassPreviewPanelStyle = {
   padding: "16px",
   borderRadius: "20px",
   border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(243, 239, 230, 0.66)",
+  backgroundColor: "rgba(255, 255, 255, 0.66)",
 }
 
 const runningPassPreviewInstructionStyle = {
@@ -16404,7 +16409,7 @@ const passPreviewEmptyStyle = {
 
 const statusStyle = {
   fontSize: "14px",
-  color: "#991b1b",
+  color: "#4338ca",
   marginTop: 0,
   marginBottom: "16px",
   fontWeight: "700",
@@ -16423,7 +16428,7 @@ const coachNavCardStyle = {
 const coachNavTitleStyle = {
   fontWeight: "900",
   fontSize: "18px",
-  color: "#18202b",
+  color: "#111827",
   marginBottom: "6px",
 }
 
@@ -16467,7 +16472,7 @@ const accountPasswordCardStyle = {
 const accountPasswordTitleStyle = {
   fontSize: "14px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "#111827",
   marginBottom: "6px",
 }
 
@@ -16504,7 +16509,7 @@ const accountInfoLabelStyle = {
 const accountInfoValueStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "#111827",
 }
 
 const accountWarningCardStyle = {
@@ -16518,7 +16523,7 @@ const accountWarningCardStyle = {
 const accountWarningTitleStyle = {
   fontSize: "14px",
   fontWeight: "900",
-  color: "#991b1b",
+  color: "#4338ca",
   marginBottom: "6px",
 }
 
@@ -16533,7 +16538,7 @@ const playerAccountPanelStyle = {
   borderRadius: "28px",
   border: `1px solid ${playerLine}`,
   background:
-    "radial-gradient(circle at top left, rgba(217, 74, 31, 0.08), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(243, 239, 230, 0.72))",
+    "radial-gradient(circle at top left, rgba(79, 70, 229, 0.08), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.72))",
   boxShadow: "0 20px 38px rgba(26, 24, 20, 0.08)",
 }
 
@@ -16575,7 +16580,7 @@ const playerAccountDangerButtonStyle = {
   ...dangerActionButtonStyle,
   border: "1px solid rgba(185, 28, 28, 0.2)",
   backgroundColor: "rgba(185, 28, 28, 0.08)",
-  color: "#991b1b",
+  color: "#4338ca",
   boxShadow: "none",
 }
 
@@ -16628,7 +16633,7 @@ const playerAccountWarningTitleStyle = {
   lineHeight: 0.98,
   fontWeight: "700",
   letterSpacing: "-0.04em",
-  color: "#991b1b",
+  color: "#4338ca",
   marginBottom: "6px",
 }
 
@@ -16641,9 +16646,9 @@ const playerAccountWarningTextStyle = {
 const dangerActionButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
-  border: "1px solid #efc7c7",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  border: "1px solid #c7d2fe",
+  backgroundColor: "#eef2ff",
+  color: "#4338ca",
   fontSize: "14px",
   fontWeight: "800",
 }
@@ -16706,7 +16711,7 @@ const playerTodaySourceRowStyle = {
   fontWeight: 700,
   letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.64)",
+  color: "rgba(255, 255, 255, 0.64)",
 }
 
 const playerTodayAccentDotStyle = {
@@ -16731,7 +16736,7 @@ const playerTodayWorkoutSubtitleStyle = {
   marginTop: "4px",
   fontSize: "16px",
   fontWeight: 700,
-  color: "rgba(243, 239, 230, 0.68)",
+  color: "rgba(255, 255, 255, 0.68)",
 }
 
 const playerHomeCalendarActionStyle = {
@@ -16741,7 +16746,7 @@ const playerHomeCalendarActionStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.72)",
+  color: "rgba(255, 255, 255, 0.72)",
 }
 
 const playerHomeSectionHeaderStyle = {
@@ -16797,7 +16802,7 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
     background: isDark
       ? playerInk
       : isAccent
-      ? `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`
+      ? `linear-gradient(135deg, ${playerAccent} 0%, #4338ca 100%)`
       : "rgba(255, 255, 255, 0.28)",
     color: isDark || isAccent ? playerPaper : playerInk,
     textAlign: "center",
@@ -16906,8 +16911,8 @@ const playerTodayWeekCellTodayStyle = {
 }
 
 const playerTodayWeekCellPlannedStyle = {
-  backgroundColor: "rgba(217, 74, 31, 0.12)",
-  borderColor: "rgba(217, 74, 31, 0.28)",
+  backgroundColor: "rgba(79, 70, 229, 0.12)",
+  borderColor: "rgba(79, 70, 229, 0.28)",
   color: playerAccent,
 }
 
@@ -16972,7 +16977,7 @@ const playerTodayPrimaryButtonStyle = {
 
 const playerTodaySecondaryButtonStyle = {
   backgroundColor: "transparent",
-  borderColor: "rgba(243, 239, 230, 0.18)",
+  borderColor: "rgba(255, 255, 255, 0.18)",
   color: playerPaper,
   boxShadow: "none",
 }
@@ -17025,9 +17030,9 @@ const playerActivityPanelTitleStyle = {
 const playerActivityNoticeStyle = {
   padding: "13px 15px",
   borderRadius: "16px",
-  border: "1px solid rgba(217, 74, 31, 0.22)",
-  backgroundColor: "rgba(217, 74, 31, 0.08)",
-  color: "#9a3412",
+  border: "1px solid rgba(79, 70, 229, 0.22)",
+  backgroundColor: "rgba(79, 70, 229, 0.08)",
+  color: "#4338ca",
   fontSize: "13px",
   fontWeight: 800,
 }
@@ -17105,7 +17110,7 @@ const playerActivitySubmitButtonStyle = {
 const playerOverviewPanelTitleStyle = {
   fontSize: "20px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "#111827",
   marginBottom: "4px",
 }
 
@@ -17611,14 +17616,14 @@ const coachBottomNavStyle = {
 const playerBottomNavStyle = {
   ...coachBottomNavStyle,
   borderTop: "1px solid rgba(26, 24, 20, 0.08)",
-  background: "rgba(243, 239, 230, 0.94)",
+  background: "rgba(255, 255, 255, 0.94)",
   boxShadow: "0 -18px 38px rgba(26, 24, 20, 0.12)",
 }
 
 const managementBottomNavStyle = {
   ...coachBottomNavStyle,
   borderTop: `1px solid ${playerLine}`,
-  background: "rgba(243, 239, 230, 0.94)",
+  background: "rgba(255, 255, 255, 0.94)",
   boxShadow: "0 -18px 38px rgba(26, 24, 20, 0.12)",
 }
 

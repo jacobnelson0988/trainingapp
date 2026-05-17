@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   redesignAccent,
+  redesignAccentDark,
   redesignBody,
   redesignDisplayFont,
   redesignInk,
@@ -103,11 +104,11 @@ const timerCardStyle = (isExpanded = false) => ({
   minHeight: isExpanded ? "320px" : "auto",
   padding: isExpanded ? "24px 22px" : "18px 18px",
   borderRadius: "28px",
-  border: `1px solid rgba(217, 74, 31, ${isExpanded ? 0.36 : 0.18})`,
+  border: `1px solid rgba(79, 70, 229, ${isExpanded ? 0.36 : 0.18})`,
   background: isExpanded
-    ? "linear-gradient(180deg, rgba(20, 18, 14, 0.98) 0%, rgba(40, 24, 14, 0.98) 100%)"
+    ? `linear-gradient(180deg, ${redesignInk} 0%, ${redesignAccentDark} 100%)`
     : redesignSurface,
-  boxShadow: isExpanded ? "0 24px 54px rgba(26, 24, 20, 0.24)" : "none",
+  boxShadow: isExpanded ? "0 24px 54px rgba(17, 24, 39, 0.24)" : "none",
   display: "grid",
   gap: isExpanded ? "14px" : "10px",
   alignContent: isExpanded ? "center" : "start",
@@ -184,7 +185,7 @@ const timerProgressFillStyle = (ratio) => ({
   width: `${Math.max(0, Math.min(1, ratio || 0)) * 100}%`,
   height: "100%",
   borderRadius: "999px",
-  background: "linear-gradient(90deg, #d94a1f 0%, #f17f45 100%)",
+  background: "linear-gradient(90deg, #4f46e5 0%, #8b5cf6 100%)",
   transition: "width 240ms linear",
 })
 
