@@ -13998,8 +13998,7 @@ const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
 
 const playerShellPageStyle = (isMobile) => ({
   maxWidth: isMobile ? "100%" : "760px",
-  background:
-    "radial-gradient(circle at 18% -6%, rgba(79, 70, 229, 0.14), transparent 34%), linear-gradient(180deg, #ffffff 0%, #f8faff 100%)",
+  background: "#ffffff",
   color: playerInk,
   fontFamily: '"Manrope", sans-serif',
   boxShadow: isMobile ? "none" : "0 30px 70px rgba(17, 24, 39, 0.08)",
@@ -16800,20 +16799,20 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
     padding: "16px",
     borderRadius: "22px",
     border: `1px solid ${
-      isContrast ? "rgba(79, 70, 229, 0.22)" : isDark ? playerInk : isAccent ? playerAccent : playerLine
+      isContrast ? playerAccent : isDark ? playerInk : isAccent ? playerAccent : playerLine
     }`,
     background: isContrast
-      ? "linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 255, 0.96) 100%)"
+      ? `linear-gradient(135deg, ${playerAccent} 0%, ${playerAccentDark} 100%)`
       : isDark
       ? playerInk
       : isAccent
       ? `linear-gradient(135deg, ${playerAccent} 0%, #4338ca 100%)`
       : "rgba(255, 255, 255, 0.28)",
-    color: isDark || isAccent ? playerPaper : playerInk,
+    color: isDark || isAccent || isContrast ? playerPaper : playerInk,
     textAlign: "center",
     cursor: "pointer",
     boxShadow: isContrast
-      ? "0 16px 30px rgba(79, 70, 229, 0.08)"
+      ? "0 18px 34px rgba(79, 70, 229, 0.22)"
       : isDark || isAccent
       ? "0 18px 34px rgba(26, 24, 20, 0.16)"
       : "none",
@@ -16861,12 +16860,13 @@ const playerHomeToolButtonStyle = {
   minHeight: "44px",
   padding: "10px 12px",
   borderRadius: "999px",
-  border: `1px solid ${playerLine}`,
-  background: "rgba(255, 255, 255, 0.22)",
-  color: playerInk,
+  border: `1px solid rgba(79, 70, 229, 0.22)`,
+  background: "#ffffff",
+  color: playerAccentDark,
   cursor: "pointer",
   fontSize: "13px",
   fontWeight: 900,
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
 }
 
 const playerTodayWeekCardStyle = {
