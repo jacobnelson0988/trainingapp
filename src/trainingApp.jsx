@@ -16792,6 +16792,7 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
   const isDark = variant === "ink"
   const isAccent = variant === "accent"
   const isContrast = variant === "contrast"
+  const unifiedHomeStyle = isContrast
 
   return {
     minHeight: "122px",
@@ -16799,20 +16800,20 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
     padding: "16px",
     borderRadius: "22px",
     border: `1px solid ${
-      isContrast ? playerAccent : isDark ? playerInk : isAccent ? playerAccent : playerLine
+      unifiedHomeStyle ? "rgba(79, 70, 229, 0.22)" : isDark ? playerInk : isAccent ? playerAccent : playerLine
     }`,
-    background: isContrast
-      ? `linear-gradient(135deg, ${playerAccent} 0%, ${playerAccentDark} 100%)`
+    background: unifiedHomeStyle
+      ? "#ffffff"
       : isDark
       ? playerInk
       : isAccent
       ? `linear-gradient(135deg, ${playerAccent} 0%, #4338ca 100%)`
       : "rgba(255, 255, 255, 0.28)",
-    color: isDark || isAccent || isContrast ? playerPaper : playerInk,
+    color: unifiedHomeStyle ? playerInk : isDark || isAccent ? playerPaper : playerInk,
     textAlign: "center",
     cursor: "pointer",
-    boxShadow: isContrast
-      ? "0 18px 34px rgba(79, 70, 229, 0.22)"
+    boxShadow: unifiedHomeStyle
+      ? "0 8px 18px rgba(79, 70, 229, 0.06)"
       : isDark || isAccent
       ? "0 18px 34px rgba(26, 24, 20, 0.16)"
       : "none",
@@ -16862,7 +16863,7 @@ const playerHomeToolButtonStyle = {
   borderRadius: "999px",
   border: `1px solid rgba(79, 70, 229, 0.22)`,
   background: "#ffffff",
-  color: playerAccentDark,
+  color: playerInk,
   cursor: "pointer",
   fontSize: "13px",
   fontWeight: 900,
