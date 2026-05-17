@@ -11323,13 +11323,13 @@ function TrainingApp() {
                 <div style={pickerGridStyle}>
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
-                      <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("contrast")}>
                         <div style={playerHomeTrainingTitleStyle}>Styrka</div>
                       </button>
-                      <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("contrast")}>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                       </button>
-                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("contrast")}>
                         <div style={playerHomeTrainingTitleStyle}>Skadeförebyggande</div>
                       </button>
                     </div>
@@ -11406,6 +11406,7 @@ function TrainingApp() {
                         onClick={() => setStartDistanceShareLocation((current) => !current)}
                         style={{
                           ...secondaryButtonStyle,
+                          ...playerMenuGhostButtonStyle,
                           width: "100%",
                           marginBottom: "12px",
                           borderColor: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.borderColor,
@@ -11524,6 +11525,7 @@ function TrainingApp() {
                             disabled={isSavingPlayerRunningPreset}
                             style={{
                               ...buttonStyle,
+                              ...playerMenuGhostButtonStyle,
                               opacity: isSavingPlayerRunningPreset ? 0.7 : 1,
                             }}
                           >
@@ -11532,7 +11534,7 @@ function TrainingApp() {
                           <button
                             type="button"
                             onClick={startOwnIntervalWorkout}
-                            style={secondaryButtonStyle}
+                            style={{ ...secondaryButtonStyle, ...playerMenuGhostButtonStyle }}
                           >
                             Starta pass
                           </button>
@@ -11544,7 +11546,7 @@ function TrainingApp() {
                                 : resetPlayerRunningPresetEditor()
                             }
                             disabled={Boolean(selectedPlayerRunningPresetId) && deletingPlayerRunningPresetId === selectedPlayerRunningPresetId}
-                            style={secondaryButtonStyle}
+                            style={{ ...secondaryButtonStyle, ...playerMenuGhostButtonStyle }}
                           >
                             {selectedPlayerRunningPresetId
                               ? deletingPlayerRunningPresetId === selectedPlayerRunningPresetId
@@ -15990,28 +15992,13 @@ const playerRunningHubGridStyle = (isMobile) => ({
 const playerRunningHubCardStyle = (variant = "assigned") => ({
   minHeight: "116px",
   padding: "15px",
-  borderRadius: "18px",
-  border:
-    variant === "assigned"
-      ? "1px solid rgba(17, 24, 39, 0.18)"
-      : variant === "ownInterval"
-      ? "1px solid rgba(184, 88, 34, 0.22)"
-      : "1px solid rgba(111, 102, 89, 0.22)",
-  background:
-    variant === "assigned"
-      ? "linear-gradient(135deg, #191611 0%, #2b241d 100%)"
-      : variant === "ownInterval"
-      ? "linear-gradient(135deg, rgba(220, 107, 44, 0.22) 0%, rgba(255, 245, 233, 0.88) 100%)"
-      : "linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(245, 237, 223, 0.96) 100%)",
-  color: variant === "assigned" ? "#f8f4ed" : playerInk,
+  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  background: "#ffffff",
+  color: playerInk,
   textAlign: "left",
   cursor: "pointer",
-  boxShadow:
-    variant === "assigned"
-      ? "0 16px 34px rgba(24, 18, 12, 0.18)"
-      : variant === "ownInterval"
-      ? "0 12px 28px rgba(201, 99, 45, 0.14)"
-      : "0 10px 24px rgba(75, 58, 38, 0.08)",
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
   display: "grid",
   alignContent: "space-between",
   gap: "10px",
@@ -16019,31 +16006,26 @@ const playerRunningHubCardStyle = (variant = "assigned") => ({
 
 const playerRunningHubCardKickerStyle = (variant = "assigned") => ({
   ...playerHomeTrainingKickerStyle,
-  color:
-    variant === "assigned"
-      ? "rgba(248, 244, 237, 0.72)"
-      : variant === "ownInterval"
-      ? "#9a4a1d"
-      : "#6f6659",
+  color: playerInkSoft,
 })
 
 const playerRunningHubCardTitleStyle = (variant = "assigned") => ({
   fontSize: "18px",
   fontWeight: 900,
-  color: variant === "assigned" ? "#f8f4ed" : playerInk,
+  color: playerInk,
 })
 
 const playerRunningHubCardTextStyle = (variant = "assigned") => ({
   ...playerHomeTrainingTextStyle,
-  color: variant === "assigned" ? "rgba(248, 244, 237, 0.82)" : playerInkSoft,
+  color: playerInkSoft,
 })
 
 const playerRunningRegistrationPageStyle = {
   padding: "18px",
-  borderRadius: "26px",
-  border: `1px solid ${playerLine}`,
-  background:
-    "radial-gradient(circle at 90% 8%, rgba(79, 70, 229, 0.18), transparent 28%), rgba(255, 255, 255, 0.66)",
+  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  background: "#ffffff",
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
   display: "grid",
   gap: "14px",
 }
@@ -16121,16 +16103,13 @@ const playerFeaturedPassCardStyle = (index = 0) => ({
   minHeight: "190px",
   width: "100%",
   padding: "20px",
-  borderRadius: "26px",
-  border: `1px solid ${index === 0 ? playerInk : playerAccent}`,
-  background:
-    index === 0
-      ? `radial-gradient(circle at 88% 12%, rgba(79, 70, 229, 0.32), transparent 30%), ${playerInk}`
-      : `linear-gradient(135deg, ${playerAccent} 0%, #4338ca 100%)`,
-  color: playerPaper,
+  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  background: "#ffffff",
+  color: playerInk,
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 22px 42px rgba(26, 24, 20, 0.18)",
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
 })
 
 const playerFeaturedPassMetaRowStyle = {
@@ -16144,7 +16123,7 @@ const playerFeaturedPassMetaRowStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(255, 255, 255, 0.68)",
+  color: playerInkSoft,
 }
 
 const playerFeaturedPassTitleStyle = {
@@ -16160,7 +16139,7 @@ const playerFeaturedPassSummaryStyle = {
   fontSize: "15px",
   lineHeight: 1.4,
   fontWeight: 800,
-  color: "rgba(255, 255, 255, 0.72)",
+  color: playerInkSoft,
 }
 
 const playerFeaturedPassFooterStyle = {
@@ -16169,13 +16148,13 @@ const playerFeaturedPassFooterStyle = {
   gap: "12px",
   marginTop: "20px",
   paddingTop: "14px",
-  borderTop: "1px solid rgba(255, 255, 255, 0.16)",
+  borderTop: `1px solid ${playerLine}`,
   fontFamily: playerMonoFont,
   fontSize: "10px",
   fontWeight: 700,
   letterSpacing: "0.1em",
   textTransform: "uppercase",
-  color: "rgba(255, 255, 255, 0.66)",
+  color: playerInkSoft,
 }
 
 const playerFeaturedPassDetailsStyle = {
@@ -16191,9 +16170,9 @@ const playerShelfPassSectionStyle = {
   display: "grid",
   gap: "12px",
   padding: "16px",
-  borderRadius: "24px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.22)",
+  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  backgroundColor: "#ffffff",
 }
 
 const playerShelfPassListStyle = {
@@ -16213,18 +16192,18 @@ const playerShelfPassButtonStyle = {
   justifyContent: "space-between",
   gap: "12px",
   padding: "13px 14px",
-  borderRadius: "18px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
+  borderRadius: "14px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  backgroundColor: "#ffffff",
   color: playerInk,
   textAlign: "left",
   cursor: "pointer",
 }
 
 const playerShelfPassButtonActiveStyle = {
-  backgroundColor: "rgba(26, 24, 20, 0.92)",
-  borderColor: playerInk,
-  color: playerPaper,
+  backgroundColor: "rgba(79, 70, 229, 0.08)",
+  borderColor: "rgba(79, 70, 229, 0.52)",
+  color: playerInk,
 }
 
 const playerShelfPassTitleStyle = {
@@ -16260,7 +16239,7 @@ const playerShelfPassExpandStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "rgba(255, 255, 255, 0.18)",
+  backgroundColor: "rgba(79, 70, 229, 0.08)",
   fontSize: "20px",
   lineHeight: 1,
 }
@@ -16270,8 +16249,17 @@ const playerShelfPassDetailsStyle = {
 }
 
 const playerPassStartButtonStyle = {
-  background: playerAccent,
-  boxShadow: "0 14px 28px rgba(79, 70, 229, 0.18)",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  background: "#ffffff",
+  color: playerInk,
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
+}
+
+const playerMenuGhostButtonStyle = {
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  backgroundColor: "#ffffff",
+  color: playerInk,
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
 }
 
 const passPreviewContentCardStyle = {
@@ -16687,18 +16675,18 @@ const playerTodayTeamPillStyle = {
 const playerTodayPrimaryCardStyle = {
   width: "100%",
   padding: "22px",
-  borderRadius: "24px",
-  border: "none",
-  backgroundColor: playerInk,
-  color: playerPaper,
+  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  backgroundColor: "#ffffff",
+  color: playerInk,
   cursor: "pointer",
   textAlign: "left",
-  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
 }
 
 const playerTodayCalendarCardStyle = {
   ...playerTodayPrimaryCardStyle,
-  backgroundColor: playerInk,
+  backgroundColor: "#ffffff",
 }
 
 const playerTodaySourceRowStyle = {
@@ -16710,7 +16698,7 @@ const playerTodaySourceRowStyle = {
   fontWeight: 700,
   letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "rgba(255, 255, 255, 0.64)",
+  color: playerInkSoft,
 }
 
 const playerTodayAccentDotStyle = {
@@ -16735,7 +16723,7 @@ const playerTodayWorkoutSubtitleStyle = {
   marginTop: "4px",
   fontSize: "16px",
   fontWeight: 700,
-  color: "rgba(255, 255, 255, 0.68)",
+  color: playerInkSoft,
 }
 
 const playerHomeCalendarActionStyle = {
@@ -16745,7 +16733,7 @@ const playerHomeCalendarActionStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(255, 255, 255, 0.72)",
+  color: playerInkSoft,
 }
 
 const playerHomeSectionHeaderStyle = {

@@ -2164,8 +2164,8 @@ const playerCalendarIconButtonStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "16px",
-  border: "1px solid rgba(79, 70, 229, 0.18)",
+  borderRadius: "14px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
   backgroundColor: "#ffffff",
   color: "#1f2937",
   fontSize: "24px",
@@ -2175,8 +2175,8 @@ const playerCalendarIconButtonStyle = {
 }
 
 const playerCalendarTodayButtonStyle = {
-  border: "1px solid rgba(79, 70, 229, 0.18)",
-  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
   padding: "0 18px",
   height: "46px",
   backgroundColor: "#ffffff",
@@ -2199,10 +2199,10 @@ const playerCalendarStripDayButtonStyle = (isSelected) => ({
   justifyItems: "center",
   gap: "6px",
   padding: isSelected ? "12px 6px 10px" : "8px 4px 8px",
-  border: isSelected ? "none" : "1px solid transparent",
-  borderRadius: "22px",
-  backgroundColor: isSelected ? "#111827" : "transparent",
-  color: isSelected ? "#ffffff" : "#111827",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
+  backgroundColor: isSelected ? "rgba(79, 70, 229, 0.08)" : "#ffffff",
+  color: "#111827",
   cursor: "pointer",
   minHeight: "98px",
 })
@@ -2212,7 +2212,7 @@ const playerCalendarStripDayLetterStyle = (isSelected) => ({
   fontWeight: 700,
   letterSpacing: "0.14em",
   textTransform: "uppercase",
-  color: isSelected ? "rgba(255, 255, 255, 0.76)" : "#9ca3af",
+  color: "#9ca3af",
 })
 
 const playerCalendarStripDayNumberStyle = (isSelected) => ({
@@ -2220,7 +2220,7 @@ const playerCalendarStripDayNumberStyle = (isSelected) => ({
   fontSize: "24px",
   lineHeight: 1,
   fontWeight: isSelected ? 700 : 500,
-  color: isSelected ? "#ffffff" : "#111827",
+  color: "#111827",
 })
 
 const playerCalendarStripDotRowStyle = {
@@ -2286,9 +2286,9 @@ const playerCalendarAgendaCardButtonStyle = (isDisabled) => ({
   alignItems: "center",
   gap: "14px",
   padding: "16px 18px",
-  borderRadius: "24px",
-  border: "1px solid rgba(79, 70, 229, 0.18)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,255,0.92) 100%)",
+  borderRadius: "16px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  background: "#ffffff",
   color: "#111827",
   textAlign: "left",
   cursor: isDisabled ? "default" : "pointer",
@@ -2402,33 +2402,33 @@ const coachCalendarInlineActionsStyle = (isMobile) => ({
 })
 
 const playerCalendarMicroPrimaryButtonStyle = {
-  border: "none",
-  borderRadius: "999px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
   padding: "8px 12px",
-  backgroundColor: "#4f46e5",
-  color: "#fffdf8",
+  backgroundColor: "#ffffff",
+  color: "#111827",
   fontSize: "12px",
   fontWeight: 800,
   cursor: "pointer",
 }
 
 const playerCalendarMicroButtonStyle = {
-  border: "1px solid rgba(79, 70, 229, 0.18)",
-  borderRadius: "999px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
   padding: "8px 12px",
   backgroundColor: "#ffffff",
-  color: "#1f2937",
+  color: "#111827",
   fontSize: "12px",
   fontWeight: 700,
   cursor: "pointer",
 }
 
 const playerCalendarMicroDangerButtonStyle = {
-  border: "1px solid #c7d2fe",
-  borderRadius: "999px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
   padding: "8px 12px",
-  backgroundColor: "#eef2ff",
-  color: "#b91c1c",
+  backgroundColor: "#ffffff",
+  color: "#111827",
   fontSize: "12px",
   fontWeight: 700,
   cursor: "pointer",
@@ -2470,8 +2470,8 @@ const playerCalendarEmptyPromptTextStyle = {
 
 const playerCalendarEmptyPromptButtonStyle = {
   marginTop: "18px",
-  border: "1px solid rgba(79, 70, 229, 0.18)",
-  borderRadius: "999px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
   padding: "10px 14px",
   backgroundColor: "#ffffff",
   color: "#111827",
@@ -2497,16 +2497,16 @@ const playerCalendarBottomActionWrapStyle = {
 
 const playerCalendarBottomActionButtonStyle = {
   width: "100%",
-  border: "none",
-  borderRadius: "22px",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "16px",
   padding: "18px 20px",
-  background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
-  color: "#fffdf8",
+  background: "#ffffff",
+  color: "#111827",
   fontSize: "18px",
   fontWeight: 800,
   fontFamily: '"Manrope", sans-serif',
   cursor: "pointer",
-  boxShadow: "0 18px 36px rgba(79, 70, 229, 0.26)",
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
 }
 
 const playerCalendarWeekListStyle = {
@@ -2672,34 +2672,34 @@ const playerCalendarEntryActionRowStyle = (isMobile) => ({
 })
 
 const playerCalendarPrimaryButtonStyle = {
-  border: "none",
-  borderRadius: "14px",
-  padding: "10px 14px",
-  backgroundColor: "#4f46e5",
-  color: "#fffdf8",
-  fontSize: "13px",
-  fontWeight: 800,
-  cursor: "pointer",
-  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.18)",
-}
-
-const playerCalendarSecondaryButtonStyle = {
-  border: "1px solid rgba(79, 70, 229, 0.18)",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
   borderRadius: "14px",
   padding: "10px 14px",
   backgroundColor: "#ffffff",
-  color: "#1f2937",
+  color: "#111827",
+  fontSize: "13px",
+  fontWeight: 800,
+  cursor: "pointer",
+  boxShadow: "0 8px 18px rgba(79, 70, 229, 0.06)",
+}
+
+const playerCalendarSecondaryButtonStyle = {
+  border: "2px solid rgba(79, 70, 229, 0.38)",
+  borderRadius: "14px",
+  padding: "10px 14px",
+  backgroundColor: "#ffffff",
+  color: "#111827",
   fontSize: "13px",
   fontWeight: 800,
   cursor: "pointer",
 }
 
 const playerCalendarDangerButtonStyle = {
-  border: "1px solid #c7d2fe",
+  border: "2px solid rgba(79, 70, 229, 0.38)",
   borderRadius: "14px",
   padding: "10px 14px",
-  backgroundColor: "#eef2ff",
-  color: "#b91c1c",
+  backgroundColor: "#ffffff",
+  color: "#111827",
   fontSize: "13px",
   fontWeight: 800,
   cursor: "pointer",
