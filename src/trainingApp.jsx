@@ -15986,7 +15986,7 @@ const playerRunningHubGridStyle = (isMobile) => ({
 const playerRunningHubCardStyle = (variant = "assigned") => ({
   minHeight: "116px",
   padding: "15px",
-  borderRadius: "18px",
+  borderRadius: "16px",
   border:
     variant === "assigned"
       ? "1px solid rgba(17, 24, 39, 0.18)"
@@ -16036,7 +16036,7 @@ const playerRunningHubCardTextStyle = (variant = "assigned") => ({
 
 const playerRunningRegistrationPageStyle = {
   padding: "18px",
-  borderRadius: "26px",
+  borderRadius: "16px",
   border: `1px solid ${playerLine}`,
   background:
     "radial-gradient(circle at 90% 8%, rgba(217, 74, 31, 0.18), transparent 28%), rgba(243, 239, 230, 0.66)",
@@ -16117,7 +16117,7 @@ const playerFeaturedPassCardStyle = (index = 0) => ({
   minHeight: "190px",
   width: "100%",
   padding: "20px",
-  borderRadius: "26px",
+  borderRadius: "16px",
   border: `1px solid ${index === 0 ? playerInk : playerAccent}`,
   background:
     index === 0
@@ -16176,7 +16176,7 @@ const playerFeaturedPassFooterStyle = {
 
 const playerFeaturedPassDetailsStyle = {
   padding: "14px",
-  borderRadius: "0 0 24px 24px",
+  borderRadius: "0 0 16px 16px",
   border: `1px solid ${playerLine}`,
   borderTop: "none",
   background:
@@ -16187,7 +16187,7 @@ const playerShelfPassSectionStyle = {
   display: "grid",
   gap: "12px",
   padding: "16px",
-  borderRadius: "24px",
+  borderRadius: "16px",
   border: `1px solid ${playerLine}`,
   backgroundColor: "rgba(255, 255, 255, 0.22)",
 }
@@ -16209,7 +16209,7 @@ const playerShelfPassButtonStyle = {
   justifyContent: "space-between",
   gap: "12px",
   padding: "13px 14px",
-  borderRadius: "18px",
+  borderRadius: "14px",
   border: `1px solid ${playerLine}`,
   backgroundColor: "rgba(255, 255, 255, 0.3)",
   color: playerInk,
@@ -16683,7 +16683,7 @@ const playerTodayTeamPillStyle = {
 const playerTodayPrimaryCardStyle = {
   width: "100%",
   padding: "22px",
-  borderRadius: "24px",
+  borderRadius: "16px",
   border: "none",
   backgroundColor: playerInk,
   color: playerPaper,
@@ -16792,7 +16792,7 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
     minHeight: "122px",
     width: "100%",
     padding: "16px",
-    borderRadius: "22px",
+    borderRadius: "16px",
     border: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : playerLine}`,
     background: isDark
       ? playerInk
@@ -16846,7 +16846,7 @@ const playerHomeToolsRowStyle = (isMobile) => ({
 const playerHomeToolButtonStyle = {
   minHeight: "44px",
   padding: "10px 12px",
-  borderRadius: "999px",
+  borderRadius: "14px",
   border: `1px solid ${playerLine}`,
   background: "rgba(255, 255, 255, 0.22)",
   color: playerInk,
