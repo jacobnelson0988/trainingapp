@@ -8903,7 +8903,7 @@ function TrainingApp() {
     playerPassFamily && (playerPassFamily !== "running" || playerRunningView === "startAssigned")
   const playerPassFamilyTitle =
     playerPassFamily === "strength"
-      ? "Styrka"
+      ? "Styrketräning"
       : playerPassFamily === "running"
       ? playerRunningView === "start"
         ? "Starta pass"
@@ -11182,10 +11182,18 @@ function TrainingApp() {
               <div style={playerHomePrimaryMenuListStyle}>
                 <button
                   type="button"
-                  onClick={() => navigatePlayerSection("pass")}
+                  onClick={() => openPlayerPassFamily("strength")}
                   style={playerHomeTrainingCardStyle("strength")}
                 >
-                  <div style={playerHomeTrainingTitleStyle}>Träning</div>
+                  <div style={playerHomeTrainingTitleStyle}>Styrketräning</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openPlayerPassFamily("running")}
+                  style={playerHomeTrainingCardStyle("running")}
+                >
+                  <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                 </button>
 
                 <button
@@ -11331,7 +11339,7 @@ function TrainingApp() {
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
                       <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("strength")}>
-                        <div style={playerHomeTrainingTitleStyle}>Styrka</div>
+                        <div style={playerHomeTrainingTitleStyle}>Styrketräning</div>
                       </button>
                       <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("running")}>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
