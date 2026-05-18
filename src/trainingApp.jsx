@@ -11198,6 +11198,14 @@ function TrainingApp() {
 
                 <button
                   type="button"
+                  onClick={() => openPlayerPassFamily("prehab")}
+                  style={playerHomeTrainingCardStyle("prehab")}
+                >
+                  <div style={playerHomeTrainingTitleStyle}>Skadeförebyggande</div>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => openRunningDraftPanel("running")}
                   style={playerHomeTrainingCardStyle("other")}
                 >
@@ -11207,7 +11215,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => navigatePlayerSection("calendar")}
-                  style={playerHomeTrainingCardStyle("prehab")}
+                  style={playerHomeTrainingCardStyle("other")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Kalender</div>
                 </button>
