@@ -9069,37 +9069,6 @@ function TrainingApp() {
           ([, workout]) => String(workout.id) === String(primaryTodayCalendarEntry.workout_template_id)
         )
       : null
-  const primaryHomeWorkout = primaryTodayWorkoutEntry?.[1] || null
-  const primaryHomeThemeKey = resolvePlayerTrainingThemeKey({
-    workoutKind: primaryHomeWorkout?.workoutKind,
-    activityKind: primaryTodayCalendarEntry?.activity_kind,
-    freeActivityType: primaryTodayCalendarEntry?.free_activity_type,
-  })
-  const primaryHomeTitle = primaryTodayCalendarEntry?.title || primaryHomeWorkout?.label || "Lugnt idag"
-  const primaryHomeSubtitle = primaryHomeWorkout
-    ? primaryHomeWorkout.workoutKind === "running"
-      ? getWorkoutKindLabel(primaryHomeWorkout.workoutKind)
-      : primaryHomeWorkout.workoutKind === "prehab"
-      ? getWorkoutKindLabel(primaryHomeWorkout.workoutKind)
-      : primaryHomeWorkout.gymPassType === "shared"
-      ? "Gemensamt gympass"
-      : "Styrka"
-    : primaryTodayCalendarEntry?.activity_kind === "handball"
-    ? "Handboll"
-    : primaryTodayCalendarEntry
-    ? "Egen aktivitet"
-    : "Inget pass planerat"
-  const todayCalendarSummary = primaryTodayCalendarEntry
-    ? `${primaryTodayCalendarEntry.title}${
-        formatCalendarTime(primaryTodayCalendarEntry.starts_at)
-          ? ` · ${formatCalendarTime(primaryTodayCalendarEntry.starts_at)}`
-          : ""
-      }`
-    : "Planera eller se veckan"
-  const primaryHomeActionLabel =
-    primaryTodayCalendarEntry?.is_external && primaryTodayCalendarEntry?.activity_kind === "handball"
-      ? "Se i kalendern →"
-      : "Öppna aktivitet →"
   const currentWeekStart = getWeekStartDateInputValue()
   const playerHomeWeekDays = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(`${currentWeekStart}T00:00:00`)
@@ -9228,7 +9197,7 @@ function TrainingApp() {
   const playerBottomTabs = [
     { key: "overview", label: "Hem", icon: "home" },
     { key: "calendar", label: "Kalender", icon: "calendar" },
-    { key: "pass", label: "Pass", icon: "pass" },
+    { key: "history", label: "Historik", icon: "pass" },
     { key: "stats", label: "Statistik", icon: "stats" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
   ]
@@ -11154,23 +11123,10 @@ function TrainingApp() {
 
               <div style={playerTodayMetaRowStyle}>
                 <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
-              </div>
-
-              {primaryTodayCalendarEntry && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenCalendarEntry(primaryTodayCalendarEntry)}
-                  style={playerTodayCalendarCardStyle(primaryHomeThemeKey)}
-                >
-                  <div style={playerTodaySourceRowStyle(primaryHomeThemeKey)}>
-                    <span style={playerTodayAccentDotStyle(primaryHomeThemeKey)} />
-                    <span>I kalendern</span>
-                  </div>
-                  <div style={playerTodayWorkoutTitleStyle(primaryHomeThemeKey)}>{primaryHomeTitle}</div>
-                  <div style={playerTodayWorkoutSubtitleStyle(primaryHomeThemeKey)}>{primaryHomeSubtitle}</div>
-                  <div style={playerHomeCalendarActionStyle(primaryHomeThemeKey)}>{primaryHomeActionLabel}</div>
+                <button type="button" onClick={() => navigateGlobalView("account")} style={playerHomeAccountButtonStyle}>
+                  Konto
                 </button>
-              )}
+              </div>
 
               <div style={playerHomeSectionHeaderStyle}>
                 <div>
@@ -11210,29 +11166,6 @@ function TrainingApp() {
                   style={playerHomeTrainingCardStyle("other")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigatePlayerSection("calendar")}
-                  style={playerHomeTrainingCardStyle("other")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Kalender</div>
-                </button>
-              </div>
-
-              <div style={playerHomeToolsRowStyle(isMobile)}>
-                <button type="button" onClick={() => navigatePlayerSection("history")} style={playerHomeToolButtonStyle}>
-                  Historik
-                </button>
-                <button type="button" onClick={() => navigatePlayerSection("stats")} style={playerHomeToolButtonStyle}>
-                  Statistik
-                </button>
-                <button type="button" onClick={() => navigatePlayerSection("messages")} style={playerHomeToolButtonStyle}>
-                  {unreadMessageCount ? `Meddelanden (${unreadMessageCount})` : "Meddelanden"}
-                </button>
-                <button type="button" onClick={() => navigatePlayerSection("account")} style={playerHomeToolButtonStyle}>
-                  Konto
                 </button>
               </div>
 
@@ -12304,13 +12237,7 @@ function TrainingApp() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => {
-                    if (tab.key === "pass") {
-                      setPlayerPassFamily(null)
-                      setPlayerRunningView(null)
-                    }
-                    navigatePlayerSection(tab.key)
-                  }}
+                  onClick={() => navigatePlayerSection(tab.key)}
                   style={{
                     ...coachBottomNavButtonStyle,
                     color: usePlayerRedesignShell
@@ -16687,8 +16614,11 @@ const playerTodayPageStyle = {
 }
 
 const playerTodayMetaRowStyle = {
-  display: "block",
-  padding: "8px 62px 0 6px",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "8px 6px 0",
 }
 
 const playerTodayMonoLabelStyle = {
@@ -16727,57 +16657,6 @@ const playerTodayPrimaryCardStyle = (themeKey = "strength") => {
     boxShadow: theme.filledShadow,
   }
 }
-
-const playerTodayCalendarCardStyle = (themeKey = "strength") => ({
-  ...playerTodayPrimaryCardStyle(themeKey),
-})
-
-const playerTodaySourceRowStyle = (themeKey = "strength") => ({
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  fontFamily: playerMonoFont,
-  fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.16em",
-  textTransform: "uppercase",
-  color: getPlayerTrainingTheme(themeKey).filledMeta,
-})
-
-const playerTodayAccentDotStyle = (themeKey = "strength") => ({
-  width: "7px",
-  height: "7px",
-  borderRadius: "999px",
-  backgroundColor: getPlayerTrainingTheme(themeKey).dotColor,
-  flexShrink: 0,
-})
-
-const playerTodayWorkoutTitleStyle = (themeKey = "strength") => ({
-  marginTop: "12px",
-  fontFamily: playerDisplayFont,
-  fontSize: "clamp(28px, 7vw, 40px)",
-  fontWeight: 700,
-  lineHeight: 0.98,
-  letterSpacing: "-0.04em",
-  color: getPlayerTrainingTheme(themeKey).filledText,
-})
-
-const playerTodayWorkoutSubtitleStyle = (themeKey = "strength") => ({
-  marginTop: "4px",
-  fontSize: "16px",
-  fontWeight: 700,
-  color: getPlayerTrainingTheme(themeKey).filledMeta,
-})
-
-const playerHomeCalendarActionStyle = (themeKey = "strength") => ({
-  marginTop: "16px",
-  fontFamily: playerMonoFont,
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: getPlayerTrainingTheme(themeKey).filledMeta,
-})
 
 const playerHomeSectionHeaderStyle = {
   display: "flex",
@@ -16868,14 +16747,8 @@ const playerHomeTrainingTextStyle = {
   opacity: 0.72,
 }
 
-const playerHomeToolsRowStyle = (isMobile) => ({
-  display: "grid",
-  gap: "8px",
-  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
-})
-
-const playerHomeToolButtonStyle = {
-  minHeight: "44px",
+const playerHomeAccountButtonStyle = {
+  minHeight: "40px",
   padding: "10px 12px",
   borderRadius: "14px",
   border: `1px solid ${playerLine}`,
@@ -16884,6 +16757,7 @@ const playerHomeToolButtonStyle = {
   cursor: "pointer",
   fontSize: "13px",
   fontWeight: 900,
+  flexShrink: 0,
 }
 
 const playerTodayWeekCardStyle = {
