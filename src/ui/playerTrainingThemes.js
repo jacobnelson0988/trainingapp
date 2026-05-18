@@ -1,5 +1,6 @@
 const STRENGTH_THEME = {
   key: "strength",
+  accent: "#b03327",
   filledBackground: "linear-gradient(135deg, #191611 0%, #2b241d 100%)",
   filledBorder: "#1a1814",
   filledText: "#f8f4ed",
@@ -17,6 +18,7 @@ const STRENGTH_THEME = {
 
 const RUNNING_THEME = {
   key: "running",
+  accent: "#e87a1c",
   filledBackground: "linear-gradient(135deg, #d94a1f 0%, #aa3218 100%)",
   filledBorder: "#d94a1f",
   filledText: "#fff7f2",
@@ -34,6 +36,7 @@ const RUNNING_THEME = {
 
 const PREHAB_THEME = {
   key: "prehab",
+  accent: "#2d7a6b",
   filledBackground: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,248,245,0.95) 100%)",
   filledBorder: "rgba(111, 102, 89, 0.18)",
   filledText: "#1a1814",
@@ -51,6 +54,7 @@ const PREHAB_THEME = {
 
 const OTHER_THEME = {
   key: "other",
+  accent: "#4b4a8f",
   filledBackground: "linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%)",
   filledBorder: "#d1d5db",
   filledText: "#111827",
@@ -95,3 +99,6 @@ export const resolvePlayerTrainingThemeKey = ({
 
 export const getPlayerTrainingTheme = (themeKey = "strength") =>
   PLAYER_TRAINING_THEME_MAP[themeKey] || PLAYER_TRAINING_THEME_MAP.strength
+
+export const getCategoryAccent = (themeKey = "strength") =>
+  getPlayerTrainingTheme(themeKey).accent || PLAYER_TRAINING_THEME_MAP.strength.accent
