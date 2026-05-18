@@ -11176,7 +11176,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => navigatePlayerSection("pass")}
-                  style={playerHomeTrainingCardStyle("contrast")}
+                  style={playerHomeTrainingCardStyle("ink")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Träning</div>
                 </button>
@@ -11184,7 +11184,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => openRunningDraftPanel("running")}
-                  style={playerHomeTrainingCardStyle("contrast")}
+                  style={playerHomeTrainingCardStyle("accent")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
                 </button>
@@ -11192,7 +11192,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => navigatePlayerSection("calendar")}
-                  style={playerHomeTrainingCardStyle("contrast")}
+                  style={playerHomeTrainingCardStyle("paper")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Kalender</div>
                 </button>
@@ -16792,19 +16792,14 @@ const playerHomePrimaryMenuListStyle = {
 const playerHomeTrainingCardStyle = (variant = "paper") => {
   const isDark = variant === "ink"
   const isAccent = variant === "accent"
-  const isContrast = variant === "contrast"
 
   return {
     minHeight: "122px",
     width: "100%",
     padding: "16px",
     borderRadius: "22px",
-    border: `1px solid ${
-      isContrast ? "rgba(79, 70, 229, 0.22)" : isDark ? playerInk : isAccent ? playerAccent : playerLine
-    }`,
-    background: isContrast
-      ? "linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 255, 0.96) 100%)"
-      : isDark
+    border: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : playerLine}`,
+    background: isDark
       ? playerInk
       : isAccent
       ? `linear-gradient(135deg, ${playerAccent} 0%, #4338ca 100%)`
@@ -16812,11 +16807,7 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
     color: isDark || isAccent ? playerPaper : playerInk,
     textAlign: "center",
     cursor: "pointer",
-    boxShadow: isContrast
-      ? "0 16px 30px rgba(79, 70, 229, 0.08)"
-      : isDark || isAccent
-      ? "0 18px 34px rgba(26, 24, 20, 0.16)"
-      : "none",
+    boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
