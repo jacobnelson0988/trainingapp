@@ -1,22 +1,22 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 
 :root {
-  --ghf-red: #4f46e5;
-  --ghf-red-dark: #4338ca;
-  --ghf-red-soft: #eef2ff;
-  --ghf-red-glow: rgba(79, 70, 229, 0.18);
-  --ghf-ink: #111827;
-  --ghf-ink-soft: #6b7280;
-  --ghf-line: #d9deee;
-  --ghf-line-strong: #c6ceea;
-  --ghf-line-soft: #e8ebf6;
+  --ghf-red: #c62828;
+  --ghf-red-dark: #991b1b;
+  --ghf-red-soft: #fff1f1;
+  --ghf-red-glow: rgba(198, 40, 40, 0.18);
+  --ghf-ink: #18202b;
+  --ghf-ink-soft: #566173;
+  --ghf-line: #d7dee7;
+  --ghf-line-strong: #c5d0db;
+  --ghf-line-soft: #e5ebf2;
   --ghf-surface: #ffffff;
-  --ghf-surface-alt: #f8faff;
-  --ghf-surface-subtle: #f5f7ff;
-  --ghf-selected-bg: #eef2ff;
-  --ghf-selected-border: #c7d2fe;
-  --ghf-select-bg: #eef2ff;
-  --ghf-bg: #ffffff;
+  --ghf-surface-alt: #f8fafc;
+  --ghf-surface-subtle: #f1f5f9;
+  --ghf-selected-bg: #fff4f4;
+  --ghf-selected-border: #efc7c7;
+  --ghf-select-bg: #f0f6ff;
+  --ghf-bg: #f4f6f8;
   --ghf-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06);
   --ghf-shadow-md: 0 1px 3px rgba(15, 23, 42, 0.07), 0 16px 34px rgba(15, 23, 42, 0.08);
   --ghf-shadow-lg: 0 2px 6px rgba(15, 23, 42, 0.08), 0 22px 48px rgba(15, 23, 42, 0.12);
@@ -57,7 +57,7 @@ textarea::placeholder {
   font-size: 15px;
   font-weight: 500;
   line-height: 1.4;
-  color: #9ca3af;
+  color: #8a8173;
   opacity: 1;
 }
 

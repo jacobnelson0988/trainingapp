@@ -30,7 +30,7 @@ const blockCardStyle = {
   padding: "14px",
   borderRadius: "20px",
   border: `1px solid ${redesignLine}`,
-  backgroundColor: redesignSurfaceSoft,
+  backgroundColor: "rgba(255, 255, 255, 0.18)",
   display: "grid",
   gap: "10px",
 }
@@ -75,7 +75,7 @@ const secondaryButtonStyle = {
   padding: "12px 14px",
   borderRadius: "16px",
   border: `1px solid ${redesignLine}`,
-  backgroundColor: "#ffffff",
+  backgroundColor: "rgba(255,255,255,0.28)",
   color: redesignInk,
   cursor: "pointer",
   fontFamily: redesignDisplayFont,

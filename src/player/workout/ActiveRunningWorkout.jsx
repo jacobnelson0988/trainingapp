@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react"
 import ActiveIntervalWorkout from "./ActiveIntervalWorkout"
 import {
   redesignAccent,
-  redesignAccentDark,
   redesignBody,
   redesignDisplayFont,
   redesignInk,
@@ -49,9 +48,9 @@ const helperTextStyle = {
 const heroTimerStyle = {
   padding: "24px 22px",
   borderRadius: "28px",
-  border: `1px solid rgba(79, 70, 229, 0.24)`,
-  background: `linear-gradient(180deg, ${redesignInk} 0%, ${redesignAccentDark} 100%)`,
-  boxShadow: "0 24px 54px rgba(17, 24, 39, 0.24)",
+  border: `1px solid rgba(217, 74, 31, 0.2)`,
+  background: "linear-gradient(180deg, rgba(20, 18, 14, 0.98) 0%, rgba(40, 24, 14, 0.98) 100%)",
+  boxShadow: "0 24px 54px rgba(26, 24, 20, 0.24)",
   display: "grid",
   gap: "12px",
   justifyItems: "center",

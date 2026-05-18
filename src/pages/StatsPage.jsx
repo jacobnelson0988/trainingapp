@@ -16,7 +16,7 @@ import {
   sectionTitleStyleToken,
 } from "../ui/redesignTokens"
 
-const LINE_COLORS = ["#4F46E5", "#0EA5E9", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6"]
+const LINE_COLORS = ["#c62828", "#1d4ed8", "#0f766e", "#7c3aed", "#ea580c", "#0891b2"]
 const PERIOD_OPTIONS = [
   { value: "30", label: "Senaste 30 dagarna" },
   { value: "90", label: "Senaste 90 dagarna" },
@@ -939,8 +939,8 @@ function StatsPage({
                         }
                         style={{
                           ...activityRowStyle(isMobile),
-                          borderColor: isSelected ? "#c7d2fe" : "#d7dee7",
-                          backgroundColor: isSelected ? "#eef2ff" : "#ffffff",
+                          borderColor: isSelected ? "#efc7c7" : "#d7dee7",
+                          backgroundColor: isSelected ? "#fff4f4" : "#ffffff",
                           cursor: "pointer",
                         }}
                       >
@@ -1652,7 +1652,7 @@ const primaryViewButtonStyle = (isActive, isMobile) => ({
   padding: "14px 16px",
   borderRadius: "18px",
   border: isActive ? "1px solid #b91c1c" : "1px solid #cbd5e1",
-  background: isActive ? "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)" : "#ffffff",
+  background: isActive ? "linear-gradient(135deg, #c62828 0%, #991b1b 100%)" : "#ffffff",
   color: isActive ? "#ffffff" : "#111827",
   fontSize: isMobile ? "15px" : "16px",
   fontWeight: "900",
@@ -1783,7 +1783,7 @@ const recommendationPlayerNameStyle = {
 const recommendationDateStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#4338ca",
+  color: "#991b1b",
   whiteSpace: "nowrap",
 }
 
@@ -1846,13 +1846,13 @@ const recommendationRangeChipLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: "#4338ca",
+  color: "#991b1b",
 }
 
 const recommendationRangeChipValueStyle = {
   fontSize: "12px",
   fontWeight: "900",
-  color: "#111827",
+  color: "#18202b",
 }
 
 const recommendationQuickEditRowStyle = (isMobile) => ({
@@ -1998,7 +1998,7 @@ const activityRowAsideStyle = {
 const activityDateStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#4338ca",
+  color: "#991b1b",
   whiteSpace: "nowrap",
 }
 
@@ -2008,9 +2008,9 @@ const activitySelectedHintStyle = {
   justifyContent: "center",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#eef2ff",
-  border: "1px solid #c7d2fe",
-  color: "#4338ca",
+  backgroundColor: "#fff1f1",
+  border: "1px solid #efc7c7",
+  color: "#991b1b",
   fontSize: "11px",
   fontWeight: "900",
   whiteSpace: "nowrap",
