@@ -9074,14 +9074,10 @@ function TrainingApp() {
     (session) => session.workout_kind === "running" && session.running_origin !== "assigned"
   )
   const todayDateInput = getTodayDateInputValue()
-  const activeWorkoutsById = useMemo(
-    () =>
-      new Map(
-        Object.values(activeWorkouts || {})
-          .filter((workout) => workout?.id != null)
-          .map((workout) => [String(workout.id), workout])
-      ),
-    [activeWorkouts]
+  const activeWorkoutsById = new Map(
+    Object.values(activeWorkouts || {})
+      .filter((workout) => workout?.id != null)
+      .map((workout) => [String(workout.id), workout])
   )
   const playerCalendarEntries =
     profile?.role === "player"
