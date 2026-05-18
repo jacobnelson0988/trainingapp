@@ -9428,26 +9428,12 @@ function TrainingApp() {
         </div>
       ) : (
         <div style={passPreviewContentCardStyle}>
-          <div style={passPreviewMetaStripStyle}>
-            <span>{getPlayerPassDisplayType(workout)}</span>
-            <span>{getPlayerPassSummary(workout)}</span>
-            <span>{formatDaysSince(latestPassDates[key])}</span>
-          </div>
-
           {workout.info && (
             <div style={passPreviewInfoBlockStyle}>
               <div style={passPreviewStatLabelStyle}>Inför start</div>
               <div style={passPreviewInfoTextStyle}>{workout.info}</div>
             </div>
           )}
-
-          <div style={passPreviewSectionHeaderStyle}>
-            <div>
-              <div style={passPreviewStatLabelStyle}>Passupplägg</div>
-              <div style={passPreviewExerciseCountStyle}>{workout.label}</div>
-            </div>
-            <div style={passPreviewCountPillStyle}>{getPlayerPassSummary(workout)}</div>
-          </div>
 
           {workout.exercises.length > 0 && (
             <div style={passPreviewListWrapStyle}>
@@ -11672,16 +11658,16 @@ function TrainingApp() {
 
                   {shouldShowPlayerPassList && recommendedPlayerPassEntries.length > 0 && (
                     <section style={playerRecommendedPassSectionStyle}>
-                      <div style={playerPassSectionHeaderStyle}>
-                        <div>
-                          <div style={playerTodayMonoLabelStyle}>
-                            {playerPassFamily === "running" ? "Färdiga pass" : "Rekommenderat nu"}
+                      {playerPassFamily === "running" ? (
+                        <div style={playerPassSectionHeaderStyle}>
+                          <div>
+                            <div style={playerTodayMonoLabelStyle}>Färdiga pass</div>
+                          </div>
+                          <div style={playerPassSectionCountStyle}>
+                            {recommendedPlayerPassEntries.length} val
                           </div>
                         </div>
-                        <div style={playerPassSectionCountStyle}>
-                          {recommendedPlayerPassEntries.length} val
-                        </div>
-                      </div>
+                      ) : null}
 
                       <div style={playerFeaturedPassGridStyle(isMobile)}>
                         {recommendedPlayerPassEntries.map(renderRecommendedPassCard)}
