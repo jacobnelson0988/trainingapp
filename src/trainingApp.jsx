@@ -46,7 +46,11 @@ import {
   sectionTitleStyleToken,
   subtleInsetStyleToken,
 } from "./ui/redesignTokens"
-import { getPlayerTrainingTheme, resolvePlayerTrainingThemeKey } from "./ui/playerTrainingThemes"
+import {
+  getCategoryAccent,
+  getPlayerTrainingTheme,
+  resolvePlayerTrainingThemeKey,
+} from "./ui/playerTrainingThemes"
 import {
   getExerciseProtocolConfig,
   getExerciseProtocolStep,
@@ -459,6 +463,75 @@ const getWorkoutKindLabel = (workoutKind) => {
 }
 
 const getGymPassTypeLabel = (gymPassType) => (gymPassType === "shared" ? "Gemensamt gympass" : "Individuellt gympass")
+
+const PLAYER_HOME_THEME_PRIORITY = ["strength", "running", "prehab", "other"]
+
+const getPreferredPlayerHomeThemeKey = (themeKeys = []) => {
+  const uniqueThemeKeys = Array.from(new Set((themeKeys || []).filter(Boolean)))
+  return PLAYER_HOME_THEME_PRIORITY.find((themeKey) => uniqueThemeKeys.includes(themeKey)) || uniqueThemeKeys[0] || null
+}
+
+const getPlayerCalendarEntryThemeKey = (entry, matchedWorkout = null) =>
+  resolvePlayerTrainingThemeKey({
+    workoutKind: matchedWorkout?.workoutKind,
+    activityKind: entry?.activity_kind,
+    freeActivityType: entry?.free_activity_type,
+  })
+
+const getCompletedSessionThemeKey = (session) => {
+  if (session?.workout_kind === "running" && session?.running_origin === "free") {
+    return session?.free_activity_type === "running" ? "running" : "other"
+  }
+
+  return resolvePlayerTrainingThemeKey({
+    workoutKind: session?.workout_kind,
+    freeActivityType: session?.free_activity_type,
+  })
+}
+
+const getPlayerCalendarEntryTypeLabel = (entry, matchedWorkout = null) => {
+  if (!entry) return "Aktivitet"
+
+  if (entry.is_external && entry.activity_kind === "handball") return "Handboll"
+
+  if (entry.activity_kind === "template_workout") {
+    if (matchedWorkout?.workoutKind === "running") return "Löppass"
+    if (matchedWorkout?.workoutKind === "prehab") return "Skadeförebyggande"
+    if (matchedWorkout?.workoutKind === "gym" && matchedWorkout?.gymPassType === "shared") {
+      return "Gemensamt gympass"
+    }
+    if (matchedWorkout?.workoutKind === "gym") return "Gympass"
+    return "Pass"
+  }
+
+  if (entry.activity_kind === "free_activity") {
+    return getFreeActivityLabel(entry.free_activity_type)
+  }
+
+  if (entry.activity_kind === "custom") return "Egen aktivitet"
+  if (entry.activity_kind === "handball") return "Handboll"
+  return "Aktivitet"
+}
+
+const getCalendarEntryDurationLabel = (entry) => {
+  const start = new Date(entry?.starts_at).getTime()
+  const end = new Date(entry?.ends_at).getTime()
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return ""
+
+  return `${Math.max(1, Math.round((end - start) / 60000))} min`
+}
+
+const getPlayerHomeWeekDayLetter = (dateKey) => {
+  const date = new Date(`${dateKey}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return ""
+
+  return date
+    .toLocaleDateString("sv-SE", { weekday: "short" })
+    .replace(".", "")
+    .slice(0, 1)
+    .toUpperCase()
+}
 
 const isSharedGymWorkout = (workout) =>
   workout?.workoutKind === "gym" && workout?.gymPassType === "shared"
@@ -9001,6 +9074,15 @@ function TrainingApp() {
     (session) => session.workout_kind === "running" && session.running_origin !== "assigned"
   )
   const todayDateInput = getTodayDateInputValue()
+  const activeWorkoutsById = useMemo(
+    () =>
+      new Map(
+        Object.values(activeWorkouts || {})
+          .filter((workout) => workout?.id != null)
+          .map((workout) => [String(workout.id), workout])
+      ),
+    [activeWorkouts]
+  )
   const playerCalendarEntries =
     profile?.role === "player"
       ? calendarEntries.map((entry) => {
@@ -9021,12 +9103,10 @@ function TrainingApp() {
           const entryDate = getDateInputValueFromTimestamp(entry.starts_at)
           const matchedWorkout =
             entry.activity_kind === "template_workout"
-              ? Object.entries(activeWorkouts || {}).find(
-                  ([, workout]) => String(workout.id || "") === String(entry.workout_template_id || "")
-                )
+              ? activeWorkoutsById.get(String(entry.workout_template_id || "")) || null
               : null
 
-          const candidateNames = [entry.title, matchedWorkout?.[0] || "", matchedWorkout?.[1]?.label || ""]
+          const candidateNames = [entry.title, matchedWorkout?.label || ""]
             .map((value) => normalizeCalendarMatchValue(value))
             .filter(Boolean)
 
@@ -9063,11 +9143,9 @@ function TrainingApp() {
       (!entry.current_user_link || entry.current_user_link.completion_status !== "completed")
   )
   const primaryTodayCalendarEntry = todaysPlayerCalendarEntries[0] || null
-  const primaryTodayWorkoutEntry =
+  const primaryTodayMatchedWorkout =
     primaryTodayCalendarEntry?.activity_kind === "template_workout"
-      ? Object.entries(visibleWorkouts).find(
-          ([, workout]) => String(workout.id) === String(primaryTodayCalendarEntry.workout_template_id)
-        )
+      ? activeWorkoutsById.get(String(primaryTodayCalendarEntry.workout_template_id || "")) || null
       : null
   const currentWeekStart = getWeekStartDateInputValue()
   const playerHomeWeekDays = Array.from({ length: 7 }, (_, index) => {
@@ -9075,32 +9153,78 @@ function TrainingApp() {
     date.setDate(date.getDate() + index)
     return getDateInputValueFromTimestamp(date)
   })
-  const weekDayStateByDate = playerHomeWeekDays.reduce((acc, dateKey) => {
-    const hasCompletedSession = completedWorkoutSessions.some(
+  const playerHomeWeekDayDetailsByDate = playerHomeWeekDays.reduce((acc, dateKey) => {
+    const dayCompletedSessions = completedWorkoutSessions.filter(
       (session) => getDateInputValueFromTimestamp(session.created_at) === dateKey
     )
     const dayCalendarEntries = playerCalendarEntries.filter(
       (entry) => !entry.is_cancelled && getDateInputValueFromTimestamp(entry.starts_at) === dateKey
     )
-    const hasCompletedCalendarEntry = dayCalendarEntries.some(
-      (entry) => entry.current_user_link?.completion_status === "completed"
-    )
-    const hasPlannedCalendarEntry = dayCalendarEntries.some((entry) => {
+
+    const plannedEntries = dayCalendarEntries.filter((entry) => {
       const status = entry.current_user_link?.completion_status || "planned"
       return status !== "completed" && status !== "cancelled" && status !== "skipped"
     })
+    const completedEntries = dayCalendarEntries.filter(
+      (entry) => entry.current_user_link?.completion_status === "completed"
+    )
 
-    acc[dateKey] = hasCompletedSession || hasCompletedCalendarEntry
-      ? "completed"
-      : hasPlannedCalendarEntry
-      ? "planned"
-      : "empty"
+    const plannedThemeKey = getPreferredPlayerHomeThemeKey(
+      plannedEntries.map((entry) =>
+        getPlayerCalendarEntryThemeKey(
+          entry,
+          entry.activity_kind === "template_workout"
+            ? activeWorkoutsById.get(String(entry.workout_template_id || "")) || null
+            : null
+        )
+      )
+    )
+
+    const completedThemeKey = getPreferredPlayerHomeThemeKey([
+      ...dayCompletedSessions.map((session) => getCompletedSessionThemeKey(session)),
+      ...completedEntries.map((entry) =>
+        getPlayerCalendarEntryThemeKey(
+          entry,
+          entry.activity_kind === "template_workout"
+            ? activeWorkoutsById.get(String(entry.workout_template_id || "")) || null
+            : null
+        )
+      ),
+    ])
+
+    const isToday = dateKey === todayDateInput
+    const hasRemainingToday = isToday && plannedEntries.length > 0
+
+    let state = "empty"
+    let themeKey = null
+    let source = null
+
+    if (hasRemainingToday) {
+      state = "today_planned"
+      themeKey = plannedThemeKey || "strength"
+      source = "planned"
+    } else if (completedThemeKey) {
+      state = "completed"
+      themeKey = completedThemeKey
+      source = "completed"
+    } else if (plannedThemeKey) {
+      state = "planned"
+      themeKey = plannedThemeKey
+      source = "planned"
+    } else if (isToday) {
+      state = "today_empty"
+    }
+
+    acc[dateKey] = {
+      dateKey,
+      isToday,
+      source,
+      state,
+      themeKey,
+    }
 
     return acc
   }, {})
-  const weekCompletedDayCount = Object.values(weekDayStateByDate).filter((value) => value === "completed").length
-  const weekPlannedDayCount = Object.values(weekDayStateByDate).filter((value) => value === "planned").length
-  const todayWeekIndex = (new Date().getDay() + 6) % 7
   const activeWorkoutTargetRequestOptions =
     !isRunningWorkoutActive && profile?.individual_goals_enabled !== false
       ? activeWorkoutExercises.flatMap((exercise, exerciseIndex) => {
@@ -9410,6 +9534,73 @@ function TrainingApp() {
 
     return `${workout.exercises.length} övningar`
   }
+  const latestCompletedSessionByThemeKey = completedWorkoutSessions.reduce((acc, session) => {
+    const themeKey = getCompletedSessionThemeKey(session)
+    if (!themeKey) return acc
+
+    const current = acc[themeKey]
+    const sessionTimestamp = new Date(session.created_at || 0).getTime()
+    const currentTimestamp = current ? new Date(current.created_at || 0).getTime() : 0
+
+    if (!current || sessionTimestamp > currentTimestamp) {
+      acc[themeKey] = session
+    }
+
+    return acc
+  }, {})
+  const playerHomeHasHero = Boolean(primaryTodayCalendarEntry)
+  const playerHomeHeroThemeKey = primaryTodayCalendarEntry
+    ? getPlayerCalendarEntryThemeKey(primaryTodayCalendarEntry, primaryTodayMatchedWorkout)
+    : "strength"
+  const playerHomeHeroAccent = getCategoryAccent(playerHomeHeroThemeKey)
+  const playerHomeHeroTitle = primaryTodayCalendarEntry
+    ? String(primaryTodayCalendarEntry.title || primaryTodayMatchedWorkout?.label || "").trim() || "Planerad aktivitet"
+    : ""
+  const playerHomeHeroSubtitle = primaryTodayCalendarEntry
+    ? getPlayerCalendarEntryTypeLabel(primaryTodayCalendarEntry, primaryTodayMatchedWorkout)
+    : ""
+  const playerHomeHeroMeta = primaryTodayCalendarEntry
+    ? [
+        primaryTodayCalendarEntry.activity_kind === "template_workout" && primaryTodayMatchedWorkout
+          ? getPlayerPassSummary(primaryTodayMatchedWorkout)
+          : playerHomeHeroSubtitle,
+        getCalendarEntryDurationLabel(primaryTodayCalendarEntry),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : ""
+  const playerHomeCategoryRows = [
+    {
+      key: "strength",
+      label: "Styrketräning",
+      meta: `${playerFamilyCounts.strength} pass · senast ${formatDaysSince(
+        latestCompletedSessionByThemeKey.strength?.created_at
+      )}`,
+      onClick: () => openPlayerPassFamily("strength"),
+    },
+    {
+      key: "running",
+      label: "Löpning",
+      meta: `${playerFamilyCounts.running} pass · senast ${formatDaysSince(
+        latestCompletedSessionByThemeKey.running?.created_at
+      )}`,
+      onClick: () => openPlayerPassFamily("running"),
+    },
+    {
+      key: "prehab",
+      label: "Skadeförebyggande",
+      meta: `${playerFamilyCounts.prehab} pass · senast ${formatDaysSince(
+        latestCompletedSessionByThemeKey.prehab?.created_at
+      )}`,
+      onClick: () => openPlayerPassFamily("prehab"),
+    },
+    {
+      key: "other",
+      label: "Övrigt",
+      meta: `Logga aktivitet · senast ${formatDaysSince(latestCompletedSessionByThemeKey.other?.created_at)}`,
+      onClick: () => openRunningDraftPanel("running"),
+    },
+  ]
   const renderPlayerPassDetails = (key, workout, variant = "default") => (
     <div style={variant === "featured" ? playerFeaturedPassDetailsStyle : playerShelfPassDetailsStyle}>
       {workout.workoutKind === "running" ? (
@@ -11107,79 +11298,131 @@ function TrainingApp() {
                 </div>
               )}
 
-              <div style={playerTodayMetaRowStyle}>
-                <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
+              <div style={playerHomeDateRowStyle}>
+                <div style={playerHomeDateLabelStyle}>{formatTodayLabel()}</div>
               </div>
 
-              <div style={playerHomeSectionHeaderStyle}>
-                <div>
-                  <div style={playerTodayMonoLabelStyle}>{formatTodayLabel()}</div>
+              {playerHomeHasHero ? (
+                <button
+                  type="button"
+                  onClick={() => handleOpenCalendarEntry(primaryTodayCalendarEntry)}
+                  style={playerHomeHeroCardStyle}
+                >
+                  <div style={playerHomeHeroTopRowStyle}>
+                    <div style={playerHomeHeroKickerRowStyle}>
+                      <span
+                        style={playerHomeHeroAccentDotStyle(playerHomeHeroAccent)}
+                        aria-hidden="true"
+                      />
+                      <span style={playerHomeHeroKickerStyle}>
+                        I kalendern · {formatCalendarTime(primaryTodayCalendarEntry?.starts_at)}
+                      </span>
+                    </div>
+                    <span
+                      style={playerHomeHeroPlayButtonStyle(playerHomeHeroAccent)}
+                      aria-hidden="true"
+                    >
+                      {renderPlayerHomePlayIcon("#ffffff", 16)}
+                    </span>
+                  </div>
+
+                  <div style={playerHomeHeroTitleStyle}>{playerHomeHeroTitle}</div>
+                  <div style={playerHomeHeroSubtitleStyle}>{playerHomeHeroSubtitle}</div>
+
+                  {playerHomeHeroMeta ? (
+                    <div style={playerHomeHeroMetaWrapStyle}>
+                      <div style={playerHomeHeroMetaTextStyle}>{playerHomeHeroMeta}</div>
+                    </div>
+                  ) : null}
+                </button>
+              ) : null}
+
+              <section style={playerHomeCategorySectionStyle}>
+                <div style={playerTodayMonoLabelStyle}>
+                  {playerHomeHasHero ? "Eller välj annat" : "Träning"}
                 </div>
-                <div style={playerHomeSectionMetaStyle}>{Object.keys(visibleWorkouts).length} pass</div>
-              </div>
 
-              <div style={playerHomePrimaryMenuListStyle}>
-                <button
-                  type="button"
-                  onClick={() => openPlayerPassFamily("strength")}
-                  style={playerHomeTrainingCardStyle("strength")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Styrketräning</div>
-                </button>
+                <div style={playerHomeCategoryListStyle}>
+                  {playerHomeCategoryRows.map((row, rowIndex) => {
+                    const accentColor = getCategoryAccent(row.key)
 
-                <button
-                  type="button"
-                  onClick={() => openPlayerPassFamily("running")}
-                  style={playerHomeTrainingCardStyle("running")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Löpning</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openPlayerPassFamily("prehab")}
-                  style={playerHomeTrainingCardStyle("prehab")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Skadeförebyggande</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openRunningDraftPanel("running")}
-                  style={playerHomeTrainingCardStyle("other")}
-                >
-                  <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
-                </button>
-              </div>
+                    return (
+                      <button
+                        key={row.key}
+                        type="button"
+                        onClick={row.onClick}
+                        style={{
+                          ...playerHomeCategoryRowStyle,
+                          ...(rowIndex < playerHomeCategoryRows.length - 1
+                            ? playerHomeCategoryRowDividerStyle
+                            : {}),
+                        }}
+                      >
+                        <span
+                          style={playerHomeCategoryIconWrapStyle(accentColor)}
+                          aria-hidden="true"
+                        >
+                          {renderPlayerHomePlayIcon("#ffffff", 14)}
+                        </span>
+                        <span style={playerHomeCategoryContentStyle}>
+                          <span style={playerHomeCategoryTitleStyle}>{row.label}</span>
+                          <span style={playerHomeCategoryMetaStyle}>{row.meta}</span>
+                        </span>
+                        <span style={playerHomeCategoryChevronStyle} aria-hidden="true">
+                          {renderPlayerHomeChevronIcon(redesignMuted, 18)}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
 
               <div style={playerTodayWeekCardStyle}>
                 <div style={playerTodayWeekHeaderStyle}>
                   <div style={playerTodayMonoLabelStyle}>Denna vecka</div>
-                  <div style={playerTodayWeekCountStyle}>
-                    {weekCompletedDayCount} genomforda · {weekPlannedDayCount} planerade
-                  </div>
                 </div>
                 <div style={playerTodayWeekGridStyle}>
-                  {["M", "T", "O", "T", "F", "L", "S"].map((day, index) => {
-                    const dayState = weekDayStateByDate[playerHomeWeekDays[index]] || "empty"
+                  {playerHomeWeekDays.map((dateKey) => {
+                    const dayDetails = playerHomeWeekDayDetailsByDate[dateKey] || {
+                      isToday: false,
+                      source: null,
+                      state: "empty",
+                      themeKey: null,
+                    }
+                    const accentColor = dayDetails.themeKey
+                      ? getCategoryAccent(dayDetails.themeKey)
+                      : playerInk
 
                     return (
-                    <div
-                      key={`${day}-${index}`}
-                      style={{
-                        ...playerTodayWeekCellStyle,
-                        ...(index === todayWeekIndex ? playerTodayWeekCellTodayStyle : {}),
-                        ...(dayState === "planned" ? playerTodayWeekCellPlannedStyle : {}),
-                        ...(dayState === "completed" ? playerTodayWeekCellDoneStyle : {}),
-                      }}
-                    >
-                      {day}
-                    </div>
+                      <div
+                        key={dateKey}
+                        style={playerHomeWeekCellStyle(dayDetails.state, accentColor)}
+                      >
+                        <div style={playerHomeWeekCellContentStyle}>
+                          <div style={playerHomeWeekLetterStyle(dayDetails.state, accentColor)}>
+                            {getPlayerHomeWeekDayLetter(dateKey)}
+                          </div>
+                          <div style={playerHomeWeekMarkerRowStyle}>
+                            {dayDetails.state === "completed" ? (
+                              <span style={playerHomeWeekCheckWrapStyle} aria-hidden="true">
+                                {renderPlayerHomeCheckIcon("#ffffff", 14)}
+                              </span>
+                            ) : dayDetails.state === "today_planned" || dayDetails.state === "planned" ? (
+                              <span
+                                style={playerHomeWeekDotStyle(accentColor)}
+                                aria-hidden="true"
+                              />
+                            ) : dayDetails.state === "today_empty" ? (
+                              <span style={playerHomeWeekDotStyle(playerInk)} aria-hidden="true" />
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
               </div>
-              </div>
+            </div>
           )}
 
           {!isWorkoutActive && playerView === "calendar" && (
@@ -16592,8 +16835,19 @@ const dangerActionButtonStyle = {
 
 const playerTodayPageStyle = {
   display: "grid",
-  gap: "16px",
-  padding: "0 4px 6px",
+  gap: "18px",
+  padding: "0 4px 8px",
+}
+
+const playerHomeDateRowStyle = {
+  padding: "8px 4px 0",
+}
+
+const playerHomeDateLabelStyle = {
+  ...fieldLabelStyleToken,
+  textTransform: "none",
+  letterSpacing: "0.12em",
+  color: playerInkSoft,
 }
 
 const playerTodayMetaRowStyle = {
@@ -16620,6 +16874,172 @@ const playerTodayTeamPillStyle = {
   maxWidth: "100%",
   whiteSpace: "normal",
   overflowWrap: "anywhere",
+}
+
+const playerHomeHeroCardStyle = {
+  width: "100%",
+  padding: "20px",
+  borderRadius: "22px",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
+  backgroundColor: playerInk,
+  color: "#ffffff",
+  cursor: "pointer",
+  textAlign: "left",
+  display: "grid",
+  gap: "12px",
+  boxShadow: "0 22px 36px rgba(26, 24, 20, 0.18)",
+}
+
+const playerHomeHeroTopRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "14px",
+}
+
+const playerHomeHeroKickerRowStyle = {
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+}
+
+const playerHomeHeroAccentDotStyle = (accentColor) => ({
+  width: "6px",
+  height: "6px",
+  flex: "0 0 auto",
+  borderRadius: "999px",
+  backgroundColor: accentColor,
+})
+
+const playerHomeHeroKickerStyle = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  color: "rgba(255, 255, 255, 0.65)",
+}
+
+const playerHomeHeroPlayButtonStyle = (accentColor) => ({
+  width: "52px",
+  height: "52px",
+  flex: "0 0 auto",
+  borderRadius: "999px",
+  backgroundColor: accentColor,
+  color: "#ffffff",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
+})
+
+const playerHomeHeroTitleStyle = {
+  margin: 0,
+  fontFamily: playerDisplayFont,
+  fontSize: "24px",
+  lineHeight: 0.98,
+  fontWeight: 700,
+  letterSpacing: "-0.02em",
+  color: "#ffffff",
+}
+
+const playerHomeHeroSubtitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "13px",
+  lineHeight: 1.35,
+  fontWeight: 500,
+  color: "rgba(255, 255, 255, 0.72)",
+}
+
+const playerHomeHeroMetaWrapStyle = {
+  paddingTop: "12px",
+  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+}
+
+const playerHomeHeroMetaTextStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  fontWeight: 700,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "rgba(255, 255, 255, 0.72)",
+}
+
+const playerHomeCategorySectionStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const playerHomeCategoryListStyle = {
+  border: `1px solid ${redesignLine}`,
+  borderRadius: "18px",
+  overflow: "hidden",
+  backgroundColor: "transparent",
+}
+
+const playerHomeCategoryRowStyle = {
+  width: "100%",
+  padding: "14px",
+  border: "none",
+  backgroundColor: "transparent",
+  color: playerInk,
+  cursor: "pointer",
+  textAlign: "left",
+  display: "grid",
+  gridTemplateColumns: "48px minmax(0, 1fr) auto",
+  alignItems: "center",
+  gap: "14px",
+}
+
+const playerHomeCategoryRowDividerStyle = {
+  borderBottom: `1px solid ${redesignLine}`,
+}
+
+const playerHomeCategoryIconWrapStyle = (accentColor) => ({
+  width: "48px",
+  height: "48px",
+  borderRadius: "14px",
+  backgroundColor: accentColor,
+  color: "#ffffff",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
+})
+
+const playerHomeCategoryContentStyle = {
+  minWidth: 0,
+  display: "grid",
+  gap: "5px",
+}
+
+const playerHomeCategoryTitleStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "18px",
+  lineHeight: 1.02,
+  fontWeight: 700,
+  letterSpacing: "-0.03em",
+  color: playerInk,
+}
+
+const playerHomeCategoryMetaStyle = {
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  lineHeight: 1.35,
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  color: playerInkSoft,
+}
+
+const playerHomeCategoryChevronStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: redesignMuted,
 }
 
 const playerTodayPrimaryCardStyle = (themeKey = "strength") => {
@@ -16728,20 +17148,18 @@ const playerHomeTrainingTextStyle = {
 }
 
 const playerTodayWeekCardStyle = {
-  gridColumn: "1 / -1",
-  padding: "16px 0 0",
+  padding: "2px 0 0",
   borderRadius: 0,
   border: "none",
-  borderTop: `1px solid ${redesignLineSoft}`,
   background: "transparent",
 }
 
 const playerTodayWeekHeaderStyle = {
   display: "flex",
-  justifyContent: "space-between",
-  alignItems: "baseline",
+  justifyContent: "flex-start",
+  alignItems: "center",
   gap: "10px",
-  marginBottom: "12px",
+  marginBottom: "10px",
 }
 
 const playerTodayWeekCountStyle = {
@@ -16756,38 +17174,76 @@ const playerTodayWeekCountStyle = {
 const playerTodayWeekGridStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: "7px",
+  gap: "6px",
 }
 
-const playerTodayWeekCellStyle = {
+const playerHomeWeekCellStyle = (state = "empty", accentColor = playerInk) => ({
   aspectRatio: "1",
-  borderRadius: "13px",
-  border: `1px solid ${playerLine}`,
-  color: playerInkSoft,
+  borderRadius: "12px",
+  border:
+    state === "completed"
+      ? `1px solid ${accentColor}`
+      : state === "today_planned"
+      ? `1px solid ${accentColor}`
+      : state === "today_empty"
+      ? `1px dashed ${playerInk}`
+      : `1px solid ${redesignLine}`,
+  backgroundColor:
+    state === "completed"
+      ? accentColor
+      : state === "today_planned" || state === "today_empty"
+      ? "#ffffff"
+      : "transparent",
+  display: "grid",
+  placeItems: "center",
+})
+
+const playerHomeWeekCellContentStyle = {
+  display: "grid",
+  justifyItems: "center",
+  alignContent: "center",
+  gap: "6px",
+}
+
+const playerHomeWeekLetterStyle = (state = "empty", accentColor = playerInk) => ({
+  fontFamily: playerMonoFont,
+  fontSize: "10px",
+  lineHeight: 1,
+  fontWeight: 700,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color:
+    state === "completed"
+      ? "#ffffff"
+      : state === "today_planned"
+      ? accentColor
+      : state === "today_empty"
+      ? playerInk
+      : state === "planned"
+      ? playerInk
+      : playerInkSoft,
+})
+
+const playerHomeWeekMarkerRowStyle = {
+  minHeight: "12px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontFamily: playerMonoFont,
-  fontSize: "11px",
-  fontWeight: 700,
 }
 
-const playerTodayWeekCellTodayStyle = {
-  borderColor: playerAccent,
-  color: playerAccent,
+const playerHomeWeekCheckWrapStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 }
 
-const playerTodayWeekCellPlannedStyle = {
-  backgroundColor: "rgba(217, 74, 31, 0.12)",
-  borderColor: "rgba(217, 74, 31, 0.28)",
-  color: playerAccent,
-}
-
-const playerTodayWeekCellDoneStyle = {
-  backgroundColor: playerInk,
-  borderColor: playerInk,
-  color: playerPaper,
-}
+const playerHomeWeekDotStyle = (color) => ({
+  width: "5px",
+  height: "5px",
+  borderRadius: "999px",
+  backgroundColor: color,
+  display: "inline-block",
+})
 
 const playerWorkoutCompleteCardStyle = {
   padding: "20px 0",
@@ -17358,6 +17814,60 @@ const activeRunningWorkoutFieldsStyle = {
   display: "grid",
   gap: "10px",
 }
+
+const renderPlayerHomePlayIcon = (color = "currentColor", size = 16) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    style={{ display: "block" }}
+  >
+    <path d="M5 3.5v9l7-4.5-7-4.5Z" fill={color} />
+  </svg>
+)
+
+const renderPlayerHomeChevronIcon = (color = "currentColor", size = 18) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    style={{ display: "block" }}
+  >
+    <path
+      d="m7.5 4.5 5 5-5 5"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const renderPlayerHomeCheckIcon = (color = "currentColor", size = 14) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    style={{ display: "block" }}
+  >
+    <path
+      d="m3.5 8.25 2.75 2.75L12.5 4.75"
+      stroke={color}
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
 
 const renderCoachBottomNavIcon = (icon, isActive) => {
   const commonProps = {
