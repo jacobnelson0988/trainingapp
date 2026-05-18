@@ -16798,9 +16798,9 @@ const playerHomeTrainingCardStyle = (variant = "paper") => {
     minHeight: "122px",
     width: "100%",
     padding: "16px",
-    borderRadius: "16px",
+    borderRadius: "22px",
     border: `1px solid ${
-      unifiedHomeStyle ? "rgba(79, 70, 229, 0.32)" : isDark ? playerInk : isAccent ? playerAccent : playerLine
+      unifiedHomeStyle ? "rgba(79, 70, 229, 0.22)" : isDark ? playerInk : isAccent ? playerAccent : playerLine
     }`,
     background: unifiedHomeStyle
       ? "#ffffff"
@@ -16860,8 +16860,8 @@ const playerHomeToolsRowStyle = (isMobile) => ({
 const playerHomeToolButtonStyle = {
   minHeight: "44px",
   padding: "10px 12px",
-  borderRadius: "14px",
-  border: `1px solid rgba(79, 70, 229, 0.32)`,
+  borderRadius: "999px",
+  border: `1px solid rgba(79, 70, 229, 0.22)`,
   background: "#ffffff",
   color: playerInk,
   cursor: "pointer",
