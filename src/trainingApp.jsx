@@ -46,6 +46,7 @@ import {
   sectionTitleStyleToken,
   subtleInsetStyleToken,
 } from "./ui/redesignTokens"
+import { getPlayerTrainingTheme, resolvePlayerTrainingThemeKey } from "./ui/playerTrainingThemes"
 import {
   getExerciseProtocolConfig,
   getExerciseProtocolStep,
@@ -9069,9 +9070,16 @@ function TrainingApp() {
         )
       : null
   const primaryHomeWorkout = primaryTodayWorkoutEntry?.[1] || null
+  const primaryHomeThemeKey = resolvePlayerTrainingThemeKey({
+    workoutKind: primaryHomeWorkout?.workoutKind,
+    activityKind: primaryTodayCalendarEntry?.activity_kind,
+    freeActivityType: primaryTodayCalendarEntry?.free_activity_type,
+  })
   const primaryHomeTitle = primaryTodayCalendarEntry?.title || primaryHomeWorkout?.label || "Lugnt idag"
   const primaryHomeSubtitle = primaryHomeWorkout
     ? primaryHomeWorkout.workoutKind === "running"
+      ? getWorkoutKindLabel(primaryHomeWorkout.workoutKind)
+      : primaryHomeWorkout.workoutKind === "prehab"
       ? getWorkoutKindLabel(primaryHomeWorkout.workoutKind)
       : primaryHomeWorkout.gymPassType === "shared"
       ? "Gemensamt gympass"
@@ -9504,6 +9512,7 @@ function TrainingApp() {
   const renderRecommendedPassCard = ([key, workout], index) => {
     const isSelected = selectedWorkout === key
     const passStatus = getPassStatus(latestPassDates[key])
+    const themeKey = resolvePlayerTrainingThemeKey({ workoutKind: workout.workoutKind })
 
     return (
       <div key={key} style={playerFeaturedPassWrapStyle}>
@@ -9511,15 +9520,15 @@ function TrainingApp() {
           type="button"
           onClick={() => setSelectedWorkout((current) => (current === key ? null : key))}
           aria-pressed={isSelected}
-          style={playerFeaturedPassCardStyle(index)}
+          style={playerFeaturedPassCardStyle(themeKey)}
         >
-          <div style={playerFeaturedPassMetaRowStyle}>
+          <div style={playerFeaturedPassMetaRowStyle(themeKey)}>
             <span>Rekommenderat {index + 1}</span>
             <span>{passStatus.label}</span>
           </div>
           <div style={playerFeaturedPassTitleStyle}>{workout.label}</div>
-          <div style={playerFeaturedPassSummaryStyle}>{getPlayerPassSummary(workout)}</div>
-          <div style={playerFeaturedPassFooterStyle}>
+          <div style={playerFeaturedPassSummaryStyle(themeKey)}>{getPlayerPassSummary(workout)}</div>
+          <div style={playerFeaturedPassFooterStyle(themeKey)}>
             <span>{getPlayerPassDisplayType(workout)}</span>
             <span>{formatDaysSince(latestPassDates[key])}</span>
           </div>
@@ -9531,6 +9540,7 @@ function TrainingApp() {
   const renderShelfPassRow = ([key, workout]) => {
     const isSelected = selectedWorkout === key
     const passStatus = getPassStatus(latestPassDates[key])
+    const themeKey = resolvePlayerTrainingThemeKey({ workoutKind: workout.workoutKind })
 
     return (
       <div key={key} style={playerShelfPassWrapStyle}>
@@ -9539,8 +9549,8 @@ function TrainingApp() {
           onClick={() => setSelectedWorkout((current) => (current === key ? null : key))}
           aria-pressed={isSelected}
           style={{
-            ...playerShelfPassButtonStyle,
-            ...(isSelected ? playerShelfPassButtonActiveStyle : {}),
+            ...playerShelfPassButtonStyle(themeKey),
+            ...(isSelected ? playerShelfPassButtonActiveStyle(themeKey) : {}),
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -11150,15 +11160,15 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => handleOpenCalendarEntry(primaryTodayCalendarEntry)}
-                  style={playerTodayCalendarCardStyle}
+                  style={playerTodayCalendarCardStyle(primaryHomeThemeKey)}
                 >
-                  <div style={playerTodaySourceRowStyle}>
-                    <span style={playerTodayAccentDotStyle} />
+                  <div style={playerTodaySourceRowStyle(primaryHomeThemeKey)}>
+                    <span style={playerTodayAccentDotStyle(primaryHomeThemeKey)} />
                     <span>I kalendern</span>
                   </div>
-                  <div style={playerTodayWorkoutTitleStyle}>{primaryHomeTitle}</div>
-                  <div style={playerTodayWorkoutSubtitleStyle}>{primaryHomeSubtitle}</div>
-                  <div style={playerHomeCalendarActionStyle}>{primaryHomeActionLabel}</div>
+                  <div style={playerTodayWorkoutTitleStyle(primaryHomeThemeKey)}>{primaryHomeTitle}</div>
+                  <div style={playerTodayWorkoutSubtitleStyle(primaryHomeThemeKey)}>{primaryHomeSubtitle}</div>
+                  <div style={playerHomeCalendarActionStyle(primaryHomeThemeKey)}>{primaryHomeActionLabel}</div>
                 </button>
               )}
 
@@ -11173,7 +11183,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => navigatePlayerSection("pass")}
-                  style={playerHomeTrainingCardStyle("ink")}
+                  style={playerHomeTrainingCardStyle("strength")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Träning</div>
                 </button>
@@ -11181,7 +11191,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => openRunningDraftPanel("running")}
-                  style={playerHomeTrainingCardStyle("accent")}
+                  style={playerHomeTrainingCardStyle("other")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Logga aktivitet</div>
                 </button>
@@ -11189,7 +11199,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={() => navigatePlayerSection("calendar")}
-                  style={playerHomeTrainingCardStyle("paper")}
+                  style={playerHomeTrainingCardStyle("prehab")}
                 >
                   <div style={playerHomeTrainingTitleStyle}>Kalender</div>
                 </button>
@@ -11320,13 +11330,13 @@ function TrainingApp() {
                 <div style={pickerGridStyle}>
                   {!playerPassFamily && (
                     <div style={playerTrainingMenuGridStyle(isMobile)}>
-                      <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("ink")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("strength")} style={playerHomeTrainingCardStyle("strength")}>
                         <div style={playerHomeTrainingTitleStyle}>Styrka</div>
                       </button>
-                      <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("accent")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("running")} style={playerHomeTrainingCardStyle("running")}>
                         <div style={playerHomeTrainingTitleStyle}>Löpning</div>
                       </button>
-                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("paper")}>
+                      <button type="button" onClick={() => openPlayerPassFamily("prehab")} style={playerHomeTrainingCardStyle("prehab")}>
                         <div style={playerHomeTrainingTitleStyle}>Skadeförebyggande</div>
                       </button>
                     </div>
@@ -15983,66 +15993,67 @@ const playerRunningHubGridStyle = (isMobile) => ({
   gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
 })
 
-const playerRunningHubCardStyle = (variant = "assigned") => ({
-  minHeight: "116px",
-  padding: "15px",
-  borderRadius: "16px",
-  border:
-    variant === "assigned"
-      ? "1px solid rgba(17, 24, 39, 0.18)"
-      : variant === "ownInterval"
-      ? "1px solid rgba(184, 88, 34, 0.22)"
-      : "1px solid rgba(111, 102, 89, 0.22)",
-  background:
-    variant === "assigned"
-      ? "linear-gradient(135deg, #191611 0%, #2b241d 100%)"
-      : variant === "ownInterval"
-      ? "linear-gradient(135deg, rgba(220, 107, 44, 0.22) 0%, rgba(255, 245, 233, 0.88) 100%)"
-      : "linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(245, 237, 223, 0.96) 100%)",
-  color: variant === "assigned" ? "#f8f4ed" : playerInk,
-  textAlign: "left",
-  cursor: "pointer",
-  boxShadow:
-    variant === "assigned"
-      ? "0 16px 34px rgba(24, 18, 12, 0.18)"
-      : variant === "ownInterval"
-      ? "0 12px 28px rgba(201, 99, 45, 0.14)"
-      : "0 10px 24px rgba(75, 58, 38, 0.08)",
-  display: "grid",
-  alignContent: "space-between",
-  gap: "10px",
-})
+const playerRunningHubCardStyle = (variant = "assigned") => {
+  const theme = getPlayerTrainingTheme("running")
+  const isFilled = variant === "assigned"
 
-const playerRunningHubCardKickerStyle = (variant = "assigned") => ({
-  ...playerHomeTrainingKickerStyle,
-  color:
-    variant === "assigned"
-      ? "rgba(248, 244, 237, 0.72)"
-      : variant === "ownInterval"
-      ? "#9a4a1d"
-      : "#6f6659",
-})
-
-const playerRunningHubCardTitleStyle = (variant = "assigned") => ({
-  fontSize: "18px",
-  fontWeight: 900,
-  color: variant === "assigned" ? "#f8f4ed" : playerInk,
-})
-
-const playerRunningHubCardTextStyle = (variant = "assigned") => ({
-  ...playerHomeTrainingTextStyle,
-  color: variant === "assigned" ? "rgba(248, 244, 237, 0.82)" : playerInkSoft,
-})
-
-const playerRunningRegistrationPageStyle = {
-  padding: "18px",
-  borderRadius: "16px",
-  border: `1px solid ${playerLine}`,
-  background:
-    "radial-gradient(circle at 90% 8%, rgba(217, 74, 31, 0.18), transparent 28%), rgba(243, 239, 230, 0.66)",
-  display: "grid",
-  gap: "14px",
+  return {
+    minHeight: "116px",
+    padding: "15px",
+    borderRadius: "16px",
+    border: `1px solid ${isFilled ? theme.filledBorder : theme.softBorder}`,
+    background: isFilled ? theme.filledBackground : theme.softBackground,
+    color: isFilled ? theme.filledText : theme.softText,
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: isFilled ? theme.filledShadow : theme.softShadow,
+    display: "grid",
+    alignContent: "space-between",
+    gap: "10px",
+  }
 }
+
+const playerRunningHubCardKickerStyle = (variant = "assigned") => {
+  const theme = getPlayerTrainingTheme("running")
+  const isFilled = variant === "assigned"
+
+  return {
+    ...playerHomeTrainingKickerStyle,
+    color: isFilled ? theme.filledMeta : theme.softMeta,
+  }
+}
+
+const playerRunningHubCardTitleStyle = (variant = "assigned") => {
+  const theme = getPlayerTrainingTheme("running")
+
+  return {
+    fontSize: "18px",
+    fontWeight: 900,
+    color: variant === "assigned" ? theme.filledText : theme.softText,
+  }
+}
+
+const playerRunningHubCardTextStyle = (variant = "assigned") => {
+  const theme = getPlayerTrainingTheme("running")
+
+  return {
+    ...playerHomeTrainingTextStyle,
+    color: variant === "assigned" ? theme.filledMeta : theme.softMeta,
+  }
+}
+
+const playerRunningRegistrationPageStyle = (() => {
+  const theme = getPlayerTrainingTheme("running")
+
+  return {
+    padding: "18px",
+    borderRadius: "16px",
+    border: `1px solid ${theme.softBorder}`,
+    background: theme.softBackground,
+    display: "grid",
+    gap: "14px",
+  }
+})()
 
 const playerRunningRegistrationHeaderStyle = {
   display: "grid",
@@ -16113,23 +16124,24 @@ const playerFeaturedPassWrapStyle = {
   gap: "0",
 }
 
-const playerFeaturedPassCardStyle = (index = 0) => ({
-  minHeight: "190px",
-  width: "100%",
-  padding: "20px",
-  borderRadius: "16px",
-  border: `1px solid ${index === 0 ? playerInk : playerAccent}`,
-  background:
-    index === 0
-      ? `radial-gradient(circle at 88% 12%, rgba(217, 74, 31, 0.32), transparent 30%), ${playerInk}`
-      : `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`,
-  color: playerPaper,
-  textAlign: "left",
-  cursor: "pointer",
-  boxShadow: "0 22px 42px rgba(26, 24, 20, 0.18)",
-})
+const playerFeaturedPassCardStyle = (themeKey = "strength") => {
+  const theme = getPlayerTrainingTheme(themeKey)
 
-const playerFeaturedPassMetaRowStyle = {
+  return {
+    minHeight: "190px",
+    width: "100%",
+    padding: "20px",
+    borderRadius: "16px",
+    border: `1px solid ${theme.filledBorder}`,
+    background: theme.filledBackground,
+    color: theme.filledText,
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: theme.filledShadow,
+  }
+}
+
+const playerFeaturedPassMetaRowStyle = (themeKey = "strength") => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -16140,8 +16152,8 @@ const playerFeaturedPassMetaRowStyle = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.68)",
-}
+  color: getPlayerTrainingTheme(themeKey).filledMeta,
+})
 
 const playerFeaturedPassTitleStyle = {
   fontFamily: playerDisplayFont,
@@ -16151,28 +16163,31 @@ const playerFeaturedPassTitleStyle = {
   letterSpacing: "-0.06em",
 }
 
-const playerFeaturedPassSummaryStyle = {
+const playerFeaturedPassSummaryStyle = (themeKey = "strength") => ({
   marginTop: "10px",
   fontSize: "15px",
   lineHeight: 1.4,
   fontWeight: 800,
-  color: "rgba(243, 239, 230, 0.72)",
-}
+  color: getPlayerTrainingTheme(themeKey).filledMeta,
+})
 
-const playerFeaturedPassFooterStyle = {
+const playerFeaturedPassFooterStyle = (themeKey = "strength") => ({
   display: "flex",
   justifyContent: "space-between",
   gap: "12px",
   marginTop: "20px",
   paddingTop: "14px",
-  borderTop: "1px solid rgba(243, 239, 230, 0.16)",
+  borderTop:
+    themeKey === "strength" || themeKey === "running"
+      ? "1px solid rgba(243, 239, 230, 0.16)"
+      : `1px solid ${getPlayerTrainingTheme(themeKey).softBorder}`,
   fontFamily: playerMonoFont,
   fontSize: "10px",
   fontWeight: 700,
   letterSpacing: "0.1em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.66)",
-}
+  color: getPlayerTrainingTheme(themeKey).filledMeta,
+})
 
 const playerFeaturedPassDetailsStyle = {
   padding: "14px",
@@ -16201,7 +16216,7 @@ const playerShelfPassWrapStyle = {
   display: "grid",
 }
 
-const playerShelfPassButtonStyle = {
+const playerShelfPassButtonStyle = (themeKey = "strength") => ({
   width: "100%",
   minHeight: "72px",
   display: "flex",
@@ -16210,18 +16225,19 @@ const playerShelfPassButtonStyle = {
   gap: "12px",
   padding: "13px 14px",
   borderRadius: "14px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
-  color: playerInk,
+  border: `1px solid ${getPlayerTrainingTheme(themeKey).softBorder}`,
+  background: getPlayerTrainingTheme(themeKey).softBackground,
+  color: getPlayerTrainingTheme(themeKey).softText,
   textAlign: "left",
   cursor: "pointer",
-}
+})
 
-const playerShelfPassButtonActiveStyle = {
-  backgroundColor: "rgba(26, 24, 20, 0.92)",
-  borderColor: playerInk,
-  color: playerPaper,
-}
+const playerShelfPassButtonActiveStyle = (themeKey = "strength") => ({
+  background: getPlayerTrainingTheme(themeKey).filledBackground,
+  borderColor: getPlayerTrainingTheme(themeKey).filledBorder,
+  color: getPlayerTrainingTheme(themeKey).filledText,
+  boxShadow: getPlayerTrainingTheme(themeKey).filledShadow,
+})
 
 const playerShelfPassTitleStyle = {
   fontSize: "16px",
@@ -16680,24 +16696,27 @@ const playerTodayTeamPillStyle = {
   overflowWrap: "anywhere",
 }
 
-const playerTodayPrimaryCardStyle = {
-  width: "100%",
-  padding: "22px",
-  borderRadius: "16px",
-  border: "none",
-  backgroundColor: playerInk,
-  color: playerPaper,
-  cursor: "pointer",
-  textAlign: "left",
-  boxShadow: "0 22px 40px rgba(26, 24, 20, 0.18)",
+const playerTodayPrimaryCardStyle = (themeKey = "strength") => {
+  const theme = getPlayerTrainingTheme(themeKey)
+
+  return {
+    width: "100%",
+    padding: "22px",
+    borderRadius: "16px",
+    border: `1px solid ${theme.filledBorder}`,
+    background: theme.filledBackground,
+    color: theme.filledText,
+    cursor: "pointer",
+    textAlign: "left",
+    boxShadow: theme.filledShadow,
+  }
 }
 
-const playerTodayCalendarCardStyle = {
-  ...playerTodayPrimaryCardStyle,
-  backgroundColor: playerInk,
-}
+const playerTodayCalendarCardStyle = (themeKey = "strength") => ({
+  ...playerTodayPrimaryCardStyle(themeKey),
+})
 
-const playerTodaySourceRowStyle = {
+const playerTodaySourceRowStyle = (themeKey = "strength") => ({
   display: "flex",
   alignItems: "center",
   gap: "8px",
@@ -16706,43 +16725,43 @@ const playerTodaySourceRowStyle = {
   fontWeight: 700,
   letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.64)",
-}
+  color: getPlayerTrainingTheme(themeKey).filledMeta,
+})
 
-const playerTodayAccentDotStyle = {
+const playerTodayAccentDotStyle = (themeKey = "strength") => ({
   width: "7px",
   height: "7px",
   borderRadius: "999px",
-  backgroundColor: playerAccent,
+  backgroundColor: getPlayerTrainingTheme(themeKey).dotColor,
   flexShrink: 0,
-}
+})
 
-const playerTodayWorkoutTitleStyle = {
+const playerTodayWorkoutTitleStyle = (themeKey = "strength") => ({
   marginTop: "12px",
   fontFamily: playerDisplayFont,
   fontSize: "clamp(28px, 7vw, 40px)",
   fontWeight: 700,
   lineHeight: 0.98,
   letterSpacing: "-0.04em",
-  color: playerPaper,
-}
+  color: getPlayerTrainingTheme(themeKey).filledText,
+})
 
-const playerTodayWorkoutSubtitleStyle = {
+const playerTodayWorkoutSubtitleStyle = (themeKey = "strength") => ({
   marginTop: "4px",
   fontSize: "16px",
   fontWeight: 700,
-  color: "rgba(243, 239, 230, 0.68)",
-}
+  color: getPlayerTrainingTheme(themeKey).filledMeta,
+})
 
-const playerHomeCalendarActionStyle = {
+const playerHomeCalendarActionStyle = (themeKey = "strength") => ({
   marginTop: "16px",
   fontFamily: playerMonoFont,
   fontSize: "11px",
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(243, 239, 230, 0.72)",
-}
+  color: getPlayerTrainingTheme(themeKey).filledMeta,
+})
 
 const playerHomeSectionHeaderStyle = {
   display: "flex",
@@ -16784,25 +16803,21 @@ const playerHomePrimaryMenuListStyle = {
   gridTemplateColumns: "1fr",
 }
 
-const playerHomeTrainingCardStyle = (variant = "paper") => {
-  const isDark = variant === "ink"
-  const isAccent = variant === "accent"
+const playerHomeTrainingCardStyle = (themeKey = "prehab") => {
+  const theme = getPlayerTrainingTheme(themeKey)
+  const useFilled = themeKey === "strength" || themeKey === "running"
 
   return {
     minHeight: "122px",
     width: "100%",
     padding: "16px",
     borderRadius: "16px",
-    border: `1px solid ${isDark ? playerInk : isAccent ? playerAccent : playerLine}`,
-    background: isDark
-      ? playerInk
-      : isAccent
-      ? `linear-gradient(135deg, ${playerAccent} 0%, #aa3218 100%)`
-      : "rgba(255, 255, 255, 0.28)",
-    color: isDark || isAccent ? playerPaper : playerInk,
+    border: `1px solid ${useFilled ? theme.filledBorder : theme.softBorder}`,
+    background: useFilled ? theme.filledBackground : theme.softBackground,
+    color: useFilled ? theme.filledText : theme.softText,
     textAlign: "center",
     cursor: "pointer",
-    boxShadow: isDark || isAccent ? "0 18px 34px rgba(26, 24, 20, 0.16)" : "none",
+    boxShadow: useFilled ? theme.filledShadow : theme.softShadow,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

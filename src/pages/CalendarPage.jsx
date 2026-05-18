@@ -6,6 +6,7 @@ import {
   redesignSurfaceSoft,
   sectionTitleStyleToken,
 } from "../ui/redesignTokens"
+import { getPlayerTrainingTheme, resolvePlayerTrainingThemeKey } from "../ui/playerTrainingThemes"
 
 const ACTIVITY_KIND_OPTIONS = [
   { value: "template_workout", label: "Passmall" },
@@ -198,44 +199,33 @@ const getPlayerEntryBadgeLabel = (entry, matchedWorkout) => {
   return "PASS"
 }
 
+const getPlayerEntryThemeKey = (entry, matchedWorkout) =>
+  resolvePlayerTrainingThemeKey({
+    workoutKind: matchedWorkout?.workoutKind,
+    activityKind: entry?.activity_kind,
+    freeActivityType: entry?.free_activity_type,
+  })
+
 const getPlayerEntryBadgeTheme = (entry, matchedWorkout) => {
-  if (entry?.is_external === true && entry?.activity_kind === "handball") {
-    return {
-      backgroundColor: "rgba(26, 24, 20, 0.08)",
-      color: "#1f2937",
-    }
-  }
-
-  if (matchedWorkout?.workoutKind === "running") {
-    return {
-      backgroundColor: "#eef4ff",
-      color: "#1d4ed8",
-    }
-  }
-
-  if (matchedWorkout?.workoutKind === "prehab") {
-    return {
-      backgroundColor: "#ecfdf5",
-      color: "#0f766e",
-    }
-  }
+  const theme = getPlayerTrainingTheme(getPlayerEntryThemeKey(entry, matchedWorkout))
 
   return {
-    backgroundColor: "#fff0e5",
-    color: "#d94a1f",
+    backgroundColor: theme.badgeBackground,
+    color: theme.badgeColor,
   }
 }
 
 const getPlayerDayActivityDotColor = (entry, workouts) => {
-  if (entry?.is_external === true && entry?.activity_kind === "handball") return "#1a1814"
+  if (entry?.is_external === true && entry?.activity_kind === "handball") {
+    return getPlayerTrainingTheme("other").dotColor
+  }
 
   const status = entry?.current_user_link?.completion_status || "planned"
   if (status === "completed") return "#1a1814"
   if (status === "skipped") return "#c2410c"
 
   const matchedWorkout = entry?.activity_kind === "template_workout" ? getMatchingWorkout(entry, workouts) : null
-  if (matchedWorkout?.workoutKind === "running") return "#111827"
-  return "#e5541f"
+  return getPlayerTrainingTheme(getPlayerEntryThemeKey(entry, matchedWorkout)).dotColor
 }
 
 const getIsoWeekNumber = (value) => {
@@ -998,6 +988,7 @@ function CalendarPage({
               <div style={playerCalendarAgendaListStyle}>
                 {activePlayerDayEntries.map((entry) => {
                   const matchedWorkout = entry.activity_kind === "template_workout" ? getMatchingWorkout(entry, workouts) : null
+                  const themeKey = getPlayerEntryThemeKey(entry, matchedWorkout)
                   const typeLabel = getPlayerEntryTypeLabel(entry, matchedWorkout)
                   const badgeLabel = getPlayerEntryBadgeLabel(entry, matchedWorkout)
                   const badgeTheme = getPlayerEntryBadgeTheme(entry, matchedWorkout)
@@ -1015,7 +1006,7 @@ function CalendarPage({
                         type="button"
                         onClick={() => !isImportedHandball && onOpenEntry(entry)}
                         disabled={isImportedHandball}
-                        style={playerCalendarAgendaCardButtonStyle(isImportedHandball)}
+                        style={playerCalendarAgendaCardButtonStyle(themeKey, isImportedHandball)}
                       >
                         <div style={{ ...playerCalendarAgendaBadgeStyle, ...badgeTheme }}>{badgeLabel}</div>
                         <div style={playerCalendarAgendaContentStyle}>
@@ -1358,6 +1349,7 @@ function CalendarPage({
                 const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
                 const isEditingThisEntry = editingEntry?.id === entry.id
                 const isImportedHandball = entry?.is_external === true && entry?.activity_kind === "handball"
+                const themeKey = getPlayerEntryThemeKey(entry, matchedWorkout)
                 const durationLabel = getEntryDurationMinutes(entry)
                 const coachSummaryText = isImportedHandball
                   ? `${entry.player_links.length} spelare • importerat från laget.se`
@@ -1370,7 +1362,7 @@ function CalendarPage({
                 return (
                   <div key={entry.id} style={playerCalendarAgendaItemStyle}>
                     <article style={coachCalendarAgendaCardStyle}>
-                      <div style={playerCalendarAgendaCardButtonStyle(true)}>
+                      <div style={playerCalendarAgendaCardButtonStyle(themeKey, true)}>
                         <div style={{ ...playerCalendarAgendaBadgeStyle, ...badgeTheme }}>{badgeLabel}</div>
                         <div style={playerCalendarAgendaContentStyle}>
                           <div style={playerCalendarAgendaTitleStyle}>{entry.title}</div>
@@ -2279,22 +2271,26 @@ const playerCalendarAgendaItemStyle = {
   gap: "8px",
 }
 
-const playerCalendarAgendaCardButtonStyle = (isDisabled) => ({
-  width: "100%",
-  display: "grid",
-  gridTemplateColumns: "64px minmax(0, 1fr) auto",
-  alignItems: "center",
-  gap: "14px",
-  padding: "16px 18px",
-  borderRadius: "16px",
-  border: "1px solid rgba(164, 106, 60, 0.18)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,242,234,0.92) 100%)",
-  color: "#1a1814",
-  textAlign: "left",
-  cursor: isDisabled ? "default" : "pointer",
-  boxShadow: "0 12px 24px rgba(15, 23, 42, 0.05)",
-  opacity: isDisabled ? 0.92 : 1,
-})
+const playerCalendarAgendaCardButtonStyle = (themeKey = "strength", isDisabled) => {
+  const theme = getPlayerTrainingTheme(themeKey)
+
+  return {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "64px minmax(0, 1fr) auto",
+    alignItems: "center",
+    gap: "14px",
+    padding: "16px 18px",
+    borderRadius: "16px",
+    border: `1px solid ${theme.softBorder}`,
+    background: theme.softBackground,
+    color: theme.softText,
+    textAlign: "left",
+    cursor: isDisabled ? "default" : "pointer",
+    boxShadow: theme.softShadow,
+    opacity: isDisabled ? 0.92 : 1,
+  }
+}
 
 const playerCalendarAgendaBadgeStyle = {
   width: "58px",
