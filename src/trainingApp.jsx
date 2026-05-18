@@ -11123,9 +11123,6 @@ function TrainingApp() {
 
               <div style={playerTodayMetaRowStyle}>
                 <div style={playerTodayTeamPillStyle}>{teamName || playerFirstName}</div>
-                <button type="button" onClick={() => navigateGlobalView("account")} style={playerHomeAccountButtonStyle}>
-                  Konto
-                </button>
               </div>
 
               <div style={playerHomeSectionHeaderStyle}>
@@ -16614,10 +16611,7 @@ const playerTodayPageStyle = {
 }
 
 const playerTodayMetaRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "12px",
+  display: "block",
   padding: "8px 6px 0",
 }
 
@@ -16745,19 +16739,6 @@ const playerHomeTrainingTextStyle = {
   lineHeight: 1.35,
   fontWeight: 700,
   opacity: 0.72,
-}
-
-const playerHomeAccountButtonStyle = {
-  minHeight: "40px",
-  padding: "10px 12px",
-  borderRadius: "14px",
-  border: `1px solid ${playerLine}`,
-  background: "rgba(255, 255, 255, 0.22)",
-  color: playerInk,
-  cursor: "pointer",
-  fontSize: "13px",
-  fontWeight: 900,
-  flexShrink: 0,
 }
 
 const playerTodayWeekCardStyle = {
