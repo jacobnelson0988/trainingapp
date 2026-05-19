@@ -9569,31 +9569,25 @@ function TrainingApp() {
     {
       key: "strength",
       label: "Styrketräning",
-      meta: `${playerFamilyCounts.strength} pass · senast ${formatDaysSince(
-        latestCompletedSessionByThemeKey.strength?.created_at
-      )}`,
+      meta: `Senast ${formatDaysSince(latestCompletedSessionByThemeKey.strength?.created_at)}`,
       onClick: () => openPlayerPassFamily("strength"),
     },
     {
       key: "running",
       label: "Löpning",
-      meta: `${playerFamilyCounts.running} pass · senast ${formatDaysSince(
-        latestCompletedSessionByThemeKey.running?.created_at
-      )}`,
+      meta: `Senast ${formatDaysSince(latestCompletedSessionByThemeKey.running?.created_at)}`,
       onClick: () => openPlayerPassFamily("running"),
     },
     {
       key: "prehab",
       label: "Skadeförebyggande",
-      meta: `${playerFamilyCounts.prehab} pass · senast ${formatDaysSince(
-        latestCompletedSessionByThemeKey.prehab?.created_at
-      )}`,
+      meta: `Senast ${formatDaysSince(latestCompletedSessionByThemeKey.prehab?.created_at)}`,
       onClick: () => openPlayerPassFamily("prehab"),
     },
     {
       key: "other",
       label: "Övrigt",
-      meta: `Logga aktivitet · senast ${formatDaysSince(latestCompletedSessionByThemeKey.other?.created_at)}`,
+      meta: "Logga annan aktivitet",
       onClick: () => openRunningDraftPanel("running"),
     },
   ]
@@ -11294,6 +11288,10 @@ function TrainingApp() {
                 </div>
               )}
 
+              <div style={playerHomeTeamRowStyle}>
+                <div style={playerHomeTeamLabelStyle}>{teamName}</div>
+              </div>
+
               <div style={playerHomeDateRowStyle}>
                 <div style={playerHomeDateLabelStyle}>{formatTodayLabel()}</div>
               </div>
@@ -12464,7 +12462,7 @@ function TrainingApp() {
                     ...coachBottomNavButtonStyle,
                     color: usePlayerRedesignShell
                       ? isActive
-                        ? playerAccent
+                        ? playerInk
                         : playerInkSoft
                       : isActive
                       ? "#b61e24"
@@ -12476,11 +12474,21 @@ function TrainingApp() {
                       ...(usePlayerRedesignShell ? playerBottomNavIconWrapStyle : coachBottomNavIconWrapStyle),
                       backgroundColor: usePlayerRedesignShell
                         ? isActive
-                          ? "rgba(217, 74, 31, 0.12)"
+                          ? "rgba(255, 255, 255, 0.92)"
                           : "transparent"
                         : isActive
                         ? "#fff1f1"
                         : "transparent",
+                      border: usePlayerRedesignShell
+                        ? isActive
+                          ? `1px solid ${redesignLine}`
+                          : "1px solid transparent"
+                        : undefined,
+                      boxShadow: usePlayerRedesignShell
+                        ? isActive
+                          ? "0 8px 18px rgba(26, 24, 20, 0.08)"
+                          : "none"
+                        : undefined,
                     }}
                   >
                     {renderCoachBottomNavIcon(tab.icon, isActive)}
@@ -16835,8 +16843,21 @@ const playerTodayPageStyle = {
   padding: "0 4px 8px",
 }
 
-const playerHomeDateRowStyle = {
+const playerHomeTeamRowStyle = {
   padding: "8px 4px 0",
+}
+
+const playerHomeTeamLabelStyle = {
+  fontFamily: playerDisplayFont,
+  fontSize: "clamp(28px, 7.5vw, 42px)",
+  lineHeight: 0.95,
+  fontWeight: 700,
+  letterSpacing: "-0.04em",
+  color: playerInk,
+}
+
+const playerHomeDateRowStyle = {
+  padding: "0 4px",
 }
 
 const playerHomeDateLabelStyle = {
@@ -17989,8 +18010,10 @@ const coachBottomNavStyle = {
 const playerBottomNavStyle = {
   ...coachBottomNavStyle,
   borderTop: "1px solid rgba(26, 24, 20, 0.08)",
-  background: "rgba(243, 239, 230, 0.94)",
-  boxShadow: "0 -18px 38px rgba(26, 24, 20, 0.12)",
+  borderRadius: "18px 18px 0 0",
+  background: "rgba(243, 239, 230, 0.98)",
+  backdropFilter: "none",
+  boxShadow: "0 -1px 0 rgba(26, 24, 20, 0.04)",
 }
 
 const managementBottomNavStyle = {
@@ -18025,7 +18048,9 @@ const coachBottomNavIconWrapStyle = {
 
 const playerBottomNavIconWrapStyle = {
   ...coachBottomNavIconWrapStyle,
-  borderRadius: "999px",
+  width: "36px",
+  height: "36px",
+  borderRadius: "12px",
 }
 
 const managementBottomNavIconWrapStyle = {
@@ -18044,7 +18069,8 @@ const playerBottomNavLabelStyle = {
   ...coachBottomNavLabelStyle,
   fontFamily: playerMonoFont,
   fontSize: "10px",
-  letterSpacing: "0.02em",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
 }
 
 const managementBottomNavLabelStyle = {
