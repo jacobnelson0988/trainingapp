@@ -12442,7 +12442,7 @@ function TrainingApp() {
       )}
 
       {showPlayerBottomNav && (
-        <div style={coachBottomNavWrapStyle}>
+        <div style={usePlayerRedesignShell ? playerBottomNavWrapStyle : coachBottomNavWrapStyle}>
           <div
             style={{
               ...(usePlayerRedesignShell ? playerBottomNavStyle : coachBottomNavStyle),
@@ -17994,6 +17994,16 @@ const coachBottomNavWrapStyle = {
   pointerEvents: "none",
 }
 
+const playerBottomNavWrapStyle = {
+  position: "fixed",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 30,
+  padding: 0,
+  pointerEvents: "none",
+}
+
 const coachBottomNavStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
@@ -18010,10 +18020,11 @@ const coachBottomNavStyle = {
 const playerBottomNavStyle = {
   ...coachBottomNavStyle,
   borderTop: "1px solid rgba(26, 24, 20, 0.08)",
-  borderRadius: "18px 18px 0 0",
-  background: "rgba(243, 239, 230, 0.98)",
+  borderRadius: 0,
+  padding: "8px 10px calc(8px + env(safe-area-inset-bottom))",
+  background: "#f3efe6",
   backdropFilter: "none",
-  boxShadow: "0 -1px 0 rgba(26, 24, 20, 0.04)",
+  boxShadow: "none",
 }
 
 const managementBottomNavStyle = {
