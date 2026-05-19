@@ -89,6 +89,12 @@ const primaryGhostButtonStyle = {
   color: redesignAccent,
 }
 
+const primaryGhostButtonStyleForAccent = (accent = redesignAccent) => ({
+  ...primaryGhostButtonStyle,
+  borderColor: accent,
+  color: accent,
+})
+
 const summaryStyle = {
   fontSize: "14px",
   lineHeight: 1.5,
@@ -107,6 +113,7 @@ export default function IntervalProgramEditor({
   programDraft,
   onChange,
   isMobile,
+  accent = redesignAccent,
   nameValue = "",
   onNameChange = null,
   nameLabel = "Namn",
@@ -275,7 +282,7 @@ export default function IntervalProgramEditor({
         })}
       </div>
 
-      <button type="button" onClick={addBlock} style={primaryGhostButtonStyle}>
+      <button type="button" onClick={addBlock} style={primaryGhostButtonStyleForAccent(accent)}>
         + Lägg till block
       </button>
     </div>

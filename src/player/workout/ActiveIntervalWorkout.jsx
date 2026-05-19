@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
-  redesignAccent,
   redesignBody,
   redesignDisplayFont,
   redesignInk,
@@ -11,6 +10,7 @@ import {
   redesignSurface,
   redesignSurfaceSoft,
 } from "../../ui/redesignTokens"
+import { getCategoryAccent } from "../../ui/playerTrainingThemes"
 import {
   clearIntervalMediaSession,
   playIntervalSignal,
@@ -27,6 +27,9 @@ import {
   resumeIntervalTimerSession,
 } from "../../timers/intervalTimerEngine"
 import { buildIntervalProgram, getIntervalProgramSummary } from "../../running/intervalPrograms"
+
+const runningAccent = getCategoryAccent("running")
+const runningAccentTint = (opacity = 0.18) => `rgba(232, 122, 28, ${opacity})`
 
 const workoutShellStyle = {
   display: "grid",
@@ -103,7 +106,7 @@ const timerCardStyle = (isExpanded = false) => ({
   minHeight: isExpanded ? "320px" : "auto",
   padding: isExpanded ? "24px 22px" : "18px 18px",
   borderRadius: "28px",
-  border: `1px solid rgba(217, 74, 31, ${isExpanded ? 0.36 : 0.18})`,
+  border: `1px solid ${runningAccentTint(isExpanded ? 0.36 : 0.18)}`,
   background: isExpanded
     ? "linear-gradient(180deg, rgba(20, 18, 14, 0.98) 0%, rgba(40, 24, 14, 0.98) 100%)"
     : redesignSurface,
@@ -130,7 +133,7 @@ const timerValueStyle = (isExpanded = false) => ({
   lineHeight: 0.88,
   fontWeight: 700,
   letterSpacing: "-0.06em",
-  color: isExpanded ? redesignAccent : redesignInk,
+  color: isExpanded ? runningAccent : redesignInk,
 })
 
 const timerMetaGridStyle = (isMobile) => ({
@@ -184,7 +187,7 @@ const timerProgressFillStyle = (ratio) => ({
   width: `${Math.max(0, Math.min(1, ratio || 0)) * 100}%`,
   height: "100%",
   borderRadius: "999px",
-  background: "linear-gradient(90deg, #d94a1f 0%, #f17f45 100%)",
+  background: `linear-gradient(90deg, ${runningAccent} 0%, #f5a25a 100%)`,
   transition: "width 240ms linear",
 })
 
@@ -199,8 +202,8 @@ const primaryButtonStyle = {
   minHeight: "56px",
   padding: "16px 18px",
   borderRadius: "20px",
-  border: `1px solid ${redesignAccent}`,
-  backgroundColor: redesignAccent,
+  border: `1px solid ${runningAccent}`,
+  backgroundColor: runningAccent,
   color: redesignPaper,
   cursor: "pointer",
   fontFamily: redesignDisplayFont,

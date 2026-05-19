@@ -9266,6 +9266,10 @@ function TrainingApp() {
       ? "Skadeförebyggande"
       : "Träning"
   const activeWorkoutData = selectedWorkout ? activeWorkouts[selectedWorkout] || null : null
+  const activeWorkoutThemeKey = activeWorkoutData
+    ? resolvePlayerTrainingThemeKey({ workoutKind: activeWorkoutData.workoutKind })
+    : playerPassFamily || "strength"
+  const activeWorkoutAccent = getCategoryAccent(activeWorkoutThemeKey)
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmupTechnique = Array.isArray(activeWorkoutData?.warmup?.technique)
     ? activeWorkoutData.warmup.technique
@@ -9906,7 +9910,7 @@ function TrainingApp() {
 
       <button
         onClick={() => startWorkout(key)}
-        style={{ ...buttonStyle, ...playerPassStartButtonStyle, width: "100%" }}
+        style={{ ...buttonStyle, ...playerPassStartButtonStyle(resolvePlayerTrainingThemeKey({ workoutKind: workout.workoutKind })), width: "100%" }}
       >
         Starta pass
       </button>
@@ -11401,7 +11405,7 @@ function TrainingApp() {
                   ×
                 </button>
                 <div style={activeWorkoutLiveMetaStyle}>
-                  <span style={activeWorkoutLiveDotStyle} />
+                  <span style={activeWorkoutLiveDotStyle(activeWorkoutAccent)} />
                   <span>{activeWorkoutData?.label || "Träningspass"}</span>
                   <span>·</span>
                   <span>{activeWorkoutProgressSummary}</span>
@@ -11414,7 +11418,7 @@ function TrainingApp() {
                     style={{
                       ...activeWorkoutProgressSegmentStyle,
                       backgroundColor: segment.isCurrent
-                        ? playerAccent
+                        ? activeWorkoutAccent
                         : segment.isComplete
                         ? "#1a1814"
                         : "rgba(26, 24, 20, 0.14)",
@@ -11859,9 +11863,9 @@ function TrainingApp() {
                           ...secondaryButtonStyle,
                           width: "100%",
                           marginBottom: "12px",
-                          borderColor: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.borderColor,
-                          color: startDistanceShareLocation ? playerAccent : secondaryButtonStyle.color,
-                          backgroundColor: startDistanceShareLocation ? "rgba(217, 74, 31, 0.08)" : secondaryButtonStyle.backgroundColor,
+                          borderColor: startDistanceShareLocation ? getCategoryAccent("running") : secondaryButtonStyle.borderColor,
+                          color: startDistanceShareLocation ? getCategoryAccent("running") : secondaryButtonStyle.color,
+                          backgroundColor: startDistanceShareLocation ? getAccentTint(getCategoryAccent("running"), 0.08) : secondaryButtonStyle.backgroundColor,
                         }}
                       >
                         {startDistanceShareLocation
@@ -11878,7 +11882,7 @@ function TrainingApp() {
                         onClick={startOwnDistanceWorkout}
                         style={{
                           ...buttonStyle,
-                          ...playerPassStartButtonStyle,
+                          ...playerPassStartButtonStyle("running"),
                           width: "100%",
                         }}
                       >
@@ -11937,8 +11941,8 @@ function TrainingApp() {
                                 style={{
                                   ...playerHistoryItemStyle,
                                   textAlign: "left",
-                                  border: isSelectedPreset ? `1px solid ${playerAccent}` : playerHistoryItemStyle.border,
-                                  backgroundColor: isSelectedPreset ? "rgba(217, 74, 31, 0.08)" : playerHistoryItemStyle.backgroundColor,
+                                  border: isSelectedPreset ? `1px solid ${getCategoryAccent("running")}` : playerHistoryItemStyle.border,
+                                  backgroundColor: isSelectedPreset ? getAccentTint(getCategoryAccent("running"), 0.08) : playerHistoryItemStyle.backgroundColor,
                                 }}
                               >
                                 <div style={playerHistoryItemTitleStyle}>{preset.name}</div>
@@ -11967,6 +11971,7 @@ function TrainingApp() {
                           programDraft={playerRunningPresetDraft}
                           onChange={setPlayerRunningPresetDraft}
                           isMobile={isMobile}
+                          accent={getCategoryAccent("running")}
                         />
                         <div style={{ display: "grid", gap: "10px", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))" }}>
                           <button
@@ -11974,7 +11979,7 @@ function TrainingApp() {
                             onClick={handleSavePlayerRunningPreset}
                             disabled={isSavingPlayerRunningPreset}
                             style={{
-                              ...buttonStyle,
+                              ...playerRunningActionButtonStyle,
                               opacity: isSavingPlayerRunningPreset ? 0.7 : 1,
                             }}
                           >
@@ -11983,7 +11988,7 @@ function TrainingApp() {
                           <button
                             type="button"
                             onClick={startOwnIntervalWorkout}
-                            style={secondaryButtonStyle}
+                            style={playerRunningActionButtonStyle}
                           >
                             Starta pass
                           </button>
@@ -11995,7 +12000,7 @@ function TrainingApp() {
                                 : resetPlayerRunningPresetEditor()
                             }
                             disabled={Boolean(selectedPlayerRunningPresetId) && deletingPlayerRunningPresetId === selectedPlayerRunningPresetId}
-                            style={secondaryButtonStyle}
+                            style={playerRunningActionButtonStyle}
                           >
                             {selectedPlayerRunningPresetId
                               ? deletingPlayerRunningPresetId === selectedPlayerRunningPresetId
@@ -12096,7 +12101,7 @@ function TrainingApp() {
                         disabled={isSavingRunningSession}
                         style={{
                           ...buttonStyle,
-                          ...playerPassStartButtonStyle,
+                          ...playerPassStartButtonStyle("running"),
                           width: "100%",
                           opacity: isSavingRunningSession ? 0.7 : 1,
                         }}
@@ -12125,6 +12130,7 @@ function TrainingApp() {
                           programDraft={runningDraft.interval_program}
                           onChange={(value) => handleRunningDraftChange("interval_program", value)}
                           isMobile={isMobile}
+                          accent={getCategoryAccent("running")}
                         />
                         <div style={playerRunningRegistrationGridStyle(isMobile)}>
                           <label style={fieldLabelStyle}>
@@ -12154,7 +12160,7 @@ function TrainingApp() {
                         disabled={isSavingRunningSession}
                         style={{
                           ...buttonStyle,
-                          ...playerPassStartButtonStyle,
+                          ...playerPassStartButtonStyle("running"),
                           width: "100%",
                           opacity: isSavingRunningSession ? 0.7 : 1,
                         }}
@@ -13029,9 +13035,9 @@ function TrainingApp() {
                             aria-label={isInfoExpanded ? "Dölj instruktion" : "Visa instruktion"}
                             style={{
                               ...activeWorkoutInfoIconButtonStyle,
-                              color: isInfoExpanded ? playerAccent : playerInkSoft,
-                              borderColor: isInfoExpanded ? playerAccent : playerLine,
-                              backgroundColor: isInfoExpanded ? "rgba(176, 51, 39, 0.12)" : "transparent",
+                              color: isInfoExpanded ? activeWorkoutAccent : playerInkSoft,
+                              borderColor: isInfoExpanded ? activeWorkoutAccent : playerLine,
+                              backgroundColor: isInfoExpanded ? getAccentTint(activeWorkoutAccent, 0.12) : "transparent",
                             }}
                           >
                             i
@@ -13049,9 +13055,9 @@ function TrainingApp() {
                           }
                           style={{
                             ...activeWorkoutTopPillButtonStyle,
-                            color: isAlternativesExpanded ? playerAccent : playerInk,
-                            borderColor: isAlternativesExpanded ? playerAccent : playerLine,
-                            backgroundColor: isAlternativesExpanded ? "rgba(176, 51, 39, 0.12)" : "transparent",
+                            color: isAlternativesExpanded ? activeWorkoutAccent : playerInk,
+                            borderColor: isAlternativesExpanded ? activeWorkoutAccent : playerLine,
+                            backgroundColor: isAlternativesExpanded ? getAccentTint(activeWorkoutAccent, 0.12) : "transparent",
                           }}
                         >
                           Alternativ
@@ -13062,7 +13068,7 @@ function TrainingApp() {
                     selectedExercise?.executionSide &&
                     selectedExercise.executionSide !== "standard" &&
                     exerciseType !== "seconds_only" ? (
-                      <div style={activeLiftSideHintStyle}>
+                      <div style={activeLiftSideHintStyle(activeWorkoutAccent)}>
                         {getExerciseExecutionSideHint(
                           selectedExercise.executionSide,
                           selectedExercise?.type || exercise.type
@@ -13093,14 +13099,14 @@ function TrainingApp() {
                             <button
                               type="button"
                               onClick={resetRestStopwatch}
-                              style={activeWorkoutRestInlineButtonStyle}
+                              style={activeWorkoutRestInlineButtonStyle(activeWorkoutAccent)}
                               aria-label="Nollställ vilostoppklocka"
                             >
-                              <span style={activeWorkoutRestInlineLabelStyle}>Vila</span>
-                              <span style={activeWorkoutRestInlineValueStyle}>
+                              <span style={activeWorkoutRestInlineLabelStyle(activeWorkoutAccent)}>Vila</span>
+                              <span style={activeWorkoutRestInlineValueStyle(activeWorkoutAccent)}>
                                 {formatStopwatchTime(restStopwatchElapsedMs)}
                               </span>
-                              <span style={activeWorkoutRestInlineHintStyle}>Tryck för att nollställa</span>
+                              <span style={activeWorkoutRestInlineHintStyle(activeWorkoutAccent)}>Tryck för att nollställa</span>
                             </button>
                             <button
                               type="button"
@@ -13361,7 +13367,7 @@ function TrainingApp() {
                                 <button
                                   type="button"
                                   onClick={() => handleSaveEditedLoggedSet(i, j, selectedExercise)}
-                                  style={activeWorkoutPrimaryActionStyle}
+                                  style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
                                 >
                                   Spara ändring
                                 </button>
@@ -13473,7 +13479,7 @@ function TrainingApp() {
                                           client_set_id: set.client_set_id || generateSetId(i, j),
                                         })
                                       }
-                                      style={activeWorkoutStepperHintButtonStyle}
+                                      style={activeWorkoutStepperHintButtonStyle(activeWorkoutAccent)}
                                     >
                                       Använd förslag {formatStepperValue(suggestedWeight)} kg
                                     </button>
@@ -13575,7 +13581,7 @@ function TrainingApp() {
                                   seconds: suggestedSeconds,
                                 })
                               }
-                              style={activeWorkoutPrimaryActionStyle}
+                              style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
                             >
                               Logga set · starta vila
                             </button>
@@ -13737,7 +13743,7 @@ function TrainingApp() {
                               onClick={() =>
                                 handleTimedSetPrimaryAction(i, j, selectedExercise, suggestedSeconds ?? 0)
                               }
-                              style={activeWorkoutPrimaryActionStyle}
+                              style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
                             >
                               {timerIsActive
                                 ? activeTimedTimerPhase === "work"
@@ -13845,7 +13851,7 @@ function TrainingApp() {
                                     suggestedTimedSeconds ?? 0
                                   )
                                 }
-                                style={activeWorkoutPrimaryActionStyle}
+                                style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
                               >
                                 Avbryt timer
                               </button>
@@ -13994,7 +14000,7 @@ function TrainingApp() {
                                     suggestedTimedSeconds ?? 0
                                   )
                                 }
-                                style={activeWorkoutPrimaryActionStyle}
+                                style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
                               >
                                 Starta set
                               </button>
@@ -14072,9 +14078,9 @@ function TrainingApp() {
                               onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
                               style={{
                                 ...alternativeSelectionOptionStyle,
-                                borderColor: isSelectedOption ? playerAccent : playerLine,
-                                backgroundColor: isSelectedOption ? "rgba(176, 51, 39, 0.12)" : "rgba(255, 255, 255, 0.28)",
-                                color: isSelectedOption ? playerAccent : playerInk,
+                                borderColor: isSelectedOption ? activeWorkoutAccent : playerLine,
+                                backgroundColor: isSelectedOption ? getAccentTint(activeWorkoutAccent, 0.12) : "rgba(255, 255, 255, 0.28)",
+                                color: isSelectedOption ? activeWorkoutAccent : playerInk,
                               }}
                             >
                               <div style={alternativeSelectionOptionNameStyle}>
@@ -14164,7 +14170,7 @@ function TrainingApp() {
                       }
                 }
               >
-                <div style={exerciseProgressStyle}>Avslut</div>
+                <div style={exerciseProgressStyle(activeWorkoutAccent)}>Avslut</div>
 
                 <h3 style={activeWorkoutFinishTitleStyle}>Pass klart?</h3>
                 <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
@@ -14239,7 +14245,7 @@ function TrainingApp() {
                             style={{
                               ...activeLiftChoiceButtonStyle,
                               ...(activeTargetChangeRequestDraft?.request_type === "increase"
-                                ? activeLiftChoiceButtonActiveStyle
+                                ? activeLiftChoiceButtonActiveStyle(activeWorkoutAccent)
                                 : {}),
                               width: "100%",
                             }}
@@ -14257,7 +14263,7 @@ function TrainingApp() {
                             style={{
                               ...activeLiftChoiceButtonStyle,
                               ...(activeTargetChangeRequestDraft?.request_type === "decrease"
-                                ? activeLiftChoiceButtonActiveStyle
+                                ? activeLiftChoiceButtonActiveStyle(activeWorkoutAccent)
                                 : {}),
                               width: "100%",
                             }}
@@ -14275,7 +14281,7 @@ function TrainingApp() {
                             style={{
                               ...activeLiftChoiceButtonStyle,
                               ...(activeTargetChangeRequestDraft?.request_type === "review"
-                                ? activeLiftChoiceButtonActiveStyle
+                                ? activeLiftChoiceButtonActiveStyle(activeWorkoutAccent)
                                 : {}),
                               width: "100%",
                             }}
@@ -14339,7 +14345,7 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={finishWorkout}
-                  style={{ ...buttonStyle, ...activeWorkoutFinishButtonStyle, width: isMobile ? "100%" : "auto" }}
+                  style={{ ...buttonStyle, ...activeWorkoutFinishButtonStyle(activeWorkoutAccent), width: isMobile ? "100%" : "auto" }}
                 >
                   Avsluta pass
                 </button>
@@ -14493,6 +14499,15 @@ const uiBorderStrong = "var(--ghf-line-strong)"
 const uiShadowSm = "var(--ghf-shadow-sm)"
 const uiShadowMd = "var(--ghf-shadow-md)"
 const uiShadowLg = "var(--ghf-shadow-lg)"
+const getAccentTint = (accent, opacity = 0.12) => {
+  const normalized = String(accent || "").replace("#", "")
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return `rgba(176, 51, 39, ${opacity})`
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16)
+  const green = Number.parseInt(normalized.slice(2, 4), 16)
+  const blue = Number.parseInt(normalized.slice(4, 6), 16)
+  return `rgba(${red}, ${green}, ${blue}, ${opacity})`
+}
 const playerPaper = "#f3efe6"
 const playerInk = "#1a1814"
 const playerInkSoft = "#6f6659"
@@ -14878,13 +14893,13 @@ const activeWorkoutLiveMetaStyle = {
   textOverflow: "ellipsis",
 }
 
-const activeWorkoutLiveDotStyle = {
+const activeWorkoutLiveDotStyle = (accent = playerAccent) => ({
   width: "7px",
   height: "7px",
   borderRadius: "999px",
-  backgroundColor: playerAccent,
+  backgroundColor: accent,
   flexShrink: 0,
-}
+})
 
 const activeWorkoutProgressBarStyle = {
   display: "flex",
@@ -15270,19 +15285,19 @@ const mutedTextStyle = {
   ...mutedBodyTextStyleToken,
 }
 
-const exerciseProgressStyle = {
+const exerciseProgressStyle = (accent = playerAccent) => ({
   display: "inline-block",
   marginBottom: "12px",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "rgba(176, 51, 39, 0.12)",
-  color: playerAccent,
+  backgroundColor: getAccentTint(accent, 0.12),
+  color: accent,
   fontFamily: playerMonoFont,
   fontSize: "10px",
   fontWeight: "700",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-}
+})
 
 const exerciseCarouselToolbarStyle = {
   marginBottom: "12px",
@@ -15499,14 +15514,14 @@ const activeWorkoutSummaryMetaStyle = {
   color: playerInkSoft,
 }
 
-const activeWorkoutRestInlineButtonStyle = {
+const activeWorkoutRestInlineButtonStyle = (accent = playerAccent) => ({
   width: "100%",
   minHeight: "58px",
   padding: "12px 16px",
   borderRadius: "18px",
-  border: `1px solid rgba(176, 51, 39, 0.58)`,
+  border: `1px solid ${getAccentTint(accent, 0.58)}`,
   backgroundColor: "#111111",
-  color: playerAccent,
+  color: accent,
   cursor: "pointer",
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
@@ -15514,7 +15529,7 @@ const activeWorkoutRestInlineButtonStyle = {
   gap: "10px",
   textAlign: "left",
   boxShadow: "0 16px 32px rgba(17, 17, 17, 0.28)",
-}
+})
 
 const activeWorkoutRestInlineWrapStyle = {
   display: "grid",
@@ -15533,32 +15548,32 @@ const activeWorkoutRestVisibilityButtonStyle = {
   fontWeight: 900,
 }
 
-const activeWorkoutRestInlineLabelStyle = {
+const activeWorkoutRestInlineLabelStyle = (accent = playerAccent) => ({
   fontFamily: playerMonoFont,
   fontSize: "10px",
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "rgba(176, 51, 39, 0.8)",
-}
+  color: getAccentTint(accent, 0.8),
+})
 
-const activeWorkoutRestInlineValueStyle = {
+const activeWorkoutRestInlineValueStyle = (accent = playerAccent) => ({
   fontFamily: playerMonoFont,
   fontSize: "28px",
   lineHeight: 0.92,
   fontWeight: 800,
   letterSpacing: "0.02em",
-  color: playerAccent,
+  color: accent,
   justifySelf: "center",
-}
+})
 
-const activeWorkoutRestInlineHintStyle = {
+const activeWorkoutRestInlineHintStyle = (accent = playerAccent) => ({
   fontSize: "11px",
   fontWeight: 800,
-  color: "rgba(176, 51, 39, 0.8)",
+  color: getAccentTint(accent, 0.8),
   whiteSpace: "nowrap",
   justifySelf: "end",
-}
+})
 
 const activeWorkoutSetListStyle = {
   display: "grid",
@@ -15786,29 +15801,29 @@ const activeWorkoutStepperUnitStyle = {
   color: playerInkSoft,
 }
 
-const activeWorkoutStepperHintButtonStyle = {
+const activeWorkoutStepperHintButtonStyle = (accent = playerAccent) => ({
   width: "fit-content",
   padding: 0,
   border: "none",
   backgroundColor: "transparent",
-  color: playerAccent,
+  color: accent,
   cursor: "pointer",
   fontSize: "13px",
   fontWeight: 900,
-}
+})
 
-const activeWorkoutPrimaryActionStyle = {
+const activeWorkoutPrimaryActionStyle = (accent = playerAccent) => ({
   width: "100%",
   padding: "16px 18px",
   borderRadius: "22px",
-  border: `1px solid ${playerAccent}`,
-  background: playerAccent,
+  border: `1px solid ${accent}`,
+  background: accent,
   color: playerPaper,
   cursor: "pointer",
   fontSize: "16px",
   fontWeight: 900,
-  boxShadow: "0 16px 32px rgba(176, 51, 39, 0.18)",
-}
+  boxShadow: `0 16px 32px ${getAccentTint(accent, 0.18)}`,
+})
 
 const activeWorkoutEditActionsStyle = {
   display: "grid",
@@ -16069,16 +16084,16 @@ const activeLiftTitleStyle = {
   color: playerInk,
 }
 
-const activeLiftSideHintStyle = {
+const activeLiftSideHintStyle = (accent = playerAccent) => ({
   marginTop: "10px",
   display: "inline-flex",
   padding: "7px 10px",
   borderRadius: "999px",
-  backgroundColor: "rgba(176, 51, 39, 0.12)",
-  color: playerAccent,
+  backgroundColor: getAccentTint(accent, 0.12),
+  color: accent,
   fontSize: "12px",
   fontWeight: 900,
-}
+})
 
 const activeWorkoutFinishTitleStyle = {
   margin: "0 0 8px",
@@ -16090,10 +16105,10 @@ const activeWorkoutFinishTitleStyle = {
   color: playerInk,
 }
 
-const activeWorkoutFinishButtonStyle = {
-  background: playerAccent,
-  boxShadow: "0 14px 28px rgba(176, 51, 39, 0.18)",
-}
+const activeWorkoutFinishButtonStyle = (accent = playerAccent) => ({
+  background: accent,
+  boxShadow: `0 14px 28px ${getAccentTint(accent, 0.18)}`,
+})
 
 const activeLiftDataGridStyle = (isMobile) => ({
   display: "grid",
@@ -16273,11 +16288,11 @@ const activeLiftChoiceButtonStyle = {
   borderRadius: "14px",
 }
 
-const activeLiftChoiceButtonActiveStyle = {
-  backgroundColor: "rgba(176, 51, 39, 0.12)",
-  borderColor: playerAccent,
-  color: playerAccent,
-}
+const activeLiftChoiceButtonActiveStyle = (accent = playerAccent) => ({
+  backgroundColor: getAccentTint(accent, 0.12),
+  borderColor: accent,
+  color: accent,
+})
 
 const activeSetCardStyle = {
   marginBottom: "8px",
@@ -16512,18 +16527,17 @@ const playerRunningHubGridStyle = (isMobile) => ({
 
 const playerRunningHubCardStyle = (variant = "assigned") => {
   const theme = getPlayerTrainingTheme("running")
-  const isFilled = variant === "assigned"
 
   return {
     minHeight: "116px",
     padding: "15px",
     borderRadius: "16px",
-    border: `1px solid ${isFilled ? theme.filledBorder : theme.softBorder}`,
-    background: isFilled ? theme.filledBackground : theme.softBackground,
-    color: isFilled ? theme.filledText : theme.softText,
+    border: `1px solid ${theme.softBorder}`,
+    background: theme.softBackground,
+    color: theme.softText,
     textAlign: "left",
     cursor: "pointer",
-    boxShadow: isFilled ? theme.filledShadow : theme.softShadow,
+    boxShadow: theme.softShadow,
     display: "grid",
     alignContent: "space-between",
     gap: "10px",
@@ -16532,11 +16546,10 @@ const playerRunningHubCardStyle = (variant = "assigned") => {
 
 const playerRunningHubCardKickerStyle = (variant = "assigned") => {
   const theme = getPlayerTrainingTheme("running")
-  const isFilled = variant === "assigned"
 
   return {
     ...playerHomeTrainingKickerStyle,
-    color: isFilled ? theme.filledMeta : theme.softMeta,
+    color: theme.softMeta,
   }
 }
 
@@ -16546,7 +16559,7 @@ const playerRunningHubCardTitleStyle = (variant = "assigned") => {
   return {
     fontSize: "18px",
     fontWeight: 900,
-    color: variant === "assigned" ? theme.filledText : theme.softText,
+    color: theme.softText,
   }
 }
 
@@ -16555,7 +16568,7 @@ const playerRunningHubCardTextStyle = (variant = "assigned") => {
 
   return {
     ...playerHomeTrainingTextStyle,
-    color: variant === "assigned" ? theme.filledMeta : theme.softMeta,
+    color: theme.softMeta,
   }
 }
 
@@ -16798,9 +16811,27 @@ const playerShelfPassDetailsStyle = {
   padding: "12px 0 4px",
 }
 
-const playerPassStartButtonStyle = {
-  background: playerAccent,
-  boxShadow: "0 14px 28px rgba(176, 51, 39, 0.18)",
+const playerPassStartButtonStyle = (themeKey = "strength") => {
+  const accent = getCategoryAccent(themeKey)
+
+  return {
+    background: accent,
+    boxShadow: `0 14px 28px ${getAccentTint(accent, 0.18)}`,
+  }
+}
+
+const playerRunningActionButtonStyle = {
+  width: "100%",
+  minHeight: "50px",
+  padding: "13px 15px",
+  borderRadius: "16px",
+  border: `1px solid ${getPlayerTrainingTheme("running").softBorder}`,
+  background: getPlayerTrainingTheme("running").softBackground,
+  color: getPlayerTrainingTheme("running").softText,
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: 900,
+  boxShadow: getPlayerTrainingTheme("running").softShadow,
 }
 
 const passPreviewContentCardStyle = {

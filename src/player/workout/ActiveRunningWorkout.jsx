@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import ActiveIntervalWorkout from "./ActiveIntervalWorkout"
 import {
-  redesignAccent,
   redesignBody,
   redesignDisplayFont,
   redesignInk,
@@ -12,7 +11,11 @@ import {
   redesignSurface,
   redesignSurfaceSoft,
 } from "../../ui/redesignTokens"
+import { getCategoryAccent } from "../../ui/playerTrainingThemes"
 import { formatSecondsAsClock, parseDurationToSeconds } from "../../running/intervalPrograms"
+
+const runningAccent = getCategoryAccent("running")
+const runningAccentTint = (opacity = 0.18) => `rgba(232, 122, 28, ${opacity})`
 
 const workoutShellStyle = {
   display: "grid",
@@ -48,7 +51,7 @@ const helperTextStyle = {
 const heroTimerStyle = {
   padding: "24px 22px",
   borderRadius: "28px",
-  border: `1px solid rgba(217, 74, 31, 0.2)`,
+  border: `1px solid ${runningAccentTint(0.24)}`,
   background: "linear-gradient(180deg, rgba(20, 18, 14, 0.98) 0%, rgba(40, 24, 14, 0.98) 100%)",
   boxShadow: "0 24px 54px rgba(26, 24, 20, 0.24)",
   display: "grid",
@@ -72,7 +75,7 @@ const heroTimerValueStyle = {
   lineHeight: 0.88,
   fontWeight: 700,
   letterSpacing: "-0.06em",
-  color: redesignAccent,
+  color: runningAccent,
 }
 
 const statsGridStyle = (isMobile) => ({
@@ -125,8 +128,8 @@ const primaryButtonStyle = {
   minHeight: "56px",
   padding: "16px 18px",
   borderRadius: "20px",
-  border: `1px solid ${redesignAccent}`,
-  backgroundColor: redesignAccent,
+  border: `1px solid ${runningAccent}`,
+  backgroundColor: runningAccent,
   color: redesignPaper,
   cursor: "pointer",
   fontFamily: redesignDisplayFont,
