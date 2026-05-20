@@ -5941,6 +5941,7 @@ function TrainingApp() {
           average_pulse: averagePulseValue,
           pass_comment: passCommentValue,
         },
+        summarySaved: false,
       }
       const { error } = await saveRunningWorkoutLog({
         client_set_id: `running-${currentSessionId}`,
@@ -6003,7 +6004,7 @@ function TrainingApp() {
         average_pulse: "",
         location_enabled: false,
       })
-      setPlayerView("overview")
+      setPlayerView("runningSummary")
       setStatus(`${activeRunningWorkout.label} avslutat`)
       await markCalendarEventPlayerCompleted(calendarEventPlayerId, currentSessionId)
       await loadCompletedWorkoutSessions(user.id)
@@ -6729,6 +6730,7 @@ function TrainingApp() {
               average_pulse: payload.average_pulse != null ? String(payload.average_pulse) : "",
               pass_comment: payload.pass_comment || "",
             },
+            summarySaved: true,
           }
         : prev
     )
@@ -11482,9 +11484,114 @@ function TrainingApp() {
             />
           )}
 
+          {!isWorkoutActive && playerView === "runningSummary" && (
+            <div style={playerTodayPageStyle}>
+              {lastFinishedWorkoutSummary?.workoutKind === "running" ? (
+                <div style={playerWorkoutCompleteCardStyle}>
+                  <div style={playerTodayMonoLabelStyle}>Spara löppass</div>
+                  <div style={playerWorkoutCompleteTitleStyle}>{lastFinishedWorkoutSummary.label}</div>
+                  <div style={playerWorkoutCompleteMetaStyle}>{lastFinishedWorkoutSummary.meta}</div>
+                  <div style={playerWorkoutHighlightCardStyle}>
+                    <div style={playerTodayMonoLabelStyle}>{lastFinishedWorkoutSummary.highlightLabel}</div>
+                    <div style={playerWorkoutHighlightValueStyle}>
+                      {lastFinishedWorkoutSummary.summarySaved
+                        ? "Löppasset är sparat i historiken."
+                        : lastFinishedWorkoutSummary.highlightValue}
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gap: "12px", marginTop: "4px" }}>
+                    {!lastFinishedWorkoutSummary.summarySaved ? (
+                      <div style={playerRunningRegistrationGridStyle(isMobile)}>
+                        <label style={fieldLabelStyle}>
+                          Distans
+                          <input
+                            placeholder="t.ex. 6,4"
+                            value={lastFinishedWorkoutSummary.draft?.running_distance || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("running_distance", event.target.value)
+                            }
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Tid
+                          <input
+                            placeholder="t.ex. 31:20"
+                            value={lastFinishedWorkoutSummary.draft?.running_time || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("running_time", event.target.value)
+                            }
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <label style={fieldLabelStyle}>
+                          Snittpuls
+                          <input
+                            placeholder="valfritt"
+                            value={lastFinishedWorkoutSummary.draft?.average_pulse || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("average_pulse", event.target.value)
+                            }
+                            style={playerActivityInputStyle}
+                          />
+                        </label>
+                        <label style={{ ...fieldLabelStyle, gridColumn: isMobile ? "auto" : "span 2" }}>
+                          Kommentar
+                          <textarea
+                            rows={3}
+                            placeholder="Valfritt"
+                            value={lastFinishedWorkoutSummary.draft?.pass_comment || ""}
+                            onChange={(event) =>
+                              handleFinishedRunningSummaryDraftChange("pass_comment", event.target.value)
+                            }
+                            style={playerActivityTextareaStyle}
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+                    <div style={playerWorkoutCompleteActionsStyle(isMobile)}>
+                      {lastFinishedWorkoutSummary.summarySaved ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLastFinishedWorkoutSummary(null)
+                            navigatePlayerSection("overview")
+                          }}
+                          style={{ ...buttonStyle, ...playerTodayPrimaryButtonStyle }}
+                        >
+                          Tillbaka till startsidan
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSaveFinishedRunningSummary}
+                          disabled={isSavingFinishedRunningSummary}
+                          style={{ ...buttonStyle, ...playerTodayPrimaryButtonStyle, opacity: isSavingFinishedRunningSummary ? 0.7 : 1 }}
+                        >
+                          {isSavingFinishedRunningSummary ? "Sparar..." : "Spara löppass"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={playerWorkoutCompleteCardStyle}>
+                  <div style={playerWorkoutCompleteTitleStyle}>Löppasset är sparat.</div>
+                  <button
+                    type="button"
+                    onClick={() => navigatePlayerSection("overview")}
+                    style={{ ...buttonStyle, ...playerTodayPrimaryButtonStyle, marginTop: "14px" }}
+                  >
+                    Tillbaka till startsidan
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {!isWorkoutActive && playerView === "overview" && (
             <div style={playerTodayPageStyle}>
-              {lastFinishedWorkoutSummary && (
+              {lastFinishedWorkoutSummary && lastFinishedWorkoutSummary.workoutKind !== "running" && (
                 <div style={playerWorkoutCompleteCardStyle}>
                   <div style={playerTodayMonoLabelStyle}>Pass klart</div>
                   <div style={playerWorkoutCompleteTitleStyle}>{lastFinishedWorkoutSummary.label}</div>
