@@ -181,6 +181,13 @@ const calculateDistanceMeters = (from, to) => {
   return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+const getLocationErrorMessage = (error) => {
+  if (error?.code === 1) return "Platsdelning nekades. Slå på platsåtkomst i webbläsaren och försök igen."
+  if (error?.code === 2) return "Kunde inte hitta positionen just nu. Kontrollera GPS och täckning."
+  if (error?.code === 3) return "GPS:en svarade inte i tid. Försök igen utomhus eller med bättre täckning."
+  return "Kunde inte hämta plats. Kontrollera GPS och behörighet."
+}
+
 function ActiveDistanceRunningWorkout({
   workout,
   summaryText,
@@ -193,6 +200,9 @@ function ActiveDistanceRunningWorkout({
   const [elapsedMs, setElapsedMs] = useState(0)
   const [isLocationEnabled] = useState(Boolean(input.location_enabled))
   const [locationStatus, setLocationStatus] = useState("Platsdelning är avstängd")
+  const onChangeFieldRef = useRef(onChangeField)
+  const onTotalTimeChangeRef = useRef(onTotalTimeChange)
+  const onStatusChangeRef = useRef(onStatusChange)
   const stopwatchStartedAtRef = useRef(Date.now())
   const elapsedOffsetMsRef = useRef(0)
   const watchIdRef = useRef(null)
@@ -200,6 +210,29 @@ function ActiveDistanceRunningWorkout({
   const totalDistanceMetersRef = useRef(
     Number.parseFloat(String(input.running_distance || "").replace(",", ".")) * 1000 || 0
   )
+
+  const clearLocationWatch = () => {
+    const geolocation =
+      typeof navigator !== "undefined" && navigator.geolocation ? navigator.geolocation : null
+
+    if (watchIdRef.current != null && geolocation?.clearWatch) {
+      geolocation.clearWatch(watchIdRef.current)
+    }
+
+    watchIdRef.current = null
+  }
+
+  useEffect(() => {
+    onChangeFieldRef.current = onChangeField
+  }, [onChangeField])
+
+  useEffect(() => {
+    onTotalTimeChangeRef.current = onTotalTimeChange
+  }, [onTotalTimeChange])
+
+  useEffect(() => {
+    onStatusChangeRef.current = onStatusChange
+  }, [onStatusChange])
 
   useEffect(() => {
     const initialElapsedSeconds = parseDurationToSeconds(input.running_time) || 0
@@ -217,36 +250,54 @@ function ActiveDistanceRunningWorkout({
 
   useEffect(() => {
     const nextElapsedSeconds = Math.round(elapsedMs / 1000)
-    onTotalTimeChange?.(formatSecondsAsClock(nextElapsedSeconds))
-  }, [elapsedMs, onTotalTimeChange])
+    onTotalTimeChangeRef.current?.(formatSecondsAsClock(nextElapsedSeconds))
+  }, [elapsedMs])
 
   useEffect(() => {
+    let isActive = true
+    const setSafeLocationStatus = (message) => {
+      if (isActive) setLocationStatus(message)
+    }
+
     if (!isLocationEnabled) {
-      if (watchIdRef.current != null && typeof navigator !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchIdRef.current)
-      }
-      watchIdRef.current = null
+      clearLocationWatch()
       lastPointRef.current = null
       setLocationStatus("Platsdelning är avstängd")
-      return
+      return () => {
+        isActive = false
+      }
     }
 
     if (typeof window !== "undefined" && !window.isSecureContext) {
       setLocationStatus("Platsdelning kräver en säker anslutning")
-      onStatusChange?.("Platsdelning kräver en säker anslutning")
-      return
+      onStatusChangeRef.current?.("Platsdelning kräver en säker anslutning")
+      return () => {
+        isActive = false
+      }
     }
 
     if (typeof navigator === "undefined" || !navigator.geolocation?.watchPosition) {
       setLocationStatus("Den här enheten stödjer inte platsdelning")
-      return
+      return () => {
+        isActive = false
+      }
     }
 
-    setLocationStatus("Hämtar position...")
+    setSafeLocationStatus("Hämtar position...")
 
     try {
+      clearLocationWatch()
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
+          if (!isActive) return
+          if (
+            !Number.isFinite(position?.coords?.latitude) ||
+            !Number.isFinite(position?.coords?.longitude)
+          ) {
+            setSafeLocationStatus("GPS skickade ingen giltig position ännu")
+            return
+          }
+
           const currentPoint = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -259,19 +310,23 @@ function ActiveDistanceRunningWorkout({
 
             if (deltaMeters > 3 && deltaMeters < 1000 && accuracyPenalty < 120) {
               totalDistanceMetersRef.current += deltaMeters
-              onChangeField("running_distance", formatDistanceKm(totalDistanceMetersRef.current / 1000))
+              onChangeFieldRef.current?.(
+                "running_distance",
+                formatDistanceKm(totalDistanceMetersRef.current / 1000)
+              )
             }
           }
 
           lastPointRef.current = currentPoint
-          setLocationStatus(
+          setSafeLocationStatus(
             `Platsdelning aktiv${position.coords.accuracy ? ` · ±${Math.round(position.coords.accuracy)} m` : ""}`
           )
         },
         (error) => {
           console.error(error)
-          setLocationStatus("Kunde inte hämta plats. Kontrollera GPS och behörighet.")
-          onStatusChange?.("Kunde inte starta platsdelning")
+          const message = getLocationErrorMessage(error)
+          setSafeLocationStatus(message)
+          onStatusChangeRef.current?.(message)
         },
         {
           enableHighAccuracy: true,
@@ -281,25 +336,24 @@ function ActiveDistanceRunningWorkout({
       )
     } catch (error) {
       console.error(error)
-      setLocationStatus("Platsdelning kunde inte startas på den här enheten")
-      onStatusChange?.("Kunde inte starta platsdelning")
-      watchIdRef.current = null
-      return
+      const message = "Platsdelning kunde inte startas på den här enheten"
+      setSafeLocationStatus(message)
+      onStatusChangeRef.current?.(message)
+      clearLocationWatch()
+      return () => {
+        isActive = false
+      }
     }
 
     return () => {
-      if (watchIdRef.current != null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchIdRef.current)
-      }
-      watchIdRef.current = null
+      isActive = false
+      clearLocationWatch()
     }
-  }, [isLocationEnabled, onChangeField, onStatusChange])
+  }, [isLocationEnabled])
 
   useEffect(() => {
     return () => {
-      if (watchIdRef.current != null && typeof navigator !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchIdRef.current)
-      }
+      clearLocationWatch()
     }
   }, [])
 
