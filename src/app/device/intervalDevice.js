@@ -121,6 +121,70 @@ export const playIntervalSignal = async (kind = "work") => {
   }
 }
 
+export const playStrengthTimerSignal = async (kind = "start") => {
+  if (kind === "prepare") {
+    await playToneSequence([
+      { frequency: 392, durationMs: 170, type: "square", volume: 0.42 },
+      { pauseMs: 55 },
+      { frequency: 392, durationMs: 170, type: "square", volume: 0.42 },
+    ])
+  } else if (kind === "start") {
+    await playToneSequence([
+      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.46 },
+      { pauseMs: 45 },
+      { frequency: 783.99, durationMs: 190, type: "square", volume: 0.48 },
+      { pauseMs: 45 },
+      { frequency: 987.77, durationMs: 240, type: "square", volume: 0.5 },
+    ])
+  } else if (kind === "warning") {
+    await playToneSequence([
+      { frequency: 880, durationMs: 95, type: "square", volume: 0.46 },
+      { pauseMs: 35 },
+      { frequency: 880, durationMs: 95, type: "square", volume: 0.46 },
+      { pauseMs: 35 },
+      { frequency: 880, durationMs: 95, type: "square", volume: 0.46 },
+    ])
+  } else if (kind === "rest") {
+    await playToneSequence([
+      { frequency: 523.25, durationMs: 210, type: "sawtooth", volume: 0.46 },
+      { pauseMs: 60 },
+      { frequency: 392, durationMs: 260, type: "sawtooth", volume: 0.44 },
+      { pauseMs: 60 },
+      { frequency: 329.63, durationMs: 300, type: "sawtooth", volume: 0.42 },
+    ])
+  } else if (kind === "finish") {
+    await playToneSequence([
+      { frequency: 523.25, durationMs: 140, type: "triangle", volume: 0.44 },
+      { pauseMs: 35 },
+      { frequency: 659.25, durationMs: 150, type: "triangle", volume: 0.46 },
+      { pauseMs: 35 },
+      { frequency: 783.99, durationMs: 170, type: "triangle", volume: 0.48 },
+      { pauseMs: 35 },
+      { frequency: 1046.5, durationMs: 320, type: "triangle", volume: 0.5 },
+    ])
+  } else {
+    await playToneSequence([
+      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.46 },
+      { pauseMs: 45 },
+      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.46 },
+    ])
+  }
+
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    const pattern =
+      kind === "finish"
+        ? [180, 70, 180, 70, 260]
+        : kind === "rest"
+        ? [180, 70, 180]
+        : kind === "warning"
+        ? [90, 40, 90, 40, 90]
+        : kind === "prepare" || kind === "start"
+        ? [150, 50, 150]
+        : [150, 50, 150]
+    navigator.vibrate(pattern)
+  }
+}
+
 export const requestScreenWakeLock = async () => {
   if (typeof navigator === "undefined" || !navigator.wakeLock?.request) return null
 
