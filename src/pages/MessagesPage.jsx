@@ -10,6 +10,8 @@ import {
   redesignMuted,
   redesignSurface,
   redesignSurfaceSoft,
+  redesignSystemAccent,
+  redesignSystemAccentSoft,
 } from "../ui/redesignTokens"
 
 function MessagesPage({
@@ -754,7 +756,7 @@ const chatDateStyle = {
 const playerPaper = "#f3efe6"
 const playerInk = "#1a1814"
 const playerInkSoft = "#6f6659"
-const playerAccent = "#d94a1f"
+const playerAccent = redesignSystemAccent
 const playerLine = "rgba(26, 24, 20, 0.14)"
 const playerDisplayFont = '"Manrope", sans-serif'
 const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
@@ -942,7 +944,7 @@ const playerInputStyle = {
 const playerButtonStyle = {
   borderRadius: "16px",
   background: playerAccent,
-  boxShadow: "0 14px 28px rgba(217, 74, 31, 0.18)",
+  boxShadow: "0 14px 28px rgba(17, 24, 39, 0.16)",
 }
 
 const playerSecondaryButtonStyle = {
@@ -995,7 +997,7 @@ const playerPickerOptionStyle = {
 }
 
 const playerPickerOptionActiveStyle = {
-  backgroundColor: "rgba(217, 74, 31, 0.1)",
+  backgroundColor: redesignSystemAccentSoft,
 }
 
 const playerPickerOptionNameStyle = {

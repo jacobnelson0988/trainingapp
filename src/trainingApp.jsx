@@ -44,6 +44,8 @@ import {
   redesignPaper,
   redesignSurface,
   redesignSurfaceSoft,
+  redesignSystemAccent,
+  redesignSystemAccentSoft,
   sectionTitleStyleToken,
   subtleInsetStyleToken,
 } from "./ui/redesignTokens"
@@ -11313,7 +11315,7 @@ function TrainingApp() {
                         ...coachBottomNavButtonStyle,
                         color: useManagementRedesignShell
                           ? isActive
-                            ? playerAccent
+                            ? playerSystemAccent
                             : playerInkSoft
                           : isActive
                           ? "#dc2626"
@@ -11327,7 +11329,7 @@ function TrainingApp() {
                             : coachBottomNavIconWrapStyle),
                           backgroundColor: useManagementRedesignShell
                             ? isActive
-                              ? "rgba(217, 74, 31, 0.12)"
+                              ? redesignSystemAccentSoft
                               : "transparent"
                             : isActive
                             ? "#fff1f1"
@@ -11370,7 +11372,7 @@ function TrainingApp() {
                         ...coachBottomNavButtonStyle,
                         color: useManagementRedesignShell
                           ? isActive
-                            ? playerAccent
+                            ? playerSystemAccent
                             : playerInkSoft
                           : isActive
                           ? "#b61e24"
@@ -11384,7 +11386,7 @@ function TrainingApp() {
                             : coachBottomNavIconWrapStyle),
                           backgroundColor: useManagementRedesignShell
                             ? isActive
-                              ? "rgba(217, 74, 31, 0.12)"
+                              ? redesignSystemAccentSoft
                               : "transparent"
                             : isActive
                             ? "#fff1f1"
@@ -12930,7 +12932,7 @@ function TrainingApp() {
                     ...coachBottomNavButtonStyle,
                     color: usePlayerRedesignShell
                       ? isActive
-                        ? playerInk
+                        ? playerSystemAccent
                         : playerInkSoft
                       : isActive
                       ? "#b61e24"
@@ -12942,19 +12944,19 @@ function TrainingApp() {
                       ...(usePlayerRedesignShell ? playerBottomNavIconWrapStyle : coachBottomNavIconWrapStyle),
                       backgroundColor: usePlayerRedesignShell
                         ? isActive
-                          ? "rgba(255, 255, 255, 0.92)"
+                          ? redesignSystemAccentSoft
                           : "transparent"
                         : isActive
                         ? "#fff1f1"
                         : "transparent",
                       border: usePlayerRedesignShell
                         ? isActive
-                          ? `1px solid ${redesignLine}`
+                          ? `1px solid ${playerSystemAccent}`
                           : "1px solid transparent"
                         : undefined,
                       boxShadow: usePlayerRedesignShell
                         ? isActive
-                          ? "0 8px 18px rgba(26, 24, 20, 0.08)"
+                          ? "0 8px 18px rgba(17, 24, 39, 0.08)"
                           : "none"
                         : undefined,
                     }}
@@ -14701,6 +14703,7 @@ const playerPaper = "#f3efe6"
 const playerInk = "#1a1814"
 const playerInkSoft = "#6f6659"
 const playerAccent = getCategoryAccent("strength")
+const playerSystemAccent = redesignSystemAccent
 const playerLine = "rgba(26, 24, 20, 0.14)"
 const playerDisplayFont = '"Manrope", sans-serif'
 const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
@@ -17958,9 +17961,9 @@ const playerActivityPanelTitleStyle = {
 const playerActivityNoticeStyle = {
   padding: "13px 15px",
   borderRadius: "16px",
-  border: "1px solid rgba(217, 74, 31, 0.22)",
-  backgroundColor: "rgba(217, 74, 31, 0.08)",
-  color: "#9a3412",
+  border: `1px solid ${playerSystemAccent}`,
+  backgroundColor: redesignSystemAccentSoft,
+  color: playerSystemAccent,
   fontSize: "13px",
   fontWeight: 800,
 }
@@ -18339,8 +18342,8 @@ const playerStatsSelectorSummaryHintStyle = {
   justifyContent: "center",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "rgba(26, 24, 20, 0.06)",
-  color: playerInk,
+  backgroundColor: redesignSystemAccentSoft,
+  color: playerSystemAccent,
   ...compactBodyTextStyleToken,
   fontWeight: 700,
   whiteSpace: "nowrap",
@@ -18386,9 +18389,9 @@ const playerStatsSelectedChipStyle = {
   justifyContent: "center",
   padding: "10px 14px",
   borderRadius: "999px",
-  border: `1px solid ${redesignLineSoft}`,
-  backgroundColor: redesignSurface,
-  color: playerInk,
+  border: `1px solid ${playerSystemAccent}`,
+  backgroundColor: redesignSystemAccentSoft,
+  color: playerSystemAccent,
   ...compactBodyTextStyleToken,
   fontWeight: 700,
   cursor: "pointer",
@@ -18431,7 +18434,7 @@ const playerStatsSummaryPillStyle = {
   display: "inline-flex",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: playerInk,
+  backgroundColor: playerSystemAccent,
   color: playerPaper,
   fontSize: "13px",
   fontWeight: "800",
