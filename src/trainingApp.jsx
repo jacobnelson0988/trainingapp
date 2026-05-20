@@ -488,6 +488,18 @@ const getPreferredPlayerHomeThemeKey = (themeKeys = []) => {
   return PLAYER_HOME_THEME_PRIORITY.find((themeKey) => uniqueThemeKeys.includes(themeKey)) || uniqueThemeKeys[0] || null
 }
 
+const getOrderedPlayerHomeThemeKeys = (themeKeys = []) => {
+  const uniqueThemeKeys = Array.from(new Set((themeKeys || []).filter(Boolean)))
+  const prioritizedThemeKeys = PLAYER_HOME_THEME_PRIORITY.filter((themeKey) =>
+    uniqueThemeKeys.includes(themeKey)
+  )
+  const remainingThemeKeys = uniqueThemeKeys.filter(
+    (themeKey) => !PLAYER_HOME_THEME_PRIORITY.includes(themeKey)
+  )
+
+  return [...prioritizedThemeKeys, ...remainingThemeKeys]
+}
+
 const getPlayerCalendarEntryThemeKey = (entry, matchedWorkout = null) =>
   resolvePlayerTrainingThemeKey({
     workoutKind: matchedWorkout?.workoutKind,
@@ -9448,7 +9460,7 @@ function TrainingApp() {
       (entry) => entry.current_user_link?.completion_status === "completed"
     )
 
-    const plannedThemeKey = getPreferredPlayerHomeThemeKey(
+    const plannedThemeKeys = getOrderedPlayerHomeThemeKeys(
       plannedEntries.map((entry) =>
         getPlayerCalendarEntryThemeKey(
           entry,
@@ -9458,8 +9470,9 @@ function TrainingApp() {
         )
       )
     )
+    const plannedThemeKey = plannedThemeKeys[0] || null
 
-    const completedThemeKey = getPreferredPlayerHomeThemeKey([
+    const completedThemeKeys = getOrderedPlayerHomeThemeKeys([
       ...dayCompletedSessions.map((session) => getCompletedSessionThemeKey(session)),
       ...completedEntries.map((entry) =>
         getPlayerCalendarEntryThemeKey(
@@ -9470,25 +9483,30 @@ function TrainingApp() {
         )
       ),
     ])
+    const completedThemeKey = completedThemeKeys[0] || null
 
     const isToday = dateKey === todayDateInput
     const hasRemainingToday = isToday && plannedEntries.length > 0
 
     let state = "empty"
     let themeKey = null
+    let themeKeys = []
     let source = null
 
     if (hasRemainingToday) {
       state = "today_planned"
       themeKey = plannedThemeKey || "strength"
+      themeKeys = plannedThemeKeys.length > 0 ? plannedThemeKeys : [themeKey]
       source = "planned"
     } else if (completedThemeKey) {
       state = "completed"
       themeKey = completedThemeKey
+      themeKeys = completedThemeKeys
       source = "completed"
     } else if (plannedThemeKey) {
       state = "planned"
       themeKey = plannedThemeKey
+      themeKeys = plannedThemeKeys
       source = "planned"
     } else if (isToday) {
       state = "today_empty"
@@ -9500,6 +9518,7 @@ function TrainingApp() {
       source,
       state,
       themeKey,
+      themeKeys,
     }
 
     return acc
@@ -11789,11 +11808,15 @@ function TrainingApp() {
                     const accentColor = dayDetails.themeKey
                       ? getCategoryAccent(dayDetails.themeKey)
                       : playerInk
+                    const accentColors =
+                      dayDetails.themeKeys?.length > 0
+                        ? dayDetails.themeKeys.map((themeKey) => getCategoryAccent(themeKey))
+                        : [accentColor]
 
                     return (
                       <div
                         key={dateKey}
-                        style={playerHomeWeekCellStyle(dayDetails.state, accentColor)}
+                        style={playerHomeWeekCellStyle(dayDetails.state, accentColor, accentColors)}
                       >
                         <div style={playerHomeWeekCellContentStyle}>
                           <div style={playerHomeWeekLetterStyle(dayDetails.state, accentColor)}>
@@ -17737,7 +17760,27 @@ const playerTodayWeekGridStyle = {
   gap: "6px",
 }
 
-const playerHomeWeekCellStyle = (state = "empty", accentColor = playerInk) => ({
+const getPlayerHomeWeekCompletedBackground = (accentColors = [playerInk]) => {
+  const colors = Array.from(new Set((accentColors || []).filter(Boolean)))
+
+  if (colors.length <= 1) return colors[0] || playerInk
+  if (colors.length === 2) {
+    return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[0]} 49.5%, ${colors[1]} 50.5%, ${colors[1]} 100%)`
+  }
+
+  const stripeStops = colors
+    .slice(0, 4)
+    .map((color, index) => `${color} ${index * 14}px ${(index + 1) * 14}px`)
+    .join(", ")
+
+  return `repeating-linear-gradient(135deg, ${stripeStops})`
+}
+
+const playerHomeWeekCellStyle = (
+  state = "empty",
+  accentColor = playerInk,
+  accentColors = [accentColor]
+) => ({
   aspectRatio: "1",
   borderRadius: "12px",
   border:
@@ -17750,10 +17793,12 @@ const playerHomeWeekCellStyle = (state = "empty", accentColor = playerInk) => ({
       : `1px solid ${redesignLine}`,
   backgroundColor:
     state === "completed"
-      ? accentColor
+      ? undefined
       : state === "today_planned" || state === "today_empty"
       ? "#ffffff"
       : "transparent",
+  background:
+    state === "completed" ? getPlayerHomeWeekCompletedBackground(accentColors) : undefined,
   display: "grid",
   placeItems: "center",
 })
