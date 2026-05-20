@@ -12475,11 +12475,13 @@ function TrainingApp() {
                           style={playerActivityInputStyle}
                         >
                           <option value="">Välj aktivitet</option>
-                          {FREE_ACTIVITY_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
+                          {FREE_ACTIVITY_OPTIONS.filter((option) => option.value !== "running").map(
+                            (option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            )
+                          )}
                         </select>
                       </div>
                     ) : (
