@@ -14714,7 +14714,7 @@ const getAccentTint = (accent, opacity = 0.12) => {
   const blue = Number.parseInt(normalized.slice(4, 6), 16)
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`
 }
-const playerPaper = "#f3efe6"
+const playerPaper = "#f1f2ef"
 const playerInk = "#1a1814"
 const playerInkSoft = "#6f6659"
 const playerAccent = getCategoryAccent("strength")
@@ -14725,8 +14725,8 @@ const playerMonoFont = '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
 
 const playerShellPageStyle = (isMobile) => ({
   maxWidth: isMobile ? "100%" : "760px",
-  background:
-    "radial-gradient(circle at 18% -6%, rgba(217, 74, 31, 0.16), transparent 34%), linear-gradient(180deg, #f3efe6 0%, #ebe2d2 100%)",
+  minHeight: "100svh",
+  background: playerPaper,
   color: playerInk,
   fontFamily: '"Manrope", sans-serif',
   boxShadow: isMobile ? "none" : "0 30px 70px rgba(26, 24, 20, 0.08)",
@@ -18799,10 +18799,10 @@ const coachBottomNavStyle = {
 
 const playerBottomNavStyle = {
   ...coachBottomNavStyle,
-  borderTop: "1px solid rgba(26, 24, 20, 0.08)",
+  borderTop: "1px solid rgba(26, 24, 20, 0.10)",
   borderRadius: 0,
   padding: "8px 10px calc(8px + env(safe-area-inset-bottom))",
-  background: "#f3efe6",
+  background: playerPaper,
   backdropFilter: "none",
   boxShadow: "none",
 }
