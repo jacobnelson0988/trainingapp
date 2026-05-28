@@ -124,63 +124,67 @@ export const playIntervalSignal = async (kind = "work") => {
 export const playStrengthTimerSignal = async (kind = "start") => {
   if (kind === "prepare") {
     await playToneSequence([
-      { frequency: 392, durationMs: 170, type: "square", volume: 0.42 },
-      { pauseMs: 55 },
-      { frequency: 392, durationMs: 170, type: "square", volume: 0.42 },
+      { frequency: 330, durationMs: 220, type: "square", volume: 0.72 },
+      { pauseMs: 70 },
+      { frequency: 330, durationMs: 220, type: "square", volume: 0.72 },
+      { pauseMs: 70 },
+      { frequency: 440, durationMs: 260, type: "square", volume: 0.76 },
     ])
   } else if (kind === "start") {
     await playToneSequence([
-      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.46 },
-      { pauseMs: 45 },
-      { frequency: 783.99, durationMs: 190, type: "square", volume: 0.48 },
-      { pauseMs: 45 },
-      { frequency: 987.77, durationMs: 240, type: "square", volume: 0.5 },
+      { frequency: 659.25, durationMs: 210, type: "square", volume: 0.74 },
+      { pauseMs: 55 },
+      { frequency: 783.99, durationMs: 230, type: "square", volume: 0.78 },
+      { pauseMs: 55 },
+      { frequency: 1046.5, durationMs: 360, type: "square", volume: 0.82 },
     ])
   } else if (kind === "warning") {
     await playToneSequence([
-      { frequency: 880, durationMs: 95, type: "square", volume: 0.46 },
+      { frequency: 988, durationMs: 120, type: "square", volume: 0.82 },
       { pauseMs: 35 },
-      { frequency: 880, durationMs: 95, type: "square", volume: 0.46 },
+      { frequency: 988, durationMs: 120, type: "square", volume: 0.82 },
       { pauseMs: 35 },
-      { frequency: 880, durationMs: 95, type: "square", volume: 0.46 },
+      { frequency: 988, durationMs: 120, type: "square", volume: 0.82 },
+      { pauseMs: 35 },
+      { frequency: 988, durationMs: 120, type: "square", volume: 0.82 },
     ])
   } else if (kind === "rest") {
     await playToneSequence([
-      { frequency: 523.25, durationMs: 210, type: "sawtooth", volume: 0.46 },
-      { pauseMs: 60 },
-      { frequency: 392, durationMs: 260, type: "sawtooth", volume: 0.44 },
-      { pauseMs: 60 },
-      { frequency: 329.63, durationMs: 300, type: "sawtooth", volume: 0.42 },
+      { frequency: 523.25, durationMs: 280, type: "sawtooth", volume: 0.78 },
+      { pauseMs: 70 },
+      { frequency: 392, durationMs: 320, type: "sawtooth", volume: 0.76 },
+      { pauseMs: 70 },
+      { frequency: 293.66, durationMs: 420, type: "sawtooth", volume: 0.74 },
     ])
   } else if (kind === "finish") {
     await playToneSequence([
-      { frequency: 523.25, durationMs: 140, type: "triangle", volume: 0.44 },
-      { pauseMs: 35 },
-      { frequency: 659.25, durationMs: 150, type: "triangle", volume: 0.46 },
-      { pauseMs: 35 },
-      { frequency: 783.99, durationMs: 170, type: "triangle", volume: 0.48 },
-      { pauseMs: 35 },
-      { frequency: 1046.5, durationMs: 320, type: "triangle", volume: 0.5 },
+      { frequency: 523.25, durationMs: 180, type: "square", volume: 0.74 },
+      { pauseMs: 45 },
+      { frequency: 659.25, durationMs: 190, type: "square", volume: 0.76 },
+      { pauseMs: 45 },
+      { frequency: 783.99, durationMs: 210, type: "square", volume: 0.78 },
+      { pauseMs: 45 },
+      { frequency: 1046.5, durationMs: 460, type: "square", volume: 0.82 },
     ])
   } else {
     await playToneSequence([
-      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.46 },
-      { pauseMs: 45 },
-      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.46 },
+      { frequency: 659.25, durationMs: 220, type: "square", volume: 0.76 },
+      { pauseMs: 60 },
+      { frequency: 659.25, durationMs: 220, type: "square", volume: 0.76 },
     ])
   }
 
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     const pattern =
       kind === "finish"
-        ? [180, 70, 180, 70, 260]
+        ? [240, 90, 240, 90, 360]
         : kind === "rest"
-        ? [180, 70, 180]
+        ? [260, 90, 260]
         : kind === "warning"
-        ? [90, 40, 90, 40, 90]
+        ? [120, 45, 120, 45, 120, 45, 120]
         : kind === "prepare" || kind === "start"
-        ? [150, 50, 150]
-        : [150, 50, 150]
+        ? [220, 70, 220]
+        : [220, 70, 220]
     navigator.vibrate(pattern)
   }
 }

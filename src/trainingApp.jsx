@@ -13838,19 +13838,34 @@ function TrainingApp() {
                             </div>
 
                             {timerIsActive ? (
-                              <div
-                                style={activeWorkoutTimedTimerCardStyle("active", true)}
-                              >
-                                <div style={activeWorkoutTimedTimerLabelStyle(true, activeWorkoutAccent)}>
-                                  {activeTimedTimerPhase === "countdown" ? "Förbered dig" : "Arbete"}
-                                </div>
-                                <div style={activeWorkoutTimedTimerValueStyle(true, activeWorkoutAccent)}>
-                                  {formatStopwatchTime(previewMs)}
-                                </div>
-                                <div style={activeWorkoutTimedTimerHintStyle(true)}>
-                                  {activeTimedTimerPhase === "countdown"
-                                    ? "Lägg ifrån dig telefonen. Arbetet startar automatiskt."
-                                    : "Timern loggar setet automatiskt när tiden är slut."}
+                              <div style={activeWorkoutTimedTimerOverlayStyle}>
+                                <div style={activeWorkoutTimedTimerOverlayInnerStyle}>
+                                  <div
+                                    style={activeWorkoutTimedTimerCardStyle("active", true)}
+                                  >
+                                    <div style={activeWorkoutTimedTimerLabelStyle(true, activeWorkoutAccent)}>
+                                      {activeTimedTimerPhase === "countdown" ? "Förbered dig" : "Arbete"}
+                                    </div>
+                                    <div style={activeWorkoutTimedTimerValueStyle(true, activeWorkoutAccent)}>
+                                      {formatStopwatchTime(previewMs)}
+                                    </div>
+                                    <div style={activeWorkoutTimedTimerHintStyle(true)}>
+                                      {activeTimedTimerPhase === "countdown"
+                                        ? "Lägg ifrån dig telefonen. Arbetet startar automatiskt."
+                                        : "Timern loggar setet automatiskt när tiden är slut."}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleTimedSetPrimaryAction(i, j, selectedExercise, suggestedSeconds ?? 0)
+                                    }
+                                    style={activeWorkoutTimedTimerOverlayButtonStyle}
+                                  >
+                                    {activeTimedTimerPhase === "work"
+                                      ? "Avsluta tidigare · logga set"
+                                      : "Avbryt timer"}
+                                  </button>
                                 </div>
                               </div>
                             ) : (
@@ -13927,19 +13942,17 @@ function TrainingApp() {
                               </>
                             )}
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleTimedSetPrimaryAction(i, j, selectedExercise, suggestedSeconds ?? 0)
-                              }
-                              style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
-                            >
-                              {timerIsActive
-                                ? activeTimedTimerPhase === "work"
-                                  ? "Avsluta tidigare · logga set"
-                                  : "Avbryt timer"
-                                : "Starta timer"}
-                            </button>
+                            {!timerIsActive ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleTimedSetPrimaryAction(i, j, selectedExercise, suggestedSeconds ?? 0)
+                                }
+                                style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
+                              >
+                                Starta timer
+                              </button>
+                            ) : null}
                           </div>
                         )
                       })}
@@ -14009,44 +14022,46 @@ function TrainingApp() {
                           ) : null}
 
                           {bilateralTimedTimerActive ? (
-                            <>
-                              <div style={activeWorkoutTimedTimerCardStyle("active", true)}>
-                                <div style={activeWorkoutTimedTimerLabelStyle(true, activeWorkoutAccent)}>
-                                  {activeTimedTimerPhase === "countdown"
-                                    ? "Förbered dig"
-                                    : activeTimedTimerPhase === "switch_rest"
-                                    ? "Byt sida"
-                                    : activeTimedTimerSide === "right"
-                                    ? "Höger"
-                                    : "Vänster"}
+                            <div style={activeWorkoutTimedTimerOverlayStyle}>
+                              <div style={activeWorkoutTimedTimerOverlayInnerStyle}>
+                                <div style={activeWorkoutTimedTimerCardStyle("active", true)}>
+                                  <div style={activeWorkoutTimedTimerLabelStyle(true, activeWorkoutAccent)}>
+                                    {activeTimedTimerPhase === "countdown"
+                                      ? "Förbered dig"
+                                      : activeTimedTimerPhase === "switch_rest"
+                                      ? "Byt sida"
+                                      : activeTimedTimerSide === "right"
+                                      ? "Höger"
+                                      : "Vänster"}
+                                  </div>
+                                  <div style={activeWorkoutTimedTimerValueStyle(true, activeWorkoutAccent)}>
+                                    {formatStopwatchTime(getTimedSetRemainingMs(i, activeSetIndex))}
+                                  </div>
+                                  <div style={activeWorkoutTimedTimerHintStyle(true)}>
+                                    {activeTimedTimerPhase === "countdown"
+                                      ? "Lägg ifrån dig telefonen. Vänster sida startar automatiskt."
+                                      : activeTimedTimerPhase === "switch_rest"
+                                      ? "Byt sida. Nästa sida startar automatiskt när vilan är slut."
+                                      : "Jobba tills timern når noll. Setet loggas automatiskt."}
+                                  </div>
                                 </div>
-                                <div style={activeWorkoutTimedTimerValueStyle(true, activeWorkoutAccent)}>
-                                  {formatStopwatchTime(getTimedSetRemainingMs(i, activeSetIndex))}
-                                </div>
-                                <div style={activeWorkoutTimedTimerHintStyle(true)}>
-                                  {activeTimedTimerPhase === "countdown"
-                                    ? "Lägg ifrån dig telefonen. Vänster sida startar automatiskt."
-                                    : activeTimedTimerPhase === "switch_rest"
-                                    ? "Byt sida. Nästa sida startar automatiskt när vilan är slut."
-                                    : "Jobba tills timern når noll. Setet loggas automatiskt."}
-                                </div>
-                              </div>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleBilateralTimedPrimaryAction(
-                                    i,
-                                    activeSetIndex,
-                                    selectedExercise,
-                                    suggestedTimedSeconds ?? 0
-                                  )
-                                }
-                                style={activeWorkoutPrimaryActionStyle(activeWorkoutAccent)}
-                              >
-                                Avbryt timer
-                              </button>
-                            </>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleBilateralTimedPrimaryAction(
+                                      i,
+                                      activeSetIndex,
+                                      selectedExercise,
+                                      suggestedTimedSeconds ?? 0
+                                    )
+                                  }
+                                  style={activeWorkoutTimedTimerOverlayButtonStyle}
+                                >
+                                  Avbryt timer
+                                </button>
+                              </div>
+                            </div>
                           ) : (
                             <>
                               <div style={activeWorkoutStepperGridStyle(isMobile ? 1 : 2)}>
@@ -15870,6 +15885,33 @@ const activeWorkoutActiveSetTitleStyle = {
   color: playerInk,
 }
 
+const activeWorkoutTimedTimerOverlayStyle = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 80,
+  width: "100vw",
+  maxWidth: "100vw",
+  minHeight: "100svh",
+  padding:
+    "calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))",
+  boxSizing: "border-box",
+  background:
+    "radial-gradient(circle at 50% 14%, rgba(255,255,255,0.08), transparent 32%), #050505",
+  display: "grid",
+  placeItems: "stretch center",
+  overflow: "hidden",
+}
+
+const activeWorkoutTimedTimerOverlayInnerStyle = {
+  width: "100%",
+  maxWidth: "520px",
+  minWidth: 0,
+  display: "grid",
+  gridTemplateRows: "minmax(0, 1fr) auto",
+  alignItems: "stretch",
+  gap: "14px",
+}
+
 const activeWorkoutTimedTimerCardStyle = (state = "idle", expanded = false) => ({
   padding: expanded ? "30px 20px" : "16px 18px",
   borderRadius: expanded ? "30px" : "24px",
@@ -15881,7 +15923,12 @@ const activeWorkoutTimedTimerCardStyle = (state = "idle", expanded = false) => (
   boxShadow: expanded ? "0 26px 60px rgba(0, 0, 0, 0.22)" : undefined,
   display: "grid",
   gap: expanded ? "18px" : "8px",
-  minHeight: expanded ? "clamp(430px, 72svh, 680px)" : undefined,
+  width: expanded ? "100%" : undefined,
+  maxWidth: expanded ? "100%" : undefined,
+  minWidth: 0,
+  minHeight: expanded ? "100%" : undefined,
+  boxSizing: "border-box",
+  overflow: "hidden",
   alignContent: expanded ? "center" : undefined,
   justifyItems: expanded ? "center" : undefined,
   textAlign: expanded ? "center" : undefined,
@@ -15898,11 +15945,14 @@ const activeWorkoutTimedTimerLabelStyle = (expanded = false, accent = playerAcce
 
 const activeWorkoutTimedTimerValueStyle = (expanded = false, accent = playerAccent) => ({
   fontFamily: playerMonoFont,
-  fontSize: expanded ? "clamp(96px, 30vw, 190px)" : "clamp(34px, 9vw, 46px)",
+  fontSize: expanded ? "clamp(82px, 24vw, 132px)" : "clamp(34px, 9vw, 46px)",
   lineHeight: 0.92,
   fontWeight: 700,
   letterSpacing: "-0.04em",
   color: expanded ? accent : playerInk,
+  maxWidth: "100%",
+  overflow: "hidden",
+  fontVariantNumeric: "tabular-nums",
 })
 
 const activeWorkoutTimedTimerHintStyle = (expanded = false) => ({
@@ -15912,6 +15962,20 @@ const activeWorkoutTimedTimerHintStyle = (expanded = false) => ({
   color: expanded ? "rgba(255, 255, 255, 0.78)" : playerInkSoft,
   maxWidth: expanded ? "32ch" : undefined,
 })
+
+const activeWorkoutTimedTimerOverlayButtonStyle = {
+  width: "100%",
+  padding: "16px 18px",
+  minHeight: "58px",
+  borderRadius: "20px",
+  border: "1px solid rgba(255, 255, 255, 0.92)",
+  background: "rgba(255, 255, 255, 0.92)",
+  color: "#111111",
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: 900,
+  boxShadow: "none",
+}
 
 const activeWorkoutStepperGridStyle = (columns = 1) => ({
   display: "grid",
