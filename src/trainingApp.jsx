@@ -14740,27 +14740,26 @@ const playerShellMenuWrapStyle = (isMobile) => ({
 })
 
 const playerShellMenuButtonStyle = {
-  width: "48px",
-  height: "48px",
+  width: "44px",
+  height: "44px",
   display: "inline-flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: "5px",
+  gap: "5.5px",
   padding: 0,
-  borderRadius: "999px",
-  border: "1px solid rgba(26, 24, 20, 0.18)",
-  backgroundColor: "rgba(26, 24, 20, 0.92)",
-  color: playerPaper,
+  border: "none",
+  backgroundColor: "transparent",
+  color: playerInk,
   cursor: "pointer",
-  boxShadow: "0 18px 36px rgba(26, 24, 20, 0.22)",
+  boxShadow: "none",
 }
 
 const playerShellMenuIconLineStyle = {
-  width: "20px",
+  width: "23px",
   height: "2px",
   borderRadius: "999px",
-  backgroundColor: playerPaper,
+  backgroundColor: "rgba(26, 24, 20, 0.82)",
 }
 
 const managementShellPageStyle = (isMobile) => ({
@@ -14781,10 +14780,10 @@ const managementShellMenuWrapStyle = (isMobile) => ({
 
 const managementShellMenuButtonStyle = {
   ...playerShellMenuButtonStyle,
-  width: "50px",
-  height: "50px",
-  border: `1px solid ${playerLine}`,
-  backgroundColor: "rgba(26, 24, 20, 0.94)",
+  width: "44px",
+  height: "44px",
+  border: "none",
+  backgroundColor: "transparent",
 }
 
 const managementShellMenuIconLineStyle = {
