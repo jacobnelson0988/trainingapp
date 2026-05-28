@@ -37,6 +37,7 @@ html,
 body,
 #root {
   min-height: 100%;
+  background: var(--ghf-bg);
 }
 
 body {
@@ -91,6 +92,8 @@ select:focus {
 
 #root {
   width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
 }
 
 img,
