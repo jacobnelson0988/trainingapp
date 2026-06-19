@@ -12,6 +12,7 @@ const FREE_ACTIVITY_OPTIONS = [
   { value: "football", label: "Fotboll" },
   { value: "orienteering", label: "Orientering" },
   { value: "swimming", label: "Simning" },
+  { value: "cycling", label: "Cykling" },
   { value: "racket_sport", label: "Racketsport" },
   { value: "handball", label: "Handboll" },
   { value: "custom", label: "Egen aktivitet" },

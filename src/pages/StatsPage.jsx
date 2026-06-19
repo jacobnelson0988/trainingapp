@@ -16,6 +16,7 @@ const FREE_ACTIVITY_LABELS = {
   football: "Fotboll",
   orienteering: "Orientering",
   swimming: "Simning",
+  cycling: "Cykling",
   racket_sport: "Racketsport",
   handball: "Handboll",
   custom: "Egen aktivitet",
