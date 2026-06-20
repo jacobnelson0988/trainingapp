@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { getExerciseProtocolConfig, isProtocolExercise } from "../utils/exerciseProtocols"
+import { getPassInfoParts } from "../utils/passInfo"
 
 const exerciseNavigationCategoryOrder = [
   "Axlar",
@@ -162,6 +163,23 @@ const buildHrgProgramSummaries = (exercises) => {
     })
     .filter((program) => program.blocks.length > 0)
     .sort((a, b) => a.program.localeCompare(b.program, "sv"))
+}
+
+const PassInfoBlock = ({ info }) => {
+  const { text, videoUrl } = getPassInfoParts(info)
+
+  if (!text && !videoUrl) return null
+
+  return (
+    <div style={selectedPassInfoBlockStyle}>
+      {text ? <div style={selectedPassDescriptionStyle}>{text}</div> : null}
+      {videoUrl ? (
+        <a href={videoUrl} target="_blank" rel="noreferrer" style={selectedPassVideoLinkStyle}>
+          Se video på YouTube
+        </a>
+      ) : null}
+    </div>
+  )
 }
 
 const buildRunningWorkoutSummary = (workoutKind, runningType, runningConfig) => {
@@ -1765,7 +1783,7 @@ function PassBuilderPage({
                           </div>
 
                           {workout.info ? (
-                            <div style={selectedPassDescriptionStyle}>{workout.info}</div>
+                            <PassInfoBlock info={workout.info} />
                           ) : (
                             <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
                           )}
@@ -2257,6 +2275,27 @@ const selectedPassDescriptionStyle = {
   fontSize: "14px",
   color: "#18202b",
   lineHeight: 1.6,
+}
+
+const selectedPassInfoBlockStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const selectedPassVideoLinkStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "fit-content",
+  minHeight: "38px",
+  padding: "0 14px",
+  borderRadius: "12px",
+  backgroundColor: "#c62828",
+  color: "#ffffff",
+  fontSize: "14px",
+  fontWeight: "900",
+  textDecoration: "none",
+  boxShadow: "0 10px 22px rgba(198, 40, 40, 0.18)",
 }
 
 const selectedPassExerciseListCardStyle = {

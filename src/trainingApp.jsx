@@ -18,8 +18,26 @@ import {
   getExerciseProtocolStep,
   isProtocolExercise,
 } from "./utils/exerciseProtocols"
+import { getPassInfoParts } from "./utils/passInfo"
 
 const PASS_ASSIGNMENT_EXERCISE_NAME = "__PASS_ASSIGNMENT__"
+
+const PassInfoBlock = ({ info }) => {
+  const { text, videoUrl } = getPassInfoParts(info)
+
+  if (!text && !videoUrl) return null
+
+  return (
+    <div style={passInfoBlockStyle}>
+      {text ? <div style={passPreviewInfoTextStyle}>{text}</div> : null}
+      {videoUrl ? (
+        <a href={videoUrl} target="_blank" rel="noreferrer" style={passVideoLinkStyle}>
+          Se video på YouTube
+        </a>
+      ) : null}
+    </div>
+  )
+}
 
 const normalizeExerciseSearchValue = (value) =>
   String(value || "")
@@ -9222,7 +9240,7 @@ function TrainingApp() {
                                     {workout.info && (
                                       <div style={{ marginBottom: "14px" }}>
                                         <div style={passPreviewStatLabelStyle}>Info om passet</div>
-                                        <div style={passPreviewInfoTextStyle}>{workout.info}</div>
+                                        <PassInfoBlock info={workout.info} />
                                       </div>
                                     )}
 
@@ -11636,6 +11654,27 @@ const passPreviewInfoTextStyle = {
   color: "#18202b",
   fontWeight: "700",
   lineHeight: 1.5,
+}
+
+const passInfoBlockStyle = {
+  display: "grid",
+  gap: "10px",
+}
+
+const passVideoLinkStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "fit-content",
+  minHeight: "38px",
+  padding: "0 14px",
+  borderRadius: "12px",
+  backgroundColor: "#c62828",
+  color: "#ffffff",
+  fontSize: "14px",
+  fontWeight: "900",
+  textDecoration: "none",
+  boxShadow: "0 10px 22px rgba(198, 40, 40, 0.18)",
 }
 
 const passPreviewExerciseCountStyle = {
