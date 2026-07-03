@@ -103,6 +103,7 @@ const fieldInputStyle = {
 }
 
 const timerCardStyle = (isExpanded = false) => ({
+  width: "100%",
   minHeight: isExpanded ? "320px" : "auto",
   padding: isExpanded ? "24px 22px" : "18px 18px",
   borderRadius: "28px",
@@ -117,6 +118,16 @@ const timerCardStyle = (isExpanded = false) => ({
   justifyItems: isExpanded ? "center" : "stretch",
   textAlign: isExpanded ? "center" : "left",
 })
+
+const fullscreenTimerShellStyle = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1200,
+  background: "linear-gradient(180deg, rgba(10, 10, 10, 0.96) 0%, rgba(26, 18, 10, 0.96) 100%)",
+  padding: "max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left))",
+  display: "grid",
+  alignItems: "stretch",
+}
 
 const timerPhaseLabelStyle = (isExpanded = false) => ({
   fontFamily: redesignMonoFont,
@@ -238,6 +249,7 @@ export default function ActiveIntervalWorkout({
   const [now, setNow] = useState(Date.now())
   const lastSignalKeyRef = useRef(null)
   const completionHandledRef = useRef(false)
+  const spokenCountdownRef = useRef("")
 
   const resolvedProgram = useMemo(
     () => buildIntervalProgram(intervalProgram),
@@ -336,6 +348,26 @@ export default function ActiveIntervalWorkout({
   }, [snapshot, timerSession])
 
   useEffect(() => {
+    if (!snapshot?.currentPhase || timerSession?.status !== "running") return
+    const remainingSeconds = Math.ceil((snapshot.currentPhaseRemainingMs || 0) / 1000)
+    if (remainingSeconds > 3 || remainingSeconds < 1) return
+    const key = `${snapshot.currentPhase.key}:${remainingSeconds}`
+    if (spokenCountdownRef.current === key) return
+    spokenCountdownRef.current = key
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel()
+      const utterance = new window.SpeechSynthesisUtterance(String(remainingSeconds))
+      utterance.lang = "sv-SE"
+      utterance.rate = 1.02
+      utterance.pitch = 0.92
+      utterance.volume = 1
+      window.speechSynthesis.speak(utterance)
+    } else {
+      playIntervalSignal("countdown")
+    }
+  }, [snapshot?.currentPhase?.key, snapshot?.currentPhaseRemainingMs, timerSession?.status])
+
+  useEffect(() => {
     if (!snapshot) return
 
     const totalSeconds = Math.round((snapshot.totalElapsedMs || 0) / 1000)
@@ -430,6 +462,7 @@ export default function ActiveIntervalWorkout({
           </button>
         </>
       ) : (
+        <div style={fullscreenTimerShellStyle}>
         <>
           <div style={timerCardStyle(true)}>
             <div style={timerPhaseLabelStyle(true)}>
@@ -491,6 +524,7 @@ export default function ActiveIntervalWorkout({
             </div>
           ) : null}
         </>
+        </div>
       )}
     </div>
   )

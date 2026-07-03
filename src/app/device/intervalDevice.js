@@ -23,7 +23,7 @@ const ensureAudioContext = async () => {
   return audioContext
 }
 
-const playTone = async ({ frequency, durationMs, type = "square", volume = 0.24 }) => {
+const playTone = async ({ frequency, durationMs, type = "square", volume = 0.34 }) => {
   const context = await ensureAudioContext()
   if (!context) return
 
@@ -36,7 +36,7 @@ const playTone = async ({ frequency, durationMs, type = "square", volume = 0.24 
   oscillator.frequency.setValueAtTime(frequency, startedAt)
 
   gainNode.gain.setValueAtTime(0.0001, startedAt)
-  gainNode.gain.exponentialRampToValueAtTime(volume, startedAt + 0.015)
+  gainNode.gain.exponentialRampToValueAtTime(Math.min(0.9, volume), startedAt + 0.01)
   gainNode.gain.exponentialRampToValueAtTime(0.0001, startedAt + durationSeconds)
 
   oscillator.connect(gainNode)
@@ -98,11 +98,19 @@ export const playIntervalSignal = async (kind = "work") => {
       { pauseMs: 35 },
       { frequency: 1046.5, durationMs: 240, type: "triangle", volume: 0.28 },
     ])
+  } else if (kind === "countdown") {
+    await playToneSequence([
+      { frequency: 1100, durationMs: 80, type: "square", volume: 0.62 },
+      { pauseMs: 24 },
+      { frequency: 1100, durationMs: 80, type: "square", volume: 0.62 },
+      { pauseMs: 24 },
+      { frequency: 1100, durationMs: 80, type: "square", volume: 0.62 },
+    ])
   } else {
     await playToneSequence([
-      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.26 },
+      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.5 },
       { pauseMs: 35 },
-      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.26 },
+      { frequency: 659.25, durationMs: 170, type: "square", volume: 0.5 },
     ])
   }
 
