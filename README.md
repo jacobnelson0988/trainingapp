@@ -35,6 +35,20 @@ Appen ska kännas kompakt, tydlig, konsekvent och direkt responsiv oavsett vilke
 
 ## ROADMAP
 
+### Kopiera pass mellan lag
+
+Huvudadministratören kan under **Lag → Exportera pass mellan lag** välja källag,
+mållag och ett eller flera sparade pass. Kopiorna får egna passkoder och innehåller
+passinfo, uppvärmning, passinställningar, övningar i ordning, träningsmål och
+alternativövningar. Original, spelartilldelningar och historik påverkas inte.
+Om samma passnamn redan finns i mållaget avbryts hela urvalet utan kopior.
+
+Funktionen kräver migrationen
+`supabase/migrations/202611092100_copy_team_workout_templates.sql` och att den
+uppdaterade appen publiceras. Kopieringen sker i en databastransaktion med
+anroparens befintliga RLS-behörigheter; vanliga tränare har fortsatt bara åtkomst
+till sitt eget lag.
+
 ### Fas 1 – MVP (KLAR)
 
 Grundfunktionalitet för spelare.

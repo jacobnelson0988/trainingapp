@@ -1,4 +1,5 @@
 import { useState } from "react"
+import TeamPassExport from "./TeamPassExport"
 
 function TeamsPage({
   teams,
@@ -54,6 +55,8 @@ function TeamsPage({
           </button>
         </div>
       </div>
+
+      <TeamPassExport teams={teams || []} inputStyle={inputStyle} buttonStyle={buttonStyle} secondaryButtonStyle={secondaryButtonStyle} mutedTextStyle={mutedTextStyle} />
 
       <div style={{ display: "grid", gap: "10px", marginTop: "14px" }}>
         {(teams || []).map((team) => {
