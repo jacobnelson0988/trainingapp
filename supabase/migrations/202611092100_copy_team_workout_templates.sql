@@ -95,4 +95,5 @@ end;
 $$;
 
 revoke all on function public.copy_team_workout_templates(uuid, uuid, uuid[]) from public;
+revoke all on function public.copy_team_workout_templates(uuid, uuid, uuid[]) from anon;
 grant execute on function public.copy_team_workout_templates(uuid, uuid, uuid[]) to authenticated;
