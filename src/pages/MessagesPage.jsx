@@ -137,12 +137,11 @@ function MessagesPage({
           <h1>Meddelanden</h1>
         </div>
       ) : (
-        <div style={pageHeaderStyle}>
+        <div className={role === "coach" ? "coach-design__heading" : undefined} style={pageHeaderStyle}>
           <div style={pageHeaderCopyStyle}>
-            <div style={pageEyebrowStyle}>Tränarvy</div>
-            <div style={introTitleStyle}>Meddelanden</div>
+            <h1 style={introTitleStyle}>Meddelanden</h1>
             <div style={introTextStyle}>
-              Samla all kommunikation i ett tydligt flöde med samma kortlogik som resten av tränarvyn.
+              Skriv till spelare, tränare och huvudadmin.
             </div>
           </div>
         </div>
@@ -422,14 +421,6 @@ const wrapStyle = {
   minWidth: 0,
 }
 
-const pageEyebrowStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "var(--player-section-accent, #991b1b)",
-}
-
 const introTitleStyle = {
   marginBottom: "2px",
   fontSize: "24px",
@@ -484,7 +475,7 @@ const cardStyle = {
   borderRadius: "20px",
   border: "1px solid var(--player-section-line, #f0dcdc)",
   backgroundColor: "var(--player-section-surface, #fffdfd)",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
+  boxShadow: "var(--coach-card-shadow, 0 16px 30px rgba(24, 32, 43, 0.05))",
   minWidth: 0,
   overflow: "hidden",
 }

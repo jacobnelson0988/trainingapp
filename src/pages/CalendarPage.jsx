@@ -306,6 +306,8 @@ function CalendarPage({
     return grouped
   }, [entries, weekDays])
 
+  const todayKey = getTodayInput()
+
   const resetDraft = () => {
     setDraft(createEmptyDraft(role))
     setEditingEntry(null)
@@ -460,6 +462,7 @@ function CalendarPage({
         <label style={fieldStyle}>
           <span style={fieldLabelStyle}>Typ</span>
           <select
+            aria-label="Typ av aktivitet"
             value={draft.activity_kind}
             onChange={(event) => handleDraftChange("activity_kind", event.target.value)}
             style={inputStyle}
@@ -661,9 +664,9 @@ function CalendarPage({
 
   return (
     <div className={role === "player" ? "player-section calendar" : "calendar"}>
-      <div className={role === "player" ? "calendar__header player-design__view-heading" : "calendar__header"}>
+      <div className={role === "player" ? "calendar__header player-design__view-heading" : "calendar__header coach-design__heading"}>
         <div>
-          {role === "player" ? <h1>Kalender</h1> : <div style={titleStyle}>Kalender</div>}
+          <h1>Kalender</h1>
           <div style={subStyle}>
             {role === "coach" ? `Planera veckan för ${teamName}.` : "Se dina planerade aktiviteter för veckan."}
           </div>
@@ -694,9 +697,12 @@ function CalendarPage({
           ) : (
             <div className="calendar__week">
               {weekDays.map((day) => (
-                <section key={day.key} className="calendar__day" style={dayCardStyle}>
+                <section key={day.key} className="calendar__day" data-today={day.key === todayKey} style={dayCardStyle}>
                   <div className="calendar__day-heading">
-                    <div style={dayTitleStyle}>{day.label}</div>
+                    <div style={dayTitleStyle}>
+                      {day.label}
+                      {role === "coach" && day.key === todayKey && <span className="calendar__today">Idag</span>}
+                    </div>
                     <div style={dayCountStyle}>{entriesByDay[day.key]?.length || 0}</div>
                   </div>
 
@@ -942,12 +948,6 @@ function CalendarPage({
   )
 }
 
-const titleStyle = {
-  fontSize: "28px",
-  fontWeight: 900,
-  color: "var(--player-section-ink, #111827)",
-}
-
 const subStyle = {
   marginTop: "6px",
   fontSize: "14px",
@@ -1057,7 +1057,7 @@ const playerChipWrapStyle = {
 const playerChipStyle = {
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#f4f4f5",
+  backgroundColor: "var(--coach-raised, #f4f4f5)",
   color: "var(--player-section-muted, #374151)",
   fontSize: "11px",
   fontWeight: 700,
@@ -1084,7 +1084,7 @@ const formCardStyle = {
   borderRadius: "22px",
   border: "1px solid var(--player-section-line, #ece5e5)",
   backgroundColor: "var(--player-section-surface, #fffefe)",
-  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)",
+  boxShadow: "var(--coach-card-shadow, 0 16px 32px rgba(15, 23, 42, 0.06))",
 }
 
 const formTitleRowStyle = {
@@ -1148,9 +1148,9 @@ const toggleStyle = {
 const editHintStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
-  backgroundColor: "#fff7ed",
-  border: "1px solid #fed7aa",
-  color: "#9a3412",
+  backgroundColor: "var(--coach-amber-bg, #fff7ed)",
+  border: "1px solid var(--coach-line, #fed7aa)",
+  color: "var(--coach-amber, #9a3412)",
   fontSize: "13px",
   lineHeight: 1.5,
 }
@@ -1217,11 +1217,11 @@ const secondaryButtonStyleCompact = {
 }
 
 const dangerButtonStyle = {
-  border: "1px solid #f3c6c6",
+  border: "1px solid var(--coach-line, #f3c6c6)",
   borderRadius: "14px",
   padding: "12px 14px",
   backgroundColor: "var(--player-section-surface-accent, #fff5f5)",
-  color: "#b91c1c",
+  color: "var(--coach-accent, #b91c1c)",
   fontSize: "14px",
   fontWeight: 700,
   cursor: "pointer",
@@ -1276,8 +1276,8 @@ const groupEditorEmptyStyle = {
   marginTop: "14px",
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px dashed #d7dee7",
-  backgroundColor: "#fcfcfd",
+  border: "1px dashed var(--coach-line, #d7dee7)",
+  backgroundColor: "var(--coach-panel, #fcfcfd)",
   color: "var(--player-section-muted, #6b7280)",
   fontSize: "13px",
   lineHeight: 1.5,

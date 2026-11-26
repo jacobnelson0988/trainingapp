@@ -3,7 +3,14 @@ import { useDismissibleDisclosure } from "../hooks/useDismissibleDisclosure"
 import { supabase } from "../supabase"
 import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
 
-const LINE_COLORS = ["#c62828", "#1d4ed8", "#0f766e", "#7c3aed", "#ea580c", "#0891b2"]
+const LINE_COLORS = [
+  "var(--coach-chart-1, #c62828)",
+  "var(--coach-chart-2, #1d4ed8)",
+  "var(--coach-chart-3, #0f766e)",
+  "var(--coach-chart-4, #7c3aed)",
+  "var(--coach-chart-5, #ea580c)",
+  "var(--coach-chart-6, #0891b2)",
+]
 const PERIOD_OPTIONS = [
   { value: "30", label: "Senaste 30 dagarna" },
   { value: "90", label: "Senaste 90 dagarna" },
@@ -831,20 +838,19 @@ function StatsPage({
 
   return (
     <div style={pageWrapStyle}>
-      <div style={pageHeaderStyle}>
+      <div className="coach-design__heading" style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
-        <div style={pageEyebrowStyle}>Tränarvy</div>
-        <div style={introTitleStyle}>Aktivitet och statistik</div>
-        <div style={introTextStyle}>
-          Öppna genomförda pass direkt i listan och växla sedan över till utveckling per övning i samma kompakta flöde.
-        </div>
+          <h1 style={introTitleStyle}>Aktivitet och statistik</h1>
+          <div style={introTextStyle}>
+            Följ lagets genomförda pass och jämför viktutveckling per övning.
+          </div>
         </div>
       </div>
 
       <div style={introStatsGridStyle(isMobile)}>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Spelare</div>
-          <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{sortedPlayers.length}</div>
+          <div style={{ ...introStatValueStyle, color: "var(--coach-accent, #dc2626)" }}>{sortedPlayers.length}</div>
         </div>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Aktivitet</div>
@@ -859,6 +865,7 @@ function StatsPage({
         <button
           type="button"
           onClick={() => setViewMode("activity")}
+          aria-pressed={viewMode === "activity"}
           style={primaryViewButtonStyle(viewMode === "activity", isMobile)}
         >
           Aktivitet
@@ -866,6 +873,7 @@ function StatsPage({
         <button
           type="button"
           onClick={() => setViewMode("stats")}
+          aria-pressed={viewMode === "stats"}
           style={primaryViewButtonStyle(viewMode === "stats", isMobile)}
         >
           Statistik
@@ -935,8 +943,8 @@ function StatsPage({
                         }
                         style={{
                           ...activityRowStyle(isMobile),
-                          borderColor: isSelected ? "#efc7c7" : "#d7dee7",
-                          backgroundColor: isSelected ? "#fff4f4" : "#ffffff",
+                          borderColor: isSelected ? "var(--coach-line, #efc7c7)" : "var(--coach-line, #d7dee7)",
+                          backgroundColor: isSelected ? "var(--coach-selected, #fff4f4)" : "var(--coach-panel, #ffffff)",
                           cursor: "pointer",
                         }}
                       >
@@ -998,12 +1006,12 @@ function StatsPage({
 
                                             {protocolStep ? (
                                               <div style={{ display: "grid", gap: "6px" }}>
-                                                <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                                                <div style={{ fontSize: "15px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
                                                   {protocolStep.summary}
                                                 </div>
                                                 <div style={activitySetMetaValueStyle}>Klart</div>
                                                 {setEntry.exerciseComment ? (
-                                                  <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                                                  <div style={{ fontSize: "13px", color: "var(--coach-muted, #64748b)", lineHeight: 1.5 }}>
                                                     Kommentar: {setEntry.exerciseComment}
                                                   </div>
                                                 ) : null}
@@ -1071,7 +1079,7 @@ function StatsPage({
             </div>
 
             {statsFiltersOpen ? (
-              <div style={filterGridStyle(isMobile)}>
+              <div className="stats-filter-grid">
                 <div style={filterCardStyle}>
                   <div style={filterTitleStyle}>Spelare</div>
                   {sortedPlayers.length === 0 ? (
@@ -1093,11 +1101,11 @@ function StatsPage({
                           alignItems: "center",
                           gap: "10px",
                           cursor: "pointer",
-                          backgroundColor: "#ffffff",
+                          backgroundColor: "var(--coach-panel, #ffffff)",
                         }}
                       >
                         <span>{selectedPlayerSummary}</span>
-                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>
+                        <span style={{ fontSize: "12px", color: "var(--coach-muted, #64748b)", fontWeight: "700" }}>
                           {isPlayerMenuOpen ? "Stäng" : "Öppna"}
                         </span>
                       </button>
@@ -1205,7 +1213,7 @@ function StatsPage({
             <div style={statsSummaryGridStyle(isMobile)}>
               <div style={statsSummaryCardStyle}>
                 <div style={statsSummaryLabelStyle}>Valda spelare</div>
-                <div style={{ ...statsSummaryValueStyle, color: "#dc2626" }}>{selectedPlayerIds.length}</div>
+                <div style={{ ...statsSummaryValueStyle, color: "var(--coach-accent, #dc2626)" }}>{selectedPlayerIds.length}</div>
               </div>
               <div style={statsSummaryCardStyle}>
                 <div style={statsSummaryLabelStyle}>Övningar med data</div>
@@ -1572,7 +1580,7 @@ function ChartGraphic({ exerciseName, playerSeries, chartMetrics, viewWidth, vie
             x2={viewWidth - rightPad}
             y1={yScale(tick)}
             y2={yScale(tick)}
-            stroke="#e5edf5"
+            stroke="var(--coach-line, #e5edf5)"
             strokeWidth="1"
           />
           <text
@@ -1580,7 +1588,7 @@ function ChartGraphic({ exerciseName, playerSeries, chartMetrics, viewWidth, vie
             y={yScale(tick) + axisFontSize / 3}
             textAnchor="end"
             fontSize={axisFontSize}
-            fill="#64748b"
+            fill="var(--coach-muted, #64748b)"
           >
             {tick}
           </text>
@@ -1612,7 +1620,7 @@ function ChartGraphic({ exerciseName, playerSeries, chartMetrics, viewWidth, vie
           y={viewHeight - 10}
           textAnchor="middle"
           fontSize={xFontSize}
-          fill="#64748b"
+          fill="var(--coach-muted, #64748b)"
         >
           {point.label.slice(2)}
         </text>
@@ -1641,19 +1649,10 @@ function getChartMetrics(playerSeries) {
   return { allPoints, minX, maxX, minY, maxY, yPadding, yTicks, xTicks }
 }
 
-const filterGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "12px",
-  gridTemplateColumns: isMobile
-    ? "1fr"
-    : "minmax(0, 1.5fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr)",
-  marginBottom: "18px",
-})
-
 const activityFilterGridStyle = (isMobile) => ({
   display: "grid",
   gap: "8px",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(260px, 360px)",
+  gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "minmax(0, 360px)",
   marginBottom: "16px",
 })
 
@@ -1669,24 +1668,24 @@ const primaryViewButtonStyle = (isActive, isMobile) => ({
   minHeight: isMobile ? "54px" : "58px",
   padding: "14px 16px",
   borderRadius: "18px",
-  border: isActive ? "1px solid #b91c1c" : "1px solid #cbd5e1",
-  background: isActive ? "linear-gradient(135deg, #c62828 0%, #991b1b 100%)" : "#ffffff",
-  color: isActive ? "#ffffff" : "#111827",
+  border: isActive ? "1px solid var(--coach-line, #b91c1c)" : "1px solid var(--coach-line, #cbd5e1)",
+  background: isActive ? "var(--coach-tab-selected, linear-gradient(135deg, #c62828 0%, #991b1b 100%))" : "var(--coach-panel, #ffffff)",
+  color: isActive ? "var(--coach-tab-ink, #ffffff)" : "var(--coach-ink, #111827)",
   fontSize: isMobile ? "15px" : "16px",
   fontWeight: "900",
   cursor: "pointer",
   boxShadow: isActive
-    ? "0 14px 28px rgba(198, 40, 40, 0.24)"
-    : "0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06)",
+    ? "var(--coach-selected-shadow, 0 14px 28px rgba(198, 40, 40, 0.24))"
+    : "var(--coach-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06))",
 })
 
 const contentPanelStyle = {
   marginTop: "4px",
   padding: "16px",
   borderRadius: "22px",
-  border: "1px solid #cbd5e1",
-  backgroundColor: "#f8fafc",
-  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08), 0 22px 48px rgba(15, 23, 42, 0.12)",
+  border: "1px solid var(--coach-line, #cbd5e1)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
+  boxShadow: "var(--coach-card-shadow, 0 2px 6px rgba(15, 23, 42, 0.08), 0 22px 48px rgba(15, 23, 42, 0.12))",
 }
 
 const panelHeaderStyle = (isMobile) => ({
@@ -1701,14 +1700,14 @@ const panelHeaderStyle = (isMobile) => ({
 const panelTitleStyle = {
   fontSize: "20px",
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
   marginBottom: "4px",
 }
 
 const panelTextStyle = {
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const statsSummaryGridStyle = (isMobile) => ({
@@ -1721,9 +1720,9 @@ const statsSummaryGridStyle = (isMobile) => ({
 const statsSummaryCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: "1px solid var(--coach-line, rgba(15, 23, 42, 0.08))",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.04))",
 }
 
 const statsSummaryLabelStyle = {
@@ -1732,21 +1731,21 @@ const statsSummaryLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const statsSummaryValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 const filterCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#fcfdff",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #fcfdff)",
 }
 
 const recommendationSectionStyle = {
@@ -1765,14 +1764,14 @@ const recommendationSectionHeaderStyle = {
 const recommendationSectionTitleStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const recommendationSectionTextStyle = {
   fontSize: "13px",
   lineHeight: 1.5,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const recommendationGridStyle = (isMobile) => ({
@@ -1784,9 +1783,9 @@ const recommendationGridStyle = (isMobile) => ({
 const recommendationCardStyle = {
   padding: "14px",
   borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.04))",
   minWidth: 0,
 }
 
@@ -1801,13 +1800,13 @@ const recommendationCardHeaderStyle = {
 const recommendationPlayerNameStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const recommendationDateStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#991b1b",
+  color: "var(--coach-accent, #991b1b)",
   whiteSpace: "nowrap",
 }
 
@@ -1820,8 +1819,8 @@ const recommendationStatsGridStyle = {
 const recommendationStatBoxStyle = {
   padding: "12px",
   borderRadius: "14px",
-  border: "1px solid #eef2f7",
-  backgroundColor: "#f8fafc",
+  border: "1px solid var(--coach-line, #eef2f7)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
   minWidth: 0,
 }
 
@@ -1830,7 +1829,7 @@ const recommendationStatLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   marginBottom: "6px",
 }
 
@@ -1838,14 +1837,14 @@ const recommendationStatValueStyle = {
   fontSize: "22px",
   lineHeight: 1.1,
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
   marginBottom: "4px",
 }
 
 const recommendationStatMetaStyle = {
   fontSize: "12px",
   lineHeight: 1.4,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const recommendationRangesWrapStyle = {
@@ -1861,8 +1860,8 @@ const recommendationRangeChipStyle = {
   gap: "8px",
   padding: "8px 10px",
   borderRadius: "999px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#fff7f7",
+  border: "1px solid var(--coach-line, #e5e7eb)",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
   minWidth: 0,
 }
 
@@ -1871,13 +1870,13 @@ const recommendationRangeChipLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--coach-accent, #991b1b)",
 }
 
 const recommendationRangeChipValueStyle = {
   fontSize: "12px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const recommendationQuickEditRowStyle = (isMobile) => ({
@@ -1892,17 +1891,17 @@ const recommendationQuickEditHintStyle = {
   marginTop: "12px",
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#f8fafc",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
   fontSize: "13px",
   lineHeight: 1.5,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const filterTitleStyle = {
   fontSize: "14px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "10px",
 }
 
@@ -1911,7 +1910,7 @@ const playerDropdownMenuStyle = {
   padding: "10px",
   borderRadius: "12px",
   border: "1px solid var(--ghf-line)",
-  backgroundColor: "#ffffff",
+  backgroundColor: "var(--coach-panel, #ffffff)",
 }
 
 const playerDropdownActionsStyle = {
@@ -1934,9 +1933,9 @@ const playerDropdownItemStyle = {
   gap: "10px",
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #eef2f7",
-  backgroundColor: "#f8fafc",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #eef2f7)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
+  color: "var(--coach-ink, #18202b)",
   fontSize: "14px",
   fontWeight: "700",
 }
@@ -1950,9 +1949,9 @@ const playerChipWrapStyle = {
 const playerChipStyle = {
   padding: "9px 12px",
   borderRadius: "999px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",
@@ -1980,9 +1979,9 @@ const activityRowStyle = (isMobile) => ({
   gap: "10px",
   padding: isMobile ? "12px 14px" : "14px 16px",
   borderRadius: "16px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.04))",
   width: "100%",
   minWidth: 0,
   textAlign: "left",
@@ -1991,21 +1990,21 @@ const activityRowStyle = (isMobile) => ({
 const activityPlayerNameStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "2px",
 }
 
 const activityMetaStyle = {
   fontSize: "12px",
   fontWeight: "700",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const activitySummaryStyle = {
   marginTop: "6px",
   fontSize: "12px",
   lineHeight: 1.45,
-  color: "#475569",
+  color: "var(--coach-muted, #475569)",
   fontWeight: "700",
 }
 
@@ -2020,7 +2019,7 @@ const activityRowAsideStyle = {
 const activityDateStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#991b1b",
+  color: "var(--coach-accent, #991b1b)",
   whiteSpace: "nowrap",
 }
 
@@ -2030,9 +2029,9 @@ const activitySelectedHintStyle = {
   justifyContent: "center",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  border: "1px solid #efc7c7",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  border: "1px solid var(--coach-line, #efc7c7)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "11px",
   fontWeight: "900",
   whiteSpace: "nowrap",
@@ -2041,17 +2040,17 @@ const activitySelectedHintStyle = {
 const activityDetailCardStyle = {
   padding: "14px",
   borderRadius: "18px",
-  border: "1px solid #f1d7d7",
-  backgroundColor: "#fffdfd",
-  boxShadow: "0 14px 30px rgba(24, 32, 43, 0.05)",
+  border: "1px solid var(--coach-line, #f1d7d7)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
+  boxShadow: "var(--coach-card-shadow, 0 14px 30px rgba(24, 32, 43, 0.05))",
 }
 
 const activityDetailPanelStyle = {
   padding: "14px",
   borderRadius: "20px",
-  border: "1px solid #d7dee7",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06)",
+  border: "1px solid var(--coach-line, #d7dee7)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.06))",
 }
 
 const activityDetailPanelHeaderStyle = {
@@ -2061,11 +2060,11 @@ const activityDetailPanelHeaderStyle = {
 const emptyDetailPanelStyle = {
   padding: "18px 14px",
   borderRadius: "16px",
-  border: "1px dashed #cbd5e1",
-  backgroundColor: "#f8fafc",
+  border: "1px dashed var(--coach-line, #cbd5e1)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const activityDetailHeaderStyle = {
@@ -2078,16 +2077,16 @@ const activityDetailHeaderStyle = {
 
 const activityDetailMetaStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   lineHeight: 1.5,
 }
 
 const activityRunningCardStyle = {
   padding: "14px 16px",
   borderRadius: "18px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   fontSize: "14px",
   fontWeight: "700",
 }
@@ -2109,7 +2108,7 @@ const activitySwipeHintStyle = {
   fontWeight: "800",
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const activityExerciseCardsTrackStyle = {
@@ -2127,8 +2126,8 @@ const activityExerciseCardStyle = {
   boxSizing: "border-box",
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   overflow: "hidden",
   scrollSnapAlign: "start",
 }
@@ -2136,13 +2135,13 @@ const activityExerciseCardStyle = {
 const activityExerciseCardTitleStyle = {
   fontSize: "17px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const activityExerciseCardSubStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   marginBottom: "12px",
 }
 
@@ -2154,14 +2153,14 @@ const activitySetListStyle = {
 const activitySetCardStyle = {
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: "#f8fafc",
-  border: "1px solid #e2e8f0",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
 }
 
 const activitySetTitleStyle = {
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "8px",
 }
 
@@ -2181,22 +2180,22 @@ const activitySetMetaLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const activitySetMetaValueStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const activityPassCommentStyle = {
   marginTop: "12px",
   padding: "12px 14px",
   borderRadius: "16px",
-  backgroundColor: "#fff7f7",
-  border: "1px solid #f3d0d0",
-  color: "#374151",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
+  border: "1px solid var(--coach-line, #f3d0d0)",
+  color: "var(--coach-ink, #374151)",
   fontSize: "14px",
   lineHeight: 1.6,
 }
@@ -2213,9 +2212,9 @@ const chartCardStyle = {
   overflow: "hidden",
   padding: "18px",
   borderRadius: "22px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 16px 30px rgba(24, 32, 43, 0.05))",
 }
 
 const chartHeaderActionsStyle = {
@@ -2228,13 +2227,13 @@ const chartHeaderActionsStyle = {
 const chartTitleStyle = {
   fontSize: "20px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const chartSubtitleStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const legendWrapStyle = {
@@ -2249,7 +2248,7 @@ const legendItemStyle = {
   gap: "8px",
   fontSize: "12px",
   fontWeight: "800",
-  color: "#334155",
+  color: "var(--coach-ink, #334155)",
 }
 
 const legendColorStyle = {
@@ -2262,9 +2261,9 @@ const legendColorStyle = {
 const expandButtonStyle = {
   width: "34px",
   height: "34px",
-  border: "1px solid #cbd5e1",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #cbd5e1)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   borderRadius: "999px",
   padding: "0",
   display: "inline-flex",
@@ -2299,8 +2298,8 @@ const statGridStyle = (isMobile) => ({
 const statCardStyle = {
   padding: "12px",
   borderRadius: "16px",
-  backgroundColor: "#f8fbff",
-  border: "1px solid #e2e8f0",
+  backgroundColor: "var(--coach-raised, #f8fbff)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
 }
 
 const statPlayerNameStyle = {
@@ -2310,14 +2309,14 @@ const statPlayerNameStyle = {
 
 const statLineStyle = {
   fontSize: "13px",
-  color: "#475569",
+  color: "var(--coach-muted, #475569)",
   lineHeight: 1.6,
 }
 
 const statFootnoteStyle = {
   marginTop: "8px",
   fontSize: "11px",
-  color: "#546579",
+  color: "var(--coach-muted, #546579)",
 }
 
 const chartModalHeaderStyle = {
@@ -2336,9 +2335,9 @@ const chartModalLegendStyle = {
 }
 
 const closeButtonStyle = {
-  border: "1px solid #cbd5e1",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #cbd5e1)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   borderRadius: "999px",
   padding: "10px 14px",
   fontSize: "13px",
@@ -2363,26 +2362,18 @@ const pageHeaderCopyStyle = {
   gap: "4px",
 }
 
-const pageEyebrowStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "var(--coach-detail-ink, #991b1b)",
-}
-
 const introTitleStyle = {
   marginBottom: "2px",
   fontSize: "24px",
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 const introTextStyle = {
   marginBottom: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const introStatsGridStyle = (isMobile) => ({
@@ -2394,8 +2385,8 @@ const introStatsGridStyle = (isMobile) => ({
 const introStatCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, rgba(15, 23, 42, 0.08))",
+  backgroundColor: "var(--coach-panel, #ffffff)",
 }
 
 const introStatLabelStyle = {
@@ -2404,12 +2395,12 @@ const introStatLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const introStatValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }

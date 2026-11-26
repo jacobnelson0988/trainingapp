@@ -227,9 +227,9 @@ const overviewStatsGridStyle = (isMobile) => ({
 const overviewStatCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: "1px solid var(--coach-line, rgba(15, 23, 42, 0.08))",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.04))",
 }
 
 const overviewStatLabelStyle = {
@@ -238,14 +238,14 @@ const overviewStatLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const overviewStatValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 function ExerciseBankPage({
@@ -509,21 +509,20 @@ function ExerciseBankPage({
 
   return (
     <div style={pageWrapStyle}>
-      <div style={introCardStyle}>
-        <div style={introEyebrowStyle}>Tränarvy</div>
-        <div style={introTitleStyle}>Övningsbank</div>
+      <div className="coach-design__heading" style={introCardStyle}>
+        <h1 style={introTitleStyle}>Övningsbank</h1>
         <div style={introTextStyle}>
           {canManageExercises
-            ? "Hantera övningar för hela föreningen i samma tydliga, kompakta stil som startsidan."
+            ? "Hantera föreningens övningar, kategorier och media."
             : canRequestExercises
-            ? "Här ser du övningarna som kan användas i pass och kan snabbt skicka requests när något saknas."
+            ? "Hitta övningar till ett pass eller föreslå en ny övning."
             : "Här ser du övningarna som kan användas när du bygger pass för ditt lag."}
         </div>
 
         <div style={overviewStatsGridStyle(isMobile)}>
         <div style={overviewStatCardStyle}>
           <div style={overviewStatLabelStyle}>Övningar</div>
-          <div style={{ ...overviewStatValueStyle, color: "#dc2626" }}>{exercisesFromDB.length}</div>
+          <div style={{ ...overviewStatValueStyle, color: "var(--coach-accent, #dc2626)" }}>{exercisesFromDB.length}</div>
         </div>
         <div style={overviewStatCardStyle}>
           <div style={overviewStatLabelStyle}>Kategorier</div>
@@ -586,16 +585,16 @@ function ExerciseBankPage({
             }}
           >
             <div>
-              <div style={sectionEyebrowStyle}>Ny request</div>
-              <div style={sectionTitleStyle}>Requesta ny övning</div>
+              <div style={sectionTitleStyle}>Föreslå en övning</div>
             </div>
 
             <button
               type="button"
               onClick={() => setIsRequestFormOpen((prev) => !prev)}
+              aria-expanded={isRequestFormOpen}
               style={{ ...buttonStyle, width: isMobile ? "100%" : "auto", minHeight: "46px" }}
             >
-              {isRequestFormOpen ? "Stäng formulär" : "Skicka request"}
+              {isRequestFormOpen ? "Stäng formulär" : "Nytt övningsförslag"}
             </button>
           </div>
 
@@ -652,9 +651,9 @@ function ExerciseBankPage({
                         onClick={() => toggleRequestMuscleGroup(group)}
                         style={{
                           ...tagButtonStyle,
-                          backgroundColor: isSelected ? "#18202b" : "#ffffff",
-                          color: isSelected ? "#ffffff" : "#374151",
-                          border: isSelected ? "1px solid #18202b" : "1px solid #d9dee7",
+                          backgroundColor: isSelected ? "#18202b" : "var(--coach-panel, #ffffff)",
+                          color: isSelected ? "#ffffff" : "var(--coach-ink, #374151)",
+                          border: isSelected ? "1px solid #18202b" : "1px solid var(--coach-line, #d9dee7)",
                         }}
                       >
                         {group}
@@ -1003,8 +1002,8 @@ function ExerciseBankPage({
               <div style={{ display: "grid", gap: "8px" }}>
                 {importedExercises.slice(0, 8).map((exercise) => (
                   <div key={`${exercise.rowNumber}-${exercise.name}`} style={importPreviewRowStyle}>
-                    <div style={{ fontWeight: "800", color: "#18202b" }}>{exercise.name || "Saknar namn"}</div>
-                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    <div style={{ fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>{exercise.name || "Saknar namn"}</div>
+                    <div style={{ fontSize: "12px", color: "var(--coach-muted, #64748b)" }}>
                       {exerciseTypeLabel(exercise.exercise_type)}
                       {exercise.muscle_groups?.length ? ` • ${exercise.muscle_groups.join(", ")}` : ""}
                     </div>
@@ -1023,11 +1022,11 @@ function ExerciseBankPage({
               <div style={{ display: "grid", gap: "8px" }}>
                 {exerciseImportResults.map((result) => (
                   <div key={`import-result-${result.rowNumber}-${result.name}`} style={importResultRowStyle}>
-                    <div style={{ fontWeight: "800", color: "#18202b" }}>{result.name || "Saknar namn"}</div>
+                    <div style={{ fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>{result.name || "Saknar namn"}</div>
                     <div
                       style={{
                         fontSize: "12px",
-                        color: result.success ? "#166534" : "#991b1b",
+                        color: result.success ? "var(--coach-green, #166534)" : "var(--coach-accent, #991b1b)",
                       }}
                     >
                       {result.message}
@@ -1213,9 +1212,9 @@ function ExerciseBankPage({
                             onClick={() => toggleMuscleGroup(group)}
                             style={{
                               ...tagButtonStyle,
-                              backgroundColor: isSelected ? "#c62828" : "#ffffff",
-                              color: isSelected ? "#ffffff" : "#991b1b",
-                              border: isSelected ? "1px solid #c62828" : "1px solid #efc7c7",
+                              backgroundColor: isSelected ? "#c62828" : "var(--coach-panel, #ffffff)",
+                              color: isSelected ? "#ffffff" : "var(--coach-accent, #991b1b)",
+                              border: isSelected ? "1px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #efc7c7)",
                             }}
                           >
                             {group}
@@ -1279,9 +1278,9 @@ function ExerciseBankPage({
                     width: "100%",
                     padding: isMobile ? "16px" : "18px",
                     borderRadius: isMobile ? "16px" : "18px",
-                    border: "1px solid #ece5e5",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+                    border: "1px solid var(--coach-line, #ece5e5)",
+                    backgroundColor: "var(--coach-panel, #ffffff)",
+                    boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
@@ -1291,10 +1290,10 @@ function ExerciseBankPage({
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                    <div style={{ fontSize: "15px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
                       {category.label}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                    <div style={{ fontSize: "12px", color: "var(--coach-muted, #64748b)", marginTop: "4px" }}>
                       Visa övningar i kategorin
                     </div>
                   </div>
@@ -1326,7 +1325,7 @@ function ExerciseBankPage({
                     Tillbaka till kategorier
                   </button>
                 )}
-                <div style={{ fontSize: "13px", color: "#64748b" }}>
+                <div style={{ fontSize: "13px", color: "var(--coach-muted, #64748b)" }}>
                   {hasActiveSearch
                     ? `Sökresultat i hela övningsbanken (${filteredExercises.length})`
                     : `${selectedCategoryLabel} (${filteredExercises.length})`}
@@ -1358,9 +1357,9 @@ function ExerciseBankPage({
                     style={{
                       ...tagButtonStyle,
                       flex: isMobile ? "0 0 auto" : undefined,
-                      backgroundColor: isSelected ? "#18202b" : "#ffffff",
-                      color: isSelected ? "#ffffff" : "#374151",
-                      border: isSelected ? "1px solid #18202b" : "1px solid #d9dee7",
+                      backgroundColor: isSelected ? "#18202b" : "var(--coach-panel, #ffffff)",
+                      color: isSelected ? "#ffffff" : "var(--coach-ink, #374151)",
+                      border: isSelected ? "1px solid #18202b" : "1px solid var(--coach-line, #d9dee7)",
                     }}
                   >
                     {group}
@@ -1377,9 +1376,9 @@ function ExerciseBankPage({
                   style={{
                     padding: isMobile ? "16px" : "18px",
                     borderRadius: isMobile ? "16px" : "18px",
-                    border: "1px solid #ece5e5",
-                    backgroundColor: "#ffffff",
-                    color: "#64748b",
+                    border: "1px solid var(--coach-line, #ece5e5)",
+                    backgroundColor: "var(--coach-panel, #ffffff)",
+                    color: "var(--coach-muted, #64748b)",
                   }}
                 >
                   {hasActiveSearch
@@ -1402,38 +1401,33 @@ function ExerciseBankPage({
               )
 
               return (
-                <button
+                <article
                   key={exercise.id}
-                  type="button"
-                  onClick={() =>
-                    setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))
-                  }
                   style={{
                     position: "relative",
                     width: "100%",
                     padding: isMobile ? "14px" : "16px",
                     borderRadius: isMobile ? "16px" : "18px",
-                    border: isEditing || isExpanded ? "2px solid #c62828" : "1px solid #ece5e5",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+                    border: isEditing || isExpanded ? "2px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #ece5e5)",
+                    backgroundColor: "var(--coach-panel, #ffffff)",
+                    boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
                     textAlign: "left",
-                    cursor: "pointer",
                   }}
                 >
-                  <div style={expandIndicatorWrapStyle}>
-                    <div style={expandIndicatorStyle}>{isExpanded ? "−" : "+"}</div>
-                  </div>
-
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ ...exerciseTitleRowStyle, paddingRight: "40px" }}>
-                        <div style={{ fontSize: "16px", fontWeight: "800", color: "#18202b" }}>
-                          {getExerciseDisplayName(exercise)}
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        onClick={() => setExpandedExerciseId(isExpanded ? null : exercise.id)}
+                        style={exerciseDisclosureStyle}
+                      >
+                        <span>{getExerciseDisplayName(exercise)}</span>
+                        <span aria-hidden="true" style={expandIndicatorStyle}>{isExpanded ? "−" : "+"}</span>
+                      </button>
 
                       {canManageExercises && exercise.display_name && exercise.display_name !== exercise.name && (
-                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>
+                        <div style={{ fontSize: "12px", color: "var(--coach-muted, #64748b)", marginBottom: "6px" }}>
                           Grundnamn: {exercise.name}
                         </div>
                       )}
@@ -1451,7 +1445,7 @@ function ExerciseBankPage({
                       </div>
 
                       {!isExpanded && exerciseTextSections.primaryText && (
-                        <div style={{ fontSize: "13px", color: "#374151", lineHeight: 1.6 }}>
+                        <div style={{ fontSize: "13px", color: "var(--coach-ink, #374151)", lineHeight: 1.6 }}>
                           {exerciseTextSections.primaryText}
                         </div>
                       )}
@@ -1489,13 +1483,13 @@ function ExerciseBankPage({
                       style={{
                         marginTop: "14px",
                         paddingTop: "14px",
-                        borderTop: "1px solid #eee2e2",
+                        borderTop: "1px solid var(--coach-line, #eee2e2)",
                         display: "grid",
                         gap: "10px",
                       }}
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <div style={{ fontSize: "14px", fontWeight: "800", color: "#991b1b" }}>
+                      <div style={{ fontSize: "14px", fontWeight: "800", color: "var(--coach-accent, #991b1b)" }}>
                         Redigera övning
                       </div>
 
@@ -1643,9 +1637,9 @@ function ExerciseBankPage({
                                 onClick={() => toggleMuscleGroup(group)}
                                 style={{
                                   ...tagButtonStyle,
-                                  backgroundColor: isSelected ? "#c62828" : "#ffffff",
-                                  color: isSelected ? "#ffffff" : "#991b1b",
-                                  border: isSelected ? "1px solid #c62828" : "1px solid #efc7c7",
+                                  backgroundColor: isSelected ? "#c62828" : "var(--coach-panel, #ffffff)",
+                                  color: isSelected ? "#ffffff" : "var(--coach-accent, #991b1b)",
+                                  border: isSelected ? "1px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #efc7c7)",
                                 }}
                               >
                                 {group}
@@ -1683,7 +1677,7 @@ function ExerciseBankPage({
                       style={{
                         marginTop: "14px",
                         paddingTop: "14px",
-                        borderTop: "1px solid #eee2e2",
+                        borderTop: "1px solid var(--coach-line, #eee2e2)",
                         display: "grid",
                         gap: "12px",
                       }}
@@ -1692,10 +1686,10 @@ function ExerciseBankPage({
                         <>
                           {aliases.length > 0 && (
                             <div style={{ display: "grid", gap: "4px" }}>
-                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "var(--coach-muted, #64748b)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                                 Alias
                               </div>
-                              <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
+                              <div style={{ fontSize: "14px", color: "var(--coach-ink, #374151)", lineHeight: 1.6 }}>
                                 {aliases.join(", ")}
                               </div>
                             </div>
@@ -1703,10 +1697,10 @@ function ExerciseBankPage({
 
                           {exerciseTextSections.primaryText && (
                             <div style={{ display: "grid", gap: "4px" }}>
-                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "var(--coach-muted, #64748b)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                                 {exerciseTextSections.primaryLabel}
                               </div>
-                              <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
+                              <div style={{ fontSize: "14px", color: "var(--coach-ink, #374151)", lineHeight: 1.6 }}>
                                 {exerciseTextSections.primaryText}
                               </div>
                             </div>
@@ -1714,10 +1708,10 @@ function ExerciseBankPage({
 
                           {exerciseTextSections.secondaryText && (
                             <div style={{ display: "grid", gap: "4px" }}>
-                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "var(--coach-muted, #64748b)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                                 {exerciseTextSections.secondaryLabel}
                               </div>
-                              <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6 }}>
+                              <div style={{ fontSize: "14px", color: "var(--coach-ink, #374151)", lineHeight: 1.6 }}>
                                 {exerciseTextSections.secondaryText}
                               </div>
                             </div>
@@ -1725,7 +1719,7 @@ function ExerciseBankPage({
 
                           {hasMedia && (
                             <div style={{ display: "grid", gap: "8px" }}>
-                              <div style={{ fontSize: "12px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                              <div style={{ fontSize: "12px", fontWeight: "800", color: "var(--coach-muted, #64748b)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                                 Video / GIF
                               </div>
                               {isVideoMedia ? (
@@ -1750,8 +1744,8 @@ function ExerciseBankPage({
                                     maxHeight: "280px",
                                     objectFit: "contain",
                                     borderRadius: "14px",
-                                    border: "1px solid #ece5e5",
-                                    backgroundColor: "#f8fafc",
+                                    border: "1px solid var(--coach-line, #ece5e5)",
+                                    backgroundColor: "var(--coach-raised, #f8fafc)",
                                   }}
                                   onClick={(event) => event.stopPropagation()}
                                 />
@@ -1760,13 +1754,13 @@ function ExerciseBankPage({
                           )}
                         </>
                       ) : (
-                        <div style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.6 }}>
+                        <div style={{ fontSize: "14px", color: "var(--coach-muted, #64748b)", lineHeight: 1.6 }}>
                           Ingen extra info finns tillagd för den här övningen ännu.
                         </div>
                       )}
                     </div>
                   )}
-                </button>
+                </article>
               )
                 })
               )}
@@ -1788,32 +1782,23 @@ const introCardStyle = {
   marginBottom: "18px",
   padding: "20px",
   borderRadius: "24px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%)",
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
-}
-
-const introEyebrowStyle = {
-  marginBottom: "8px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#991b1b",
+  border: "1px solid var(--coach-line, rgba(15, 23, 42, 0.08))",
+  background: "var(--coach-panel, linear-gradient(180deg, #ffffff 0%, #fbf7f7 100%))",
+  boxShadow: "var(--coach-card-shadow, 0 18px 40px rgba(15, 23, 42, 0.06))",
 }
 
 const introTitleStyle = {
   marginBottom: "6px",
   fontSize: "24px",
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 const introTextStyle = {
   marginBottom: "16px",
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const sectionLabelStyle = {
@@ -1822,7 +1807,7 @@ const sectionLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 function getRoleLabel(role) {
@@ -1842,28 +1827,28 @@ function getStatusLabel(status) {
 function getStatusBadgeStyle(status) {
   if (status === "done") {
     return {
-      backgroundColor: "#ecfdf3",
-      color: "#166534",
+      backgroundColor: "var(--coach-green-bg, #ecfdf3)",
+      color: "var(--coach-green, #166534)",
     }
   }
 
   if (status === "future") {
     return {
-      backgroundColor: "#eff6ff",
-      color: "#1d4ed8",
+      backgroundColor: "var(--coach-selected, #eff6ff)",
+      color: "var(--coach-accent, #1d4ed8)",
     }
   }
 
   if (status === "wont_do") {
     return {
-      backgroundColor: "#f3f4f6",
-      color: "#374151",
+      backgroundColor: "var(--coach-raised, #f3f4f6)",
+      color: "var(--coach-ink, #374151)",
     }
   }
 
   return {
-    backgroundColor: "#fff1f1",
-    color: "#991b1b",
+    backgroundColor: "var(--coach-selected, #fff1f1)",
+    color: "var(--coach-accent, #991b1b)",
   }
 }
 
@@ -1882,17 +1867,17 @@ const formCardStyle = (isMobile) => ({
   marginBottom: "18px",
   padding: isMobile ? "14px" : "18px",
   borderRadius: isMobile ? "16px" : "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
 })
 
 const pillStyle = {
   display: "inline-flex",
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#fff4f4",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff4f4)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "12px",
   fontWeight: "700",
 }
@@ -1911,8 +1896,8 @@ const musclePillStyle = {
   display: "inline-flex",
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#eef2ff",
-  color: "#3730a3",
+  backgroundColor: "var(--coach-violet-bg, #eef2ff)",
+  color: "var(--coach-violet, #3730a3)",
   fontSize: "12px",
   fontWeight: "700",
 }
@@ -1920,7 +1905,7 @@ const musclePillStyle = {
 const tagButtonStyle = {
   padding: "8px 10px",
   borderRadius: "999px",
-  backgroundColor: "#ffffff",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   fontSize: "13px",
   fontWeight: "700",
   cursor: "pointer",
@@ -1946,7 +1931,7 @@ const sectionEyebrowStyle = {
 const sectionTitleStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const countBadgeStyle = {
@@ -1963,15 +1948,15 @@ const importPreviewCardStyle = {
   marginTop: "12px",
   padding: "12px",
   borderRadius: "14px",
-  backgroundColor: "#fff8f8",
-  border: "1px solid #f2d7d7",
+  backgroundColor: "var(--coach-selected, #fff8f8)",
+  border: "1px solid var(--coach-line, #f2d7d7)",
 }
 
 const importSectionSubtleTextStyle = {
   marginTop: "8px",
   fontSize: "13px",
   lineHeight: 1.6,
-  color: "#566173",
+  color: "var(--coach-muted, #566173)",
   maxWidth: "560px",
 }
 
@@ -1992,9 +1977,9 @@ const importActionGridStyle = (isMobile) => ({
 const importActionCardStyle = {
   padding: "14px",
   borderRadius: "16px",
-  backgroundColor: "#fffdfd",
-  border: "1px solid #f1dfdf",
-  boxShadow: "0 8px 22px rgba(24, 32, 43, 0.04)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
+  border: "1px solid var(--coach-line, #f1dfdf)",
+  boxShadow: "var(--coach-card-shadow, 0 8px 22px rgba(24, 32, 43, 0.04))",
 }
 
 const importActionEyebrowStyle = {
@@ -2003,29 +1988,29 @@ const importActionEyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--coach-accent, #991b1b)",
 }
 
 const importActionTitleStyle = {
   marginBottom: "8px",
   fontSize: "16px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const importActionTextStyle = {
   fontSize: "13px",
   lineHeight: 1.6,
-  color: "#566173",
+  color: "var(--coach-muted, #566173)",
 }
 
 const importFileMetaStyle = {
   fontSize: "13px",
-  color: "#374151",
+  color: "var(--coach-ink, #374151)",
   padding: "10px 12px",
   borderRadius: "12px",
-  backgroundColor: "#fff8f8",
-  border: "1px solid #f2dede",
+  backgroundColor: "var(--coach-selected, #fff8f8)",
+  border: "1px solid var(--coach-line, #f2dede)",
 }
 
 const importPreviewHeaderStyle = (isMobile) => ({
@@ -2040,14 +2025,14 @@ const importPreviewHeaderStyle = (isMobile) => ({
 const importPreviewTitleStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const importPreviewRowStyle = {
   padding: "10px 12px",
   borderRadius: "12px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #f0e4e4",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  border: "1px solid var(--coach-line, #f0e4e4)",
 }
 
 const importResultsWrapStyle = {
@@ -2059,8 +2044,8 @@ const importResultsWrapStyle = {
 const importResultRowStyle = {
   padding: "10px 12px",
   borderRadius: "12px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #ece5e5",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  border: "1px solid var(--coach-line, #ece5e5)",
 }
 
 const headerActionsStyle = {
@@ -2073,7 +2058,7 @@ const headerActionsStyle = {
 const fieldLabelStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "8px",
 }
 
@@ -2081,17 +2066,23 @@ const helperTextStyle = {
   marginBottom: "8px",
   fontSize: "12px",
   lineHeight: 1.5,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
-const exerciseTitleRowStyle = {
-  marginBottom: "4px",
-}
-
-const expandIndicatorWrapStyle = {
-  position: "absolute",
-  top: "14px",
-  right: "14px",
+const exerciseDisclosureStyle = {
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "10px",
+  padding: "0 0 8px",
+  border: 0,
+  background: "transparent",
+  color: "var(--coach-ink, #18202b)",
+  fontSize: "16px",
+  fontWeight: "800",
+  textAlign: "left",
+  cursor: "pointer",
 }
 
 const expandIndicatorStyle = {
@@ -2101,8 +2092,8 @@ const expandIndicatorStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "20px",
   fontWeight: "800",
   flexShrink: 0,
@@ -2118,9 +2109,9 @@ const adminTabsWrapStyle = {
 const adminTabStyle = {
   padding: "10px 14px",
   borderRadius: "12px",
-  border: "1px solid #d8e3ef",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #d8e3ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   fontSize: "14px",
   fontWeight: "800",
   cursor: "pointer",
@@ -2135,7 +2126,7 @@ const activeAdminTabStyle = {
 const requestHelpTextStyle = {
   marginBottom: "12px",
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   lineHeight: 1.5,
 }
 
@@ -2155,8 +2146,8 @@ const requestsHeaderStyle = (isMobile) => ({
 const requestFilterCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
 }
 
 const requestFilterRowStyle = (isMobile) => ({
@@ -2175,7 +2166,7 @@ const requestFilterGroupStyle = {
 const filterLabelStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 }
@@ -2189,9 +2180,9 @@ const chipRowStyle = {
 const filterChipStyle = {
   padding: "8px 12px",
   borderRadius: "999px",
-  border: "1px solid #d8e3ef",
-  backgroundColor: "#ffffff",
-  color: "#334155",
+  border: "1px solid var(--coach-line, #d8e3ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #334155)",
   fontSize: "13px",
   fontWeight: "700",
   cursor: "pointer",
@@ -2211,9 +2202,9 @@ const requestListStyle = {
 const requestCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
 }
 
 const requestCardHeaderStyle = (isMobile) => ({
@@ -2234,13 +2225,13 @@ const requestHeaderAsideStyle = {
 const requestTitleStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const requestMetaTextStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   lineHeight: 1.5,
 }
 
@@ -2254,12 +2245,12 @@ const statusBadgeStyle = {
 
 const requestDateStyle = {
   fontSize: "12px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const requestUpdatedStyle = {
   fontSize: "12px",
-  color: "#546579",
+  color: "var(--coach-muted, #546579)",
 }
 
 const requestDetailRowStyle = {
@@ -2272,18 +2263,18 @@ const requestDetailRowStyle = {
 const requestDetailLabelStyle = {
   fontSize: "13px",
   fontWeight: "800",
-  color: "#46607a",
+  color: "var(--coach-muted, #46607a)",
 }
 
 const requestDetailValueStyle = {
   fontSize: "13px",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   textAlign: "right",
 }
 
 const requestLinkStyle = {
   fontSize: "13px",
-  color: "#1d4ed8",
+  color: "var(--coach-accent, #1d4ed8)",
   textAlign: "right",
   wordBreak: "break-word",
 }
@@ -2292,14 +2283,14 @@ const requestDescriptionWrapStyle = {
   marginTop: "12px",
   padding: "12px 14px",
   borderRadius: "14px",
-  backgroundColor: "#f8fafc",
-  border: "1px solid #e2e8f0",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
 }
 
 const requestDescriptionLabelStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#46607a",
+  color: "var(--coach-muted, #46607a)",
   marginBottom: "6px",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -2307,7 +2298,7 @@ const requestDescriptionLabelStyle = {
 
 const requestDescriptionStyle = {
   fontSize: "14px",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   lineHeight: 1.6,
   whiteSpace: "pre-wrap",
 }

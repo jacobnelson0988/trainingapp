@@ -126,7 +126,7 @@ const eyebrowStyle = {
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-  color: "#46607a",
+  color: "var(--coach-accent, #46607a)",
   marginBottom: "8px",
 }
 

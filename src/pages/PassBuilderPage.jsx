@@ -397,7 +397,7 @@ function PassBuilderPage({
   )
 
   useEffect(() => {
-    if (view === "edit" && !currentWorkout) {
+    if ((view === "edit" || view === "details") && !currentWorkout) {
       setView("overview")
     }
   }, [currentWorkout, view])
@@ -438,6 +438,7 @@ function PassBuilderPage({
     setNewWarmupTemplateName("")
     setSelectedCreateWarmupTemplateId("")
     setView("create")
+    window.scrollTo({ top: 0, behavior: "instant" })
   }
 
   const openEditView = () => {
@@ -452,6 +453,7 @@ function PassBuilderPage({
     setExerciseSearchValue("")
     setSelectedExerciseCategory("alla")
     setView("edit")
+    window.scrollTo({ top: 0, behavior: "instant" })
   }
 
   const goToOverview = () => {
@@ -466,6 +468,7 @@ function PassBuilderPage({
     setSelectedCreateWarmupTemplateId("")
     setSelectedEditWarmupTemplateId("")
     setView("overview")
+    window.scrollTo({ top: 0, behavior: "instant" })
   }
 
   const handleCreateAndReturn = async () => {
@@ -621,9 +624,8 @@ function PassBuilderPage({
           </button>
         </div>
 
-        <div style={panelStyle}>
-          <div style={sectionEyebrowStyle}>Nytt pass</div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Skapa nytt pass</h3>
+        <div className="coach-design__heading" style={panelStyle}>
+          <h1>Skapa nytt pass</h1>
           <p style={{ ...mutedTextStyle, marginBottom: "16px" }}>
             Skapa först passet med namn och kort info. Du kan lägga till övningar efteråt.
           </p>
@@ -833,24 +835,25 @@ function PassBuilderPage({
         </div>
 
         <div style={pageStackStyle}>
-          <section style={panelStyle}>
+          <section className="coach-design__heading" style={panelStyle}>
             <div style={editorHeaderStyle}>
               <div>
                 <div style={sectionEyebrowStyle}>Redigera pass</div>
-                <h3 style={{ ...cardTitleStyle, marginBottom: "6px" }}>{currentWorkout.label}</h3>
+                <h1>{currentWorkout.label}</h1>
                 <p style={mutedTextStyle}>
                   Ändra namn, info och övningsinnehåll. När du sparar går du tillbaka till startsidan för pass.
                 </p>
               </div>
 
-              <div style={editorActionsStyle}>
+              <div style={{ ...editorActionsStyle, width: isMobile ? "100%" : "auto" }}>
                 <button
                   type="button"
                   onClick={handleDeleteAndReturn}
                   style={{
                     ...secondaryButtonStyle,
-                    color: "#b91c1c",
-                    borderColor: "#fecaca",
+                    color: "var(--coach-danger, #b91c1c)",
+                    backgroundColor: "var(--coach-danger-bg, #fff1f1)",
+                    borderColor: "var(--player-section-danger-line, #fecaca)",
                     width: isMobile ? "100%" : "auto",
                   }}
                 >
@@ -878,6 +881,7 @@ function PassBuilderPage({
                   key={section.key}
                   type="button"
                   onClick={() => setActiveEditSection(section.key)}
+                  aria-pressed={activeEditSection === section.key}
                   style={{
                     ...editSectionButtonStyle,
                     ...(activeEditSection === section.key ? editSectionButtonActiveStyle : {}),
@@ -1108,8 +1112,8 @@ function PassBuilderPage({
                             key={`${exercise.name}-${index}`}
                             style={{
                               ...exerciseCompactRowStyle,
-                              backgroundColor: isSelected ? "#fff1f1" : "#ffffff",
-                              border: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb",
+                              backgroundColor: isSelected ? "var(--coach-selected, #fff1f1)" : "var(--coach-panel, #ffffff)",
+                              border: isSelected ? "2px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #e5e7eb)",
                             }}
                           >
                             <button
@@ -1147,7 +1151,7 @@ function PassBuilderPage({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveExerciseFromPass(exercise.id)}
-                                style={{ ...exerciseIconButtonStyle, color: "#b91c1c" }}
+                                style={{ ...exerciseIconButtonStyle, color: "var(--coach-accent, #b91c1c)" }}
                                 title="Ta bort"
                               >✕</button>
                             </div>
@@ -1268,7 +1272,7 @@ function PassBuilderPage({
                               gap: "10px",
                             }}
                           >
-                            <div style={{ fontSize: "13px", color: "#64748b" }}>
+                            <div style={{ fontSize: "13px", color: "var(--coach-muted, #64748b)" }}>
                               {hasActiveExerciseSearch
                                 ? `Sökresultat i hela banken (${visibleExercisesForPicker.length})`
                                 : `${selectedExerciseCategory} (${visibleExercisesForPicker.length})`}
@@ -1306,8 +1310,8 @@ function PassBuilderPage({
                                     onClick={() => setSelectedExerciseId(String(exercise.id))}
                                     style={{
                                       ...exercisePickerRowStyle,
-                                      border: isSelected ? "2px solid #c62828" : "1px solid #ece5e5",
-                                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                                      border: isSelected ? "2px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #ece5e5)",
+                                      backgroundColor: isSelected ? "var(--coach-selected, #fff7f7)" : "var(--coach-panel, #ffffff)",
                                     }}
                                   >
                                     <div>
@@ -1417,8 +1421,8 @@ function PassBuilderPage({
                             style={{
                               padding: "14px",
                               borderRadius: "16px",
-                              border: "1px solid #f1d3d3",
-                              backgroundColor: "#fff7f7",
+                              border: "1px solid var(--coach-line, #f1d3d3)",
+                              backgroundColor: "var(--coach-selected, #fff7f7)",
                               display: "grid",
                               gap: "10px",
                             }}
@@ -1434,10 +1438,10 @@ function PassBuilderPage({
                                   style={{
                                     padding: "10px 12px",
                                     borderRadius: "12px",
-                                    border: "1px solid #eadfdf",
-                                    backgroundColor: "#ffffff",
+                                    border: "1px solid var(--coach-line, #eadfdf)",
+                                    backgroundColor: "var(--coach-panel, #ffffff)",
                                     fontSize: "14px",
-                                    color: "#18202b",
+                                    color: "var(--coach-ink, #18202b)",
                                     fontWeight: "700",
                                   }}
                                 >
@@ -1529,8 +1533,8 @@ function PassBuilderPage({
                               style={{
                                 ...secondaryButtonStyle,
                                 width: isMobile ? "100%" : "auto",
-                                backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "#ffffff",
-                                color: draft.targetRepsMode === "max" ? "#ffffff" : "#111827",
+                                backgroundColor: draft.targetRepsMode === "max" ? "#111827" : "var(--coach-panel, #ffffff)",
+                                color: draft.targetRepsMode === "max" ? "#ffffff" : "var(--coach-ink, #111827)",
                               }}
                             >
                               {draft.targetRepsMode === "max" ? "MAX-läge" : "Fast reps"}
@@ -1578,8 +1582,8 @@ function PassBuilderPage({
                                         style={{
                                           ...secondaryButtonStyle,
                                           width: isMobile ? "100%" : "auto",
-                                          color: "#b91c1c",
-                                          borderColor: "#fecaca",
+                                          color: "var(--coach-accent, #b91c1c)",
+                                          borderColor: "var(--coach-line, #fecaca)",
                                         }}
                                       >
                                         Ta bort
@@ -1641,11 +1645,176 @@ function PassBuilderPage({
     )
   }
 
+  if (view === "details" && currentWorkout) {
+    return (
+      <>
+        <div style={topBarStyle}>
+          <button
+            type="button"
+            style={secondaryButtonStyle}
+            onClick={() => {
+              setIsAssignMenuOpen(false)
+              goToOverview()
+            }}
+          >
+            Till passlistan
+          </button>
+        </div>
+        <section style={pageStackStyle}>
+          <div className="coach-design__heading" style={panelHeaderStyle}>
+            <div>
+              <h1>{currentWorkout.label}</h1>
+            </div>
+            <div style={selectedPassActionsStyle(isMobile)}>
+              <button
+                type="button"
+                onClick={() => setIsAssignMenuOpen((current) => !current)}
+                aria-expanded={isAssignMenuOpen}
+                style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+              >
+                {isAssignMenuOpen ? "Stäng tilldelning" : "Tilldela pass"}
+              </button>
+              <button
+                type="button"
+                onClick={openEditView}
+                style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+              >
+                Redigera pass
+              </button>
+            </div>
+          </div>
+
+          <div style={selectedPassInfoStyle}>
+            <div style={selectedPassMetricStyle}>
+              <div style={selectedPassMetricLabelStyle}>Kategori</div>
+              <div style={selectedPassMetricValueStyle}>
+                {currentWorkout.workoutKind === "gym"
+                  ? getGymPassTypeLabel(currentWorkout.gymPassType)
+                  : getWorkoutKindLabel(currentWorkout.workoutKind)}
+              </div>
+            </div>
+
+            <div style={selectedPassMetricStyle}>
+              <div style={selectedPassMetricLabelStyle}>
+                {currentWorkout.workoutKind === "running" ? "Typ" : "Övningar"}
+              </div>
+              <div style={selectedPassMetricValueStyle}>
+                {currentWorkout.workoutKind === "running" ? "Löpning" : (currentWorkout.exercises || []).length}
+              </div>
+            </div>
+
+            {currentWorkout.info ? (
+              <PassInfoBlock info={currentWorkout.info} />
+            ) : (
+              <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
+            )}
+
+            <div style={selectedPassExerciseListCardStyle}>
+              <div style={selectedPassMetricLabelStyle}>
+                {currentWorkout.workoutKind === "running" ? "Löppass" : "Övningar i passet"}
+              </div>
+
+              {currentWorkout.workoutKind === "running" ? (
+                <div style={selectedPassDescriptionStyle}>
+                  {buildRunningWorkoutSummary(
+                    currentWorkout.workoutKind,
+                    currentWorkout.runningType,
+                    currentWorkout.runningConfig
+                  )}
+                </div>
+              ) : (currentWorkout.exercises || []).length > 0 ? (
+                <div style={selectedPassExerciseListStyle}>
+                  {(currentWorkout.exercises || []).map((exercise, index) => (
+                    <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>
+                      <span style={selectedPassExerciseIndexStyle}>{index + 1}</span>
+                      <span>{getExerciseDisplayName(exercise)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={selectedPassEmptyStyle}>Inga övningar tillagda ännu.</div>
+              )}
+            </div>
+
+            {isAssignMenuOpen ? (
+              <div style={assignmentPanelStyle}>
+                <div style={assignmentPanelHeaderStyle(isMobile)}>
+                  <div>
+                    <div style={selectedPassMetricLabelStyle}>Tilldela till spelare</div>
+                    <div style={assignmentHelperTextStyle}>
+                      Markerade spelare har passet. Kryssa ur och spara för att ta bort tilldelningen.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllPlayersForAssignment}
+                    style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                    disabled={assignablePlayers.length === 0}
+                  >
+                    Välj alla
+                  </button>
+                </div>
+
+                {assignablePlayers.length === 0 ? (
+                  <div style={selectedPassEmptyStyle}>Det finns inga aktiva spelare att tilldela passet till.</div>
+                ) : (
+                  <>
+                    <div style={assignmentPickerStyle}>
+                      {assignablePlayers.map((player) => {
+                        const isChecked = selectedAssignPlayerIds.includes(player.id)
+
+                        return (
+                          <label
+                            key={player.id}
+                            style={{
+                              ...assignmentPlayerRowStyle,
+                              borderColor: isChecked ? "var(--coach-line, #c62828)" : "var(--coach-line, #e5e7eb)",
+                              backgroundColor: isChecked ? "var(--coach-selected, #fff7f7)" : "var(--coach-panel, #ffffff)",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleAssignPlayer(player.id)}
+                            />
+                            <span style={assignmentPlayerNameStyle}>
+                              {player.full_name || player.username}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+
+                    <div style={assignmentFooterStyle(isMobile)}>
+                      <div style={assignmentHelperTextStyle}>
+                        {selectedAssignPlayerIds.length === 0
+                          ? "Inga spelare valda ännu."
+                          : `${selectedAssignPlayerIds.length} spelare markerade.`}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveAssignmentSelection}
+                        style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                        disabled={!hasAssignmentSelectionChanged}
+                      >
+                        Spara
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </>
+    )
+  }
+
   return (
     <>
-      <div style={overviewHeaderStyle}>
+      <div className="coach-design__heading" style={overviewHeaderStyle}>
         <div>
-          <h3 style={cardTitleStyle}>Passhantering</h3>
+          <h1>Passhantering</h1>
           <p style={{ ...mutedTextStyle, marginTop: "8px" }}>
             Välj ett pass för att öppna redigeringsläget, eller skapa ett nytt pass.
           </p>
@@ -1660,7 +1829,7 @@ function PassBuilderPage({
         <section style={summaryStripStyle(isMobile)}>
           <div style={summaryStatCardStyle}>
             <div style={summaryStatLabelStyle}>Pass totalt</div>
-            <div style={{ ...summaryStatValueStyle, color: "#dc2626" }}>{passKeys.length}</div>
+            <div style={{ ...summaryStatValueStyle, color: "var(--coach-accent, #dc2626)" }}>{passKeys.length}</div>
           </div>
           <div style={summaryStatCardStyle}>
             <div style={summaryStatLabelStyle}>Gympass</div>
@@ -1694,7 +1863,7 @@ function PassBuilderPage({
           {passKeys.length === 0 ? (
             <p style={mutedTextStyle}>Inga pass finns ännu. Skapa ditt första pass.</p>
           ) : (
-            <div style={{ ...passGridStyle, gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))" }}>
+            <div style={{ ...passGridStyle, gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "repeat(auto-fit, minmax(min(100%, 15rem), 1fr))" }}>
               {passKeys.map((passKey) => {
                 const workout = activeWorkouts[passKey]
                 const isSelected = selectedTemplateCode === passKey
@@ -1704,13 +1873,17 @@ function PassBuilderPage({
                     key={passKey}
                     style={{
                       ...selectedPassInlineCardStyle,
-                      border: isSelected ? "2px solid #c62828" : "1px solid #e5e7eb",
-                      backgroundColor: isSelected ? "#fff7f7" : "#ffffff",
+                      border: isSelected ? "2px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #e5e7eb)",
+                      backgroundColor: isSelected ? "var(--coach-selected, #fff7f7)" : "var(--coach-panel, #ffffff)",
                     }}
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedTemplateCode(isSelected ? "" : passKey)}
+                      onClick={() => {
+                        setSelectedTemplateCode(passKey)
+                        setView("details")
+                        window.scrollTo({ top: 0, behavior: "instant" })
+                      }}
                       style={passCardButtonStyle}
                     >
                       <div style={passCardHeaderStyle}>
@@ -1729,164 +1902,15 @@ function PassBuilderPage({
                         <div
                           style={{
                             ...chipStyle,
-                            backgroundColor: isSelected ? "#c62828" : "#f3f4f6",
-                            color: isSelected ? "#ffffff" : "#4b5563",
+                            backgroundColor: "var(--coach-selected, #f3f4f6)",
+                            color: "var(--coach-accent, #4b5563)",
                           }}
                         >
-                          {isSelected ? "Öppet" : "Öppna"}
+                          Öppna
                         </div>
                       </div>
                     </button>
 
-                    {isSelected ? (
-                      <div style={selectedPassInlineContentStyle}>
-                        <div style={panelHeaderStyle}>
-                          <div>
-                            <div style={sectionEyebrowStyle}>Valt pass</div>
-                            <div style={sectionTitleStyle}>{workout.label}</div>
-                          </div>
-                          <div style={selectedPassActionsStyle(isMobile)}>
-                            <button
-                              type="button"
-                                                            onClick={() => setIsAssignMenuOpen((current) => !current)}
-                              aria-expanded={isAssignMenuOpen}
-                              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                            >
-                              {isAssignMenuOpen ? "Stäng tilldelning" : "Tilldela pass"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={openEditView}
-                              style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                            >
-                              Redigera pass
-                            </button>
-                          </div>
-                        </div>
-
-                        <div style={selectedPassInfoStyle}>
-                          <div style={selectedPassMetricStyle}>
-                            <div style={selectedPassMetricLabelStyle}>Kategori</div>
-                            <div style={selectedPassMetricValueStyle}>
-                              {workout.workoutKind === "gym"
-                                ? getGymPassTypeLabel(workout.gymPassType)
-                                : getWorkoutKindLabel(workout.workoutKind)}
-                            </div>
-                          </div>
-
-                          <div style={selectedPassMetricStyle}>
-                            <div style={selectedPassMetricLabelStyle}>
-                              {workout.workoutKind === "running" ? "Typ" : "Övningar"}
-                            </div>
-                            <div style={selectedPassMetricValueStyle}>
-                              {workout.workoutKind === "running" ? "Löpning" : (workout.exercises || []).length}
-                            </div>
-                          </div>
-
-                          {workout.info ? (
-                            <PassInfoBlock info={workout.info} />
-                          ) : (
-                            <div style={selectedPassEmptyStyle}>Ingen passinfo tillagd ännu.</div>
-                          )}
-
-                          <div style={selectedPassExerciseListCardStyle}>
-                            <div style={selectedPassMetricLabelStyle}>
-                              {workout.workoutKind === "running" ? "Löppass" : "Övningar i passet"}
-                            </div>
-
-                            {workout.workoutKind === "running" ? (
-                              <div style={selectedPassDescriptionStyle}>
-                                {buildRunningWorkoutSummary(
-                                  workout.workoutKind,
-                                  workout.runningType,
-                                  workout.runningConfig
-                                )}
-                              </div>
-                            ) : (workout.exercises || []).length > 0 ? (
-                              <div style={selectedPassExerciseListStyle}>
-                                {(workout.exercises || []).map((exercise, index) => (
-                                  <div key={`${exercise.id || exercise.name}-${index}`} style={selectedPassExerciseItemStyle}>
-                                    <span style={selectedPassExerciseIndexStyle}>{index + 1}</span>
-                                    <span>{getExerciseDisplayName(exercise)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div style={selectedPassEmptyStyle}>Inga övningar tillagda ännu.</div>
-                            )}
-                          </div>
-
-                          {isAssignMenuOpen ? (
-                            <div style={assignmentPanelStyle}>
-                              <div style={assignmentPanelHeaderStyle(isMobile)}>
-                                <div>
-                                  <div style={selectedPassMetricLabelStyle}>Tilldela till spelare</div>
-                                  <div style={assignmentHelperTextStyle}>
-                                    Markerade spelare har passet. Kryssa ur och spara för att ta bort tilldelningen.
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={handleSelectAllPlayersForAssignment}
-                                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                                  disabled={assignablePlayers.length === 0}
-                                >
-                                  Välj alla
-                                </button>
-                              </div>
-
-                              {assignablePlayers.length === 0 ? (
-                                <div style={selectedPassEmptyStyle}>Det finns inga aktiva spelare att tilldela passet till.</div>
-                              ) : (
-                                <>
-                                  <div style={assignmentPickerStyle}>
-                                    {assignablePlayers.map((player) => {
-                                      const isChecked = selectedAssignPlayerIds.includes(player.id)
-
-                                      return (
-                                        <label
-                                          key={player.id}
-                                          style={{
-                                            ...assignmentPlayerRowStyle,
-                                            borderColor: isChecked ? "#c62828" : "#e5e7eb",
-                                            backgroundColor: isChecked ? "#fff7f7" : "#ffffff",
-                                          }}
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={() => toggleAssignPlayer(player.id)}
-                                          />
-                                          <span style={assignmentPlayerNameStyle}>
-                                            {player.full_name || player.username}
-                                          </span>
-                                        </label>
-                                      )
-                                    })}
-                                  </div>
-
-                                  <div style={assignmentFooterStyle(isMobile)}>
-                                    <div style={assignmentHelperTextStyle}>
-                                      {selectedAssignPlayerIds.length === 0
-                                        ? "Inga spelare valda ännu."
-                                        : `${selectedAssignPlayerIds.length} spelare markerade.`}
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={handleSaveAssignmentSelection}
-                                      style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
-                                      disabled={!hasAssignmentSelectionChanged}
-                                    >
-                                      Spara
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 )
               })}
@@ -1920,9 +1944,9 @@ const summaryStripStyle = (isMobile) => ({
 const summaryStatCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: "1px solid var(--coach-line, rgba(15, 23, 42, 0.08))",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.04))",
 }
 
 const summaryStatLabelStyle = {
@@ -1931,14 +1955,14 @@ const summaryStatLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const summaryStatValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 const pageStackStyle = {
@@ -1949,18 +1973,18 @@ const pageStackStyle = {
 const panelStyle = {
   padding: "18px",
   borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
 }
 
 const exercisePickerCategoryCardStyle = {
   width: "100%",
   padding: "16px 18px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -1972,29 +1996,29 @@ const exercisePickerCategoryCardStyle = {
 const exercisePickerCategoryTitleStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const exercisePickerCategoryHintStyle = {
   fontSize: "12px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   marginTop: "4px",
 }
 
 const exercisePickerEmptyStyle = {
   padding: "16px 18px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
-  color: "#64748b",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const exercisePickerRowStyle = {
   width: "100%",
   padding: "14px 16px",
   borderRadius: "16px",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -2006,27 +2030,27 @@ const exercisePickerRowStyle = {
 const exercisePickerRowTitleStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const exercisePickerRowMetaStyle = {
   fontSize: "12px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   marginTop: "4px",
 }
 
 const exercisePickerRowSelectStyle = {
   fontSize: "12px",
   fontWeight: "700",
-  color: "#991b1b",
+  color: "var(--coach-accent, #991b1b)",
   whiteSpace: "nowrap",
 }
 
 const hrgQuickAddCardStyle = {
   padding: "14px 16px",
   borderRadius: "16px",
-  border: "1px solid rgba(198, 40, 40, 0.12)",
-  backgroundColor: "#fff7f7",
+  border: "1px solid var(--coach-line, rgba(198, 40, 40, 0.12))",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
   display: "grid",
   gap: "12px",
 }
@@ -2038,7 +2062,7 @@ const hrgQuickAddHeaderStyle = {
 
 const hrgQuickAddHintStyle = {
   fontSize: "12px",
-  color: "#7f1d1d",
+  color: "var(--coach-accent, #7f1d1d)",
 }
 
 const hrgQuickAddGridStyle = (isMobile) => ({
@@ -2051,8 +2075,8 @@ const hrgQuickAddButtonStyle = {
   width: "100%",
   padding: "14px 16px",
   borderRadius: "14px",
-  border: "1px solid rgba(198, 40, 40, 0.16)",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, rgba(198, 40, 40, 0.16))",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   display: "grid",
   gap: "4px",
   textAlign: "left",
@@ -2062,12 +2086,12 @@ const hrgQuickAddButtonStyle = {
 const hrgQuickAddTitleStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const hrgQuickAddMetaStyle = {
   fontSize: "12px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const panelHeaderStyle = {
@@ -2103,18 +2127,18 @@ const editSectionTabsStyle = (isMobile) => ({
 const editSectionButtonStyle = {
   padding: "10px 14px",
   borderRadius: "999px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#566173",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-muted, #566173)",
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",
 }
 
 const editSectionButtonActiveStyle = {
-  backgroundColor: "#fff1f1",
-  borderColor: "#efc7c7",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  borderColor: "var(--coach-line, #efc7c7)",
+  color: "var(--coach-accent, #991b1b)",
 }
 
 const sectionEyebrowStyle = {
@@ -2130,28 +2154,28 @@ const fieldLabelStyle = {
   marginBottom: "8px",
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const fieldHintStyle = {
   marginBottom: "8px",
   fontSize: "12px",
   lineHeight: 1.5,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const sectionTitleStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const summaryBadgeStyle = {
   display: "inline-flex",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#fff4f4",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff4f4)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "12px",
   fontWeight: "800",
 }
@@ -2166,8 +2190,8 @@ const subSectionStyle = {
   gap: "10px",
   padding: "12px",
   borderRadius: "16px",
-  border: "1px solid #efe5e5",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--coach-line, #efe5e5)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
 }
 
 const warmupTemplateListStyle = {
@@ -2198,7 +2222,7 @@ const passCardButtonStyle = {
 
 const selectedPassInlineCardStyle = {
   borderRadius: "16px",
-  backgroundColor: "#ffffff",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   overflow: "hidden",
 }
 
@@ -2209,23 +2233,16 @@ const passCardHeaderStyle = {
   gap: "12px",
 }
 
-const selectedPassInlineContentStyle = {
-  display: "grid",
-  gap: "12px",
-  padding: "0 14px 14px",
-  borderTop: "1px solid #f0dada",
-}
-
 const passCardTitleStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "6px",
 }
 
 const passCardMetaStyle = {
   fontSize: "13px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   marginBottom: "8px",
 }
 
@@ -2253,14 +2270,14 @@ const selectedPassActionsStyle = (isMobile) => ({
 const selectedPassMetricStyle = {
   padding: "14px",
   borderRadius: "16px",
-  backgroundColor: "#fff7f7",
-  border: "1px solid #f0dada",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
+  border: "1px solid var(--coach-line, #f0dada)",
 }
 
 const selectedPassMetricLabelStyle = {
   marginBottom: "4px",
   fontSize: "12px",
-  color: "#991b1b",
+  color: "var(--coach-accent, #991b1b)",
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -2269,12 +2286,12 @@ const selectedPassMetricLabelStyle = {
 const selectedPassMetricValueStyle = {
   fontSize: "24px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const selectedPassDescriptionStyle = {
   fontSize: "14px",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   lineHeight: 1.6,
 }
 
@@ -2296,21 +2313,21 @@ const selectedPassVideoLinkStyle = {
   fontSize: "14px",
   fontWeight: "900",
   textDecoration: "none",
-  boxShadow: "0 10px 22px rgba(198, 40, 40, 0.18)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 22px rgba(198, 40, 40, 0.18))",
 }
 
 const selectedPassExerciseListCardStyle = {
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #f0e5e5",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--coach-line, #f0e5e5)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
 }
 
 const assignmentPanelStyle = {
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #f0dada",
-  backgroundColor: "#fffafa",
+  border: "1px solid var(--coach-line, #f0dada)",
+  backgroundColor: "var(--coach-panel, #fffafa)",
   display: "grid",
   gap: "12px",
 }
@@ -2326,7 +2343,7 @@ const assignmentPanelHeaderStyle = (isMobile) => ({
 
 const assignmentHelperTextStyle = {
   fontSize: "13px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   lineHeight: 1.5,
 }
 
@@ -2344,14 +2361,14 @@ const assignmentPlayerRowStyle = {
   gap: "10px",
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid var(--coach-line, #e5e7eb)",
   cursor: "pointer",
 }
 
 const assignmentPlayerNameStyle = {
   fontSize: "14px",
   fontWeight: "700",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const assignmentFooterStyle = (isMobile) => ({
@@ -2373,7 +2390,7 @@ const selectedPassExerciseItemStyle = {
   alignItems: "center",
   gap: "10px",
   fontSize: "14px",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   fontWeight: "700",
 }
 
@@ -2384,8 +2401,8 @@ const selectedPassExerciseIndexStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "12px",
   fontWeight: "800",
   flexShrink: 0,
@@ -2393,7 +2410,7 @@ const selectedPassExerciseIndexStyle = {
 
 const selectedPassEmptyStyle = {
   fontSize: "14px",
-  color: "#546579",
+  color: "var(--coach-muted, #546579)",
   fontStyle: "italic",
 }
 
@@ -2405,15 +2422,15 @@ const addExercisePanelStyle = {
 const emptyStateStyle = {
   padding: "18px",
   borderRadius: "16px",
-  border: "1px dashed #e5caca",
-  backgroundColor: "#fffdfd",
+  border: "1px dashed var(--coach-line, #e5caca)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
 }
 
 const emptyStateTitleStyle = {
   marginBottom: "6px",
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const exerciseListStyle = {
@@ -2424,8 +2441,8 @@ const exerciseListStyle = {
 const exerciseEditorCardStyle = {
   padding: "16px",
   borderRadius: "16px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #e5e7eb)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
 }
 
 const exerciseAccordionButtonStyle = {
@@ -2450,7 +2467,7 @@ const exerciseAccordionMetaStyle = {
 
 const exerciseAccordionSummaryStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   fontWeight: "700",
 }
 
@@ -2461,8 +2478,8 @@ const exerciseAccordionChevronStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  color: "var(--coach-accent, #b61e24)",
   fontSize: "22px",
   fontWeight: "700",
 }
@@ -2485,22 +2502,22 @@ const exerciseButtonRowStyle = {
 const exerciseOrderStyle = {
   marginBottom: "4px",
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   fontWeight: "700",
 }
 
 const exerciseNameStyle = {
   fontSize: "17px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const hintBoxStyle = {
   marginBottom: "12px",
   padding: "10px 12px",
   borderRadius: "12px",
-  backgroundColor: "#f9fafb",
-  color: "#6b7280",
+  backgroundColor: "var(--coach-raised, #f9fafb)",
+  color: "var(--coach-muted, #6b7280)",
   fontSize: "13px",
   lineHeight: 1.6,
 }
@@ -2509,15 +2526,15 @@ const suggestionBoxStyle = {
   marginBottom: "12px",
   padding: "12px",
   borderRadius: "12px",
-  border: "1px solid #ddd6fe",
-  backgroundColor: "#f5f3ff",
+  border: "1px solid var(--coach-line, #ddd6fe)",
+  backgroundColor: "var(--coach-violet-bg, #f5f3ff)",
   display: "grid",
   gap: "10px",
 }
 
 const suggestionTextStyle = {
   fontSize: "13px",
-  color: "#4c1d95",
+  color: "var(--coach-violet, #4c1d95)",
   lineHeight: 1.6,
 }
 
@@ -2533,8 +2550,8 @@ const alternativeBlockStyle = {
   marginTop: "4px",
   padding: "14px",
   borderRadius: "14px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#f8fafc",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
 }
 
 const alternativeBlockHeaderStyle = {
@@ -2545,12 +2562,12 @@ const alternativeBlockHeaderStyle = {
 const alternativeBlockTitleStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const alternativeBlockHintStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   lineHeight: 1.5,
 }
 
@@ -2566,26 +2583,26 @@ const alternativeRowStyle = {
   gap: "10px",
   padding: "10px 12px",
   borderRadius: "12px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #e2e8f0",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
   flexWrap: "wrap",
 }
 
 const alternativeNameStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const alternativeMetaStyle = {
   fontSize: "12px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   marginTop: "4px",
 }
 
 const alternativeEmptyStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const alternativeAddRowStyle = (isMobile) => ({
@@ -2602,8 +2619,8 @@ const textareaStyle = {
 
 const exercisesMasterDetailStyle = (isMobile) => ({
   display: "grid",
-  gridTemplateColumns: isMobile ? "1fr" : "260px 1fr",
-  border: "1px solid #e5e7eb",
+  gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "minmax(0, min(35%, 260px)) minmax(0, 1fr)",
+  border: "1px solid var(--coach-line, #e5e7eb)",
   borderRadius: "16px",
   overflow: "hidden",
 })
@@ -2612,15 +2629,15 @@ const exercisesListPanelStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
   padding: "14px",
-  borderRight: isMobile ? "none" : "1px solid #e5e7eb",
-  borderBottom: isMobile ? "1px solid #e5e7eb" : "none",
-  backgroundColor: "#fafafa",
+  borderRight: isMobile ? "none" : "1px solid var(--coach-line, #e5e7eb)",
+  borderBottom: isMobile ? "1px solid var(--coach-line, #e5e7eb)" : "none",
+  backgroundColor: "var(--coach-panel, #fafafa)",
   alignContent: "start",
 })
 
 const exercisesEditorPanelStyle = (isMobile) => ({
   padding: isMobile ? "14px" : "20px",
-  backgroundColor: "#ffffff",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   minWidth: 0,
 })
 
@@ -2657,8 +2674,8 @@ const exerciseCompactIndexStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "11px",
   fontWeight: "800",
 }
@@ -2670,7 +2687,7 @@ const exerciseCompactInfoStyle = {
 const exerciseCompactNameStyle = {
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -2678,7 +2695,7 @@ const exerciseCompactNameStyle = {
 
 const exerciseCompactMetaStyle = {
   fontSize: "11px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   marginTop: "2px",
 }
 
@@ -2693,29 +2710,29 @@ const exerciseIconButtonStyle = {
   width: "28px",
   height: "28px",
   borderRadius: "8px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #e5e7eb)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   fontSize: "13px",
   cursor: "pointer",
-  color: "#374151",
+  color: "var(--coach-ink, #374151)",
 }
 
 const exerciseEditorTitleStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   paddingBottom: "12px",
-  borderBottom: "1px solid #e5e7eb",
+  borderBottom: "1px solid var(--coach-line, #e5e7eb)",
   marginBottom: "2px",
 }
 
 const fieldHintInlineStyle = {
   fontSize: "11px",
   fontWeight: "600",
-  color: "#546579",
+  color: "var(--coach-muted, #546579)",
 }
 
 const alternativesAccordionButtonStyle = {
@@ -2737,8 +2754,8 @@ const alternativesAccordionChevronStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "8px",
-  backgroundColor: "#e2e8f0",
-  color: "#64748b",
+  backgroundColor: "var(--coach-raised, #e2e8f0)",
+  color: "var(--coach-muted, #64748b)",
   fontSize: "16px",
   fontWeight: "700",
   flexShrink: 0,
@@ -2754,7 +2771,7 @@ const exercisesEditorEmptyStyle = {
 
 const exercisesEditorEmptyTextStyle = {
   fontSize: "14px",
-  color: "#546579",
+  color: "var(--coach-muted, #546579)",
   textAlign: "center",
   lineHeight: 1.6,
 }

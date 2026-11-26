@@ -32,14 +32,22 @@ function CreateUserPage({
 
   return (
     <>
-      <h3 style={cardTitleStyle}>{isHeadAdmin ? "Skapa användare" : "Skapa användare i laget"}</h3>
+      {isHeadAdmin ? (
+        <h3 style={cardTitleStyle}>Skapa användare</h3>
+      ) : (
+        <div className="coach-design__heading coach-design__heading--form">
+          <h1>Skapa användare</h1>
+          <p>Lägg till en spelare eller tränare i laget.</p>
+        </div>
+      )}
 
       <form onSubmit={handleCreateUser}>
         <div style={{ marginBottom: "10px" }}>
-          <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+          <label htmlFor="create-user-name" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
             Fullständigt namn
-          </div>
+          </label>
           <input
+            id="create-user-name"
             type="text"
             value={newUserName}
             onChange={(e) => setNewUserName(e.target.value)}
@@ -48,10 +56,11 @@ function CreateUserPage({
         </div>
 
         <div style={{ marginBottom: "10px" }}>
-          <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+          <label htmlFor="create-user-password" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
             Startlösenord
-          </div>
+          </label>
           <input
+            id="create-user-password"
             type="text"
             value={newUserPassword}
             onChange={(e) => setNewUserPassword(e.target.value)}
@@ -62,7 +71,7 @@ function CreateUserPage({
         {canChooseRole && (
           <>
             <div style={{ marginBottom: "10px" }}>
-              <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+              <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
                 Roll
               </div>
               <select
@@ -78,7 +87,7 @@ function CreateUserPage({
 
             {isHeadAdmin && requiresTeamSelection && (
               <div style={{ marginBottom: "10px" }}>
-                <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "#18202b" }}>
+                <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
                   Lag
                 </div>
                 <select
@@ -113,7 +122,7 @@ function CreateUserPage({
       </form>
 
       {createdUser && (
-        <div style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>
+        <div style={{ marginTop: "12px", color: "var(--coach-muted, #6b7280)", fontSize: "14px" }}>
           <div><strong>Användarnamn:</strong> {createdUser.username}</div>
           <div><strong>E-post:</strong> {createdUser.email}</div>
           <div><strong>Roll:</strong> {createdUser.role === "coach" ? "Tränare" : "Spelare"}</div>
@@ -126,12 +135,12 @@ function CreateUserPage({
             marginTop: "24px",
             padding: "16px",
             borderRadius: "16px",
-            border: "1px solid #e8dddd",
-            backgroundColor: "#fffdfd",
+            border: "1px solid var(--coach-line, #e8dddd)",
+            backgroundColor: "var(--coach-panel, #fffdfd)",
           }}
         >
           <h3 style={cardTitleStyle}>Importera flera spelare</h3>
-          <p style={{ margin: "0 0 12px 0", color: "#6b7280", fontSize: "14px", lineHeight: 1.6 }}>
+          <p style={{ margin: "0 0 12px 0", color: "var(--coach-muted, #6b7280)", fontSize: "14px", lineHeight: 1.6 }}>
             Ladda upp en `CSV`, `XLSX` eller `XLS` med kolumner för namn och lösenord.
           </p>
 
@@ -143,7 +152,7 @@ function CreateUserPage({
           />
 
           {importFileName && (
-            <div style={{ marginBottom: "12px", fontSize: "13px", color: "#566173" }}>
+            <div style={{ marginBottom: "12px", fontSize: "13px", color: "var(--coach-muted, #566173)" }}>
               <strong>Fil:</strong> {importFileName}
               {isParsingImportFile ? " • Läser fil..." : ""}
             </div>
@@ -157,14 +166,14 @@ function CreateUserPage({
                   style={{
                     padding: "10px 12px",
                     borderRadius: "12px",
-                    border: "1px solid #eee2e2",
-                    backgroundColor: "#ffffff",
+                    border: "1px solid var(--coach-line, #eee2e2)",
+                    backgroundColor: "var(--coach-panel, #ffffff)",
                   }}
                 >
-                  <div style={{ fontSize: "14px", fontWeight: "700", color: "#18202b" }}>
+                  <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--coach-ink, #18202b)" }}>
                     {player.full_name || "Saknar namn"}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                  <div style={{ fontSize: "12px", color: "var(--coach-muted, #6b7280)" }}>
                     Rad {player.rowNumber} • {player.password ? "Lösenord finns" : "Saknar lösenord"}
                   </div>
                 </div>
@@ -194,14 +203,14 @@ function CreateUserPage({
                   style={{
                     padding: "10px 12px",
                     borderRadius: "12px",
-                    border: `1px solid ${result.success ? "#bbf7d0" : "#fecaca"}`,
-                    backgroundColor: result.success ? "#f0fdf4" : "#fef2f2",
+                    border: `1px solid ${result.success ? "var(--coach-line, #bbf7d0)" : "var(--coach-line, #fecaca)"}`,
+                    backgroundColor: result.success ? "var(--coach-green-bg, #f0fdf4)" : "var(--coach-selected, #fef2f2)",
                   }}
                 >
-                  <div style={{ fontSize: "14px", fontWeight: "700", color: "#18202b" }}>
+                  <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--coach-ink, #18202b)" }}>
                     {result.full_name}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#566173", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "12px", color: "var(--coach-muted, #566173)", lineHeight: 1.5 }}>
                     {result.success
                       ? `${result.message} • ${result.username} • ${result.email}`
                       : result.message}

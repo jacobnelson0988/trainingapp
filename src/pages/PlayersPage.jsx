@@ -187,6 +187,11 @@ function PlayersPage({
     }
   }, [selectedPlayer?.id])
 
+  const openPlayer = (player) => {
+    setSelectedPlayer(player)
+    if (role === "coach") window.scrollTo({ top: 0, behavior: "instant" })
+  }
+
   const renderEditorSectionButton = (key, label) => {
     const isActive = activeEditorSection === key
 
@@ -194,6 +199,7 @@ function PlayersPage({
       <button
         type="button"
         onClick={() => setActiveEditorSection(key)}
+        aria-pressed={isActive}
         style={{
           ...editorSectionButtonStyle,
           ...(isActive ? editorSectionButtonActiveStyle : {}),
@@ -210,14 +216,16 @@ function PlayersPage({
       style={{
         marginTop: "12px",
         padding: "16px",
-        border: "1px solid #ece5e5",
+        border: "1px solid var(--coach-line, #ece5e5)",
         borderRadius: "16px",
-        backgroundColor: "#fffdfd",
+        backgroundColor: "var(--coach-panel, #fffdfd)",
       }}
     >
       <div style={editorSummaryCardStyle}>
         <div>
-          <div style={editorSummaryTitleStyle}>{player.full_name}</div>
+          {role === "coach"
+            ? <h1 style={editorSummaryTitleStyle}>{player.full_name}</h1>
+            : <div style={editorSummaryTitleStyle}>{player.full_name}</div>}
           <div style={editorSummaryMetaStyle}>
             @{player.username} • {player.totalPasses ?? 0} loggade pass
             {player.lastSignInAt
@@ -296,7 +304,7 @@ function PlayersPage({
         </div>
 
         <div style={{ marginBottom: "14px" }}>
-        <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "8px" }}>
+        <div style={{ fontSize: "14px", fontWeight: "800", color: "var(--coach-ink, #18202b)", marginBottom: "8px" }}>
           Kommentar
         </div>
         <input
@@ -333,14 +341,14 @@ function PlayersPage({
             marginBottom: "12px",
             padding: "12px 14px",
             borderRadius: "12px",
-            backgroundColor: "#fff7f7",
-            border: "1px solid #f0dada",
+            backgroundColor: "var(--coach-selected, #fff7f7)",
+            border: "1px solid var(--coach-line, #f0dada)",
           }}
         >
-          <div style={{ fontSize: "14px", fontWeight: "800", color: "#18202b", marginBottom: "4px" }}>
+          <div style={{ fontSize: "14px", fontWeight: "800", color: "var(--coach-ink, #18202b)", marginBottom: "4px" }}>
             {assignedPassCodes.length} av {allPassKeys.length} pass tilldelade
           </div>
-          <div style={{ fontSize: "13px", color: "#6b7280" }}>
+          <div style={{ fontSize: "13px", color: "var(--coach-muted, #6b7280)" }}>
             Välj pass nedan för att lägga till eller ta bort dem direkt för {player.full_name}.
           </div>
         </div>
@@ -372,9 +380,9 @@ function PlayersPage({
             disabled={isUpdatingPassAssignments || assignedPassCodes.length === 0}
             style={{
               ...quickActionButtonStyle,
-              backgroundColor: "#ffffff",
-              color: "#991b1b",
-              border: "1px solid #efc7c7",
+              backgroundColor: "var(--coach-panel, #ffffff)",
+              color: "var(--coach-danger, #991b1b)",
+              border: "1px solid var(--player-section-danger-line, #efc7c7)",
               opacity: isUpdatingPassAssignments || assignedPassCodes.length === 0 ? 0.7 : 1,
               cursor: isUpdatingPassAssignments || assignedPassCodes.length === 0 ? "default" : "pointer",
               width: isMobile ? "100%" : "auto",
@@ -404,9 +412,9 @@ function PlayersPage({
             style={{
               padding: "14px",
               borderRadius: "14px",
-                border: assignedPassSet.has(passKey) ? "2px solid #c62828" : "1px solid #e5e7eb",
-                backgroundColor: assignedPassSet.has(passKey) ? "#fff7f7" : "#ffffff",
-                color: "#111827",
+                border: assignedPassSet.has(passKey) ? "2px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #e5e7eb)",
+                backgroundColor: assignedPassSet.has(passKey) ? "var(--coach-selected, #fff7f7)" : "var(--coach-panel, #ffffff)",
+                color: "var(--coach-ink, #111827)",
                 cursor: isUpdatingPassAssignments ? "default" : "pointer",
                 fontSize: "14px",
                 fontWeight: "700",
@@ -418,7 +426,7 @@ function PlayersPage({
               <div style={{ fontSize: "15px", fontWeight: "800", marginBottom: "6px" }}>
                 {activeWorkouts[passKey].label}
               </div>
-              <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+              <div style={{ fontSize: "12px", color: "var(--coach-muted, #6b7280)", marginBottom: "8px" }}>
                 {(activeWorkouts[passKey].exercises || []).length} övningar
               </div>
               <div
@@ -426,8 +434,8 @@ function PlayersPage({
                   display: "inline-flex",
                   padding: "5px 9px",
                   borderRadius: "999px",
-                  backgroundColor: assignedPassSet.has(passKey) ? "#c62828" : "#f3f4f6",
-                  color: assignedPassSet.has(passKey) ? "#ffffff" : "#4b5563",
+                  backgroundColor: assignedPassSet.has(passKey) ? "#c62828" : "var(--coach-raised, #f3f4f6)",
+                  color: assignedPassSet.has(passKey) ? "#ffffff" : "var(--coach-muted, #4b5563)",
                   fontSize: "12px",
                   fontWeight: "800",
                 }}
@@ -470,8 +478,8 @@ function PlayersPage({
                           onClick={() => setSelectedCompletedSessionId(session.session_id)}
                           style={{
                             ...historySessionButtonStyle,
-                            borderColor: isSelected ? "#c62828" : historySessionButtonStyle.borderColor,
-                            backgroundColor: isSelected ? "#fff7f7" : historySessionButtonStyle.backgroundColor,
+                            borderColor: isSelected ? "var(--coach-line, #c62828)" : historySessionButtonStyle.borderColor,
+                            backgroundColor: isSelected ? "var(--coach-selected, #fff7f7)" : historySessionButtonStyle.backgroundColor,
                           }}
                         >
                           <div style={historySessionButtonTitleStyle}>
@@ -520,7 +528,7 @@ function PlayersPage({
                           <div style={historySessionRunningCardStyle}>
                             <div>{selectedSession.running_summary || "Aktivitet genomförd"}</div>
                             {selectedSession.pass_comment ? (
-                              <div style={{ marginTop: "10px", color: "#475569", lineHeight: 1.5 }}>
+                              <div style={{ marginTop: "10px", color: "var(--coach-muted, #475569)", lineHeight: 1.5 }}>
                                 <strong>Kommentar:</strong> {selectedSession.pass_comment}
                               </div>
                             ) : null}
@@ -560,12 +568,12 @@ function PlayersPage({
 
                                             {protocolStep ? (
                                               <div style={{ display: "grid", gap: "6px" }}>
-                                                <div style={{ fontSize: "15px", fontWeight: "800", color: "#18202b" }}>
+                                                <div style={{ fontSize: "15px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
                                                   {protocolStep.summary}
                                                 </div>
                                                 <div style={historySetMetaValueStyle}>Klart</div>
                                                 {setEntry.comment && (
-                                                  <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                                                  <div style={{ fontSize: "13px", color: "var(--coach-muted, #64748b)", lineHeight: 1.5 }}>
                                                     Kommentar: {setEntry.comment}
                                                   </div>
                                                 )}
@@ -634,11 +642,11 @@ function PlayersPage({
                 marginBottom: "14px",
                 padding: "14px",
                 borderRadius: "14px",
-                border: "1px solid #dbe5ef",
-                backgroundColor: "#f8fafc",
+                border: "1px solid var(--coach-line, #dbe5ef)",
+                backgroundColor: "var(--coach-raised, #f8fafc)",
               }}
             >
-              <div style={{ fontSize: "12px", fontWeight: "800", color: "#46607a", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div style={{ fontSize: "12px", fontWeight: "800", color: "var(--coach-muted, #46607a)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 Välj övning
               </div>
               <select
@@ -673,9 +681,9 @@ function PlayersPage({
                   key={entry.exercise_id}
                   style={{
                     padding: "14px",
-                    border: "1px solid #e2e8f0",
+                    border: "1px solid var(--coach-line, #e2e8f0)",
                     borderRadius: "14px",
-                    backgroundColor: "#ffffff",
+                    backgroundColor: "var(--coach-panel, #ffffff)",
                     marginBottom: "14px",
                   }}
                 >
@@ -690,10 +698,10 @@ function PlayersPage({
                     }}
                   >
                     <div>
-                      <div style={{ marginBottom: "4px", fontWeight: "800", color: "#18202b" }}>
+                      <div style={{ marginBottom: "4px", fontWeight: "800", color: "var(--coach-ink, #18202b)" }}>
                         {entry.exercise_display_name}
                       </div>
-                      <div style={{ fontSize: "13px", color: "#64748b" }}>
+                      <div style={{ fontSize: "13px", color: "var(--coach-muted, #64748b)" }}>
                         {entry.entry_count} loggade pass
                         {entry.latest_entry?.created_at
                           ? ` • senast ${new Date(entry.latest_entry.created_at).toLocaleDateString("sv-SE")}`
@@ -713,8 +721,8 @@ function PlayersPage({
                         display: "inline-flex",
                         padding: "5px 10px",
                         borderRadius: "999px",
-                        backgroundColor: existingGoal ? "#ecfdf3" : "#f3f4f6",
-                        color: existingGoal ? "#166534" : "#4b5563",
+                        backgroundColor: existingGoal ? "var(--coach-green-bg, #ecfdf3)" : "var(--coach-raised, #f3f4f6)",
+                        color: existingGoal ? "var(--coach-green, #166534)" : "var(--coach-muted, #4b5563)",
                         fontSize: "12px",
                         fontWeight: "800",
                       }}
@@ -784,7 +792,7 @@ function PlayersPage({
                           marginBottom: "8px",
                           fontSize: "13px",
                           fontWeight: "800",
-                          color: "#18202b",
+                          color: "var(--coach-ink, #18202b)",
                         }}
                       >
                         Målvikter per repsintervall
@@ -802,8 +810,8 @@ function PlayersPage({
                             style={{
                               padding: "10px",
                               borderRadius: "12px",
-                              border: "1px solid #e2e8f0",
-                              backgroundColor: "#f8fafc",
+                              border: "1px solid var(--coach-line, #e2e8f0)",
+                              backgroundColor: "var(--coach-raised, #f8fafc)",
                             }}
                           >
                             <div
@@ -811,7 +819,7 @@ function PlayersPage({
                                 marginBottom: "6px",
                                 fontSize: "12px",
                                 fontWeight: "800",
-                                color: "#64748b",
+                                color: "var(--coach-muted, #64748b)",
                               }}
                             >
                               {option.label}
@@ -891,16 +899,32 @@ function PlayersPage({
     </div>
   )
 
+  if (role === "coach" && selectedPlayer) {
+    return (
+      <div style={pageWrapStyle}>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedPlayer(null)
+            window.scrollTo({ top: 0, behavior: "instant" })
+          }}
+          className="coach-design__back"
+        >
+          Till spelarlistan
+        </button>
+        {renderPlayerEditor(selectedPlayer)}
+      </div>
+    )
+  }
+
   return (
     <div style={pageWrapStyle}>
-      <div style={pageHeaderStyle}>
+      <div className={role === "coach" ? "coach-design__heading" : undefined} style={pageHeaderStyle}>
         <div style={pageHeaderCopyStyle}>
           <div style={pageEyebrowStyle}>Tränarvy</div>
-          <h3 style={{ ...cardTitleStyle, marginBottom: "4px", fontSize: "24px" }}>
-            {role === "coach" ? "Spelare" : "Mina spelare"}
-          </h3>
+          <h1 style={cardTitleStyle}>{role === "coach" ? "Spelare" : "Mina spelare"}</h1>
           <p style={{ ...mutedTextStyle, margin: 0 }}>
-            Öppna en spelare direkt i listan och jobba vidare i samma flöde utan onödig scroll.
+            Hantera lagets spelare, pass och individuella mål.
           </p>
         </div>
 
@@ -918,7 +942,7 @@ function PlayersPage({
       <div style={coachSummaryGridStyle(isMobile)}>
         <div style={coachSummaryCardStyle}>
           <div style={coachSummaryLabelStyle}>Aktiva</div>
-          <div style={{ ...coachSummaryValueStyle, color: "#c62828" }}>{activePlayerCount}</div>
+          <div style={{ ...coachSummaryValueStyle, color: "var(--coach-accent, #c62828)" }}>{activePlayerCount}</div>
         </div>
         <div style={coachSummaryCardStyle}>
           <div style={coachSummaryLabelStyle}>Arkiverade</div>
@@ -934,6 +958,7 @@ function PlayersPage({
         <button
           type="button"
           onClick={() => setActiveUtilityPanel((current) => (current === "players" ? "" : "players"))}
+          aria-expanded={activeUtilityPanel === "players"}
           style={{
             ...utilityButtonStyle,
             ...(activeUtilityPanel === "players" ? utilityButtonActiveStyle : {}),
@@ -943,7 +968,7 @@ function PlayersPage({
             <div style={utilityButtonTitleStyle}>Spelarlista</div>
             <div style={utilityBadgeStyle(false)}>{filteredPlayers.length}</div>
           </div>
-          <div style={utilityButtonMetaStyle}>Öppna lagets spelare direkt under knappen</div>
+          <div style={utilityButtonMetaStyle}>Sök och öppna en spelare</div>
         </button>
 
         {activeUtilityPanel === "players" && (
@@ -952,7 +977,7 @@ function PlayersPage({
               <div>
                 <div style={inlineUtilityPanelTitleStyle}>Spelare</div>
                 <div style={inlineUtilityPanelMetaStyle}>
-                  Öppna en spelare direkt i listan. Själva redigeringen ligger kvar inline i samma kort.
+                  Välj en spelare för att se historik och ändra mål.
                 </div>
               </div>
             </div>
@@ -993,30 +1018,32 @@ function PlayersPage({
                     style={{
                       padding: "14px",
                       borderRadius: "16px",
-                      border: selectedPlayer?.id === player.id ? "2px solid #c62828" : "1px solid #e5e7eb",
-                      backgroundColor: "#ffffff",
+                      border: selectedPlayer?.id === player.id ? "2px solid var(--coach-line, #c62828)" : "1px solid var(--coach-line, #e5e7eb)",
+                      backgroundColor: "var(--coach-panel, #ffffff)",
                       boxShadow:
                         selectedPlayer?.id === player.id
                           ? "0 12px 24px rgba(198, 40, 40, 0.08)"
                           : "0 8px 18px rgba(24, 32, 43, 0.04)",
                     }}
                   >
-                    <div style={playerCardTopRowStyle}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
-                        style={{
-                          ...playerExpandButtonStyle,
-                          color: selectedPlayer?.id === player.id ? "#991b1b" : "#6b7280",
-                        }}
-                      >
-                        {selectedPlayer?.id === player.id ? "−" : "+"}
-                      </button>
-                    </div>
+                    {role !== "coach" && (
+                      <div style={playerCardTopRowStyle}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
+                          style={{
+                            ...playerExpandButtonStyle,
+                            color: selectedPlayer?.id === player.id ? "var(--coach-accent, #991b1b)" : "var(--coach-muted, #6b7280)",
+                          }}
+                        >
+                          {selectedPlayer?.id === player.id ? "−" : "+"}
+                        </button>
+                      </div>
+                    )}
 
                     <button
                       type="button"
-                      onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
+                      onClick={() => openPlayer(selectedPlayer?.id === player.id ? null : player)}
                       style={playerCardMainButtonStyle}
                     >
                       <div style={playerCardNameStyle}>
@@ -1112,7 +1139,7 @@ function PlayersPage({
 
                       <button
                         type="button"
-                        onClick={() => linkedPlayer && setSelectedPlayer(linkedPlayer)}
+                        onClick={() => linkedPlayer && openPlayer(linkedPlayer)}
                         style={{ ...quickActionButtonStyle, width: isMobile ? "100%" : "auto" }}
                       >
                         Öppna spelare
@@ -1174,9 +1201,9 @@ function PlayersPage({
                         style={{
                           ...quickActionButtonStyle,
                           width: isMobile ? "100%" : "auto",
-                          backgroundColor: "#ffffff",
-                          color: "#991b1b",
-                          border: "1px solid #efc7c7",
+                          backgroundColor: "var(--coach-panel, #ffffff)",
+                          color: "var(--coach-accent, #991b1b)",
+                          border: "1px solid var(--coach-line, #efc7c7)",
                           opacity: isUpdating ? 0.7 : 1,
                         }}
                       >
@@ -1257,9 +1284,9 @@ const coachSummaryGridStyle = (isMobile) => ({
 const coachSummaryCardStyle = {
   padding: "13px 12px",
   borderRadius: "16px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.04)",
+  border: "1px solid var(--coach-line, rgba(15, 23, 42, 0.08))",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  boxShadow: "var(--coach-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.04))",
 }
 
 const coachSummaryLabelStyle = {
@@ -1268,14 +1295,14 @@ const coachSummaryLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const coachSummaryValueStyle = {
   fontSize: "24px",
   fontWeight: "900",
   lineHeight: 1,
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 const utilityGridStyle = (isMobile) => ({
@@ -1288,16 +1315,16 @@ const utilityGridStyle = (isMobile) => ({
 const utilityButtonStyle = {
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 10px 24px rgba(24, 32, 43, 0.04)",
+  boxShadow: "var(--coach-card-shadow, 0 10px 24px rgba(24, 32, 43, 0.04))",
 }
 
 const utilityButtonActiveStyle = {
-  borderColor: "#efc7c7",
-  backgroundColor: "#fff7f7",
+  borderColor: "var(--coach-line, #efc7c7)",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
 }
 
 const utilityButtonTopStyle = {
@@ -1311,13 +1338,13 @@ const utilityButtonTopStyle = {
 const utilityButtonTitleStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const utilityButtonMetaStyle = {
   fontSize: "13px",
   lineHeight: 1.5,
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const utilityBadgeStyle = (isActive) => ({
@@ -1328,8 +1355,8 @@ const utilityBadgeStyle = (isActive) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: isActive ? "#c62828" : "#f3f4f6",
-  color: isActive ? "#ffffff" : "#4b5563",
+  backgroundColor: isActive ? "#c62828" : "var(--coach-raised, #f3f4f6)",
+  color: isActive ? "#ffffff" : "var(--coach-muted, #4b5563)",
   fontSize: "12px",
   fontWeight: "800",
 })
@@ -1338,8 +1365,8 @@ const inlineUtilityPanelStyle = {
   marginBottom: "14px",
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
 }
 
 const inlineUtilityPanelHeaderStyle = {
@@ -1349,20 +1376,20 @@ const inlineUtilityPanelHeaderStyle = {
 const inlineUtilityPanelTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const inlineUtilityPanelMetaStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const inlineRequestCardStyle = {
   padding: "12px",
   borderRadius: "14px",
-  border: "1px solid #f0dada",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #f0dada)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
 }
 
 const inlineRequestHeaderStyle = (isMobile) => ({
@@ -1377,12 +1404,12 @@ const inlineRequestHeaderStyle = (isMobile) => ({
 const inlineRequestTitleStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const inlineRequestMetaStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   marginTop: "4px",
 }
 
@@ -1396,7 +1423,7 @@ const inlineRequestStatsGridStyle = (isMobile) => ({
 const inlineRequestCommentStyle = {
   marginBottom: "10px",
   fontSize: "13px",
-  color: "#334155",
+  color: "var(--coach-ink, #334155)",
   lineHeight: 1.5,
 }
 
@@ -1411,7 +1438,7 @@ const inlineRequestActionsStyle = (isMobile) => ({
 const quickActionButtonStyle = {
   padding: "10px 14px",
   borderRadius: "10px",
-  border: "1px solid #d1d5db",
+  border: "1px solid var(--coach-line, #d1d5db)",
   backgroundColor: "#111827",
   color: "#ffffff",
   fontSize: "14px",
@@ -1422,8 +1449,8 @@ const bulkActionCardStyle = (isMobile) => ({
   marginBottom: "14px",
   padding: "14px 16px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #fffdfd)",
   display: "flex",
   justifyContent: "space-between",
   alignItems: isMobile ? "stretch" : "center",
@@ -1434,13 +1461,13 @@ const bulkActionCardStyle = (isMobile) => ({
 const bulkActionTitleStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const bulkActionMetaStyle = {
   fontSize: "13px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const bulkActionButtonsStyle = (isMobile) => ({
@@ -1454,8 +1481,8 @@ const mobilePlayerMetaPillStyle = {
   display: "inline-flex",
   padding: "5px 9px",
   borderRadius: "999px",
-  backgroundColor: "#f8f0f0",
-  color: "#4b5563",
+  backgroundColor: "var(--coach-selected, #f8f0f0)",
+  color: "var(--coach-muted, #4b5563)",
   fontSize: "12px",
   fontWeight: "700",
 }
@@ -1464,8 +1491,8 @@ const mobileArchivedPillStyle = {
   display: "inline-flex",
   padding: "5px 9px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "12px",
   fontWeight: "800",
 }
@@ -1484,7 +1511,7 @@ const playerBulkSelectStyle = {
   gap: "8px",
   fontSize: "12px",
   fontWeight: "800",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 }
@@ -1496,8 +1523,8 @@ const playerExpandButtonStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  border: "1px solid #f0d3d3",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #f0d3d3)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   fontSize: "18px",
   fontWeight: "900",
   cursor: "pointer",
@@ -1516,7 +1543,7 @@ const playerCardMainButtonStyle = {
 const playerCardNameStyle = {
   fontSize: "16px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   lineHeight: 1.3,
 }
 
@@ -1524,7 +1551,7 @@ const playerCardMetaStyle = {
   marginTop: "4px",
   fontSize: "13px",
   fontWeight: "600",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   lineHeight: 1.4,
 }
 
@@ -1548,7 +1575,7 @@ const listHeaderRowStyle = {
 const listHeaderMetaStyle = {
   fontSize: "13px",
   fontWeight: "700",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const archivedToggleWrapStyle = {
@@ -1558,7 +1585,7 @@ const archivedToggleWrapStyle = {
   marginBottom: "14px",
   fontSize: "14px",
   fontWeight: "700",
-  color: "#374151",
+  color: "var(--coach-ink, #374151)",
 }
 
 const playerActionBarStyle = (isMobile) => ({
@@ -1572,9 +1599,9 @@ const playerActionBarStyle = (isMobile) => ({
 const archiveButtonStyle = {
   padding: "10px 14px",
   borderRadius: "12px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   fontSize: "14px",
   fontWeight: "800",
 }
@@ -1583,8 +1610,8 @@ const archivedStatusBadgeStyle = {
   display: "inline-flex",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "13px",
   fontWeight: "800",
 }
@@ -1593,9 +1620,9 @@ const archivedInfoCardStyle = {
   marginBottom: "14px",
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #f0dada",
-  backgroundColor: "#fff7f7",
-  color: "#7f1d1d",
+  border: "1px solid var(--coach-line, #f0dada)",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
+  color: "var(--coach-accent, #7f1d1d)",
   fontSize: "13px",
   lineHeight: 1.6,
   fontWeight: "700",
@@ -1605,8 +1632,8 @@ const editorSummaryCardStyle = {
   marginBottom: "14px",
   padding: "14px 16px",
   borderRadius: "16px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #ece5e5)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
@@ -1615,15 +1642,16 @@ const editorSummaryCardStyle = {
 }
 
 const editorSummaryTitleStyle = {
+  margin: 0,
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const editorSummaryMetaStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const editorSummaryBadgeStyle = {
@@ -1647,9 +1675,9 @@ const editorSectionTabsStyle = (isMobile) => ({
 const editorSectionButtonStyle = {
   padding: "10px 14px",
   borderRadius: "999px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#ffffff",
-  color: "#566173",
+  border: "1px solid var(--coach-line, #dbe5ef)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-muted, #566173)",
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",
@@ -1672,13 +1700,13 @@ const sectionHeaderCompactStyle = {
 const sectionTitleCompactStyle = {
   fontSize: "16px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const sectionMetaCompactStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const editorOverviewGridStyle = (isMobile) => ({
@@ -1690,8 +1718,8 @@ const editorOverviewGridStyle = (isMobile) => ({
 const miniStatCardStyle = {
   padding: "12px",
   borderRadius: "14px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #e5e7eb)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
 }
 
 const miniStatLabelStyle = {
@@ -1699,14 +1727,14 @@ const miniStatLabelStyle = {
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
   marginBottom: "6px",
 }
 
 const miniStatValueStyle = {
   fontSize: "16px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const coachChipStyle = {
@@ -1714,32 +1742,32 @@ const coachChipStyle = {
   gap: "2px",
   padding: "10px 12px",
   borderRadius: "14px",
-  backgroundColor: "#fff1f1",
-  border: "1px solid #f0dada",
+  backgroundColor: "var(--coach-selected, #fff1f1)",
+  border: "1px solid var(--coach-line, #f0dada)",
 }
 
 const coachChipNameStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 const coachChipMetaStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const historyStatCardStyle = {
   padding: "12px",
   borderRadius: "12px",
-  backgroundColor: "#f8fafc",
-  border: "1px solid #dbe5ef",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
+  border: "1px solid var(--coach-line, #dbe5ef)",
 }
 
 const historyStatLabelStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#46607a",
+  color: "var(--coach-muted, #46607a)",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   marginBottom: "6px",
@@ -1748,21 +1776,21 @@ const historyStatLabelStyle = {
 const historyStatValueStyle = {
   fontSize: "18px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const historyStatMetaStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const historyViewerCardStyle = {
   marginBottom: "16px",
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#f8fbff",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-raised, #f8fbff)",
 }
 
 const exercisePassBadgeWrapStyle = {
@@ -1777,9 +1805,9 @@ const exercisePassBadgeStyle = {
   alignItems: "center",
   padding: "5px 9px",
   borderRadius: "999px",
-  border: "1px solid #f0d3d3",
-  backgroundColor: "#fff7f7",
-  color: "#991b1b",
+  border: "1px solid var(--coach-line, #f0d3d3)",
+  backgroundColor: "var(--coach-selected, #fff7f7)",
+  color: "var(--coach-accent, #991b1b)",
   fontSize: "11px",
   fontWeight: "800",
 }
@@ -1788,11 +1816,11 @@ const exerciseGoalInfoStyle = {
   marginBottom: "10px",
   padding: "10px 12px",
   borderRadius: "12px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#f8fafc",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
   fontSize: "13px",
   lineHeight: 1.5,
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const historySessionPickerStyle = {
@@ -1804,8 +1832,8 @@ const historySessionPickerStyle = {
 const historySessionButtonStyle = {
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   textAlign: "left",
   cursor: "pointer",
 }
@@ -1813,41 +1841,41 @@ const historySessionButtonStyle = {
 const historySessionButtonTitleStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const historySessionButtonMetaStyle = {
   fontSize: "12px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const historySessionSummaryStyle = {
   marginBottom: "12px",
   padding: "12px 14px",
   borderRadius: "14px",
-  backgroundColor: "#ffffff",
-  border: "1px solid #e2e8f0",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  border: "1px solid var(--coach-line, #e2e8f0)",
 }
 
 const historySessionSummaryTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const historySessionSummaryMetaStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const historySessionRunningCardStyle = {
   padding: "14px",
   borderRadius: "14px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
-  color: "#18202b",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
+  color: "var(--coach-ink, #18202b)",
   fontSize: "14px",
   fontWeight: "700",
 }
@@ -1871,21 +1899,21 @@ const historyExerciseCardStyle = {
   minWidth: 0,
   padding: "14px",
   borderRadius: "16px",
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--coach-line, #e2e8f0)",
+  backgroundColor: "var(--coach-panel, #ffffff)",
   scrollSnapAlign: "start",
 }
 
 const historyExerciseCardTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const historyExerciseCardSubStyle = {
   fontSize: "13px",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
   marginBottom: "10px",
 }
 
@@ -1897,14 +1925,14 @@ const historySetListStyle = {
 const historySetCardStyle = {
   padding: "12px",
   borderRadius: "14px",
-  border: "1px solid #edf2f7",
-  backgroundColor: "#f8fafc",
+  border: "1px solid var(--coach-line, #edf2f7)",
+  backgroundColor: "var(--coach-raised, #f8fafc)",
 }
 
 const historySetTitleStyle = {
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   marginBottom: "8px",
 }
 
@@ -1913,8 +1941,8 @@ const historySetWarmupBadgeStyle = {
   marginBottom: "8px",
   padding: "5px 8px",
   borderRadius: "999px",
-  backgroundColor: "#fff7ed",
-  color: "#b45309",
+  backgroundColor: "var(--coach-amber-bg, #fff7ed)",
+  color: "var(--coach-amber, #b45309)",
   fontSize: "11px",
   fontWeight: "800",
 }
@@ -1935,13 +1963,13 @@ const historySetMetaLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.05em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "var(--coach-muted, #64748b)",
 }
 
 const historySetMetaValueStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
 }
 
 export default PlayersPage

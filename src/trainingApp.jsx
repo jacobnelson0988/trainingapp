@@ -21,6 +21,7 @@ import {
 import { getPassInfoParts } from "./utils/passInfo"
 import { useDismissibleDisclosure } from "./hooks/useDismissibleDisclosure"
 import "./playerDesign.css"
+import "./coachDesign.css"
 
 const PASS_ASSIGNMENT_EXERCISE_NAME = "__PASS_ASSIGNMENT__"
 
@@ -7895,6 +7896,19 @@ function TrainingApp() {
                 Integritet
               </button>
 
+              {isCoach && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateGlobalView("app")
+                    navigateCoachSection("exerciseBank")
+                  }}
+                  style={menuItemButtonStyle}
+                >
+                  Övningsbank
+                </button>
+              )}
+
               {useCompactHeader && !isPlayerWorkout && (
                 <button
                   type="button"
@@ -8140,7 +8154,7 @@ function TrainingApp() {
 
           <div
             className={isCoach ? "coach-design__workspace" : undefined}
-            style={{
+            style={isCoach ? undefined : {
               ...cardStyle,
               padding: isMobile ? "16px 14px" : cardStyle.padding,
               borderRadius: isMobile ? "20px" : cardStyle.borderRadius,
@@ -8549,43 +8563,28 @@ function TrainingApp() {
             )}
           </div>
 
-          {showCoachBottomNav && (
-            <div style={coachBottomNavWrapStyle}>
-              <div
-                style={{
-                  ...coachBottomNavStyle,
-                  gridTemplateColumns: `repeat(${coachBottomTabs.length}, minmax(0, 1fr))`,
-                }}
-              >
-                {coachBottomTabs.map((tab) => {
-                  const isActive = coachView === tab.key
-
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => navigateCoachSection(tab.key)}
-                      aria-label={tab.label}
-                      aria-current={isActive ? "page" : undefined}
-                      style={{
-                        ...coachBottomNavButtonStyle,
-                        color: isActive ? "#25472b" : "#465e73",
-                      }}
-                    >
-                      <span
-                        style={{
-                          ...coachBottomNavIconWrapStyle,
-                          backgroundColor: isActive ? "#e1f2ce" : "transparent",
-                        }}
-                      >
-                        {renderCoachBottomNavIcon(tab.icon, isActive)}
-                      </span>
-                      <span style={coachBottomNavLabelStyle}>{tab.key === "messages" ? "Inkorg" : tab.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+          {showCoachBottomNav && globalView === "app" && (
+            <nav className="player-design__dock" aria-label="Tränarnavigering på mobil">
+              {coachBottomTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => navigateCoachSection(tab.key)}
+                  aria-label={tab.key === "messages" && unreadMessageCount
+                    ? `${tab.label}, ${unreadMessageCount} olästa`
+                    : tab.label}
+                  aria-current={coachView === tab.key ? "page" : undefined}
+                >
+                  <span className="player-design__dock-icon" aria-hidden="true">
+                    {renderCoachBottomNavIcon(tab.icon)}
+                    {tab.key === "messages" && unreadMessageCount > 0 && (
+                      <span className="player-design__unread" />
+                    )}
+                  </span>
+                  <span>{tab.key === "messages" ? "Inkorg" : tab.label}</span>
+                </button>
+              ))}
+            </nav>
           )}
 
           {showAdminBottomNav && (
@@ -9467,7 +9466,13 @@ function TrainingApp() {
         </nav>
       )}
 
-      {status && !(globalView === "app" && !isWorkoutActive && ["history", "activity"].includes(playerView)) && (
+      {status && isCoach && (
+        <div className="coach-design__status" data-dock={showCoachBottomNav && globalView === "app"}>
+          <p role="status">{status}</p>
+          <button type="button" aria-label="Stäng statusmeddelandet" onClick={() => setStatus("")}>×</button>
+        </div>
+      )}
+      {status && !isCoach && !(globalView === "app" && !isWorkoutActive && ["history", "activity"].includes(playerView)) && (
         <p role="status" style={useCompactPlayerHeader ? workoutStatusMessageStyle : statusStyle}>{status}</p>
       )}
 
@@ -10719,7 +10724,7 @@ const coachTabButtonStyle = {
   borderRadius: "16px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "var(--coach-ink, #18202b)",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",

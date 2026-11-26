@@ -19,8 +19,6 @@ function CoachHomePage({
       icon: "players",
       title: "Spelare",
       text: "Hantera lag, mål och håll koll på senaste aktivitet.",
-      accent: "#dc2626",
-      background: "#fff1f1",
       badge: openTargetChangeRequestCount > 0 ? String(openTargetChangeRequestCount) : "",
     },
     {
@@ -28,40 +26,30 @@ function CoachHomePage({
       icon: "training",
       title: "Pass",
       text: "Skapa och redigera pass för laget.",
-      accent: "#1d4ed8",
-      background: "#eef4ff",
     },
     {
       key: "calendar",
       icon: "calendar",
       title: "Kalender",
       text: "Planera veckan med pass, aktiviteter och återkommande serier.",
-      accent: "#0f766e",
-      background: "#ecfeff",
     },
     {
       key: "exerciseBank",
       icon: "training",
       title: "Övningsbank",
       text: "Samla övningar, guider och media på ett ställe.",
-      accent: "#b45309",
-      background: "#fff7ed",
     },
     {
       key: "stats",
       icon: "stats",
       title: "Statistik",
       text: "Följ progression och se vad spelarna gjort över tid.",
-      accent: "#0f766e",
-      background: "#ecfeff",
     },
     {
       key: "messages",
       icon: "messages",
       title: "Meddelanden",
       text: "Skriv till laget, andra tränare eller huvudadmin.",
-      accent: "#7c2d12",
-      background: "#fff7ed",
     },
   ]
 
@@ -98,11 +86,11 @@ function CoachHomePage({
       <div className="coach-home__shortcuts">
         {cards.map((card) => (
           <button key={card.key} type="button" onClick={() => onNavigate(card.key)} style={navCardStyle}>
-            <div style={coachNavTopRowStyle}>
+            <div className="coach-home__shortcut-heading">
               <div style={navTitleStyle}>{card.title}</div>
               <div style={coachNavMetaRowStyle}>
                 {card.badge ? <div style={navBadgeStyle}>{card.badge}</div> : null}
-                <span aria-hidden="true" style={{ ...coachNavIconStyle, color: card.accent, backgroundColor: card.background }}>
+                <span aria-hidden="true" style={coachNavIconStyle}>
                   {renderNavIcon(card.icon)}
                 </span>
               </div>
@@ -110,7 +98,7 @@ function CoachHomePage({
             <div style={navTextStyle}>{card.text}</div>
             {card.key === "players" && openTargetChangeRequestCount > 0 ? (
               <div style={navAlertTextStyle}>
-                {openTargetChangeRequestCount} öppen{openTargetChangeRequestCount === 1 ? "" : "a"} målrequest
+                {openTargetChangeRequestCount} öppen{openTargetChangeRequestCount === 1 ? "" : "a"} målförslag
               </div>
             ) : null}
           </button>
@@ -208,7 +196,7 @@ const sectionLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const navCardStyle = {
@@ -225,20 +213,13 @@ const navCardStyle = {
 const navTitleStyle = {
   fontSize: "16px",
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--coach-ink, #111827)",
 }
 
 const navTextStyle = {
   fontSize: "13px",
   lineHeight: 1.5,
-  color: "#6b7280",
-}
-
-const coachNavTopRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "10px",
+  color: "var(--coach-muted, #6b7280)",
 }
 
 const coachNavMetaRowStyle = {
@@ -265,7 +246,7 @@ const navAlertTextStyle = {
   marginTop: "10px",
   fontSize: "12px",
   fontWeight: "700",
-  color: "#b91c1c",
+  color: "var(--coach-accent, #b91c1c)",
 }
 
 const coachNavIconStyle = {
@@ -274,9 +255,9 @@ const coachNavIconStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "999px",
-  fontSize: "18px",
-  fontWeight: "900",
+  borderRadius: "10px",
+  color: "var(--coach-accent)",
+  backgroundColor: "var(--coach-selected)",
   flexShrink: 0,
 }
 
