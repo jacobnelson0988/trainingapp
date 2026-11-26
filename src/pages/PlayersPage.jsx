@@ -1244,7 +1244,7 @@ const pageEyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--coach-detail-ink, #991b1b)",
 }
 
 const coachSummaryGridStyle = (isMobile) => ({
@@ -1630,8 +1630,8 @@ const editorSummaryBadgeStyle = {
   display: "inline-flex",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#fff7f7",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-detail-surface, #fff7f7)",
+  color: "var(--coach-detail-ink, #991b1b)",
   fontSize: "12px",
   fontWeight: "800",
 }
@@ -1656,9 +1656,9 @@ const editorSectionButtonStyle = {
 }
 
 const editorSectionButtonActiveStyle = {
-  backgroundColor: "#fff1f1",
-  borderColor: "#efc7c7",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-detail-surface, #fff1f1)",
+  borderColor: "var(--coach-detail-line, #efc7c7)",
+  color: "var(--coach-detail-ink, #991b1b)",
 }
 
 const editorSectionCardStyle = {

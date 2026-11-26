@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useDismissibleDisclosure } from "../hooks/useDismissibleDisclosure"
 import { supabase } from "../supabase"
 import { getExerciseProtocolConfig, getExerciseProtocolStep } from "../utils/exerciseProtocols"
 
@@ -414,7 +415,12 @@ function StatsPage({
   const [viewMode, setViewMode] = useState("activity")
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([])
   const [activityPlayerId, setActivityPlayerId] = useState("")
-  const [isPlayerMenuOpen, setIsPlayerMenuOpen] = useState(false)
+  const {
+    isOpen: isPlayerMenuOpen,
+    setIsOpen: setIsPlayerMenuOpen,
+    containerRef: playerPickerRef,
+    triggerRef: playerPickerTriggerRef,
+  } = useDismissibleDisclosure()
   const [activityFiltersOpen, setActivityFiltersOpen] = useState(!isMobile)
   const [statsFiltersOpen, setStatsFiltersOpen] = useState(!isMobile)
   const [exerciseFilter, setExerciseFilter] = useState("all")
@@ -572,8 +578,11 @@ function StatsPage({
   )
 
   const exerciseOptions = useMemo(
-    () => progressionSeries.map((entry) => entry.exerciseName),
-    [progressionSeries]
+    () => Array.from(new Set(filteredStatsRows
+      .filter((row) => parseWeightValue(row.weight) != null && getExerciseRepRangeBucket(row.reps))
+      .map((row) => String(row.exercise || "").trim())
+      .filter(Boolean))),
+    [filteredStatsRows]
   )
 
   const selectedPlayerSummary = useMemo(() => {
@@ -1068,10 +1077,13 @@ function StatsPage({
                   {sortedPlayers.length === 0 ? (
                     <div style={mutedTextStyle}>Inga aktiva spelare tillgängliga.</div>
                   ) : (
-                    <div style={{ position: "relative" }}>
+                    <div ref={playerPickerRef}>
                       <button
                         type="button"
                         onClick={() => setIsPlayerMenuOpen((prev) => !prev)}
+                        aria-expanded={isPlayerMenuOpen}
+                        aria-controls={isPlayerMenuOpen ? "stats-player-list" : undefined}
+                        ref={playerPickerTriggerRef}
                         style={{
                           ...inputStyle,
                           width: "100%",
@@ -1091,7 +1103,7 @@ function StatsPage({
                       </button>
 
                       {isPlayerMenuOpen ? (
-                        <div style={playerDropdownMenuStyle}>
+                        <div id="stats-player-list" style={playerDropdownMenuStyle}>
                           <div style={playerDropdownActionsStyle}>
                             <button
                               type="button"
@@ -1330,11 +1342,11 @@ function StatsPage({
                   <p style={mutedTextStyle}>Välj en specifik övning för att visa viktutveckling.</p>
                 ) : repRangeFilter === "all" ? (
                   <p style={mutedTextStyle}>Välj ett specifikt repsintervall för att visa viktutveckling per dag.</p>
-                ) : visibleSeries.length === 0 ? (
+                ) : progressionSeries.length === 0 ? (
                   <p style={mutedTextStyle}>Ingen viktdata hittades för vald övning och valt repsintervall.</p>
                 ) : (
                   <div style={chartGridStyle}>
-                    {visibleSeries.map((entry) => (
+                    {progressionSeries.map((entry) => (
                       <ExerciseChartCard
                         key={entry.exerciseName}
                         exerciseName={entry.exerciseName}
@@ -1447,23 +1459,42 @@ function ExerciseChartCard({ exerciseName, repRangeLabel, playerSeries, isMobile
 function ChartModal({ exerciseName, repRangeLabel, playerSeries, onClose }) {
   const chartMetrics = useMemo(() => getChartMetrics(playerSeries), [playerSeries])
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose()
-    }
+  const dialogRef = useRef(null)
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [onClose])
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    const previousFocus = document.activeElement
+    dialog.showModal()
+    return () => {
+      dialog.close()
+      previousFocus?.focus()
+    }
+  }, [chartMetrics])
 
   if (!chartMetrics) return null
 
   return (
-    <div style={chartModalBackdropStyle} onClick={onClose}>
-      <div style={chartModalCardStyle} onClick={(event) => event.stopPropagation()}>
+    <dialog
+      ref={dialogRef}
+      className="app-chart-dialog"
+      aria-labelledby="chart-dialog-title"
+      onCancel={(event) => {
+        event.preventDefault()
+        onClose()
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          const bounds = event.currentTarget.getBoundingClientRect()
+          if (event.clientX < bounds.left || event.clientX > bounds.right ||
+              event.clientY < bounds.top || event.clientY > bounds.bottom) onClose()
+        }
+      }}
+    >
+      <div>
         <div style={chartModalHeaderStyle}>
           <div>
-            <div style={chartTitleStyle}>{exerciseName}</div>
+            <h2 id="chart-dialog-title" style={{ ...chartTitleStyle, margin: 0 }}>{exerciseName}</h2>
             <div style={chartSubtitleStyle}>
               {repRangeLabel
                 ? `Förstorad graf för högsta vikt per dag inom ${repRangeLabel} reps`
@@ -1493,7 +1524,7 @@ function ChartModal({ exerciseName, repRangeLabel, playerSeries, onClose }) {
           viewHeight={540}
         />
       </div>
-    </div>
+    </dialog>
   )
 }
 
@@ -1876,16 +1907,11 @@ const filterTitleStyle = {
 }
 
 const playerDropdownMenuStyle = {
-  position: "absolute",
-  top: "calc(100% + 8px)",
-  left: 0,
-  right: 0,
-  zIndex: 20,
-  padding: "12px",
-  borderRadius: "16px",
-  border: "1px solid #dbe5ef",
+  marginTop: "8px",
+  padding: "10px",
+  borderRadius: "12px",
+  border: "1px solid var(--ghf-line)",
   backgroundColor: "#ffffff",
-  boxShadow: "0 16px 30px rgba(24, 32, 43, 0.12)",
 }
 
 const playerDropdownActionsStyle = {
@@ -2291,32 +2317,7 @@ const statLineStyle = {
 const statFootnoteStyle = {
   marginTop: "8px",
   fontSize: "11px",
-  color: "#94a3b8",
-}
-
-const chartModalBackdropStyle = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 1200,
-  backgroundColor: "rgba(15, 23, 42, 0.72)",
-  backdropFilter: "blur(4px)",
-  padding: "24px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-}
-
-const chartModalCardStyle = {
-  width: "min(1200px, 100%)",
-  maxHeight: "90vh",
-  overflowY: "auto",
-  overflowX: "hidden",
-  boxSizing: "border-box",
-  borderRadius: "28px",
-  backgroundColor: "#ffffff",
-  border: "1px solid rgba(226, 232, 240, 0.9)",
-  boxShadow: "0 24px 80px rgba(15, 23, 42, 0.35)",
-  padding: "24px",
+  color: "#546579",
 }
 
 const chartModalHeaderStyle = {
@@ -2367,7 +2368,7 @@ const pageEyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--coach-detail-ink, #991b1b)",
 }
 
 const introTitleStyle = {

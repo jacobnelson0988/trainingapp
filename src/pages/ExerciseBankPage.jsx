@@ -1940,7 +1940,7 @@ const sectionEyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--coach-detail-ink, #991b1b)",
 }
 
 const sectionTitleStyle = {
@@ -1953,8 +1953,8 @@ const countBadgeStyle = {
   display: "inline-flex",
   padding: "6px 10px",
   borderRadius: "999px",
-  backgroundColor: "#fff4f4",
-  color: "#991b1b",
+  backgroundColor: "var(--coach-detail-surface, #fff4f4)",
+  color: "var(--coach-detail-ink, #991b1b)",
   fontSize: "12px",
   fontWeight: "800",
 }
@@ -2259,7 +2259,7 @@ const requestDateStyle = {
 
 const requestUpdatedStyle = {
   fontSize: "12px",
-  color: "#94a3b8",
+  color: "#546579",
 }
 
 const requestDetailRowStyle = {

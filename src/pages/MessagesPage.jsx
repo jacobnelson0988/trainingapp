@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useDismissibleDisclosure } from "../hooks/useDismissibleDisclosure"
 
 function MessagesPage({
   role,
@@ -27,7 +28,12 @@ function MessagesPage({
 }) {
   const [view, setView] = useState("inbox")
   const [selectedThreadKey, setSelectedThreadKey] = useState(null)
-  const [isRecipientPickerOpen, setIsRecipientPickerOpen] = useState(false)
+  const {
+    isOpen: isRecipientPickerOpen,
+    setIsOpen: setIsRecipientPickerOpen,
+    containerRef: recipientPickerRef,
+    triggerRef: recipientPickerTriggerRef,
+  } = useDismissibleDisclosure()
 
   const teamMap = (teams || []).reduce((acc, team) => {
     acc[team.id] = team.name
@@ -145,7 +151,7 @@ function MessagesPage({
       <div style={introStatsGridStyle(isMobile)}>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Trådar</div>
-          <div style={{ ...introStatValueStyle, color: "var(--player-section-accent, #dc2626)" }}>{threads.length}</div>
+          <div style={{ ...introStatValueStyle, color: "var(--player-section-accent, var(--coach-detail-ink, #dc2626))" }}>{threads.length}</div>
         </div>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Olästa</div>
@@ -209,51 +215,57 @@ function MessagesPage({
           <div style={cardStyle}>
             <div style={cardTitleStyle}>Nytt meddelande</div>
 
-            <div style={fieldLabelStyle}>Mottagare</div>
-            <button
-              type="button"
-              onClick={() => setIsRecipientPickerOpen((prev) => !prev)}
-              style={pickerButtonStyle}
-            >
-              <span>
-                {selectedRecipients.length
-                  ? selectedRecipients.map((recipient) => recipient.full_name).join(", ")
-                  : "Välj mottagare"}
-              </span>
-              <span>{isRecipientPickerOpen ? "−" : "+"}</span>
-            </button>
+            <div ref={recipientPickerRef}>
+              <div style={fieldLabelStyle}>Mottagare</div>
+              <button
+                type="button"
+                onClick={() => setIsRecipientPickerOpen((prev) => !prev)}
+                aria-expanded={isRecipientPickerOpen}
+                aria-controls={isRecipientPickerOpen ? "message-recipients" : undefined}
+                ref={recipientPickerTriggerRef}
+                style={pickerButtonStyle}
+              >
+                <span>
+                  {selectedRecipients.length
+                    ? selectedRecipients.map((recipient) => recipient.full_name).join(", ")
+                    : "Välj mottagare"}
+                </span>
+                <span aria-hidden="true">{isRecipientPickerOpen ? "−" : "+"}</span>
+              </button>
 
-            {isRecipientPickerOpen && (
-              <div style={pickerMenuStyle}>
-                {recipients.length === 0 ? (
-                  <div style={pickerEmptyStyle}>Inga mottagare tillgängliga</div>
-                ) : (
-                  recipients.map((recipient) => {
-                    const isSelected = selectedRecipientIds.includes(recipient.id)
-                    return (
-                      <button
-                        key={recipient.id}
-                        type="button"
-                        onClick={() => onToggleRecipient(recipient.id)}
-                        style={{
-                          ...pickerOptionStyle,
-                          ...(isSelected ? pickerOptionActiveStyle : {}),
-                        }}
-                      >
-                        <div style={pickerOptionNameStyle}>{recipient.full_name}</div>
-                        <div style={pickerOptionMetaStyle}>
-                          {role === "player"
-                            ? getRoleLabel(recipient.role)
-                            : `${getRoleLabel(recipient.role)}${
-                                teamMap[recipient.team_id] ? ` • ${teamMap[recipient.team_id]}` : ""
-                              }`}
-                        </div>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-            )}
+              {isRecipientPickerOpen && (
+                <div id="message-recipients" style={pickerMenuStyle}>
+                  {recipients.length === 0 ? (
+                    <div style={pickerEmptyStyle}>Inga mottagare tillgängliga</div>
+                  ) : (
+                    recipients.map((recipient) => {
+                      const isSelected = selectedRecipientIds.includes(recipient.id)
+                      return (
+                        <button
+                          key={recipient.id}
+                          type="button"
+                          onClick={() => onToggleRecipient(recipient.id)}
+                          aria-pressed={isSelected}
+                          style={{
+                            ...pickerOptionStyle,
+                            ...(isSelected ? pickerOptionActiveStyle : {}),
+                          }}
+                        >
+                          <div style={pickerOptionNameStyle}>{recipient.full_name}</div>
+                          <div style={pickerOptionMetaStyle}>
+                            {role === "player"
+                              ? getRoleLabel(recipient.role)
+                              : `${getRoleLabel(recipient.role)}${
+                                  teamMap[recipient.team_id] ? ` • ${teamMap[recipient.team_id]}` : ""
+                                }`}
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+            </div>
 
             <div style={fieldLabelStyle}>Ämne</div>
             <input
@@ -569,7 +581,9 @@ const pickerMenuStyle = {
   border: "1px solid var(--player-section-line, #ece5e5)",
   borderRadius: "16px",
   backgroundColor: "var(--player-section-surface, #ffffff)",
-  overflow: "hidden",
+  maxHeight: "min(50dvh, 18rem)",
+  overflowY: "auto",
+  overscrollBehavior: "contain",
 }
 
 const pickerEmptyStyle = {
@@ -589,7 +603,7 @@ const pickerOptionStyle = {
 }
 
 const pickerOptionActiveStyle = {
-  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  backgroundColor: "var(--player-section-surface-accent, var(--coach-detail-surface, #fff1f1))",
 }
 
 const pickerOptionNameStyle = {
@@ -651,7 +665,7 @@ const chatBubbleStyle = {
 }
 
 const ownBubbleStyle = {
-  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  backgroundColor: "var(--player-section-surface-accent, var(--coach-detail-surface, #fff1f1))",
   borderColor: "var(--player-section-line, #f0d1d1)",
 }
 

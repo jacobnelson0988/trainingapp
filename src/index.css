@@ -196,3 +196,127 @@ video {
     grid-column: 1 / -1;
   }
 }
+
+.app-shell {
+  --app-focus: #21627d;
+}
+
+.app-shell :is(button, summary, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 3px;
+}
+
+.app-account-menu {
+  position: relative;
+  flex: none;
+}
+
+.app-account-menu__panel {
+  position: absolute;
+  z-index: 40;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-end: 0;
+  display: grid;
+  gap: 4px;
+  inline-size: min(17rem, calc(100vw - 32px));
+  max-block-size: min(65dvh, 20rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 7px;
+  border: 1px solid var(--ghf-line);
+  border-radius: 14px;
+  background: var(--ghf-surface);
+  box-shadow: var(--ghf-shadow-lg);
+}
+
+.app-account-menu__panel > button {
+  min-height: 44px;
+  background: transparent;
+}
+
+.app-account-menu__panel > button:hover {
+  background: var(--ghf-surface-alt);
+}
+
+#root:has(.coach-design) {
+  background: linear-gradient(155deg, #eff5fa, #e5edf4);
+}
+
+.coach-design {
+  --player-dark: #111c2a;
+  --player-accent: #c9fb54;
+  --app-primary: var(--player-accent);
+  --app-primary-ink: #192604;
+  --app-primary-shadow: none;
+  --coach-selected: #e5f3d7;
+  --coach-selected-ink: #25472b;
+  --coach-selected-line: #bdd8ac;
+  --coach-selected-shadow: none;
+  --coach-detail-ink: #1e5873;
+  --coach-detail-surface: #edf6fa;
+  --coach-detail-line: #c3dce8;
+  --player-section-primary: var(--app-primary);
+  --player-section-primary-ink: var(--app-primary-ink);
+  --ghf-line: #d5e0e9;
+  --ghf-line-strong: #b7c8d7;
+  --ghf-red: #21627d;
+  --ghf-red-glow: rgb(33 98 125 / 16%);
+}
+
+.coach-design__role {
+  display: block;
+  margin-top: 3px;
+  color: #bddeed;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  letter-spacing: normal;
+}
+
+.coach-design__tabs {
+  padding: 5px;
+  border: 1px solid var(--ghf-line);
+  border-radius: 16px;
+  background: var(--ghf-surface);
+}
+
+.coach-design__tabs > button {
+  min-height: 44px;
+}
+
+.coach-design__workspace {
+  min-inline-size: 0;
+}
+
+.app-chart-dialog {
+  inline-size: min(72rem, calc(100% - 24px));
+  max-block-size: calc(100dvh - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(12px, 3vw, 24px);
+  border: 1px solid var(--ghf-line);
+  border-radius: 18px;
+  background: var(--ghf-surface);
+  color: var(--ghf-ink);
+  box-shadow: var(--ghf-shadow-lg);
+}
+
+.app-chart-dialog::backdrop {
+  background: rgb(15 23 42 / 70%);
+}
+
+.coach-design__workspace :where(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.coach-home__shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 360px) {
+  .coach-home__shortcuts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

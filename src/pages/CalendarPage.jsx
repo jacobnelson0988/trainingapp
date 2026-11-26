@@ -670,7 +670,7 @@ function CalendarPage({
         </div>
         <div className="calendar__actions">
           {!editingEntry ? (
-            <button type="button" onClick={handleOpenCreate} className="calendar__create" style={primaryButtonCompactStyle}>
+            <button type="button" onClick={handleOpenCreate} aria-expanded={isCreateOpen} className="calendar__create" style={primaryButtonCompactStyle}>
               {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
             </button>
           ) : null}
@@ -995,7 +995,7 @@ const emptyStateStyle = {
 
 const dayEmptyStyle = {
   padding: "6px 2px 2px",
-  color: "var(--player-section-muted, #9ca3af)",
+  color: "var(--player-section-muted, #586878)",
   fontSize: "13px",
 }
 

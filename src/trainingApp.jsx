@@ -19,6 +19,7 @@ import {
   isProtocolExercise,
 } from "./utils/exerciseProtocols"
 import { getPassInfoParts } from "./utils/passInfo"
+import { useDismissibleDisclosure } from "./hooks/useDismissibleDisclosure"
 import "./playerDesign.css"
 
 const PASS_ASSIGNMENT_EXERCISE_NAME = "__PASS_ASSIGNMENT__"
@@ -1193,7 +1194,12 @@ function TrainingApp() {
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseIds, setSelectedPlayerStatsExerciseIds] = useState([])
   const [playerStatsPickerValue, setPlayerStatsPickerValue] = useState("")
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const {
+    isOpen: isMenuOpen,
+    setIsOpen: setIsMenuOpen,
+    containerRef: accountMenuRef,
+    triggerRef: accountMenuTriggerRef,
+  } = useDismissibleDisclosure()
   const [globalView, setGlobalView] = useState(getInitialGlobalView)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [commentDrafts, setCommentDrafts] = useState({})
@@ -1322,6 +1328,7 @@ function TrainingApp() {
     average_pulse: "",
   })
   const exerciseCarouselRef = useRef(null)
+  const feedbackInputRef = useRef(null)
 
   useEffect(() => {
     loadUser()
@@ -7702,6 +7709,7 @@ function TrainingApp() {
   }
   const navigateCoachSection = (tabKey) => {
     setCoachView(tabKey)
+    window.scrollTo({ top: 0, behavior: "instant" })
     if (tabKey !== "players") {
       setSelectedPlayer(null)
     }
@@ -7742,6 +7750,8 @@ function TrainingApp() {
   const visibleHistory = historyPeriod === "recent" ? recentWorkoutSessions : completedWorkoutSessions
   const isPlayerWorkout = profile?.role === "player" && isWorkoutActive
   const useCompactPlayerHeader = profile?.role === "player"
+  const isCoach = profile?.role === "coach"
+  const useCompactHeader = useCompactPlayerHeader || isCoach
 
   const playerHeaderSubtitle =
     profile?.role === "head_admin"
@@ -7751,7 +7761,7 @@ function TrainingApp() {
       : "Dina pass, meddelanden och historik på ett ställe."
 
   const feedbackComposer = isFeedbackOpen && (
-    <div style={feedbackComposerCardStyle}>
+    <div className="app-feedback-form" style={feedbackComposerCardStyle}>
       <div style={cardTitleStyle}>Skriv feedback</div>
       <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
         Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
@@ -7759,6 +7769,8 @@ function TrainingApp() {
       <div style={compactFieldLabelStyle}>Meddelande</div>
       <textarea
         rows={4}
+        ref={feedbackInputRef}
+        aria-label="Meddelande"
         value={feedbackText}
         onChange={(event) => setFeedbackText(event.target.value)}
         placeholder="Skriv kort vad du vill skicka in"
@@ -7793,7 +7805,7 @@ function TrainingApp() {
 
   return (
     <div
-      className={useCompactPlayerHeader ? "app-shell player-design" : "app-shell"}
+      className={useCompactPlayerHeader ? "app-shell player-design" : isCoach ? "app-shell coach-design" : "app-shell"}
       data-player-view={useCompactPlayerHeader ? (isPlayerWorkout ? "workout" : isPlayerHome ? "home" : "section") : undefined}
       style={{
         ...pageStyle,
@@ -7809,19 +7821,18 @@ function TrainingApp() {
       }}
     >
       <div
-        className={useCompactPlayerHeader ? "player-design__header" : undefined}
+        className={useCompactHeader ? "player-design__header" : undefined}
         style={{
           ...headerStyle,
-          flexDirection: isMobile && !useCompactPlayerHeader ? "column" : "row",
-          alignItems: useCompactPlayerHeader ? "center" : isMobile ? "stretch" : headerStyle.alignItems,
+          alignItems: "center",
           marginBottom: isMobile ? "14px" : headerStyle.marginBottom,
           gap: isMobile ? "12px" : headerStyle.gap,
         }}
       >
-        {useCompactPlayerHeader ? (
+        {useCompactHeader ? (
           <div className="player-design__brand">
             <span className="player-design__mark" aria-hidden="true" />
-            Starkare Gurra
+            <span>Starkare Gurra{isCoach && <small className="coach-design__role">Tränarvy</small>}</span>
           </div>
         ) : (
           <div style={{ flex: 1 }}>
@@ -7847,59 +7858,69 @@ function TrainingApp() {
           </div>
         )}
 
-        <div
-          style={{
-            ...headerActionsWrapStyle(isMobile),
-            ...(useCompactPlayerHeader ? { position: "static" } : {}),
-          }}
-        >
-          <div style={menuWrapStyle}>
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen((prev) => !prev)}
-              aria-label="Öppna meny"
-              style={menuButtonStyle}
-            >
-              <span style={menuIconLineStyle} />
-              <span style={menuIconLineStyle} />
-              <span style={menuIconLineStyle} />
-            </button>
+        <div className="app-account-menu" ref={accountMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            aria-label="Öppna meny"
+            aria-expanded={isMenuOpen}
+            aria-controls={isMenuOpen ? "app-account-options" : undefined}
+            ref={accountMenuTriggerRef}
+            style={menuButtonStyle}
+          >
+            <span style={menuIconLineStyle} />
+            <span style={menuIconLineStyle} />
+            <span style={menuIconLineStyle} />
+          </button>
 
-            {isMenuOpen && (
-              <div style={menuDropdownStyle(isMobile)}>
+          {isMenuOpen && (
+            <nav id="app-account-options" aria-label="Kontomeny" className="app-account-menu__panel">
+              <button
+                type="button"
+                onClick={() => {
+                  navigateGlobalView("account")
+                }}
+                style={menuItemButtonStyle}
+              >
+                Mitt konto
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigateGlobalView("gdpr")
+                }}
+                style={menuItemButtonStyle}
+              >
+                Integritet
+              </button>
+
+              {useCompactHeader && !isPlayerWorkout && (
                 <button
                   type="button"
                   onClick={() => {
-                    navigateGlobalView("account")
+                    navigateGlobalView("app")
+                    setIsFeedbackOpen(true)
+                    window.requestAnimationFrame(() => feedbackInputRef.current?.focus())
                   }}
                   style={menuItemButtonStyle}
                 >
-                  Mitt konto
+                  Lämna feedback
                 </button>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigateGlobalView("gdpr")
-                  }}
-                  style={menuItemButtonStyle}
-                >
-                  Integritet
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await supabase.auth.signOut()
-                    window.location.reload()
-                  }}
-                  style={menuItemButtonStyle}
-                >
-                  Logga ut
-                </button>
-              </div>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabase.auth.signOut()
+                  window.location.reload()
+                }}
+                style={menuItemButtonStyle}
+              >
+                Logga ut
+              </button>
+            </nav>
+          )}
         </div>
       </div>
 
@@ -8050,8 +8071,7 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      {!isPlayerHome && !isPlayerWorkout && (
-        <>
+      {!useCompactHeader && (
           <div
             style={{
               ...feedbackActionBarStyle,
@@ -8074,14 +8094,14 @@ function TrainingApp() {
               {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
             </button>
           </div>
-          {feedbackComposer}
-        </>
       )}
+      {!isPlayerWorkout && !isPlayerHome && feedbackComposer}
 
       {(profile?.role === "coach" || profile?.role === "head_admin") && (
         <>
           {!showCoachBottomNav && !showAdminBottomNav && (
             <div
+              className={isCoach ? "coach-design__tabs" : undefined}
               style={{
                 ...coachTabsWrapStyle,
                 flexWrap: isMobile ? "nowrap" : coachTabsWrapStyle.flexWrap,
@@ -8102,6 +8122,7 @@ function TrainingApp() {
                   key={tab.key}
                   type="button"
                   onClick={() => navigateCoachSection(tab.key)}
+                  aria-current={coachView === tab.key ? "page" : undefined}
                   style={{
                     ...coachTabButtonStyle,
                     flex: isMobile ? "0 0 auto" : undefined,
@@ -8118,6 +8139,7 @@ function TrainingApp() {
           )}
 
           <div
+            className={isCoach ? "coach-design__workspace" : undefined}
             style={{
               ...cardStyle,
               padding: isMobile ? "16px 14px" : cardStyle.padding,
@@ -8136,16 +8158,14 @@ function TrainingApp() {
                 />
               ) : (
                 <CoachHomePage
-                  setCoachView={setCoachView}
-                  setSelectedPlayer={setSelectedPlayer}
-                  resetExerciseForm={resetExerciseForm}
+                  onNavigate={navigateCoachSection}
                   coachName={coachName}
                   teamName={teamName}
                   activePlayerCount={activePlayerCount}
                   passCount={coachPassCount}
                   activeSevenDayCount={activeSevenDayCount}
                   openTargetChangeRequestCount={targetChangeRequests.length}
-                  isMobile={isMobile}
+                  renderNavIcon={renderCoachBottomNavIcon}
                 />
               )
             )}
@@ -8549,13 +8569,13 @@ function TrainingApp() {
                       aria-current={isActive ? "page" : undefined}
                       style={{
                         ...coachBottomNavButtonStyle,
-                        color: isActive ? "#dc2626" : "#6b7280",
+                        color: isActive ? "#25472b" : "#465e73",
                       }}
                     >
                       <span
                         style={{
                           ...coachBottomNavIconWrapStyle,
-                          backgroundColor: isActive ? "#fff1f1" : "transparent",
+                          backgroundColor: isActive ? "#e1f2ce" : "transparent",
                         }}
                       >
                         {renderCoachBottomNavIcon(tab.icon, isActive)}
@@ -10645,19 +10665,6 @@ const logoutButtonStyle = {
   boxShadow: uiShadowSm,
 }
 
-const headerActionsWrapStyle = (isMobile) => ({
-  position: "absolute",
-  top: isMobile ? "max(14px, env(safe-area-inset-top))" : "20px",
-  right: isMobile ? "12px" : "16px",
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "flex-end",
-})
-
-const menuWrapStyle = {
-  position: "relative",
-}
-
 const menuButtonStyle = {
   width: "46px",
   height: "46px",
@@ -10670,7 +10677,7 @@ const menuButtonStyle = {
   borderRadius: "14px",
   border: `1px solid ${uiBorderStrong}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   cursor: "pointer",
   boxShadow: uiShadowSm,
 }
@@ -10679,31 +10686,14 @@ const menuIconLineStyle = {
   width: "18px",
   height: "2px",
   borderRadius: "999px",
-  backgroundColor: "#18202b",
+  backgroundColor: "currentColor",
 }
-
-const menuDropdownStyle = (isMobile) => ({
-  position: "fixed",
-  top: isMobile ? "calc(max(14px, env(safe-area-inset-top)) + 54px)" : "76px",
-  right: 0,
-  width: isMobile ? "calc(100vw - 12px)" : "min(360px, 50vw)",
-  maxWidth: "calc(100vw - 12px)",
-  minHeight: isMobile ? "50vh" : "46vh",
-  padding: "14px",
-  borderRadius: "20px 0 0 20px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowLg,
-  zIndex: 10,
-  overflowY: "auto",
-})
 
 const menuItemButtonStyle = {
   width: "100%",
   padding: "12px 14px",
   border: "none",
   borderRadius: "12px",
-  backgroundColor: uiSurface,
   color: "var(--player-section-ink, #18202b)",
   cursor: "pointer",
   fontSize: "14px",
@@ -10737,10 +10727,10 @@ const coachTabButtonStyle = {
 }
 
 const activeCoachTabButtonStyle = {
-  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
-  color: "#ffffff",
-  borderColor: "#b91c1c",
-  boxShadow: "0 16px 28px rgba(198, 40, 40, 0.24)",
+  background: "var(--coach-selected, linear-gradient(135deg, #c62828 0%, #991b1b 100%))",
+  color: "var(--coach-selected-ink, #ffffff)",
+  borderColor: "var(--coach-selected-line, #b91c1c)",
+  boxShadow: "var(--coach-selected-shadow, 0 16px 28px rgba(198, 40, 40, 0.24))",
 }
 
 const workoutActionSectionStyle = {
@@ -10931,7 +10921,7 @@ const targetSectionDividerStyle = {
 
 const targetSectionLabelStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "#536477",
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.04em",
@@ -11087,12 +11077,12 @@ const buttonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
   border: "none",
-  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
-  color: "#ffffff",
+  background: "var(--app-primary, linear-gradient(135deg, #c62828 0%, #991b1b 100%))",
+  color: "var(--app-primary-ink, #ffffff)",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
-  boxShadow: "0 14px 28px rgba(198, 40, 40, 0.22)",
+  boxShadow: "var(--app-primary-shadow, 0 14px 28px rgba(198, 40, 40, 0.22))",
 }
 
 const playerPrimaryButtonStyle = {
@@ -11275,7 +11265,7 @@ const passPreviewContentCardStyle = {
 
 const passPreviewStatLabelStyle = {
   fontSize: "11px",
-  color: "#46607a",
+  color: "var(--player-section-muted, #46607a)",
   fontWeight: "800",
   textTransform: "uppercase",
   letterSpacing: "0.05em",

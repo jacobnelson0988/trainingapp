@@ -1748,7 +1748,8 @@ function PassBuilderPage({
                           <div style={selectedPassActionsStyle(isMobile)}>
                             <button
                               type="button"
-                              onClick={() => setIsAssignMenuOpen((current) => !current)}
+                                                            onClick={() => setIsAssignMenuOpen((current) => !current)}
+                              aria-expanded={isAssignMenuOpen}
                               style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
                             >
                               {isAssignMenuOpen ? "Stäng tilldelning" : "Tilldela pass"}
@@ -2122,7 +2123,7 @@ const sectionEyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--coach-detail-ink, #991b1b)",
 }
 
 const fieldLabelStyle = {
@@ -2392,7 +2393,7 @@ const selectedPassExerciseIndexStyle = {
 
 const selectedPassEmptyStyle = {
   fontSize: "14px",
-  color: "#9ca3af",
+  color: "#546579",
   fontStyle: "italic",
 }
 
@@ -2714,7 +2715,7 @@ const exerciseEditorTitleStyle = {
 const fieldHintInlineStyle = {
   fontSize: "11px",
   fontWeight: "600",
-  color: "#9ca3af",
+  color: "#546579",
 }
 
 const alternativesAccordionButtonStyle = {
@@ -2753,7 +2754,7 @@ const exercisesEditorEmptyStyle = {
 
 const exercisesEditorEmptyTextStyle = {
   fontSize: "14px",
-  color: "#9ca3af",
+  color: "#546579",
   textAlign: "center",
   lineHeight: 1.6,
 }
