@@ -1,5 +1,8 @@
 #root:has(.player-design) {
-  background: #eef2f6;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at 90% 0, #cce9f5 0, transparent 48%),
+    linear-gradient(155deg, #edf6f9 0%, #dce7f0 58%, #e3eddf 100%);
 }
 
 .player-design {
@@ -18,6 +21,12 @@
   --ghf-red: #216476;
   --ghf-red-glow: rgb(33 100 118 / 18%);
   color: var(--player-ink);
+}
+
+#root:has(.player-design--workout) {
+  background:
+    radial-gradient(ellipse at 85% 0%, #254c64 0, transparent 52%),
+    linear-gradient(150deg, #142338, #101c2b 78%);
 }
 
 .player-design__header {
@@ -197,7 +206,7 @@
 .player-design__primary,
 .player-design__secondary,
 .player-home__action,
-.player-workout-controls button {
+.player-workout-controls button:not(.player-workout-status__timer) {
   min-height: 46px;
   padding: 10px 16px;
   border: 1px solid var(--player-line);
@@ -220,7 +229,7 @@
 
 .player-design__secondary:hover,
 .player-home__action:hover,
-.player-workout-controls button:not(:disabled):hover {
+.player-workout-controls button:not(.player-workout-status__timer, :disabled):hover {
   background: #e9f5fc;
 }
 
@@ -316,38 +325,37 @@
 }
 
 .player-workout-status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   margin-bottom: 12px;
 }
 
-.player-workout-status__step,
-.player-workout-status__timer {
+.player-workout-status__step {
   display: grid;
-  align-content: center;
   gap: 8px;
   padding: 12px;
-  border: 1px solid #30435a;
+  border: 1px solid #3d526b;
   border-radius: 15px;
   background: #18273a;
   color: #fff;
 }
 
-.player-workout-status__step {
-  flex: 1 1 145px;
-  min-width: 0;
-}
-
-.player-workout-status__position {
-  display: grid;
-  gap: 4px;
-}
-
-.player-workout-status__position span,
+.player-workout-status__position,
 .player-workout-status__timer span {
   color: #d1e0ee;
   font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.player-workout-status__step select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 32px 8px 10px;
+  border: 1px solid #4f6a83;
+  border-radius: 9px;
+  background-color: #25394f;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
 }
 
 .player-workout-status__segments {
@@ -368,39 +376,84 @@
 }
 
 .player-workout-status__timer {
-  min-width: 112px;
-  gap: 4px;
-  text-align: left;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  min-height: 46px;
+  padding: 5px 12px;
+  border: 1px solid #46617c;
+  border-radius: 12px;
+  background: #22364d;
+  text-align: center;
   cursor: pointer;
 }
 
 .player-workout-status__timer:hover {
-  background: #243b50;
+  background: #2f4962;
 }
 
 .player-workout-status__timer strong {
   color: var(--player-ice);
-  font-size: clamp(1.6rem, 6vw, 2.3rem);
+  font-size: clamp(1.125rem, 5vw, 1.75rem);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .player-workout-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  position: sticky;
+  z-index: 5;
+  top: 8px;
+  display: flex;
+  justify-content: flex-end;
   gap: 8px;
   margin-bottom: 12px;
+  pointer-events: none;
 }
 
-.player-workout-controls button:last-child:not(:disabled) {
-  background: var(--player-ice);
-  border-color: #579ab0;
+.player-workout-controls[data-mobile="true"] {
+  position: fixed;
+  inset: auto 6px calc(6px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: stretch;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid #46617c;
+  border-radius: 16px;
+  background: #152438;
+  box-shadow: 0 8px 26px rgb(6 14 24 / 40%);
+  pointer-events: auto;
+}
+
+.player-workout-controls[data-mobile="true"] > button:not(.player-workout-status__timer) {
+  flex: 1;
+  padding-inline: 6px;
+  font-size: clamp(0.875rem, 3.6vw, 1rem);
+}
+
+.player-workout-controls button {
+  pointer-events: auto;
+}
+
+.player-workout-controls .player-workout-controls__next:not(:disabled) {
+  background: var(--player-accent);
+  border-color: #729b20;
 }
 
 .player-workout-controls button:disabled {
   opacity: 0.55;
   cursor: default;
   transform: none;
+}
+
+.player-workout-card {
+  scroll-margin-top: 80px;
+}
+
+.player-workout-card__header {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .player-workout-card__title {
@@ -410,13 +463,94 @@
   overflow-wrap: anywhere;
 }
 
+.player-workout-card__eyebrow {
+  margin: 0;
+  color: #216476;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.player-workout-card__disclosure,
+.player-workout-card__add,
+.player-workout-card__optional summary,
+.player-workout-set__remove {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--player-line);
+  border-radius: 9px;
+  background: #fff;
+  color: #194a62;
+  font-size: 0.875rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.player-workout-card__disclosure span {
+  margin-inline-start: 6px;
+}
+
+.player-workout-card__add {
+  width: 100%;
+  margin-bottom: 10px;
+  border-color: #aac9d7;
+  background: #e8f6fa;
+}
+
+.player-workout-card__optional {
+  margin-block: 8px;
+}
+
+.player-workout-card__optional summary {
+  padding-block: 12px;
+}
+
+.player-workout-card__optional > :not(summary) {
+  margin-block: 8px 0;
+}
+
+.player-workout-card__note {
+  margin: 0 0 8px;
+  color: var(--player-muted);
+  font-size: 0.875rem;
+}
+
 .player-design .player-workout-set {
   --ghf-surface: var(--player-tint);
 }
 
-.player-design .player-workout-set input {
-  min-height: 44px;
+.player-workout-set__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr));
+  gap: 8px;
+}
+
+.player-workout-set__fields label {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  color: var(--player-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.player-workout-set__fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 1px solid #b6c9d7;
+  border-radius: 9px;
   background: #fff;
+  color: var(--player-ink);
+  font-size: 1rem;
+}
+
+.player-workout-set__remove {
+  margin-inline-start: auto;
+}
+
+.player-workout-target {
+  --ghf-surface-alt: #eff7fb;
 }
 
 @media (max-width: 600px) {

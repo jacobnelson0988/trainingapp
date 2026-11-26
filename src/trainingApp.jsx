@@ -1541,6 +1541,27 @@ function TrainingApp() {
   }, [isWorkoutActive, selectedWorkout])
 
   useEffect(() => {
+    const viewport = exerciseCarouselRef.current
+    if (!isMobile || !isWorkoutActive || !viewport) return
+
+    const card = viewport.querySelectorAll("[data-exercise-card='true']")[activeExerciseIndex]
+    if (!card) return
+
+    const fitActiveCard = () => {
+      viewport.style.blockSize = `${card.offsetHeight + 4}px`
+    }
+
+    fitActiveCard()
+    const observer = new ResizeObserver(fitActiveCard)
+    observer.observe(card)
+
+    return () => {
+      observer.disconnect()
+      viewport.style.removeProperty("block-size")
+    }
+  }, [activeExerciseIndex, isMobile, isWorkoutActive, selectedWorkout])
+
+  useEffect(() => {
     if (!selectedTemplateCode || !templatesFromDB.length) return
 
     const selectedTemplate = templatesFromDB.find((template) => template.code === selectedTemplateCode)
@@ -7473,18 +7494,19 @@ function TrainingApp() {
   }
 
   const scrollToExerciseCard = (index) => {
-    if (!exerciseCarouselRef.current) return
-
-    const cards = exerciseCarouselRef.current.querySelectorAll("[data-exercise-card='true']")
-    const targetCard = cards[index]
-
+    const viewport = exerciseCarouselRef.current
+    const targetCard = viewport?.querySelectorAll("[data-exercise-card='true']")[index]
     if (!targetCard) return
 
-    targetCard.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "start",
-    })
+    if (isMobile) {
+      viewport.scrollTo({ left: index * viewport.clientWidth, behavior: "instant" })
+      const viewportTop = viewport.getBoundingClientRect().top
+      if (viewportTop < 0) {
+        window.scrollTo({ top: window.scrollY + viewportTop, behavior: "instant" })
+      }
+    } else {
+      targetCard.scrollIntoView({ block: "start" })
+    }
     setActiveExerciseIndex(index)
   }
 
@@ -7548,7 +7570,6 @@ function TrainingApp() {
   const activeWorkoutExercises = Array.isArray(activeWorkoutData?.exercises)
     ? activeWorkoutData.exercises
     : []
-  const activeWorkoutExerciseCount = isRunningWorkoutActive ? 1 : activeWorkoutExercises.length
   const restStopwatchElapsedMs =
     isWorkoutActive && !isRunningWorkoutActive && restStopwatchStartedAt
       ? restStopwatchNow - restStopwatchStartedAt
@@ -7580,16 +7601,19 @@ function TrainingApp() {
     },
   ]
 
-  const activeWorkoutSlideCount = activeWorkoutExerciseCount + 2
+  const activeWorkoutSteps = [
+    "Uppvärmning",
+    ...(isRunningWorkoutActive
+      ? ["Löppass"]
+      : activeWorkoutExercises.map((exercise, index) => {
+          const selected = getSelectedExerciseExecution(exercise, selectedExerciseOptionKeys[index])
+          return selected?.displayName || selected?.name || exercise.displayName || exercise.name
+        })),
+    "Avsluta passet",
+  ]
+  const activeWorkoutSlideCount = activeWorkoutSteps.length
   const isWarmupSlideActive = activeExerciseIndex === 0
   const isFinishSlideActive = activeExerciseIndex === activeWorkoutSlideCount - 1
-  const activeWorkoutProgressSummary = isWarmupSlideActive
-    ? "Uppvärmning"
-    : isFinishSlideActive
-    ? "Avslut"
-    : isRunningWorkoutActive
-    ? "Löppass"
-    : `Övning ${Math.min(activeExerciseIndex, activeWorkoutExerciseCount)} / ${activeWorkoutExerciseCount}`
   const assignedCompletedSessions = completedWorkoutSessions.filter(
     (session) => !(session.workout_kind === "running" && session.running_origin !== "assigned")
   )
@@ -7723,13 +7747,14 @@ function TrainingApp() {
 
   return (
     <div
-      className={useCompactPlayerHeader ? "player-design" : undefined}
+      className={isPlayerWorkout ? "player-design player-design--workout" : useCompactPlayerHeader ? "player-design" : undefined}
       style={{
         ...pageStyle,
         position: "relative",
+        ...(isPlayerWorkout ? { overflowX: "clip" } : {}),
         padding: isMobile
           ? `max(14px, env(safe-area-inset-top)) 12px ${
-              showCoachBottomNav || showPlayerBottomNav
+              showCoachBottomNav || showPlayerBottomNav || isPlayerWorkout
               || showAdminBottomNav
                 ? "calc(104px + env(safe-area-inset-bottom))"
                 : "calc(36px + env(safe-area-inset-bottom))"
@@ -9444,42 +9469,36 @@ function TrainingApp() {
 
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
-          {(isMobile || !isRunningWorkoutActive) && (
-            <div className="player-workout-status">
+          <div className="player-workout-status">
+            <div className="player-workout-status__step">
+              <label htmlFor="workout-step" className="player-workout-status__position">
+                {isMobile ? `Steg ${activeExerciseIndex + 1} av ${activeWorkoutSlideCount}` : "Gå till steg"}
+              </label>
+              <select
+                id="workout-step"
+                value={activeExerciseIndex}
+                onChange={(event) => scrollToExerciseCard(Number(event.target.value))}
+              >
+                {activeWorkoutSteps.map((step, index) => (
+                  <option key={index} value={index}>{step}</option>
+                ))}
+              </select>
               {isMobile && (
-                <div className="player-workout-status__step">
-                  <div className="player-workout-status__position">
-                    <span>Steg {activeExerciseIndex + 1} av {activeWorkoutSlideCount}</span>
-                    <strong>{activeWorkoutProgressSummary}</strong>
-                  </div>
-                  <div
-                    className="player-workout-status__segments"
-                    role="progressbar"
-                    aria-label="Position i passet"
-                    aria-valuenow={activeExerciseIndex + 1}
-                    aria-valuemin={0}
-                    aria-valuemax={activeWorkoutSlideCount}
-                  >
-                    {Array.from({ length: activeWorkoutSlideCount }, (_, index) => (
-                      <span key={index} data-reached={index <= activeExerciseIndex} />
-                    ))}
-                  </div>
+                <div
+                  className="player-workout-status__segments"
+                  role="progressbar"
+                  aria-label="Position i passet"
+                  aria-valuenow={activeExerciseIndex + 1}
+                  aria-valuemin={0}
+                  aria-valuemax={activeWorkoutSlideCount}
+                >
+                  {activeWorkoutSteps.map((_, index) => (
+                    <span key={index} data-reached={index <= activeExerciseIndex} />
+                  ))}
                 </div>
               )}
-              {!isRunningWorkoutActive && (
-                <button
-                  type="button"
-                  onClick={resetRestStopwatch}
-                  className="player-workout-status__timer"
-                  aria-label="Nollställ vilostoppklocka"
-                >
-                  <span>Vila</span>
-                  <strong>{formatStopwatchTime(restStopwatchElapsedMs)}</strong>
-                  <span>Nollställ</span>
-                </button>
-              )}
             </div>
-          )}
+          </div>
 
           {isSharedGymWorkout(activeWorkoutData) && activeCalendarGroup ? (
             <div style={activeWorkoutGroupCardStyle}>
@@ -9510,30 +9529,38 @@ function TrainingApp() {
             </div>
           ) : null}
 
-          {isMobile && activeWorkoutSlideCount > 1 && (
-            <div className="player-workout-controls">
-              <button
-                type="button"
-                onClick={() => scrollToExerciseCard(Math.max(activeExerciseIndex - 1, 0))}
-                disabled={activeExerciseIndex === 0}
-              >
-                Föregående
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  scrollToExerciseCard(
-                    Math.min(
-                      activeExerciseIndex + 1,
-                      activeWorkoutSlideCount - 1
-                    )
-                  )
-                }
-                disabled={activeExerciseIndex === activeWorkoutSlideCount - 1}
-              >
-                Nästa
-              </button>
+          {(isMobile || !isRunningWorkoutActive) && (
+            <div className="player-workout-controls" data-mobile={isMobile}>
+              {isMobile && (
+                <button
+                  type="button"
+                  onClick={() => scrollToExerciseCard(activeExerciseIndex - 1)}
+                  disabled={isWarmupSlideActive}
+                >
+                  Föregående
+                </button>
+              )}
+              {!isRunningWorkoutActive && (
+                <button
+                  type="button"
+                  onClick={resetRestStopwatch}
+                  className="player-workout-status__timer"
+                  aria-label="Nollställ vilostoppklocka"
+                >
+                  <span>Vila</span>
+                  <strong>{formatStopwatchTime(restStopwatchElapsedMs)}</strong>
+                </button>
+              )}
+              {isMobile && (
+                <button
+                  type="button"
+                  className="player-workout-controls__next"
+                  onClick={() => scrollToExerciseCard(activeExerciseIndex + 1)}
+                  disabled={isFinishSlideActive}
+                >
+                  {activeExerciseIndex === activeWorkoutSlideCount - 2 ? "Till avslut" : "Nästa"}
+                </button>
+              )}
             </div>
           )}
 
@@ -9551,7 +9578,7 @@ function TrainingApp() {
               const nextIndex = Math.round(viewport.scrollLeft / viewport.clientWidth)
 
               if (Number.isFinite(nextIndex)) {
-                setActiveExerciseIndex(nextIndex)
+                setActiveExerciseIndex(Math.max(0, Math.min(nextIndex, activeWorkoutSlideCount - 1)))
               }
             }}
           >
@@ -9559,6 +9586,7 @@ function TrainingApp() {
               <div
                 className="player-workout-card"
                 data-exercise-card="true"
+                inert={isMobile && !isWarmupSlideActive}
                 style={
                   isMobile
                     ? {
@@ -9597,6 +9625,7 @@ function TrainingApp() {
             <div
               className="player-workout-card"
               data-exercise-card="true"
+              inert={isMobile && activeExerciseIndex !== 1}
               style={
                 isMobile
                   ? {
@@ -9606,8 +9635,7 @@ function TrainingApp() {
                   : cardStyle
               }
             >
-              <div style={exerciseProgressStyle}>Löppass</div>
-              <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>{activeWorkoutData?.label || "Löppass"}</h3>
+              <h3 className="player-workout-card__title">Logga löppasset</h3>
               <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
                 {buildRunningSummary({
                   running_type: activeWorkoutData?.runningType,
@@ -9619,40 +9647,46 @@ function TrainingApp() {
               </p>
 
               {activeWorkoutData?.runningType === "intervals" ? (
-                <div style={{ display: "grid", gap: "10px" }}>
-                  <input
-                    placeholder="Tid per intervall"
-                    value={activeRunningInput.interval_time}
-                    onChange={(e) => handleActiveRunningInputChange("interval_time", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                  <input
-                    placeholder="Antal intervaller"
-                    value={activeRunningInput.intervals_count}
-                    onChange={(e) => handleActiveRunningInputChange("intervals_count", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
+                <div className="player-workout-set__fields">
+                  <label>
+                    Tid per intervall
+                    <input
+                      value={activeRunningInput.interval_time}
+                      onChange={(e) => handleActiveRunningInputChange("interval_time", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Antal intervaller
+                    <input
+                      value={activeRunningInput.intervals_count}
+                      onChange={(e) => handleActiveRunningInputChange("intervals_count", e.target.value)}
+                    />
+                  </label>
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: "10px" }}>
-                  <input
-                    placeholder="Distans i km"
-                    value={activeRunningInput.running_distance}
-                    onChange={(e) => handleActiveRunningInputChange("running_distance", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                  <input
-                    placeholder="Tid, t.ex. 24:30"
-                    value={activeRunningInput.running_time}
-                    onChange={(e) => handleActiveRunningInputChange("running_time", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
-                  <input
-                    placeholder="Snittpuls"
-                    value={activeRunningInput.average_pulse}
-                    onChange={(e) => handleActiveRunningInputChange("average_pulse", e.target.value)}
-                    style={{ ...inputStyle, width: "100%" }}
-                  />
+                <div className="player-workout-set__fields">
+                  <label>
+                    Distans i km
+                    <input
+                      value={activeRunningInput.running_distance}
+                      onChange={(e) => handleActiveRunningInputChange("running_distance", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Tid
+                    <input
+                      value={activeRunningInput.running_time}
+                      onChange={(e) => handleActiveRunningInputChange("running_time", e.target.value)}
+                      placeholder="24:30"
+                    />
+                  </label>
+                  <label>
+                    Snittpuls
+                    <input
+                      value={activeRunningInput.average_pulse}
+                      onChange={(e) => handleActiveRunningInputChange("average_pulse", e.target.value)}
+                    />
+                  </label>
                 </div>
               )}
             </div>
@@ -9664,7 +9698,6 @@ function TrainingApp() {
             )
             const protocolConfig = getExerciseProtocolConfig(selectedExercise || exercise)
             const isProtocol = Boolean(protocolConfig)
-            const totalExercises = activeWorkoutExerciseCount
             const infoKey = `${exercise.name}-${selectedExercise?.name || exercise.name}`
             const isInfoExpanded = !!expandedInfo[infoKey]
             const latestExerciseSets = selectedExercise ? latestWorkout[selectedExercise.name] || [] : []
@@ -9700,6 +9733,7 @@ function TrainingApp() {
                 key={i}
                 className="player-workout-card"
                 data-exercise-card="true"
+                inert={isMobile && activeExerciseIndex !== i + 1}
                 style={
                   isMobile
                     ? {
@@ -9709,48 +9743,30 @@ function TrainingApp() {
                     : cardStyle
                 }
                 >
-                <div style={exerciseProgressStyle}>Övning {i + 1} / {totalExercises}</div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpandedInfo((prev) => ({
-                      ...prev,
-                      [infoKey]: !prev[infoKey],
-                    }))
-                  }
-                  style={{
-                    ...exerciseHeaderButtonStyle,
-                    marginBottom: hasExerciseDetails && isInfoExpanded ? "14px" : "10px",
-                    cursor: hasExerciseDetails ? "pointer" : "default",
-                  }}
-                >
-                  <div>
-                    <h3 className="player-workout-card__title">
-                      {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
-                    </h3>
-                    <div style={exerciseHeaderHintStyle}>
-                      {hasExerciseDetails
-                        ? isInfoExpanded
-                          ? "Dölj beskrivning och video"
-                          : "Tryck för att se beskrivning och video"
-                        : "Ingen extra information tillagd ännu"}
-                    </div>
-                    {!isProtocol &&
-                      selectedExercise?.executionSide &&
-                      selectedExercise.executionSide !== "standard" && (
-                      <div style={{ ...exerciseHeaderHintStyle, marginTop: "4px", color: "#991b1b" }}>
+                <header className="player-workout-card__header">
+                  {!isMobile && <p className="player-workout-card__eyebrow">Övning {i + 1} av {activeWorkoutExercises.length}</p>}
+                  <h3 className="player-workout-card__title">{activeWorkoutSteps[i + 1]}</h3>
+                  {!isProtocol &&
+                    selectedExercise?.executionSide &&
+                    selectedExercise.executionSide !== "standard" && (
+                      <p style={mutedTextStyle}>
                         {getExerciseExecutionSideHint(
                           selectedExercise.executionSide,
-                          selectedExercise?.type || exercise.type
+                          selectedExercise.type || exercise.type
                         )}
-                      </div>
+                      </p>
                     )}
-                  </div>
                   {hasExerciseDetails && (
-                    <div style={exerciseHeaderIconStyle}>{isInfoExpanded ? "−" : "+"}</div>
+                    <button
+                      type="button"
+                      className="player-workout-card__disclosure"
+                      aria-expanded={isInfoExpanded}
+                      onClick={() => setExpandedInfo((prev) => ({ ...prev, [infoKey]: !prev[infoKey] }))}
+                    >
+                      Instruktioner <span aria-hidden="true">{isInfoExpanded ? "−" : "+"}</span>
+                    </button>
                   )}
-                </button>
+                </header>
 
                 {hasExerciseDetails && isInfoExpanded && (
                   <div style={exerciseDetailsPanelStyle}>
@@ -9803,9 +9819,8 @@ function TrainingApp() {
                 )}
 
                 {exerciseOptions.length > 1 && (
-                  <div style={alternativeSelectionCardStyle}>
-                    <div style={alternativeSelectionTitleStyle}>Alternativa övningar</div>
-                    <div style={alternativeSelectionHintStyle}>Välj vilken variant du kör idag.</div>
+                  <details className="player-workout-card__optional">
+                    <summary>Byt övningsvariant</summary>
                     <div style={alternativeSelectionOptionListStyle}>
                       {exerciseOptions.map((option) => {
                         const isSelectedOption = selectedExercise?.optionKey === option.optionKey
@@ -9815,6 +9830,7 @@ function TrainingApp() {
                             key={option.optionKey}
                             type="button"
                             onClick={() => handleSelectedExerciseOptionChange(i, option.optionKey)}
+                            aria-pressed={isSelectedOption}
                             style={{
                               ...alternativeSelectionOptionStyle,
                               borderColor: isSelectedOption ? "#1d4ed8" : "#dbe5ef",
@@ -9834,7 +9850,7 @@ function TrainingApp() {
                         )
                       })}
                     </div>
-                  </div>
+                  </details>
                 )}
 
                 {!isProtocol &&
@@ -9845,7 +9861,7 @@ function TrainingApp() {
                       String(currentTarget.target_comment || "").trim() ||
                       currentTarget.target_reps_mode === "max")) ||
                     (profile?.individual_goals_enabled === false && latestExerciseTopSet)) && (
-                  <div style={targetBoxStyle}>
+                  <div className="player-workout-target" style={targetBoxStyle}>
                     <div style={targetBoxHeaderStyle}>
                       <div style={targetBoxTitleStyle}>
                         {profile?.individual_goals_enabled === false
@@ -10188,6 +10204,11 @@ function TrainingApp() {
                   </div>
                 )}
 
+                {isWorkoutActive && !isProtocol && selectedExercise?.type === "weight_reps" &&
+                  latestExerciseTopSet?.weight != null && (
+                    <p className="player-workout-card__note">Senaste vikt: {latestExerciseTopSet.weight} kg</p>
+                  )}
+
                 {isWorkoutActive &&
                   !isProtocol &&
                   (inputs[i] || []).map((set, j) => (
@@ -10206,147 +10227,78 @@ function TrainingApp() {
                         >
                           {set.set_type === "warmup" ? "Uppvärmning" : "Arbetsset"}
                         </button>
-                      </div>
-
-                      {set.set_type === "warmup" && (
-                        <div style={setInputHintStyle}>
-                          Det här setet sparas som uppvärmning och räknas inte in i statistik eller rekommenderade vikter.
-                        </div>
-                      )}
-
-                      <div
-                        style={{
-                          ...setInputsRowStyle,
-                          flexDirection: "row",
-                          alignItems: isMobile ? "stretch" : "center",
-                        }}
-                      >
-                        {selectedExercise?.type === "weight_reps" && (
-                          <>
-                            <input
-                              placeholder="kg"
-                              value={set.weight || ""}
-                              onChange={(e) =>
-                                handleChange(i, j, "weight", e.target.value)
-                              }
-                              style={{ ...inputStyle, ...compactSetInputStyle }}
-                            />
-                            <input
-                              placeholder={getExerciseMeasurementPlaceholder(
-                                selectedExercise?.type || exercise.type,
-                                selectedExercise?.executionSide || "standard"
-                              )}
-                              value={set.reps || ""}
-                              onChange={(e) =>
-                                handleChange(i, j, "reps", e.target.value)
-                              }
-                              style={{ ...inputStyle, ...compactSetInputStyle }}
-                            />
-                          </>
-                        )}
-
-                        {selectedExercise?.type === "reps_only" && (
-                          <input
-                            placeholder={getExerciseMeasurementPlaceholder(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                            value={set.reps || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "reps", e.target.value)
-                            }
-                            style={{ ...inputStyle, ...compactSetInputStyle }}
-                          />
-                        )}
-
-                        {selectedExercise?.type === "seconds_only" && (
-                          <input
-                            placeholder={getExerciseMeasurementPlaceholder(
-                              selectedExercise?.type || exercise.type,
-                              selectedExercise?.executionSide || "standard"
-                            )}
-                            value={set.seconds || ""}
-                            onChange={(e) =>
-                              handleChange(i, j, "seconds", e.target.value)
-                            }
-                            style={{ ...inputStyle, ...compactSetInputStyle }}
-                          />
-                        )}
-
                         <button
+                          type="button"
                           onClick={() => handleRemoveSet(i, j)}
-                          style={{ ...removeButtonStyle, ...compactSetRemoveButtonStyle }}
+                          className="player-workout-set__remove"
+                          aria-label={`Ta bort set ${j + 1}`}
                         >
                           Ta bort
                         </button>
                       </div>
 
-                      {selectedExercise?.type === "weight_reps" &&
-                        selectedExercise &&
-                        latestWorkout[selectedExercise.name]?.slice(-1)[0]?.weight != null && (
-                          <div style={setInputHintStyle}>
-                            Senaste vikt: {latestWorkout[selectedExercise.name].slice(-1)[0].weight} kg
-                          </div>
+                      <div className="player-workout-set__fields">
+                        {selectedExercise?.type === "weight_reps" && (
+                          <label>
+                            Vikt (kg)
+                            <input
+                              inputMode="decimal"
+                              value={set.weight || ""}
+                              onChange={(e) => handleChange(i, j, "weight", e.target.value)}
+                            />
+                          </label>
                         )}
-
-                      {selectedExercise?.executionSide && selectedExercise.executionSide !== "standard" && (
-                        <div style={setInputHintStyle}>
-                          {getExerciseExecutionSideHint(
-                            selectedExercise.executionSide,
-                            selectedExercise?.type || exercise.type
-                          )}
-                        </div>
-                      )}
+                        {(selectedExercise?.type === "weight_reps" || selectedExercise?.type === "reps_only") && (
+                          <label>
+                            {getExerciseMeasurementLabelWithSide(selectedExercise.type, selectedExercise.executionSide)}
+                            <input
+                              inputMode="numeric"
+                              value={set.reps || ""}
+                              onChange={(e) => handleChange(i, j, "reps", e.target.value)}
+                            />
+                          </label>
+                        )}
+                        {selectedExercise?.type === "seconds_only" && (
+                          <label>
+                            {getExerciseMeasurementLabelWithSide(selectedExercise.type, selectedExercise.executionSide)}
+                            <input
+                              inputMode="decimal"
+                              value={set.seconds || ""}
+                              onChange={(e) => handleChange(i, j, "seconds", e.target.value)}
+                            />
+                          </label>
+                        )}
+                      </div>
                     </div>
                   ))}
 
+                {isWorkoutActive && !isProtocol && (
+                  <button type="button" onClick={() => handleAddSet(i)} className="player-workout-card__add">
+                    Lägg till set
+                  </button>
+                )}
+
                 {isWorkoutActive && (
-                  <div style={exerciseCommentCardStyle}>
-                    <div style={exerciseCommentTitleStyle}>Kommentar på övningen</div>
+                  <details className="player-workout-card__optional">
+                    <summary>{exerciseComments[i]?.trim() ? "Redigera kommentar" : "Lägg till kommentar"}</summary>
                     <textarea
+                      aria-label="Kommentar på övningen"
                       rows={3}
-                      placeholder="T.ex. ont i knä, hoppade över sista setet eller annan notering"
                       value={exerciseComments[i] || ""}
                       onChange={(e) => handleExerciseCommentChange(i, e.target.value)}
                       onBlur={() => handleExerciseCommentSave(i)}
                       style={{ ...inputStyle, ...textareaStyle, width: "100%", minHeight: "88px" }}
                     />
-                  </div>
-                )}
-
-                {isWorkoutActive && !isProtocol && (
-                  <button
-                    onClick={() => handleAddSet(i)}
-                    style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
-                  >
-                    + Lägg till set
-                  </button>
+                  </details>
                 )}
 
                 {exercise.info.length > 0 && (
-                  <div style={infoBoxStyle}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedInfo((prev) => ({
-                          ...prev,
-                          [infoKey]: !prev[infoKey],
-                        }))
-                      }
-                      style={infoToggleButtonStyle}
-                    >
-                      <span>Att tänka på</span>
-                      <span>{isInfoExpanded ? "−" : "+"}</span>
-                    </button>
-
-                    {isInfoExpanded && (
-                      <div style={{ marginTop: "8px" }}>
-                        {exercise.info.map((item, index) => (
-                          <div key={index} style={infoRowStyle}>• {item}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <details className="player-workout-card__optional">
+                    <summary>Att tänka på</summary>
+                    <ul>
+                      {exercise.info.map((item, index) => <li key={index}>{item}</li>)}
+                    </ul>
+                  </details>
                 )}
               </div>
             )
@@ -10355,6 +10307,7 @@ function TrainingApp() {
               <div
                 className="player-workout-card"
                 data-exercise-card="true"
+                inert={isMobile && !isFinishSlideActive}
                 style={
                   isMobile
                     ? {
@@ -10855,38 +10808,6 @@ const exerciseDescriptionStyle = {
   fontWeight: "700",
 }
 
-const exerciseHeaderButtonStyle = {
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "12px",
-  padding: 0,
-  border: "none",
-  background: "transparent",
-  textAlign: "left",
-}
-
-const exerciseHeaderHintStyle = {
-  fontSize: "12px",
-  color: "#6b7280",
-  fontWeight: "700",
-}
-
-const exerciseHeaderIconStyle = {
-  width: "34px",
-  height: "34px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
-  fontSize: "22px",
-  fontWeight: "700",
-  flexShrink: 0,
-}
-
 const exerciseDetailsPanelStyle = {
   marginBottom: "14px",
   padding: "14px",
@@ -10931,23 +10852,14 @@ const mutedTextStyle = {
   lineHeight: 1.6,
 }
 
-const exerciseProgressStyle = {
-  display: "inline-block",
-  marginBottom: "12px",
-  padding: "6px 12px",
-  borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
-  fontSize: "12px",
-  fontWeight: "800",
-}
-
 const exerciseCarouselViewportStyle = {
   width: "100%",
   overflowX: "auto",
   WebkitOverflowScrolling: "touch",
   scrollSnapType: "x mandatory",
   overscrollBehaviorX: "contain",
+  overflowY: "hidden",
+  scrollbarWidth: "none",
   paddingBottom: "4px",
 }
 
@@ -10955,8 +10867,7 @@ const exerciseCarouselTrackStyle = {
   display: "grid",
   gridAutoFlow: "column",
   gridAutoColumns: "100%",
-  gap: "12px",
-  alignItems: "stretch",
+  alignItems: "start",
 }
 
 const exerciseSwipeCardStyle = {
@@ -11077,34 +10988,6 @@ const latestRowStyle = {
   lineHeight: 1.6,
 }
 
-const infoBoxStyle = {
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
-  borderRadius: "16px",
-  padding: "10px 12px",
-  marginBottom: "14px",
-}
-
-
-const infoRowStyle = {
-  fontSize: "13px",
-  color: "#566173",
-  lineHeight: 1.6,
-}
-
-const infoToggleButtonStyle = {
-  width: "100%",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  border: "none",
-  backgroundColor: "transparent",
-  padding: 0,
-  fontSize: "14px",
-  fontWeight: "800",
-  color: "#18202b",
-  cursor: "pointer",
-}
 
 const activeSetCardStyle = {
   marginBottom: "10px",
@@ -11126,27 +11009,6 @@ const exerciseCommentCardStyle = {
   borderRadius: "16px",
   backgroundColor: uiSurfaceAlt,
   border: `1px solid ${uiBorder}`,
-}
-
-const alternativeSelectionCardStyle = {
-  marginBottom: "12px",
-  padding: "12px",
-  borderRadius: "16px",
-  backgroundColor: uiSurfaceAlt,
-  border: `1px solid ${uiBorder}`,
-}
-
-const alternativeSelectionTitleStyle = {
-  marginBottom: "4px",
-  fontSize: "13px",
-  fontWeight: "800",
-  color: "#18202b",
-}
-
-const alternativeSelectionHintStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  color: "#64748b",
 }
 
 const alternativeSelectionOptionListStyle = {
@@ -11200,8 +11062,8 @@ const setLabelStyle = {
 
 const setHeaderRowStyle = {
   display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
-  justifyContent: "space-between",
   gap: "10px",
   marginBottom: "8px",
 }
@@ -11218,26 +11080,10 @@ const setTypeToggleStyle = {
   whiteSpace: "nowrap",
 }
 
-const setInputsRowStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "nowrap",
-}
-
-const compactSetInputStyle = {
-  flex: 1,
-  minWidth: 0,
-}
-
 const textareaStyle = {
   resize: "vertical",
   minHeight: "104px",
   fontFamily: "inherit",
-}
-
-const compactSetRemoveButtonStyle = {
-  flex: "0 0 auto",
-  whiteSpace: "nowrap",
 }
 
 const inputStyle = {
@@ -11273,17 +11119,6 @@ const secondaryButtonStyle = {
   fontSize: "14px",
   fontWeight: "800",
   boxShadow: uiShadowSm,
-}
-
-const removeButtonStyle = {
-  padding: "10px 12px",
-  borderRadius: "12px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  color: "#566173",
-  cursor: "pointer",
-  fontSize: "14px",
-  fontWeight: "700",
 }
 
 const pickerGridStyle = {
