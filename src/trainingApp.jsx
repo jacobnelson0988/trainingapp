@@ -7729,6 +7729,15 @@ function TrainingApp() {
   }
   const isPlayerHome =
     profile?.role === "player" && globalView === "app" && playerView === "overview" && !isWorkoutActive
+  const today = new Date()
+  const workoutWindowStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29).getTime()
+  const workoutWindowEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).getTime()
+  const recentWorkoutCount = isPlayerHome
+    ? completedWorkoutSessions.filter((session) => {
+        const sessionTime = Date.parse(session.created_at)
+        return sessionTime >= workoutWindowStart && sessionTime < workoutWindowEnd
+      }).length
+    : 0
   const isPlayerWorkout = profile?.role === "player" && isWorkoutActive
   const useCompactPlayerHeader = profile?.role === "player"
 
@@ -8696,8 +8705,8 @@ function TrainingApp() {
                   <h2 id="player-activity-title">Din träning</h2>
                   <dl className="player-home__stats">
                     <div>
-                      <dt>Loggade pass</dt>
-                      <dd>{completedWorkoutSessions.length}</dd>
+                      <dt>Loggade pass senaste 30 dagarna</dt>
+                      <dd>{isLoadingCompletedWorkoutSessions ? "–" : recentWorkoutCount}</dd>
                     </div>
                     <div>
                       <dt>Tilldelade pass</dt>
