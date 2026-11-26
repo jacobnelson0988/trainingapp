@@ -7648,7 +7648,7 @@ function TrainingApp() {
   const playerBottomTabs = [
     { key: "overview", label: "Hem", icon: "home" },
     { key: "calendar", label: "Kalender", icon: "calendar" },
-    { key: "pass", label: "Pass", icon: "pass" },
+    { key: "pass", label: "Pass", icon: "training" },
     { key: "stats", label: "Statistik", icon: "stats" },
     { key: "messages", label: "Meddelanden", icon: "messages" },
     { key: "account", label: "Konto", icon: "account" },
@@ -8715,7 +8715,7 @@ function TrainingApp() {
               <div className="player-home__actions">
                 <button type="button" onClick={() => navigatePlayerSection("pass")} className="player-home__action">
                   <span className="player-home__action-icon" aria-hidden="true">
-                    {renderCoachBottomNavIcon("pass", false)}
+                    {renderCoachBottomNavIcon("training", false)}
                   </span>
                   <span className="player-home__action-label">Dina pass</span>
                 </button>
@@ -8732,7 +8732,7 @@ function TrainingApp() {
                   aria-expanded={playerOverviewPanel === "history"}
                 >
                   <span className="player-home__action-icon" aria-hidden="true">
-                    {renderCoachBottomNavIcon("calendar", false)}
+                    {renderCoachBottomNavIcon("history", false)}
                   </span>
                   <span className="player-home__action-label">Historik</span>
                   <span className="player-home__action-toggle" aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
@@ -8744,7 +8744,7 @@ function TrainingApp() {
                   aria-expanded={playerOverviewPanel === "running"}
                 >
                   <span className="player-home__action-icon" aria-hidden="true">
-                    {renderCoachBottomNavIcon("players", false)}
+                    {renderCoachBottomNavIcon("activity", false)}
                   </span>
                   <span className="player-home__action-label">Egen aktivitet</span>
                   <span className="player-home__action-toggle" aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
@@ -9572,7 +9572,10 @@ function TrainingApp() {
                   className="player-workout-status__timer"
                   aria-label="Nollställ vilostoppklocka"
                 >
-                  <span>Vila</span>
+                  <span className="player-workout-status__timer-label">
+                    <span aria-hidden="true">{renderCoachBottomNavIcon("clock", false)}</span>
+                    Vila
+                  </span>
                   <strong>{formatStopwatchTime(restStopwatchElapsedMs)}</strong>
                 </button>
               )}
@@ -11937,6 +11940,34 @@ const renderCoachBottomNavIcon = (icon, isActive) => {
           <rect x="3" y="4" width="18" height="18" rx="3" />
           <path d="M8 2v4" />
           <path d="M16 2v4" />
+        </svg>
+      )
+    case "training":
+      return (
+        <svg {...commonProps}>
+          <path d="M2 12h2m4 0h8m4 0h2" />
+          <rect x="4" y="6" width="4" height="12" rx="1" />
+          <rect x="16" y="6" width="4" height="12" rx="1" />
+        </svg>
+      )
+    case "history":
+      return (
+        <svg {...commonProps}>
+          <path d="M3 5v5h5M3 10a9 9 0 1 1 1 7" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      )
+    case "activity":
+      return (
+        <svg {...commonProps}>
+          <path d="M2 12h5l3-7 4 14 3-7h5" />
+        </svg>
+      )
+    case "clock":
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
         </svg>
       )
     case "calendar":

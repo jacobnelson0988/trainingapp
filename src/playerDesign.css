@@ -93,8 +93,7 @@
   cursor: pointer;
 }
 
-.player-design__tabs button[aria-current="page"],
-.player-design__dock button[aria-current="page"] {
+.player-design__tabs button[aria-current="page"] {
   background: #293b47;
   color: var(--player-accent);
 }
@@ -112,21 +111,37 @@
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 5px;
-  min-height: 54px;
+  gap: 3px;
+  min-height: 58px;
   padding-inline: 0;
   font-size: 0.75rem;
 }
 
 .player-design__dock-icon {
   position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 40px);
+  height: 30px;
+  border-radius: 9px;
+  color: #c0d3e5;
+}
+
+.player-design__dock button[aria-current="page"] {
+  color: #f4f9fe;
+}
+
+.player-design__dock button[aria-current="page"] .player-design__dock-icon {
+  background: #30485c;
+  color: var(--player-accent);
 }
 
 .player-design__unread {
   position: absolute;
-  inset: 0 -4px auto auto;
-  width: 8px;
-  height: 8px;
+  inset: 2px 4px auto auto;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--player-dark);
   border-radius: 50%;
   background: var(--player-ice);
 }
@@ -342,11 +357,16 @@
 .player-home__action-icon {
   display: grid;
   place-items: center;
-  flex: 0 0 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: #2d4961;
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #324f69;
   color: var(--player-ice);
+}
+
+.player-home__action-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
 .player-home__action-label {
@@ -451,7 +471,7 @@
 }
 
 .player-workout-status__position,
-.player-workout-status__timer span {
+.player-workout-status__timer-label {
   color: #d1e0ee;
   font-size: 0.875rem;
   font-weight: 700;
@@ -502,6 +522,19 @@
 
 .player-workout-status__timer:hover {
   background: #2f4962;
+}
+
+.player-workout-status__timer-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.player-workout-status__timer-label svg {
+  width: 16px;
+  height: 16px;
+  color: var(--player-ice);
 }
 
 .player-workout-status__timer strong {
