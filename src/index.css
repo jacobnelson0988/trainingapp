@@ -115,6 +115,19 @@ video {
 }
 
 .calendar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  margin-inline: auto;
+  contain: inline-size;
+  overflow-wrap: anywhere;
+}
+
+.calendar > :where(div),
+.calendar__week > .calendar__day {
   inline-size: 100%;
   min-inline-size: 0;
 }
@@ -125,10 +138,6 @@ video {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-}
-
-.calendar:not(.player-section) > .calendar__header {
-  margin-block-end: 14px;
 }
 
 .calendar__actions {
@@ -142,6 +151,7 @@ video {
   min-height: 44px;
 }
 
+.calendar__schedule,
 .calendar__week,
 .calendar__events,
 .calendar__day {
@@ -175,15 +185,11 @@ video {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .calendar__actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(max-content, 1fr));
     inline-size: 100%;
-  }
-
-  .calendar__actions > button:not(.calendar__create) {
-    padding-inline: 4px;
   }
 
   .calendar__create {

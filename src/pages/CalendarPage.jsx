@@ -674,21 +674,21 @@ function CalendarPage({
               {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
             </button>
           ) : null}
-          <button type="button" onClick={onPreviousWeek} style={secondaryButtonStyle}>
+          <button type="button" onClick={onPreviousWeek} style={weekButtonStyle}>
             Föregående
           </button>
-          <button type="button" onClick={onGoToToday} style={secondaryButtonStyle}>
+          <button type="button" onClick={onGoToToday} style={weekButtonStyle}>
             Idag
           </button>
-          <button type="button" onClick={onNextWeek} style={secondaryButtonStyle}>
+          <button type="button" onClick={onNextWeek} style={weekButtonStyle}>
             Nästa
           </button>
         </div>
       </div>
 
-      {isCreateOpen && !editingEntry ? <div style={composerWrapStyle}>{renderActivityForm()}</div> : null}
+      {isCreateOpen && !editingEntry ? <div>{renderActivityForm()}</div> : null}
 
-      <div style={weekColumnStyle}>
+      <div className="calendar__schedule">
           {isLoading ? (
             <div style={emptyStateStyle}>Laddar kalender...</div>
           ) : (
@@ -955,15 +955,6 @@ const subStyle = {
   color: "var(--player-section-muted, #6b7280)",
 }
 
-const weekColumnStyle = {
-  display: "grid",
-  gap: "12px",
-}
-
-const composerWrapStyle = {
-  marginBottom: "14px",
-}
-
 const inlineComposerStyle = {
   marginTop: "8px",
 }
@@ -1210,6 +1201,12 @@ const secondaryButtonStyle = {
   fontSize: "14px",
   fontWeight: 700,
   cursor: "pointer",
+}
+
+const weekButtonStyle = {
+  ...secondaryButtonStyle,
+  padding: "10px 6px",
+  whiteSpace: "nowrap",
 }
 
 const secondaryButtonStyleCompact = {
