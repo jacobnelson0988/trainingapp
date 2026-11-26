@@ -23,7 +23,7 @@
   color: var(--player-ink);
 }
 
-#root:has(.player-design--workout) {
+#root:has([data-player-view="home"], [data-player-view="workout"]) {
   background:
     radial-gradient(ellipse at 85% 0%, #254c64 0, transparent 52%),
     linear-gradient(150deg, #142338, #101c2b 78%);
@@ -131,20 +131,37 @@
   background: var(--player-ice);
 }
 
+.player-design[data-player-view="home"] .player-design__header,
+.player-design[data-player-view="home"] .player-design__tabs {
+  background: rgb(17 28 42 / 78%);
+  border-color: #365069;
+}
+
 .player-home {
+  --home-panel: #192a3d;
+  --home-line: #3c5369;
+  --home-text: #f1f7fc;
+  --home-muted: #b9ccdc;
   display: grid;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
+  color: var(--home-text);
 }
 
 .player-home__greeting {
-  padding-block: 12px 4px;
+  padding-block: clamp(12px, 3vw, 28px) 8px;
 }
 
 .player-home__greeting p {
-  margin: 0 0 6px;
-  color: var(--player-muted);
+  margin: 0 0 7px;
+  color: var(--player-ice);
+  font-size: 0.9375rem;
   font-weight: 700;
+}
+
+.player-home__dashboard {
+  display: grid;
+  gap: 12px;
 }
 
 .player-home h1,
@@ -160,10 +177,12 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: clamp(22px, 5vw, 48px);
-  border: 1px solid #33495c;
-  border-radius: 25px;
-  background: linear-gradient(120deg, #111c2a 32%, #153852);
+  padding: clamp(20px, 4vw, 34px);
+  border: 1px solid #4b6d84;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 100% 0, #2b617d, transparent 75%),
+    #152a3d;
   color: #fff;
 }
 
@@ -228,15 +247,37 @@
 }
 
 .player-design__secondary:hover,
-.player-home__action:hover,
 .player-workout-controls button:not(.player-workout-status__timer, :disabled):hover {
   background: #e9f5fc;
+}
+
+.player-home__activity {
+  padding: clamp(14px, 3vw, 20px);
+  border: 1px solid var(--home-line);
+  border-radius: 22px;
+  background: var(--home-panel);
+}
+
+.player-home__activity h2,
+.player-home__section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.player-home__activity h2 {
+  margin-bottom: 12px;
+}
+
+.player-home__section-title {
+  margin-top: 8px;
 }
 
 .player-home__stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
   margin: 0;
 }
 
@@ -245,27 +286,32 @@
   flex-direction: column-reverse;
   justify-content: flex-end;
   gap: 4px;
-  padding: 12px;
-  border: 1px solid #30435a;
-  border-radius: 15px;
-  background: #18273a;
+  min-width: 0;
+  padding: 5px 0;
+}
+
+.player-home__stats > div + div {
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--home-line);
 }
 
 .player-home__stats dt {
-  color: #d2e1ec;
+  color: var(--home-muted);
   font-size: 0.875rem;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .player-home__stats dd {
   margin: 0;
   color: var(--player-ice);
-  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  line-height: 1.05;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
-.player-home__stats > div:nth-child(2) dd {
+.player-home__stats > div:first-child dd {
   color: var(--player-accent);
 }
 
@@ -279,8 +325,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-inline: 10px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border-color: var(--home-line);
+  background: var(--home-panel);
+  color: var(--home-text);
   text-align: left;
+}
+
+.player-home__action:hover,
+.player-home__action[aria-expanded="true"] {
+  border-color: #6797af;
+  background: #263e54;
 }
 
 .player-home__action-icon {
@@ -289,12 +345,68 @@
   flex: 0 0 32px;
   height: 32px;
   border-radius: 9px;
-  background: #e4f4fa;
-  color: #21556a;
+  background: #2d4961;
+  color: var(--player-ice);
 }
 
 .player-home__action-label {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.player-home__action-toggle {
+  color: var(--player-ice);
+}
+
+.player-home__footer {
+  border-top: 1px solid var(--home-line);
+}
+
+.player-home__feedback {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--home-muted);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.player-home :is(.player-home__action, .player-home__feedback):focus-visible {
+  outline-color: var(--player-ice);
+}
+
+@media (min-width: 720px) {
+  .player-home__dashboard {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .player-home__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-home__stats > div:first-child {
+    grid-column: 1 / -1;
+    margin-bottom: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--home-line);
+  }
+
+  .player-home__stats > div:first-child dd {
+    font-size: 2.75rem;
+  }
+
+  .player-home__stats > div:nth-child(2) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .player-home__actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .player-workout-heading {

@@ -7739,9 +7739,51 @@ function TrainingApp() {
       ? "Bygg pass, följ spelare och håll ihop träningen."
       : "Dina pass, meddelanden och historik på ett ställe."
 
+  const feedbackComposer = isFeedbackOpen && (
+    <div style={feedbackComposerCardStyle}>
+      <div style={cardTitleStyle}>Skriv feedback</div>
+      <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
+        Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
+      </p>
+      <div style={compactFieldLabelStyle}>Meddelande</div>
+      <textarea
+        rows={4}
+        value={feedbackText}
+        onChange={(event) => setFeedbackText(event.target.value)}
+        placeholder="Skriv kort vad du vill skicka in"
+        style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "12px" }}
+      />
+      <div style={feedbackComposerActionsStyle}>
+        <button
+          type="button"
+          onClick={() => {
+            setIsFeedbackOpen(false)
+            setFeedbackText("")
+          }}
+          style={secondaryButtonStyle}
+        >
+          Avbryt
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmitFeedback}
+          disabled={isSubmittingFeedback}
+          style={{
+            ...buttonStyle,
+            opacity: isSubmittingFeedback ? 0.7 : 1,
+            cursor: isSubmittingFeedback ? "default" : "pointer",
+          }}
+        >
+          {isSubmittingFeedback ? "Sparar..." : "Skicka feedback"}
+        </button>
+      </div>
+    </div>
+  )
+
   return (
     <div
-      className={isPlayerWorkout ? "player-design player-design--workout" : useCompactPlayerHeader ? "player-design" : undefined}
+      className={useCompactPlayerHeader ? "player-design" : undefined}
+      data-player-view={isPlayerWorkout ? "workout" : isPlayerHome ? "home" : undefined}
       style={{
         ...pageStyle,
         position: "relative",
@@ -7996,73 +8038,32 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      {!isPlayerWorkout && (
-        <div
-          style={{
-            ...feedbackActionBarStyle,
-            ...(isPlayerHome ? { background: "transparent", border: 0, boxShadow: "none", padding: 0 } : {}),
-            flexDirection: isMobile && !isPlayerHome ? "column" : "row",
-            alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
-          }}
-        >
-          {!isPlayerHome && (
+      {!isPlayerHome && !isPlayerWorkout && (
+        <>
+          <div
+            style={{
+              ...feedbackActionBarStyle,
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
+            }}
+          >
             <div style={{ flex: 1 }}>
               <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
               <div style={mutedTextStyle}>
                 Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
               </div>
             </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setIsFeedbackOpen((prev) => !prev)}
-            style={{ ...secondaryButtonStyle, width: isMobile && !isPlayerHome ? "100%" : "auto" }}
-          >
-            {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
-          </button>
-        </div>
-      )}
-
-      {isFeedbackOpen && !isPlayerWorkout && (
-        <div style={feedbackComposerCardStyle}>
-          <div style={cardTitleStyle}>Skriv feedback</div>
-          <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
-            Beskriv gärna vad du gjorde, vad som saknas eller vad som kan bli tydligare.
-          </p>
-          <div style={compactFieldLabelStyle}>Meddelande</div>
-          <textarea
-            rows={4}
-            value={feedbackText}
-            onChange={(event) => setFeedbackText(event.target.value)}
-            placeholder="Skriv kort vad du vill skicka in"
-            style={{ ...inputStyle, ...textareaStyle, width: "100%", marginBottom: "12px" }}
-          />
-          <div style={feedbackComposerActionsStyle}>
             <button
               type="button"
-              onClick={() => {
-                setIsFeedbackOpen(false)
-                setFeedbackText("")
-              }}
-              style={secondaryButtonStyle}
+              onClick={() => setIsFeedbackOpen((prev) => !prev)}
+              aria-expanded={isFeedbackOpen}
+              style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
             >
-              Avbryt
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmitFeedback}
-              disabled={isSubmittingFeedback}
-              style={{
-                ...buttonStyle,
-                opacity: isSubmittingFeedback ? 0.7 : 1,
-                cursor: isSubmittingFeedback ? "default" : "pointer",
-              }}
-            >
-              {isSubmittingFeedback ? "Sparar..." : "Skicka feedback"}
+              {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
             </button>
           </div>
-        </div>
+          {feedbackComposer}
+        </>
       )}
 
       {(profile?.role === "coach" || profile?.role === "head_admin") && (
@@ -8665,37 +8666,52 @@ function TrainingApp() {
                 <h1>Hej, {playerFirstName}!</h1>
               </div>
 
-              <section className="player-home__featured" aria-labelledby="player-featured-title">
-                <p className="player-design__label">
-                  {suggestedWorkout ? "Rekommenderat pass" : "Dina pass"}
-                </p>
-                <h2 id="player-featured-title">
-                  {suggestedWorkout?.label || "Inget individuellt pass tilldelat"}
-                </h2>
-                <p className="player-home__featured-meta">
-                  {suggestedWorkout
-                    ? suggestedWorkout.workoutKind === "running"
-                      ? getWorkoutKindLabel(suggestedWorkout.workoutKind)
-                      : `${suggestedWorkout.exercises.length} övningar · ${getWorkoutKindLabel(suggestedWorkout.workoutKind)}`
-                    : "Se planerade lagpass i kalendern."}
-                </p>
-                <button
-                  type="button"
-                  className="player-design__primary"
-                  onClick={() =>
-                    suggestedWorkout ? startWorkout(suggestedWorkoutKey) : navigatePlayerSection("calendar")
-                  }
-                >
-                  {suggestedWorkout ? "Starta pass" : "Öppna kalendern"}
-                </button>
-              </section>
+              <div className="player-home__dashboard">
+                <section className="player-home__featured" aria-labelledby="player-featured-title">
+                  <p className="player-design__label">
+                    {suggestedWorkout ? "Rekommenderat pass" : "Dina pass"}
+                  </p>
+                  <h2 id="player-featured-title">
+                    {suggestedWorkout?.label || "Inget individuellt pass tilldelat"}
+                  </h2>
+                  <p className="player-home__featured-meta">
+                    {suggestedWorkout
+                      ? suggestedWorkout.workoutKind === "running"
+                        ? getWorkoutKindLabel(suggestedWorkout.workoutKind)
+                        : `${suggestedWorkout.exercises.length} övningar · ${getWorkoutKindLabel(suggestedWorkout.workoutKind)}`
+                      : "Se planerade lagpass i kalendern."}
+                  </p>
+                  <button
+                    type="button"
+                    className="player-design__primary"
+                    onClick={() =>
+                      suggestedWorkout ? startWorkout(suggestedWorkoutKey) : navigatePlayerSection("calendar")
+                    }
+                  >
+                    {suggestedWorkout ? "Starta pass" : "Öppna kalendern"}
+                  </button>
+                </section>
 
-              <dl className="player-home__stats">
-                <div><dt>Tilldelade pass</dt><dd>{Object.keys(visibleWorkouts).length}</dd></div>
-                <div><dt>Loggade pass</dt><dd>{completedWorkoutSessions.length}</dd></div>
-                <div><dt>Olästa</dt><dd>{unreadMessageCount}</dd></div>
-              </dl>
+                <section className="player-home__activity" aria-labelledby="player-activity-title">
+                  <h2 id="player-activity-title">Din träning</h2>
+                  <dl className="player-home__stats">
+                    <div>
+                      <dt>Loggade pass</dt>
+                      <dd>{completedWorkoutSessions.length}</dd>
+                    </div>
+                    <div>
+                      <dt>Tilldelade pass</dt>
+                      <dd>{Object.keys(visibleWorkouts).length}</dd>
+                    </div>
+                    <div>
+                      <dt>Olästa meddelanden</dt>
+                      <dd>{unreadMessageCount}</dd>
+                    </div>
+                  </dl>
+                </section>
+              </div>
 
+              <h2 className="player-home__section-title">Genvägar</h2>
               <div className="player-home__actions">
                 <button type="button" onClick={() => navigatePlayerSection("pass")} className="player-home__action">
                   <span className="player-home__action-icon" aria-hidden="true">
@@ -8718,7 +8734,8 @@ function TrainingApp() {
                   <span className="player-home__action-icon" aria-hidden="true">
                     {renderCoachBottomNavIcon("calendar", false)}
                   </span>
-                  <span className="player-home__action-label">Historik</span> <span aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
+                  <span className="player-home__action-label">Historik</span>
+                  <span className="player-home__action-toggle" aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
                 </button>
                 <button
                   type="button"
@@ -8729,7 +8746,8 @@ function TrainingApp() {
                   <span className="player-home__action-icon" aria-hidden="true">
                     {renderCoachBottomNavIcon("players", false)}
                   </span>
-                  <span className="player-home__action-label">Egen aktivitet</span> <span aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
+                  <span className="player-home__action-label">Egen aktivitet</span>
+                  <span className="player-home__action-toggle" aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
                 </button>
 
                 {playerOverviewPanel === "history" && (
@@ -9060,6 +9078,17 @@ function TrainingApp() {
                   </div>
                 )}
               </div>
+              <footer className="player-home__footer">
+                <button
+                  type="button"
+                  className="player-home__feedback"
+                  onClick={() => setIsFeedbackOpen((prev) => !prev)}
+                  aria-expanded={isFeedbackOpen}
+                >
+                  {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
+                </button>
+                {feedbackComposer}
+              </footer>
             </main>
           )}
 
@@ -9460,7 +9489,7 @@ function TrainingApp() {
       )}
 
       {status && (
-        <p role="status" style={isPlayerWorkout ? workoutStatusMessageStyle : statusStyle}>{status}</p>
+        <p role="status" style={isPlayerWorkout || isPlayerHome ? workoutStatusMessageStyle : statusStyle}>{status}</p>
       )}
 
       {selectedWorkout && isWorkoutActive && (
