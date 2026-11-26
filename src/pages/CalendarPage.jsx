@@ -660,17 +660,17 @@ function CalendarPage({
   )
 
   return (
-    <div className={role === "player" ? "player-section player-calendar" : undefined}>
-      <div className={role === "player" ? "player-design__view-heading" : undefined} style={{ ...headerStyle(isMobile), ...(role === "player" ? { marginBottom: 0 } : {}) }}>
+    <div className={role === "player" ? "player-section calendar" : "calendar"}>
+      <div className={role === "player" ? "calendar__header player-design__view-heading" : "calendar__header"}>
         <div>
           {role === "player" ? <h1>Kalender</h1> : <div style={titleStyle}>Kalender</div>}
           <div style={subStyle}>
             {role === "coach" ? `Planera veckan för ${teamName}.` : "Se dina planerade aktiviteter för veckan."}
           </div>
         </div>
-        <div style={weekActionsStyle(isMobile)}>
+        <div className="calendar__actions">
           {!editingEntry ? (
-            <button type="button" onClick={handleOpenCreate} style={primaryButtonCompactStyle}>
+            <button type="button" onClick={handleOpenCreate} className="calendar__create" style={primaryButtonCompactStyle}>
               {isCreateOpen ? "Stäng ny aktivitet" : "Ny aktivitet"}
             </button>
           ) : null}
@@ -692,10 +692,10 @@ function CalendarPage({
           {isLoading ? (
             <div style={emptyStateStyle}>Laddar kalender...</div>
           ) : (
-            <div className={role === "player" ? "player-calendar__week" : undefined} style={role === "player" ? undefined : weekGridStyle(isMobile)}>
+            <div className="calendar__week">
               {weekDays.map((day) => (
-                <section key={day.key} style={dayCardStyle}>
-                  <div style={dayHeaderStyle}>
+                <section key={day.key} className="calendar__day" style={dayCardStyle}>
+                  <div className="calendar__day-heading">
                     <div style={dayTitleStyle}>{day.label}</div>
                     <div style={dayCountStyle}>{entriesByDay[day.key]?.length || 0}</div>
                   </div>
@@ -703,7 +703,7 @@ function CalendarPage({
                   {(entriesByDay[day.key] || []).length === 0 ? (
                     <div style={dayEmptyStyle}>Inget planerat.</div>
                   ) : (
-                    <div style={eventStackStyle}>
+                    <div className="calendar__events">
                       {(entriesByDay[day.key] || []).map((entry) => {
                         const status = entry.current_user_link?.completion_status || "planned"
                         const statusTheme = STATUS_COLORS[status] || STATUS_COLORS.planned
@@ -712,7 +712,7 @@ function CalendarPage({
                         return (
                           <div key={entry.id} style={eventWrapStyle}>
                             <div style={eventCardStyle}>
-                              <div style={eventTopRowStyle}>
+                              <div className="calendar__event-heading">
                                 <div>
                                   <div style={eventTitleStyle}>{entry.title}</div>
                                   <div style={eventMetaStyle}>
@@ -942,15 +942,6 @@ function CalendarPage({
   )
 }
 
-const headerStyle = (isMobile) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: isMobile ? "stretch" : "center",
-  flexDirection: isMobile ? "column" : "row",
-  gap: "12px",
-  marginBottom: "18px",
-})
-
 const titleStyle = {
   fontSize: "28px",
   fontWeight: 900,
@@ -963,13 +954,6 @@ const subStyle = {
   lineHeight: 1.6,
   color: "var(--player-section-muted, #6b7280)",
 }
-
-const weekActionsStyle = (isMobile) => ({
-  display: "flex",
-  gap: "8px",
-  width: isMobile ? "100%" : "auto",
-  flexWrap: "wrap",
-})
 
 const weekColumnStyle = {
   display: "grid",
@@ -984,27 +968,11 @@ const inlineComposerStyle = {
   marginTop: "8px",
 }
 
-const weekGridStyle = (isMobile) => ({
-  display: "grid",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(7, minmax(0, 1fr))",
-  gap: "10px",
-  alignItems: "start",
-})
-
 const dayCardStyle = {
   padding: "12px",
   borderRadius: "18px",
   border: "1px solid var(--player-section-line, #ece5e5)",
   backgroundColor: "var(--player-section-surface, #fffefe)",
-  minHeight: "100%",
-}
-
-const dayHeaderStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "10px",
 }
 
 const dayTitleStyle = {
@@ -1040,11 +1008,6 @@ const dayEmptyStyle = {
   fontSize: "13px",
 }
 
-const eventStackStyle = {
-  display: "grid",
-  gap: "8px",
-}
-
 const eventWrapStyle = {
   display: "grid",
   gap: "8px",
@@ -1055,13 +1018,6 @@ const eventCardStyle = {
   borderRadius: "14px",
   backgroundColor: "var(--player-section-surface-raised, #fcfbfb)",
   border: "1px solid var(--player-section-line, #f0e7e7)",
-}
-
-const eventTopRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "12px",
 }
 
 const eventTitleStyle = {

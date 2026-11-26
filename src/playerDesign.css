@@ -147,6 +147,7 @@
 }
 
 .player-home {
+  grid-template-columns: minmax(0, 1fr);
   --home-panel: #192a3d;
   --home-line: #3c5369;
   --home-text: #f1f7fc;
@@ -170,6 +171,7 @@
 
 .player-home__dashboard {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -773,6 +775,7 @@
 
 .player-section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   width: 100%;
   min-width: 0;
@@ -904,18 +907,6 @@
   color: var(--player-section-muted);
   font-weight: 700;
   cursor: pointer;
-}
-
-.player-calendar__week {
-  display: grid;
-  gap: 10px;
-  align-items: start;
-}
-
-@media (min-width: 769px) {
-  .player-calendar .player-calendar__week {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 .player-design[data-player-view="section"] :is(button:disabled, input:disabled) {

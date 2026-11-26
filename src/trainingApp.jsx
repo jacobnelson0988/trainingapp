@@ -7793,12 +7793,11 @@ function TrainingApp() {
 
   return (
     <div
-      className={useCompactPlayerHeader ? "player-design" : undefined}
+      className={useCompactPlayerHeader ? "app-shell player-design" : "app-shell"}
       data-player-view={useCompactPlayerHeader ? (isPlayerWorkout ? "workout" : isPlayerHome ? "home" : "section") : undefined}
       style={{
         ...pageStyle,
         position: "relative",
-        ...(isPlayerWorkout ? { overflowX: "clip" } : {}),
         padding: isMobile
           ? `max(14px, env(safe-area-inset-top)) 12px ${
               showCoachBottomNav || showPlayerBottomNav || isPlayerWorkout
@@ -8546,6 +8545,8 @@ function TrainingApp() {
                       key={tab.key}
                       type="button"
                       onClick={() => navigateCoachSection(tab.key)}
+                      aria-label={tab.label}
+                      aria-current={isActive ? "page" : undefined}
                       style={{
                         ...coachBottomNavButtonStyle,
                         color: isActive ? "#dc2626" : "#6b7280",
@@ -8559,7 +8560,7 @@ function TrainingApp() {
                       >
                         {renderCoachBottomNavIcon(tab.icon, isActive)}
                       </span>
-                      <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                      <span style={coachBottomNavLabelStyle}>{tab.key === "messages" ? "Inkorg" : tab.label}</span>
                     </button>
                   )
                 })}
@@ -8583,6 +8584,8 @@ function TrainingApp() {
                       key={tab.key}
                       type="button"
                       onClick={() => navigateCoachSection(tab.key)}
+                      aria-label={tab.label}
+                      aria-current={isActive ? "page" : undefined}
                       style={{
                         ...coachBottomNavButtonStyle,
                         color: isActive ? "#b61e24" : "#6b7280",
@@ -8596,7 +8599,7 @@ function TrainingApp() {
                       >
                         {renderCoachBottomNavIcon(tab.icon, isActive)}
                       </span>
-                      <span style={coachBottomNavLabelStyle}>{tab.label}</span>
+                      <span style={coachBottomNavLabelStyle}>{tab.key === "messages" ? "Inkorg" : tab.label}</span>
                     </button>
                   )
                 })}
@@ -10426,7 +10429,6 @@ const pageStyle = {
   margin: "0 auto",
   minHeight: "100vh",
   fontFamily: "Roboto, sans-serif",
-  overflowX: "hidden",
 }
 
 const uiSurface = "var(--ghf-surface)"
@@ -11075,7 +11077,7 @@ const inputStyle = {
   borderRadius: "14px",
   border: `1px solid ${uiBorderStrong}`,
   fontSize: "14px",
-  minWidth: "120px",
+  minWidth: 0,
   backgroundColor: "var(--player-section-input, var(--ghf-surface))",
   color: "var(--player-section-ink, #18202b)",
   boxShadow: "var(--player-section-input-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.7))",
@@ -11879,6 +11881,7 @@ const coachBottomNavButtonStyle = {
   justifyContent: "center",
   gap: "4px",
   minHeight: "56px",
+  minWidth: 0,
   padding: "4px 2px",
   cursor: "pointer",
   font: "inherit",

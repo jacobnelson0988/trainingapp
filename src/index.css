@@ -101,3 +101,92 @@ video {
     font-size: 16px;
   }
 }
+
+.app-shell {
+  overflow-wrap: anywhere;
+}
+
+.app-shell :where(div, main, section, article, header, nav, form, fieldset, li, label) {
+  min-inline-size: 0;
+}
+
+.app-shell :where(button, input, select, textarea, iframe, svg) {
+  max-inline-size: 100%;
+}
+
+.calendar {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.calendar:not(.player-section) > .calendar__header {
+  margin-block-end: 14px;
+}
+
+.calendar__actions {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar__actions button {
+  min-height: 44px;
+}
+
+.calendar__week,
+.calendar__events,
+.calendar__day {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.calendar__day-heading,
+.calendar__event-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.calendar__event-heading > :first-child {
+  flex: 1 1 9rem;
+}
+
+@media (min-width: 769px) {
+  .calendar__day {
+    grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 16px;
+  }
+
+  .calendar__events {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    inline-size: 100%;
+  }
+
+  .calendar__actions > button:not(.calendar__create) {
+    padding-inline: 4px;
+  }
+
+  .calendar__create {
+    grid-column: 1 / -1;
+  }
+}

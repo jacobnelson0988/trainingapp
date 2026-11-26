@@ -151,7 +151,7 @@ function UsersAdminPage({
         <select
           value={teamFilter}
           onChange={(e) => setTeamFilter(e.target.value)}
-          style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
+          style={{ ...inputStyle, width: "100%" }}
         >
           <option value="all">Filter: Alla lag</option>
           {(teams || []).map((team) => (
@@ -164,7 +164,7 @@ function UsersAdminPage({
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
+          style={{ ...inputStyle, width: "100%" }}
         >
           <option value="all">Filter: Alla roller</option>
           <option value="head_admin">Huvudadmin</option>
@@ -175,7 +175,7 @@ function UsersAdminPage({
         <select
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value)}
-          style={{ ...inputStyle, width: isMobile ? "100%" : "220px" }}
+          style={{ ...inputStyle, width: "100%" }}
         >
           <option value="name">Sortera: Namn</option>
           <option value="team">Sortera: Lag</option>
@@ -347,7 +347,7 @@ const createWrapStyle = {
 const toolbarStyle = (isMobile) => ({
   display: "grid",
   gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 220px 220px 220px",
+  gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "repeat(4, minmax(0, 1fr))",
   marginBottom: "14px",
 })
 
@@ -429,7 +429,8 @@ const inlineActionStyle = (isMobile) => ({
 })
 
 const selectStyle = {
-  minWidth: "190px",
+  minWidth: 0,
+  maxWidth: "100%",
   padding: "10px 12px",
   borderRadius: "12px",
   border: "1px solid #e9dada",
@@ -439,7 +440,8 @@ const selectStyle = {
 }
 
 const passwordInputStyle = {
-  minWidth: "190px",
+  minWidth: 0,
+  maxWidth: "100%",
   padding: "10px 12px",
   borderRadius: "12px",
   border: "1px solid #eadfdf",
