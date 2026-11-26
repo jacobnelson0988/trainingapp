@@ -19,6 +19,7 @@ import {
   isProtocolExercise,
 } from "./utils/exerciseProtocols"
 import { getPassInfoParts } from "./utils/passInfo"
+import "./playerDesign.css"
 
 const PASS_ASSIGNMENT_EXERCISE_NAME = "__PASS_ASSIGNMENT__"
 
@@ -7520,6 +7521,7 @@ function TrainingApp() {
     profile?.role === "player"
       ? sortedVisibleWorkoutEntries.filter(([, workout]) => !isSharedGymWorkout(workout))
       : sortedVisibleWorkoutEntries
+  const [suggestedWorkoutKey, suggestedWorkout] = playerPassMenuEntries[0] || []
   const groupedVisibleWorkoutEntries = ["gym_individual", "running", "prehab", "gym_shared"]
     .map((groupKey) => {
       const entries = playerPassMenuEntries.filter(
@@ -7707,6 +7709,11 @@ function TrainingApp() {
   const togglePlayerOverviewPanel = (panelKey) => {
     setPlayerOverviewPanel((current) => (current === panelKey ? null : panelKey))
   }
+  const isPlayerHome =
+    profile?.role === "player" && globalView === "app" && playerView === "overview" && !isWorkoutActive
+  const isPlayerWorkout = profile?.role === "player" && isWorkoutActive
+  const useCompactPlayerHeader = isPlayerHome || isPlayerWorkout
+
   const playerHeaderSubtitle =
     profile?.role === "head_admin"
       ? "Skapa lag, lägg till tränare och få överblick över alla användare."
@@ -7716,6 +7723,7 @@ function TrainingApp() {
 
   return (
     <div
+      className={useCompactPlayerHeader ? "player-design" : undefined}
       style={{
         ...pageStyle,
         position: "relative",
@@ -7730,37 +7738,47 @@ function TrainingApp() {
       }}
     >
       <div
+        className={useCompactPlayerHeader ? "player-design__header" : undefined}
         style={{
           ...headerStyle,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : headerStyle.alignItems,
+          flexDirection: isMobile && !useCompactPlayerHeader ? "column" : "row",
+          alignItems: useCompactPlayerHeader ? "center" : isMobile ? "stretch" : headerStyle.alignItems,
           marginBottom: isMobile ? "14px" : headerStyle.marginBottom,
           gap: isMobile ? "12px" : headerStyle.gap,
         }}
       >
-        <div style={{ flex: 1 }}>
-          <p style={eyebrowStyle}>
-            {profile?.role === "head_admin"
-              ? "Huvudadmin"
-              : profile?.role === "coach"
-              ? "Coachläge"
-              : "Spelarläge"}
-          </p>
-          <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
-            Starkare Gurra
-          </h1>
-          <p
-            style={{
-              ...appSubtitleStyle,
-              maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
-              fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
-            }}
-          >
-            {playerHeaderSubtitle}
-          </p>
-        </div>
+        {useCompactPlayerHeader ? (
+          <div className="player-design__brand">Starkare Gurra</div>
+        ) : (
+          <div style={{ flex: 1 }}>
+            <p style={eyebrowStyle}>
+              {profile?.role === "head_admin"
+                ? "Huvudadmin"
+                : profile?.role === "coach"
+                ? "Coachläge"
+                : "Spelarläge"}
+            </p>
+            <h1 style={{ ...appTitleStyle, fontSize: isMobile ? "2rem" : appTitleStyle.fontSize }}>
+              Starkare Gurra
+            </h1>
+            <p
+              style={{
+                ...appSubtitleStyle,
+                maxWidth: isMobile ? "100%" : appSubtitleStyle.maxWidth,
+                fontSize: isMobile ? "14px" : appSubtitleStyle.fontSize,
+              }}
+            >
+              {playerHeaderSubtitle}
+            </p>
+          </div>
+        )}
 
-        <div style={headerActionsWrapStyle(isMobile)}>
+        <div
+          style={{
+            ...headerActionsWrapStyle(isMobile),
+            ...(useCompactPlayerHeader ? { position: "static" } : {}),
+          }}
+        >
           <div style={menuWrapStyle}>
             <button
               type="button"
@@ -7956,30 +7974,35 @@ function TrainingApp() {
 
       {globalView === "app" && (
         <>
-      <div
-        style={{
-          ...feedbackActionBarStyle,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
-          <div style={mutedTextStyle}>
-            Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsFeedbackOpen((prev) => !prev)}
-          style={{ ...secondaryButtonStyle, width: isMobile ? "100%" : "auto" }}
+      {!isPlayerWorkout && (
+        <div
+          style={{
+            ...feedbackActionBarStyle,
+            ...(isPlayerHome ? { background: "transparent", border: 0, boxShadow: "none", padding: 0 } : {}),
+            flexDirection: isMobile && !isPlayerHome ? "column" : "row",
+            alignItems: isMobile ? "stretch" : feedbackActionBarStyle.alignItems,
+          }}
         >
-          {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
-        </button>
-      </div>
+          {!isPlayerHome && (
+            <div style={{ flex: 1 }}>
+              <div style={feedbackActionTitleStyle}>Hjälp till att förbättra appen</div>
+              <div style={mutedTextStyle}>
+                Använd feedbackknappen för buggar, önskemål eller saker som känns otydliga i appen.
+              </div>
+            </div>
+          )}
 
-      {isFeedbackOpen && (
+          <button
+            type="button"
+            onClick={() => setIsFeedbackOpen((prev) => !prev)}
+            style={{ ...secondaryButtonStyle, width: isMobile && !isPlayerHome ? "100%" : "auto" }}
+          >
+            {isFeedbackOpen ? "Stäng feedback" : "Lämna feedback"}
+          </button>
+        </div>
+      )}
+
+      {isFeedbackOpen && !isPlayerWorkout && (
         <div style={feedbackComposerCardStyle}>
           <div style={cardTitleStyle}>Skriv feedback</div>
           <p style={{ ...mutedTextStyle, marginBottom: "12px" }}>
@@ -8578,26 +8601,15 @@ function TrainingApp() {
               </div>
             )
           ) : (
-            <div style={activeWorkoutPageHeroStyle(isMobile)}>
-              <div style={activeWorkoutPageBadgeStyle}>Pågående träningspass</div>
-              <div style={activeWorkoutPageTitleStyle}>
-                {activeWorkoutData?.label || "Träningspass"}
+            <section className="player-workout-heading" aria-labelledby="player-workout-title">
+              <div>
+                <div className="player-design__label">Pågående pass</div>
+                <h1 id="player-workout-title">{activeWorkoutData?.label || "Träningspass"}</h1>
               </div>
-              <div style={activeWorkoutPageTextStyle}>
-                Du är nu inne i passet. Svep eller bläddra mellan övningskorten och avsluta på sista kortet.
-              </div>
-              <button
-                type="button"
-                onClick={cancelWorkout}
-                style={{
-                  ...activeWorkoutCancelButtonStyle,
-                  width: isMobile ? "100%" : "auto",
-                  marginTop: "14px",
-                }}
-              >
-                Avbryt och gå tillbaka
+              <button type="button" onClick={cancelWorkout} className="player-design__secondary">
+                Avbryt pass
               </button>
-            </div>
+            </section>
           )}
 
           {!isWorkoutActive && playerView === "messages" && (
@@ -8629,101 +8641,66 @@ function TrainingApp() {
           )}
 
           {!isWorkoutActive && playerView === "overview" && (
-            <div style={{ display: "grid", gap: "16px" }}>
-              <div style={playerHomeHeaderStyle}>
-                <div style={playerHomeHeaderInlineStyle}>
-                  <div style={playerHomeHeaderTitleStyle}>{playerFirstName}</div>
-                  <div style={playerHomeHeaderTextStyle}>{teamName}</div>
-                </div>
+            <main className="player-home">
+              <div className="player-home__greeting">
+                <p>{teamName}</p>
+                <h1>Hej, {playerFirstName}!</h1>
               </div>
 
-              <div style={playerHomeStatsGridStyle(isMobile)}>
-                <div style={playerHomeStatCardStyle}>
-                  <div style={playerHomeStatLabelStyle}>Tilldelade pass</div>
-                  <div style={{ ...playerHomeStatValueStyle, color: "#b61e24" }}>
-                    {Object.keys(visibleWorkouts).length}
-                  </div>
-                </div>
-                <div style={playerHomeStatCardStyle}>
-                  <div style={playerHomeStatLabelStyle}>Olästa</div>
-                  <div style={playerHomeStatValueStyle}>{unreadMessageCount}</div>
-                </div>
-                <div style={playerHomeStatCardStyle}>
-                  <div style={playerHomeStatLabelStyle}>Loggade pass</div>
-                  <div style={playerHomeStatValueStyle}>{completedWorkoutSessions.length}</div>
-                </div>
-              </div>
-
-              <div style={playerQuickActionsGridStyle(isMobile)}>
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => navigatePlayerSection("pass")}
-                    style={playerQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Dina pass</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#b61e24", backgroundColor: "#fff1f1" }}>→</div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Välj ett av dina pass
-                    </div>
-                  </button>
-                </div>
-
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => navigatePlayerSection("stats")}
-                    style={playerQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Statistik</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#1d4ed8", backgroundColor: "#eef4ff" }}>→</div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Följ din utveckling i olika övningar
-                    </div>
-                  </button>
-                </div>
-
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("history")}
-                    style={playerQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Historik</div>
-                    <div style={{ ...playerQuickActionArrowStyle, color: "#0f766e", backgroundColor: "#ecfeff" }}>
-                      {playerOverviewPanel === "history" ? "−" : "+"}
-                    </div>
-                  </div>
-                  <div style={playerQuickActionTextStyle}>
-                    Se de senaste genomförda passen
-                  </div>
+              <section className="player-home__featured" aria-labelledby="player-featured-title">
+                <p className="player-design__label">
+                  {suggestedWorkout ? "Rekommenderat pass" : "Dina pass"}
+                </p>
+                <h2 id="player-featured-title">
+                  {suggestedWorkout?.label || "Inget individuellt pass tilldelat"}
+                </h2>
+                <p className="player-home__featured-meta">
+                  {suggestedWorkout
+                    ? suggestedWorkout.workoutKind === "running"
+                      ? getWorkoutKindLabel(suggestedWorkout.workoutKind)
+                      : `${suggestedWorkout.exercises.length} övningar · ${getWorkoutKindLabel(suggestedWorkout.workoutKind)}`
+                    : "Se planerade lagpass i kalendern."}
+                </p>
+                <button
+                  type="button"
+                  className="player-design__primary"
+                  onClick={() =>
+                    suggestedWorkout ? startWorkout(suggestedWorkoutKey) : navigatePlayerSection("calendar")
+                  }
+                >
+                  {suggestedWorkout ? "Starta pass" : "Öppna kalendern"}
                 </button>
+              </section>
 
-                </div>
+              <dl className="player-home__stats">
+                <div><dt>Tilldelade pass</dt><dd>{Object.keys(visibleWorkouts).length}</dd></div>
+                <div><dt>Loggade pass</dt><dd>{completedWorkoutSessions.length}</dd></div>
+                <div><dt>Olästa</dt><dd>{unreadMessageCount}</dd></div>
+              </dl>
 
-                <div style={playerQuickActionBlockStyle}>
-                  <button
-                    type="button"
-                    onClick={() => togglePlayerOverviewPanel("running")}
-                    style={playerQuickActionCardStyle}
-                  >
-                    <div style={playerQuickActionTopRowStyle}>
-                      <div style={playerQuickActionTitleStyle}>Egen aktivitet</div>
-                      <div style={{ ...playerQuickActionArrowStyle, color: "#b45309", backgroundColor: "#fff7ed" }}>
-                        {playerOverviewPanel === "running" ? "−" : "+"}
-                      </div>
-                    </div>
-                    <div style={playerQuickActionTextStyle}>
-                      Registrera träning du gjort i andra sporter
-                    </div>
-                  </button>
-
-                </div>
+              <div className="player-home__actions">
+                <button type="button" onClick={() => navigatePlayerSection("pass")} className="player-home__action">
+                  Dina pass
+                </button>
+                <button type="button" onClick={() => navigatePlayerSection("stats")} className="player-home__action">
+                  Statistik
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togglePlayerOverviewPanel("history")}
+                  className="player-home__action"
+                  aria-expanded={playerOverviewPanel === "history"}
+                >
+                  Historik <span aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togglePlayerOverviewPanel("running")}
+                  className="player-home__action"
+                  aria-expanded={playerOverviewPanel === "running"}
+                >
+                  Egen aktivitet <span aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
+                </button>
 
                 {playerOverviewPanel === "history" && (
                   <div style={playerOverviewPanelRowStyle}>
@@ -9053,7 +9030,7 @@ function TrainingApp() {
                   </div>
                 )}
               </div>
-            </div>
+            </main>
           )}
 
           {!isWorkoutActive && playerView === "calendar" && (
@@ -9488,28 +9465,33 @@ function TrainingApp() {
 
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
-          <div style={activeWorkoutPageMetaRowStyle(isMobile)}>
-            <div style={activeWorkoutPageMetaCardStyle}>
-              <div style={activeWorkoutPageMetaLabelStyle}>Pass</div>
-              <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutData?.label}</div>
+          {(isMobile || !isRunningWorkoutActive) && (
+            <div className="player-workout-status">
+              {isMobile && (
+                <div className="player-workout-status__step">
+                  <span className="player-design__label">I passet</span>
+                  <strong>{activeWorkoutProgressSummary}</strong>
+                  <progress
+                    aria-label="Position i passet"
+                    max={activeWorkoutSlideCount}
+                    value={activeExerciseIndex + 1}
+                  />
+                </div>
+              )}
+              {!isRunningWorkoutActive && (
+                <button
+                  type="button"
+                  onClick={resetRestStopwatch}
+                  className="player-workout-status__timer"
+                  aria-label="Nollställ vilostoppklocka"
+                >
+                  <span>Vila</span>
+                  <strong>{formatStopwatchTime(restStopwatchElapsedMs)}</strong>
+                  <span>Nollställ</span>
+                </button>
+              )}
             </div>
-            <div style={activeWorkoutPageMetaCardStyle}>
-              <div style={activeWorkoutPageMetaLabelStyle}>Övning</div>
-              <div style={activeWorkoutPageMetaValueStyle}>{activeWorkoutProgressSummary}</div>
-            </div>
-            {!isRunningWorkoutActive && (
-              <button
-                type="button"
-                onClick={resetRestStopwatch}
-                style={restStopwatchCardStyle}
-                aria-label="Nollställ vilostoppklocka"
-              >
-                <div style={restStopwatchLabelStyle}>Vila</div>
-                <div style={restStopwatchValueStyle}>{formatStopwatchTime(restStopwatchElapsedMs)}</div>
-                <div style={restStopwatchHintStyle}>Tryck för att nollställa</div>
-              </button>
-            )}
-          </div>
+          )}
 
           {isSharedGymWorkout(activeWorkoutData) && activeCalendarGroup ? (
             <div style={activeWorkoutGroupCardStyle}>
@@ -9556,10 +9538,6 @@ function TrainingApp() {
                 Föregående
               </button>
 
-              <div style={exerciseCarouselStatusStyle}>
-                {activeWorkoutProgressSummary}
-              </div>
-
               <button
                 type="button"
                 onClick={() =>
@@ -9603,6 +9581,7 @@ function TrainingApp() {
           >
             <div style={isMobile ? exerciseCarouselTrackStyle : undefined}>
               <div
+                className="player-workout-card"
                 data-exercise-card="true"
                 style={
                   isMobile
@@ -9613,9 +9592,7 @@ function TrainingApp() {
                     : cardStyle
                 }
               >
-                <div style={exerciseProgressStyle}>Uppvärmning</div>
-
-                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Uppvärmning</h3>
+                <h3 className="player-workout-card__title">Uppvärmning</h3>
 
                 {!!activeWorkoutWarmup.cardio && (
                   <div style={{ marginBottom: activeWorkoutWarmup.technique.length ? 14 : 0 }}>
@@ -9642,6 +9619,7 @@ function TrainingApp() {
 
           {isRunningWorkoutActive ? (
             <div
+              className="player-workout-card"
               data-exercise-card="true"
               style={
                 isMobile
@@ -9744,6 +9722,7 @@ function TrainingApp() {
             return (
               <div
                 key={i}
+                className="player-workout-card"
                 data-exercise-card="true"
                 style={
                   isMobile
@@ -9771,7 +9750,7 @@ function TrainingApp() {
                   }}
                 >
                   <div>
-                    <h3 style={{ ...cardTitleStyle, marginBottom: "4px" }}>
+                    <h3 className="player-workout-card__title">
                       {selectedExercise?.displayName || selectedExercise?.name || exercise.displayName || exercise.name}
                     </h3>
                     <div style={exerciseHeaderHintStyle}>
@@ -10195,7 +10174,7 @@ function TrainingApp() {
                       const isCompleted = Boolean(set.protocolCompleted || set.reps || set.seconds || set.weight)
 
                       return (
-                        <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                        <div key={set.client_set_id || j} className="player-workout-set" style={activeSetCardStyle}>
                           <div style={setLabelStyle}>{protocolStep?.label || `Block ${j + 1}`}</div>
                           <div
                             style={{
@@ -10236,7 +10215,7 @@ function TrainingApp() {
                 {isWorkoutActive &&
                   !isProtocol &&
                   (inputs[i] || []).map((set, j) => (
-                    <div key={set.client_set_id || j} style={activeSetCardStyle}>
+                    <div key={set.client_set_id || j} className="player-workout-set" style={activeSetCardStyle}>
                       <div style={setHeaderRowStyle}>
                         <div style={setLabelStyle}>Set {j + 1}</div>
                         <button
@@ -10398,6 +10377,7 @@ function TrainingApp() {
           })}
 
               <div
+                className="player-workout-card"
                 data-exercise-card="true"
                 style={
                   isMobile
@@ -10622,115 +10602,9 @@ const heroTextStyle = {
   color: "rgba(255,255,255,0.9)",
 }
 
-const activeWorkoutPageHeroStyle = (isMobile) => ({
-  width: "100%",
-  padding: isMobile ? "18px 16px" : "22px 22px 20px",
-  borderRadius: isMobile ? "20px" : "26px",
-  background:
-    "linear-gradient(135deg, rgba(24, 32, 43, 0.98) 0%, rgba(153, 27, 27, 0.95) 52%, rgba(198, 40, 40, 0.92) 100%)",
-  color: "#ffffff",
-  boxShadow: "0 24px 42px rgba(24, 32, 43, 0.16)",
-})
-
-const activeWorkoutPageBadgeStyle = {
-  display: "inline-flex",
-  marginBottom: "12px",
-  padding: "6px 12px",
-  borderRadius: "999px",
-  backgroundColor: "rgba(255,255,255,0.14)",
-  color: "#fff7f7",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-}
-
-const activeWorkoutPageTitleStyle = {
-  fontSize: "clamp(1.8rem, 3vw, 2.6rem)",
-  fontWeight: "900",
-  lineHeight: 1,
-  marginBottom: "10px",
-}
-
-const activeWorkoutPageTextStyle = {
-  maxWidth: "720px",
-  fontSize: "15px",
-  lineHeight: 1.6,
-  color: "rgba(255,255,255,0.9)",
-}
-
-const activeWorkoutCancelButtonStyle = {
-  padding: "12px 16px",
-  borderRadius: "16px",
-  border: "1px solid rgba(255,255,255,0.22)",
-  backgroundColor: "rgba(255,255,255,0.12)",
-  color: "#ffffff",
-  cursor: "pointer",
-  fontSize: "14px",
-  fontWeight: "800",
-}
-
 const activeWorkoutPageWrapStyle = {
   width: "100%",
   marginTop: "6px",
-}
-
-const activeWorkoutPageMetaRowStyle = (isMobile) => ({
-  display: "grid",
-  gap: "12px",
-  marginBottom: "16px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
-})
-
-const activeWorkoutPageMetaCardStyle = {
-  padding: "14px 16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowSm,
-}
-
-const activeWorkoutPageMetaLabelStyle = {
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.06em",
-  textTransform: "uppercase",
-  color: "#991b1b",
-  marginBottom: "6px",
-}
-
-const activeWorkoutPageMetaValueStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#18202b",
-}
-
-const restStopwatchCardStyle = {
-  ...activeWorkoutPageMetaCardStyle,
-  textAlign: "left",
-  cursor: "pointer",
-  background: "linear-gradient(135deg, #18202b 0%, #2f3a4d 100%)",
-  border: "1px solid rgba(24, 32, 43, 0.2)",
-}
-
-const restStopwatchLabelStyle = {
-  ...activeWorkoutPageMetaLabelStyle,
-  color: "rgba(255, 255, 255, 0.78)",
-}
-
-const restStopwatchValueStyle = {
-  fontSize: "30px",
-  lineHeight: 1,
-  fontWeight: "950",
-  letterSpacing: "0.02em",
-  color: "#ffffff",
-}
-
-const restStopwatchHintStyle = {
-  marginTop: "6px",
-  fontSize: "12px",
-  fontWeight: "800",
-  color: "rgba(255, 255, 255, 0.72)",
 }
 
 const activeWorkoutGroupCardStyle = {
@@ -11103,14 +10977,6 @@ const exerciseCarouselToolbarStyle = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: "10px",
-}
-
-const exerciseCarouselStatusStyle = {
-  flex: 1,
-  textAlign: "center",
-  fontSize: "13px",
-  fontWeight: "800",
-  color: "#566173",
 }
 
 const exerciseCarouselViewportStyle = {
@@ -11867,163 +11733,6 @@ const dangerActionButtonStyle = {
   fontWeight: "800",
 }
 
-const playerHomeHeroCardStyle = {
-  padding: "20px",
-  borderRadius: "24px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
-  boxShadow: uiShadowMd,
-}
-
-const playerHomeHeaderStyle = {
-  display: "flex",
-  alignItems: "baseline",
-  justifyContent: "flex-start",
-  gap: "10px",
-  padding: "2px 2px 0",
-  flexWrap: "wrap",
-}
-
-const playerHomeHeaderInlineStyle = {
-  display: "flex",
-  alignItems: "baseline",
-  gap: "10px",
-  flexWrap: "wrap",
-}
-
-const playerHomeHeaderTitleStyle = {
-  fontSize: "28px",
-  fontWeight: "900",
-  color: "#111827",
-}
-
-const playerHomeHeaderTextStyle = {
-  fontSize: "14px",
-  color: "#6b7280",
-}
-
-const playerHomeStatsGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
-  marginBottom: "14px",
-})
-
-const playerHomeStatCardStyle = {
-  padding: "14px 12px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-}
-
-const playerHomeStatLabelStyle = {
-  marginBottom: "6px",
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#6b7280",
-}
-
-const playerHomeStatValueStyle = {
-  fontSize: "28px",
-  lineHeight: 1,
-  fontWeight: "900",
-  color: "#111827",
-}
-
-const playerHomeIntroStyle = {
-  margin: 0,
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#6b7280",
-}
-
-const playerQuickActionsGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "12px",
-  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
-})
-
-const playerQuickActionCardStyle = {
-  minHeight: "112px",
-  padding: "16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  background: uiSurface,
-  textAlign: "left",
-  cursor: "pointer",
-  boxShadow: uiShadowSm,
-}
-
-const playerQuickActionTopRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "10px",
-}
-
-const playerQuickActionArrowStyle = {
-  width: "32px",
-  height: "32px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "999px",
-  fontSize: "18px",
-  fontWeight: "900",
-  flexShrink: 0,
-}
-
-const playerQuickActionTitleStyle = {
-  fontSize: "16px",
-  fontWeight: "900",
-  color: "#111827",
-}
-
-const playerQuickActionTextStyle = {
-  fontSize: "13px",
-  lineHeight: 1.5,
-  color: "#6b7280",
-}
-
-const playerSummaryGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "12px",
-  gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-})
-
-const playerSummaryCardStyle = {
-  padding: "16px",
-  borderRadius: "18px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowSm,
-}
-
-const playerSummaryLabelStyle = {
-  marginBottom: "8px",
-  fontSize: "12px",
-  fontWeight: "800",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "#6b7280",
-}
-
-const playerSummaryTitleStyle = {
-  fontSize: "18px",
-  fontWeight: "900",
-  color: "#111827",
-  marginBottom: "6px",
-}
-
-const playerSummaryMetaStyle = {
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#6b7280",
-}
-
 const playerOverviewPanelStyle = {
   padding: "18px",
   borderRadius: "22px",
@@ -12034,12 +11743,6 @@ const playerOverviewPanelStyle = {
 
 const playerOverviewPanelHeaderStyle = {
   marginBottom: "14px",
-}
-
-const playerQuickActionBlockStyle = {
-  display: "grid",
-  gap: "12px",
-  minWidth: 0,
 }
 
 const playerOverviewPanelRowStyle = {
