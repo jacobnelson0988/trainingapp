@@ -19,10 +19,10 @@ const FREE_ACTIVITY_OPTIONS = [
 ]
 
 const STATUS_COLORS = {
-  planned: { background: "#eef4ff", color: "#1d4ed8" },
+  planned: { background: "var(--player-section-surface-accent, #eef4ff)", color: "var(--player-section-accent, #1d4ed8)" },
   completed: { background: "#ecfdf5", color: "#0f766e" },
   skipped: { background: "#fff7ed", color: "#c2410c" },
-  cancelled: { background: "#f3f4f6", color: "#6b7280" },
+  cancelled: { background: "var(--player-section-surface-raised, #f3f4f6)", color: "var(--player-section-muted, #6b7280)" },
 }
 
 const statusLabelMap = {
@@ -660,10 +660,10 @@ function CalendarPage({
   )
 
   return (
-    <div>
-      <div style={headerStyle(isMobile)}>
+    <div className={role === "player" ? "player-section player-calendar" : undefined}>
+      <div className={role === "player" ? "player-design__view-heading" : undefined} style={{ ...headerStyle(isMobile), ...(role === "player" ? { marginBottom: 0 } : {}) }}>
         <div>
-          <div style={titleStyle}>Kalender</div>
+          {role === "player" ? <h1>Kalender</h1> : <div style={titleStyle}>Kalender</div>}
           <div style={subStyle}>
             {role === "coach" ? `Planera veckan för ${teamName}.` : "Se dina planerade aktiviteter för veckan."}
           </div>
@@ -692,7 +692,7 @@ function CalendarPage({
           {isLoading ? (
             <div style={emptyStateStyle}>Laddar kalender...</div>
           ) : (
-            <div style={weekGridStyle(isMobile)}>
+            <div className={role === "player" ? "player-calendar__week" : undefined} style={role === "player" ? undefined : weekGridStyle(isMobile)}>
               {weekDays.map((day) => (
                 <section key={day.key} style={dayCardStyle}>
                   <div style={dayHeaderStyle}>
@@ -954,14 +954,14 @@ const headerStyle = (isMobile) => ({
 const titleStyle = {
   fontSize: "28px",
   fontWeight: 900,
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 const subStyle = {
   marginTop: "6px",
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const weekActionsStyle = (isMobile) => ({
@@ -994,8 +994,8 @@ const weekGridStyle = (isMobile) => ({
 const dayCardStyle = {
   padding: "12px",
   borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffefe",
+  border: "1px solid var(--player-section-line, #ece5e5)",
+  backgroundColor: "var(--player-section-surface, #fffefe)",
   minHeight: "100%",
 }
 
@@ -1010,7 +1010,7 @@ const dayHeaderStyle = {
 const dayTitleStyle = {
   fontSize: "14px",
   fontWeight: 900,
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 const dayCountStyle = {
@@ -1020,8 +1020,8 @@ const dayCountStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  color: "var(--player-section-accent, #b61e24)",
   fontSize: "12px",
   fontWeight: 900,
 }
@@ -1029,14 +1029,14 @@ const dayCountStyle = {
 const emptyStateStyle = {
   padding: "24px",
   borderRadius: "18px",
-  border: "1px dashed #d1d5db",
-  color: "#6b7280",
-  backgroundColor: "#ffffff",
+  border: "1px dashed var(--player-section-line, #d1d5db)",
+  color: "var(--player-section-muted, #6b7280)",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
 }
 
 const dayEmptyStyle = {
   padding: "6px 2px 2px",
-  color: "#9ca3af",
+  color: "var(--player-section-muted, #9ca3af)",
   fontSize: "13px",
 }
 
@@ -1053,8 +1053,8 @@ const eventWrapStyle = {
 const eventCardStyle = {
   padding: "10px",
   borderRadius: "14px",
-  backgroundColor: "#fcfbfb",
-  border: "1px solid #f0e7e7",
+  backgroundColor: "var(--player-section-surface-raised, #fcfbfb)",
+  border: "1px solid var(--player-section-line, #f0e7e7)",
 }
 
 const eventTopRowStyle = {
@@ -1067,20 +1067,20 @@ const eventTopRowStyle = {
 const eventTitleStyle = {
   fontSize: "13px",
   fontWeight: 900,
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 const eventMetaStyle = {
   marginTop: "3px",
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const eventDescriptionStyle = {
   marginTop: "8px",
   fontSize: "12px",
   lineHeight: 1.45,
-  color: "#4b5563",
+  color: "var(--player-section-muted, #4b5563)",
 }
 
 const statusBadgeStyle = {
@@ -1097,7 +1097,7 @@ const coachMetaWrapStyle = {
 
 const coachMetaTextStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const playerChipWrapStyle = {
@@ -1111,7 +1111,7 @@ const playerChipStyle = {
   padding: "4px 8px",
   borderRadius: "999px",
   backgroundColor: "#f4f4f5",
-  color: "#374151",
+  color: "var(--player-section-muted, #374151)",
   fontSize: "11px",
   fontWeight: 700,
 }
@@ -1119,8 +1119,8 @@ const playerChipStyle = {
 const playerChipMutedStyle = {
   padding: "4px 8px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  color: "var(--player-section-accent, #991b1b)",
   fontSize: "11px",
   fontWeight: 800,
 }
@@ -1135,8 +1135,8 @@ const playerActionsWrapStyle = {
 const formCardStyle = {
   padding: "16px",
   borderRadius: "22px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffefe",
+  border: "1px solid var(--player-section-line, #ece5e5)",
+  backgroundColor: "var(--player-section-surface, #fffefe)",
   boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)",
 }
 
@@ -1150,14 +1150,14 @@ const formTitleRowStyle = {
 const formTitleStyle = {
   fontSize: "18px",
   fontWeight: 900,
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 const formTextStyle = {
   marginTop: "6px",
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const formGridStyle = (isMobile) => ({
@@ -1175,16 +1175,16 @@ const fieldStyle = {
 const fieldLabelStyle = {
   fontSize: "13px",
   fontWeight: 800,
-  color: "#374151",
+  color: "var(--player-section-muted, #374151)",
 }
 
 const inputStyle = {
   width: "100%",
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #e5d9d9",
-  backgroundColor: "#ffffff",
-  color: "#111827",
+  border: "1px solid var(--player-section-line, #e5d9d9)",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
+  color: "var(--player-section-ink, #111827)",
   fontSize: "14px",
   boxSizing: "border-box",
 }
@@ -1194,7 +1194,7 @@ const toggleStyle = {
   alignItems: "center",
   gap: "10px",
   fontSize: "14px",
-  color: "#374151",
+  color: "var(--player-section-muted, #374151)",
   fontWeight: 700,
 }
 
@@ -1215,8 +1215,8 @@ const playerSelectionStyle = {
   overflowY: "auto",
   padding: "10px",
   borderRadius: "14px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--player-section-line, #ece5e5)",
+  backgroundColor: "var(--player-section-surface, #fffdfd)",
 }
 
 const playerCheckboxStyle = {
@@ -1224,15 +1224,15 @@ const playerCheckboxStyle = {
   alignItems: "center",
   gap: "10px",
   fontSize: "14px",
-  color: "#374151",
+  color: "var(--player-section-muted, #374151)",
 }
 
 const primaryButtonStyle = {
   border: "none",
   borderRadius: "14px",
   padding: "12px 16px",
-  background: "linear-gradient(135deg, #c62828 0%, #991b1b 100%)",
-  color: "#ffffff",
+  background: "var(--player-section-primary, linear-gradient(135deg, #c62828 0%, #991b1b 100%))",
+  color: "var(--player-section-primary-ink, #ffffff)",
   fontSize: "14px",
   fontWeight: 800,
   cursor: "pointer",
@@ -1246,11 +1246,11 @@ const primaryButtonCompactStyle = {
 }
 
 const secondaryButtonStyle = {
-  border: "1px solid #e5d9d9",
+  border: "1px solid var(--player-section-line, #e5d9d9)",
   borderRadius: "14px",
   padding: "12px 14px",
-  backgroundColor: "#ffffff",
-  color: "#374151",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
+  color: "var(--player-section-muted, #374151)",
   fontSize: "14px",
   fontWeight: 700,
   cursor: "pointer",
@@ -1267,7 +1267,7 @@ const dangerButtonStyle = {
   border: "1px solid #f3c6c6",
   borderRadius: "14px",
   padding: "12px 14px",
-  backgroundColor: "#fff5f5",
+  backgroundColor: "var(--player-section-surface-accent, #fff5f5)",
   color: "#b91c1c",
   fontSize: "14px",
   fontWeight: 700,
@@ -1284,7 +1284,7 @@ const dangerButtonCompactStyle = {
 const ghostButtonStyle = {
   border: "none",
   backgroundColor: "transparent",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
   fontSize: "13px",
   fontWeight: 800,
   cursor: "pointer",
@@ -1301,8 +1301,8 @@ const formActionsStyle = {
 const groupEditorCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffefe",
+  border: "1px solid var(--player-section-line, #ece5e5)",
+  backgroundColor: "var(--player-section-surface, #fffefe)",
 }
 
 const groupEditorHeaderStyle = {
@@ -1316,7 +1316,7 @@ const groupEditorHintStyle = {
   marginTop: "6px",
   fontSize: "13px",
   lineHeight: 1.55,
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const groupEditorEmptyStyle = {
@@ -1325,7 +1325,7 @@ const groupEditorEmptyStyle = {
   borderRadius: "14px",
   border: "1px dashed #d7dee7",
   backgroundColor: "#fcfcfd",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
   fontSize: "13px",
   lineHeight: 1.5,
 }
@@ -1339,8 +1339,8 @@ const groupListStyle = {
 const groupCardStyle = {
   padding: "12px",
   borderRadius: "14px",
-  border: "1px solid #ece5e5",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--player-section-line, #ece5e5)",
+  backgroundColor: "var(--player-section-surface, #fffdfd)",
 }
 
 const groupCardHeaderStyle = {
@@ -1353,7 +1353,7 @@ const groupSizeTextStyle = {
   marginTop: "8px",
   fontSize: "12px",
   fontWeight: 700,
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const groupAssignmentsWrapStyle = {
@@ -1376,7 +1376,7 @@ const groupAssignmentRowStyle = (isMobile) => ({
 const groupAssignmentPlayerNameStyle = {
   fontSize: "14px",
   fontWeight: 700,
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 export default CalendarPage

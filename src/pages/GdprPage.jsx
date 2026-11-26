@@ -13,8 +13,8 @@ function GdprPage({
       style={{
         padding: isMobile ? "16px 14px" : "24px",
         borderRadius: isMobile ? "20px" : "24px",
-        border: "1px solid #e2e8f0",
-        backgroundColor: "#ffffff",
+        border: "1px solid var(--player-section-line, #e2e8f0)",
+        backgroundColor: "var(--player-section-surface, #ffffff)",
         boxShadow: "0 18px 36px rgba(24, 32, 43, 0.06)",
       }}
     >
@@ -29,8 +29,14 @@ function GdprPage({
         }}
       >
         <div>
-          <div style={eyebrowStyle}>Integritet</div>
-          <h2 style={titleStyle}>GDPR och personuppgifter</h2>
+          {profile?.role === "player" ? (
+            <h1 style={titleStyle}>Integritet och personuppgifter</h1>
+          ) : (
+            <>
+              <div style={eyebrowStyle}>Integritet</div>
+              <h2 style={titleStyle}>GDPR och personuppgifter</h2>
+            </>
+          )}
           <p style={{ ...mutedTextStyle, marginBottom: 0 }}>
             Här ser du kortfattat vilken data appen lagrar och vilka rättigheter spelare, tränare och
             huvudadmin har kring arkivering och radering.
@@ -127,7 +133,7 @@ const eyebrowStyle = {
 const titleStyle = {
   fontSize: "28px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   margin: "0 0 6px 0",
 }
 
@@ -140,21 +146,21 @@ const infoGridStyle = (isMobile) => ({
 const infoCardStyle = {
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #dbe5ef",
-  backgroundColor: "#f8fbff",
+  border: "1px solid var(--player-section-line, #dbe5ef)",
+  backgroundColor: "var(--player-section-surface-raised, #f8fbff)",
 }
 
 const infoTitleStyle = {
   fontSize: "14px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "6px",
 }
 
 const infoTextStyle = {
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#475569",
+  color: "var(--player-section-muted, #475569)",
 }
 
 export default GdprPage

@@ -126,20 +126,26 @@ function MessagesPage({
 
   return (
     <div style={pageWrapStyle}>
-      <div style={pageHeaderStyle}>
-        <div style={pageHeaderCopyStyle}>
-        <div style={pageEyebrowStyle}>Tränarvy</div>
-        <div style={introTitleStyle}>Meddelanden</div>
-        <div style={introTextStyle}>
-          Samla all kommunikation i ett tydligt flöde med samma kortlogik som resten av tränarvyn.
+      {role === "player" ? (
+        <div className="player-design__view-heading" style={pageHeaderStyle}>
+          <h1>Meddelanden</h1>
         </div>
+      ) : (
+        <div style={pageHeaderStyle}>
+          <div style={pageHeaderCopyStyle}>
+            <div style={pageEyebrowStyle}>Tränarvy</div>
+            <div style={introTitleStyle}>Meddelanden</div>
+            <div style={introTextStyle}>
+              Samla all kommunikation i ett tydligt flöde med samma kortlogik som resten av tränarvyn.
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={introStatsGridStyle(isMobile)}>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Trådar</div>
-          <div style={{ ...introStatValueStyle, color: "#dc2626" }}>{threads.length}</div>
+          <div style={{ ...introStatValueStyle, color: "var(--player-section-accent, #dc2626)" }}>{threads.length}</div>
         </div>
         <div style={introStatCardStyle}>
           <div style={introStatLabelStyle}>Olästa</div>
@@ -409,21 +415,21 @@ const pageEyebrowStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#991b1b",
+  color: "var(--player-section-accent, #991b1b)",
 }
 
 const introTitleStyle = {
   marginBottom: "2px",
   fontSize: "24px",
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 const introTextStyle = {
   marginBottom: 0,
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const introStatsGridStyle = (isMobile) => ({
@@ -435,8 +441,8 @@ const introStatsGridStyle = (isMobile) => ({
 const introStatCardStyle = {
   padding: "14px 12px",
   borderRadius: "18px",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--player-section-line, rgba(15, 23, 42, 0.08))",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
 }
 
 const introStatLabelStyle = {
@@ -445,14 +451,14 @@ const introStatLabelStyle = {
   fontWeight: "800",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const introStatValueStyle = {
   fontSize: "28px",
   lineHeight: 1,
   fontWeight: "900",
-  color: "#111827",
+  color: "var(--player-section-ink, #111827)",
 }
 
 const headerStyle = (isMobile) => ({
@@ -464,8 +470,8 @@ const headerStyle = (isMobile) => ({
 const cardStyle = {
   padding: "18px",
   borderRadius: "20px",
-  border: "1px solid #f0dcdc",
-  backgroundColor: "#fffdfd",
+  border: "1px solid var(--player-section-line, #f0dcdc)",
+  backgroundColor: "var(--player-section-surface, #fffdfd)",
   boxShadow: "0 16px 30px rgba(24, 32, 43, 0.05)",
   minWidth: 0,
   overflow: "hidden",
@@ -481,7 +487,7 @@ const inboxRowStyle = (isMobile) => ({
   gap: "12px",
   alignItems: "center",
   padding: "10px 0",
-  borderBottom: "1px solid #f1e4e4",
+  borderBottom: "1px solid var(--player-section-line, #f1e4e4)",
   background: "transparent",
   borderLeft: "none",
   borderRight: "none",
@@ -494,7 +500,7 @@ const inboxRowStyle = (isMobile) => ({
 const inboxSenderStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -502,7 +508,7 @@ const inboxSenderStyle = {
 
 const inboxSubjectStyle = {
   fontSize: "14px",
-  color: "#374151",
+  color: "var(--player-section-muted, #374151)",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -514,7 +520,7 @@ const inboxMetaStyle = {
   gap: "8px",
   flexWrap: "wrap",
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
   fontWeight: "700",
 }
 
@@ -526,8 +532,8 @@ const unreadBadgeStyle = {
   justifyContent: "center",
   padding: "0 6px",
   borderRadius: "999px",
-  backgroundColor: "#c62828",
-  color: "#ffffff",
+  backgroundColor: "var(--player-section-ice, #c62828)",
+  color: "var(--player-section-primary-ink, #ffffff)",
   fontSize: "11px",
   fontWeight: "800",
 }
@@ -536,7 +542,7 @@ const fieldLabelStyle = {
   marginBottom: "8px",
   fontSize: "12px",
   fontWeight: "800",
-  color: "#7f1d1d",
+  color: "var(--player-section-accent, #7f1d1d)",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 }
@@ -546,56 +552,56 @@ const pickerButtonStyle = {
   marginBottom: "10px",
   padding: "12px 14px",
   borderRadius: "14px",
-  border: "1px solid #e9dada",
-  backgroundColor: "#ffffff",
+  border: "1px solid var(--player-section-line, #e9dada)",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "12px",
   fontSize: "14px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   cursor: "pointer",
   textAlign: "left",
 }
 
 const pickerMenuStyle = {
   marginBottom: "14px",
-  border: "1px solid #ece5e5",
+  border: "1px solid var(--player-section-line, #ece5e5)",
   borderRadius: "16px",
-  backgroundColor: "#ffffff",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
   overflow: "hidden",
 }
 
 const pickerEmptyStyle = {
   padding: "12px 14px",
   fontSize: "14px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const pickerOptionStyle = {
   width: "100%",
   padding: "12px 14px",
   border: "none",
-  borderBottom: "1px solid #f3e7e7",
-  backgroundColor: "#ffffff",
+  borderBottom: "1px solid var(--player-section-line, #f3e7e7)",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
   textAlign: "left",
   cursor: "pointer",
 }
 
 const pickerOptionActiveStyle = {
-  backgroundColor: "#fff1f1",
+  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
 }
 
 const pickerOptionNameStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const pickerOptionMetaStyle = {
   fontSize: "12px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const textareaStyle = {
@@ -615,13 +621,13 @@ const threadSubjectStyle = {
   marginBottom: "6px",
   fontSize: "20px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
 }
 
 const threadInfoStyle = {
   marginBottom: "14px",
   fontSize: "13px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
 }
 
 const chatListStyle = {
@@ -639,30 +645,30 @@ const chatBubbleStyle = {
   maxWidth: "82%",
   padding: "12px 14px",
   borderRadius: "18px",
-  border: "1px solid #efe2e2",
+  border: "1px solid var(--player-section-line, #efe2e2)",
   minWidth: 0,
   overflowWrap: "anywhere",
 }
 
 const ownBubbleStyle = {
-  backgroundColor: "#fff1f1",
-  borderColor: "#f0d1d1",
+  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  borderColor: "var(--player-section-line, #f0d1d1)",
 }
 
 const incomingBubbleStyle = {
-  backgroundColor: "#ffffff",
+  backgroundColor: "var(--player-section-surface, #ffffff)",
 }
 
 const chatAuthorStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#991b1b",
+  color: "var(--player-section-accent, #991b1b)",
   marginBottom: "6px",
 }
 
 const chatTextStyle = {
   fontSize: "14px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   lineHeight: 1.6,
   whiteSpace: "pre-wrap",
 }
@@ -670,7 +676,7 @@ const chatTextStyle = {
 const chatDateStyle = {
   marginTop: "8px",
   fontSize: "11px",
-  color: "#6b7280",
+  color: "var(--player-section-muted, #6b7280)",
   fontWeight: "700",
 }
 

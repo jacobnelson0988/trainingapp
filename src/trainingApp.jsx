@@ -1188,7 +1188,7 @@ function TrainingApp() {
   const [importResults, setImportResults] = useState([])
   const [coachView, setCoachView] = useState("home")
   const [playerView, setPlayerView] = useState("overview")
-  const [playerOverviewPanel, setPlayerOverviewPanel] = useState(null)
+  const [historyPeriod, setHistoryPeriod] = useState("all")
   const [playerExerciseProgress, setPlayerExerciseProgress] = useState([])
   const [isLoadingPlayerExerciseProgress, setIsLoadingPlayerExerciseProgress] = useState(false)
   const [selectedPlayerStatsExerciseIds, setSelectedPlayerStatsExerciseIds] = useState([])
@@ -4515,8 +4515,7 @@ function TrainingApp() {
       average_pulse: "",
       comment: entry.description || "",
     })
-    setPlayerOverviewPanel("running")
-    setPlayerView("overview")
+    navigatePlayerSection("activity")
     setStatus(`Förifyllde aktivitet från kalendern: ${entry.title}`)
   }
 
@@ -5355,13 +5354,14 @@ function TrainingApp() {
       average_pulse: "",
       comment: "",
     }))
-    setPlayerView(pendingFreeActivityCalendarEvent?.id ? "calendar" : playerView)
+    const returnToCalendar = Boolean(pendingFreeActivityCalendarEvent)
     await markCalendarEventPlayerCompleted(pendingFreeActivityCalendarEvent?.id, workoutSessionId)
     setPendingFreeActivityCalendarEvent(null)
     setStatus(`${activityLabel} sparat ✅`)
     setIsSavingRunningSession(false)
     await loadCompletedWorkoutSessions(user.id)
     await loadLatestData(user.id)
+    setPlayerView((current) => current === "activity" ? (returnToCalendar ? "calendar" : "history") : current)
   }
 
   const handleWorkoutDateDraftChange = (sessionId, value) => {
@@ -7554,6 +7554,9 @@ function TrainingApp() {
     })
     .filter(Boolean)
   const activeWorkoutData = selectedWorkout ? visibleWorkouts[selectedWorkout] : null
+  const playerPassDetail = playerView === "passDetail" && activeWorkoutData && !isSharedGymWorkout(activeWorkoutData)
+    ? activeWorkoutData
+    : null
   const isRunningWorkoutActive = activeWorkoutData?.workoutKind === "running"
   const activeWorkoutWarmup = {
     cardio: activeWorkoutData?.warmup?.cardio || "",
@@ -7608,13 +7611,6 @@ function TrainingApp() {
   const activeWorkoutSlideCount = activeWorkoutSteps.length
   const isWarmupSlideActive = activeExerciseIndex === 0
   const isFinishSlideActive = activeExerciseIndex === activeWorkoutSlideCount - 1
-  const assignedCompletedSessions = completedWorkoutSessions.filter(
-    (session) => !(session.workout_kind === "running" && session.running_origin !== "assigned")
-  )
-  const ownRunningSessions = completedWorkoutSessions.filter(
-    (session) => session.workout_kind === "running" && session.running_origin !== "assigned"
-  )
-
   const headAdminTabs = [
     { key: "home", label: "Översikt" },
     { key: "users", label: "Användare" },
@@ -7675,8 +7671,6 @@ function TrainingApp() {
   const totalUsersCount = allUsers.length
   const totalTeamsCount = teams.length
   const playerFirstName = profile?.full_name?.trim()?.split(" ")[0] || "spelare"
-  const latestAssignedSession = assignedCompletedSessions[0] || null
-  const latestOwnRunningSession = ownRunningSessions[0] || null
   const selectablePlayerStatsExercises = playerExerciseProgress
     .filter((entry) => entry.is_relevant_for_player_stats)
     .slice()
@@ -7723,21 +7717,29 @@ function TrainingApp() {
 
     navigateGlobalView("app")
     setPlayerView(tabKey)
+    window.scrollTo({ top: 0, behavior: "instant" })
   }
-  const togglePlayerOverviewPanel = (panelKey) => {
-    setPlayerOverviewPanel((current) => (current === panelKey ? null : panelKey))
+  const openPlayerHistory = (period) => {
+    setHistoryPeriod(period)
+    navigatePlayerSection("history")
+  }
+  const playerTabIsActive = (tabKey) => {
+    if (tabKey === "overview") return ["overview", "history", "activity"].includes(playerView)
+    if (tabKey === "pass") return ["pass", "passDetail"].includes(playerView)
+    return playerView === tabKey
   }
   const isPlayerHome =
     profile?.role === "player" && globalView === "app" && playerView === "overview" && !isWorkoutActive
   const today = new Date()
   const workoutWindowStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29).getTime()
   const workoutWindowEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).getTime()
-  const recentWorkoutCount = isPlayerHome
+  const recentWorkoutSessions = isPlayerHome || playerView === "history"
     ? completedWorkoutSessions.filter((session) => {
         const sessionTime = Date.parse(session.created_at)
         return sessionTime >= workoutWindowStart && sessionTime < workoutWindowEnd
-      }).length
-    : 0
+      })
+    : []
+  const visibleHistory = historyPeriod === "recent" ? recentWorkoutSessions : completedWorkoutSessions
   const isPlayerWorkout = profile?.role === "player" && isWorkoutActive
   const useCompactPlayerHeader = profile?.role === "player"
 
@@ -7778,7 +7780,7 @@ function TrainingApp() {
           onClick={handleSubmitFeedback}
           disabled={isSubmittingFeedback}
           style={{
-            ...buttonStyle,
+            ...(useCompactPlayerHeader ? playerPrimaryButtonStyle : buttonStyle),
             opacity: isSubmittingFeedback ? 0.7 : 1,
             cursor: isSubmittingFeedback ? "default" : "pointer",
           }}
@@ -7792,7 +7794,7 @@ function TrainingApp() {
   return (
     <div
       className={useCompactPlayerHeader ? "player-design" : undefined}
-      data-player-view={isPlayerWorkout ? "workout" : isPlayerHome ? "home" : undefined}
+      data-player-view={useCompactPlayerHeader ? (isPlayerWorkout ? "workout" : isPlayerHome ? "home" : "section") : undefined}
       style={{
         ...pageStyle,
         position: "relative",
@@ -7913,7 +7915,9 @@ function TrainingApp() {
         >
           <div style={accountHeaderStyle(isMobile)}>
             <div>
-              <div style={sectionTitleStyle}>Mitt konto</div>
+              {useCompactPlayerHeader
+                ? <h1 style={sectionTitleStyle}>Mitt konto</h1>
+                : <div style={sectionTitleStyle}>Mitt konto</div>}
               <p style={mutedTextStyle}>Här hanterar du uppgifter som gäller ditt eget konto.</p>
             </div>
 
@@ -8010,7 +8014,7 @@ function TrainingApp() {
                 onClick={handleUpdateOwnPassword}
                 disabled={isUpdatingOwnPassword}
                 style={{
-                  ...buttonStyle,
+                  ...(useCompactPlayerHeader ? playerPrimaryButtonStyle : buttonStyle),
                   width: isMobile ? "100%" : "auto",
                   opacity: isUpdatingOwnPassword ? 0.7 : 1,
                   cursor: isUpdatingOwnPassword ? "default" : "pointer",
@@ -8039,7 +8043,7 @@ function TrainingApp() {
           teamName={teamName}
           mutedTextStyle={mutedTextStyle}
           secondaryButtonStyle={secondaryButtonStyle}
-          buttonStyle={buttonStyle}
+          buttonStyle={useCompactPlayerHeader ? playerPrimaryButtonStyle : buttonStyle}
           onBack={() => navigateGlobalView("app")}
           onOpenAccount={() => navigateGlobalView("account")}
         />
@@ -8613,7 +8617,7 @@ function TrainingApp() {
             !showPlayerBottomNav && (
               <nav className="player-design__tabs" aria-label="Spelarnavigering">
                 {playerTabs.map((tab) => {
-                  const isActive = playerView === tab.key
+                  const isActive = playerTabIsActive(tab.key)
 
                   return (
                     <button
@@ -8662,7 +8666,7 @@ function TrainingApp() {
               cardTitleStyle={cardTitleStyle}
               mutedTextStyle={mutedTextStyle}
               inputStyle={inputStyle}
-              buttonStyle={buttonStyle}
+              buttonStyle={playerPrimaryButtonStyle}
               secondaryButtonStyle={secondaryButtonStyle}
               isMobile={isMobile}
             />
@@ -8705,8 +8709,20 @@ function TrainingApp() {
                   <h2 id="player-activity-title">Din träning</h2>
                   <dl className="player-home__stats">
                     <div>
-                      <dt>Loggade pass senaste 30 dagarna</dt>
-                      <dd>{isLoadingCompletedWorkoutSessions ? "–" : recentWorkoutCount}</dd>
+                      <dt id="recent-workout-label">Loggade pass senaste 30 dagarna</dt>
+                      <dd>
+                        <button
+                          type="button"
+                          className="player-home__history-count"
+                          onClick={() => openPlayerHistory("recent")}
+                          aria-labelledby="recent-workout-label recent-workout-count"
+                        >
+                          <span id="recent-workout-count">
+                            {isLoadingCompletedWorkoutSessions ? "–" : recentWorkoutSessions.length}
+                          </span>
+                          <span aria-hidden="true">›</span>
+                        </button>
+                      </dd>
                     </div>
                     <div>
                       <dt>Tilldelade pass</dt>
@@ -8736,356 +8752,28 @@ function TrainingApp() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => togglePlayerOverviewPanel("history")}
+                  onClick={() => openPlayerHistory("all")}
                   className="player-home__action"
-                  aria-expanded={playerOverviewPanel === "history"}
                 >
                   <span className="player-home__action-icon" aria-hidden="true">
                     {renderCoachBottomNavIcon("history", false)}
                   </span>
                   <span className="player-home__action-label">Historik</span>
-                  <span className="player-home__action-toggle" aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => togglePlayerOverviewPanel("running")}
+                  onClick={() => {
+                    setHistoryPeriod("all")
+                    navigatePlayerSection("activity")
+                  }}
                   className="player-home__action"
-                  aria-expanded={playerOverviewPanel === "running"}
                 >
                   <span className="player-home__action-icon" aria-hidden="true">
                     {renderCoachBottomNavIcon("activity", false)}
                   </span>
                   <span className="player-home__action-label">Egen aktivitet</span>
-                  <span className="player-home__action-toggle" aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
                 </button>
 
-                {playerOverviewPanel === "history" && (
-                  <div style={playerOverviewPanelRowStyle}>
-                    <div style={playerOverviewPanelStyle}>
-                      <div>
-                        <div style={playerOverviewPanelTitleStyle}>Historik</div>
-                        <div style={playerOverviewPanelTextStyle}>
-                          Se senaste pass, aktiviteter och enkel statistik.
-                        </div>
-                      </div>
-
-                      <div style={playerAccordionContentStyle}>
-                        <div style={playerHistoryHighlightsGridStyle(isMobile)}>
-                          <div style={playerHistoryHighlightCardStyle}>
-                            <div style={playerHistoryHighlightLabelStyle}>Senaste pass</div>
-                            <div style={playerHistoryHighlightValueStyle}>
-                              {latestAssignedSession ? formatDaysSince(latestAssignedSession.created_at) : "Inte loggat än"}
-                            </div>
-                          </div>
-                          <div style={playerHistoryHighlightCardStyle}>
-                            <div style={playerHistoryHighlightLabelStyle}>Senaste aktivitet</div>
-                            <div style={playerHistoryHighlightValueStyle}>
-                              {latestOwnRunningSession ? formatDaysSince(latestOwnRunningSession.created_at) : "Inte loggat än"}
-                            </div>
-                          </div>
-                        </div>
-
-                        {isLoadingCompletedWorkoutSessions ? (
-                          <div style={playerHistoryEmptyStyle}>Laddar historik...</div>
-                        ) : completedWorkoutSessions.length === 0 ? (
-                          <div style={playerHistoryEmptyStyle}>Ingen träningshistorik ännu.</div>
-                        ) : (
-                          <div style={{ display: "grid", gap: "16px" }}>
-                            <div>
-                              <div style={playerHistorySectionLabelStyle}>Tilldelade pass och coachpass</div>
-                              <div style={{ display: "grid", gap: "10px" }}>
-                                {assignedCompletedSessions.slice(0, 4).map((session) => (
-                                  <div key={session.session_id} style={playerHistoryItemStyle}>
-                                    <div style={playerHistoryItemHeaderStyle(isMobile)}>
-                                      <div>
-                                        <div style={playerHistoryItemTitleStyle}>{session.session_label}</div>
-                                        <div style={playerHistoryItemMetaStyle}>
-                                          {session.workout_kind === "running"
-                                            ? buildRunningSummary(session)
-                                            : session.summary || `${session.exercise_count} övningar`}
-                                        </div>
-                                      </div>
-                                      <div style={playerHistoryDateStyle}>
-                                        {new Date(session.created_at).toLocaleDateString("sv-SE")}
-                                      </div>
-                                    </div>
-
-                                    <div style={playerHistoryActionRowStyle(isMobile)}>
-                                      <input
-                                        type="date"
-                                        value={workoutDateDrafts[session.session_id] || ""}
-                                        onChange={(event) =>
-                                          handleWorkoutDateDraftChange(session.session_id, event.target.value)
-                                        }
-                                        style={{ ...inputStyle, width: "100%" }}
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSaveWorkoutDate(session)}
-                                        disabled={savingWorkoutDateSessionId === session.session_id}
-                                        style={{
-                                          ...secondaryButtonStyle,
-                                          width: isMobile ? "100%" : "auto",
-                                          opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
-                                          cursor:
-                                            savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
-                                        }}
-                                      >
-                                        {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                                {assignedCompletedSessions.length === 0 && (
-                                  <div style={playerHistoryEmptyStyle}>Inga tilldelade pass loggade ännu.</div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div>
-                              <div style={playerHistorySectionLabelStyle}>Egna aktiviteter</div>
-                              <div style={{ display: "grid", gap: "10px" }}>
-                                {ownRunningSessions.slice(0, 4).map((session) => (
-                                  <div key={session.session_id} style={playerHistoryItemStyle}>
-                                    <div style={playerHistoryItemHeaderStyle(isMobile)}>
-                                      <div>
-                                        <div style={playerHistoryItemTitleStyle}>{session.session_label}</div>
-                                        <div style={playerHistoryItemMetaStyle}>{buildRunningSummary(session)}</div>
-                                      </div>
-                                      <div style={playerHistoryDateStyle}>
-                                        {new Date(session.created_at).toLocaleDateString("sv-SE")}
-                                      </div>
-                                    </div>
-
-                                    <div style={playerHistoryActionRowStyle(isMobile)}>
-                                      <input
-                                        type="date"
-                                        value={workoutDateDrafts[session.session_id] || ""}
-                                        onChange={(event) =>
-                                          handleWorkoutDateDraftChange(session.session_id, event.target.value)
-                                        }
-                                        style={{ ...inputStyle, width: "100%" }}
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSaveWorkoutDate(session)}
-                                        disabled={savingWorkoutDateSessionId === session.session_id}
-                                        style={{
-                                          ...secondaryButtonStyle,
-                                          width: isMobile ? "100%" : "auto",
-                                          opacity: savingWorkoutDateSessionId === session.session_id ? 0.7 : 1,
-                                          cursor:
-                                            savingWorkoutDateSessionId === session.session_id ? "default" : "pointer",
-                                        }}
-                                      >
-                                        {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                                {ownRunningSessions.length === 0 && (
-                                  <div style={playerHistoryEmptyStyle}>Inga egna aktiviteter loggade ännu.</div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {playerOverviewPanel === "running" && (
-                  <div style={playerOverviewPanelRowStyle}>
-                    <div style={playerOverviewPanelStyle}>
-                      <div>
-                        <div style={playerOverviewPanelTitleStyle}>Egen aktivitet</div>
-                        <div style={playerOverviewPanelTextStyle}>
-                          Spara träning du gör i andra sporter utanför lagpassen.
-                        </div>
-                      </div>
-
-                      <div style={playerAccordionContentStyle}>
-                        {pendingFreeActivityCalendarEvent?.id ? (
-                          <div
-                            style={{
-                              marginBottom: "12px",
-                              padding: "12px 14px",
-                              borderRadius: "14px",
-                              backgroundColor: "#fff7ed",
-                              border: "1px solid #fed7aa",
-                              color: "#9a3412",
-                              fontSize: "13px",
-                              fontWeight: 700,
-                            }}
-                          >
-                            Loggar från kalendern: {pendingFreeActivityCalendarEvent.title}
-                          </div>
-                        ) : null}
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: "10px",
-                            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
-                          }}
-                        >
-                          <input
-                            type="date"
-                            value={runningDraft.log_date}
-                            onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
-                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                          />
-                          <select
-                            value={runningDraft.free_activity_type}
-                            onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
-                            style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                          >
-                            <option value="">Välj aktivitet</option>
-                            {FREE_ACTIVITY_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          {!runningDraft.free_activity_type ? (
-                            <div
-                              style={{
-                                ...mutedTextStyle,
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            >
-                              Börja med att välja aktivitet. Då visas rätt fält direkt under.
-                            </div>
-                          ) : runningDraft.free_activity_type === "running" ? (
-                            <select
-                              value={runningDraft.running_type}
-                              onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            >
-                              <option value="distance">Distans</option>
-                              <option value="intervals">Intervaller</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              placeholder="Tid/duration, t.ex. 75 min"
-                              value={runningDraft.running_time}
-                              onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                              style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                            />
-                          )}
-
-                          {runningDraft.free_activity_type === "running" && runningDraft.running_type === "intervals" ? (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Tid/intervall, t.ex. 45 sek"
-                                value={runningDraft.interval_time}
-                                onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                              <input
-                                type="number"
-                                placeholder="Antal intervaller"
-                                value={runningDraft.intervals_count}
-                                onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                            </>
-                          ) : runningDraft.free_activity_type === "running" ? (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Distans i km"
-                                value={runningDraft.running_distance}
-                                onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                              <input
-                                type="text"
-                                placeholder="Tid, t.ex. 24:30"
-                                value={runningDraft.running_time}
-                                onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
-                                style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
-                              />
-                              <input
-                                type="number"
-                                placeholder="Snittpuls"
-                                value={runningDraft.average_pulse}
-                                onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
-                                style={{
-                                  ...inputStyle,
-                                  width: "100%",
-                                  backgroundColor: "#ffffff",
-                                  color: "#111827",
-                                  gridColumn: isMobile ? "auto" : "span 2",
-                                }}
-                              />
-                            </>
-                          ) : null}
-                          {runningDraft.free_activity_type === "custom" && (
-                            <input
-                              type="text"
-                              placeholder="Vad gjorde du?"
-                              value={runningDraft.custom_activity_title}
-                              onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
-                              style={{
-                                ...inputStyle,
-                                width: "100%",
-                                backgroundColor: "#ffffff",
-                                color: "#111827",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            />
-                          )}
-                          {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
-                            <div
-                              style={{
-                                ...mutedTextStyle,
-                                marginTop: "-2px",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            >
-                              Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
-                            </div>
-                          )}
-                          {runningDraft.free_activity_type ? (
-                            <textarea
-                              rows={3}
-                              placeholder="Kommentar, t.ex. hur det kändes eller vad du tränade"
-                              value={runningDraft.comment}
-                              onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
-                              style={{
-                                ...inputStyle,
-                                width: "100%",
-                                minHeight: "96px",
-                                resize: "vertical",
-                                backgroundColor: "#ffffff",
-                                color: "#111827",
-                                gridColumn: isMobile ? "auto" : "span 2",
-                              }}
-                            />
-                          ) : null}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleSaveRunningSession}
-                          disabled={isSavingRunningSession}
-                          style={{
-                            ...buttonStyle,
-                            width: isMobile ? "100%" : "auto",
-                            marginTop: "12px",
-                            opacity: isSavingRunningSession ? 0.7 : 1,
-                            cursor: isSavingRunningSession ? "default" : "pointer",
-                          }}
-                        >
-                          {isSavingRunningSession ? "Sparar..." : "Spara aktivitet"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
               <footer className="player-home__footer">
                 <button
@@ -9098,6 +8786,258 @@ function TrainingApp() {
                 </button>
                 {feedbackComposer}
               </footer>
+            </main>
+          )}
+
+          {!isWorkoutActive && playerView === "history" && (
+            <main className="player-section">
+              <div className="player-design__view-heading">
+                <h1>Historik</h1>
+                <button type="button" onClick={() => navigatePlayerSection("overview")} className="player-design__secondary">
+                  Till startsidan
+                </button>
+              </div>
+              {status && <p role="status" style={workoutStatusMessageStyle}>{status}</p>}
+              <div className="player-history__filters" role="group" aria-label="Period">
+                <button type="button" aria-pressed={historyPeriod === "all"} onClick={() => setHistoryPeriod("all")}>
+                  Alla pass
+                </button>
+                <button type="button" aria-pressed={historyPeriod === "recent"} onClick={() => setHistoryPeriod("recent")}>
+                  Senaste 30 dagarna
+                </button>
+              </div>
+              {isLoadingCompletedWorkoutSessions ? (
+                <p role="status" className="player-history__empty">Laddar historik...</p>
+              ) : visibleHistory.length === 0 ? (
+                <p className="player-history__empty">
+                  {historyPeriod === "recent" ? "Inga loggade pass de senaste 30 dagarna." : "Inga loggade pass ännu."}
+                </p>
+              ) : (
+                <ul className="player-history__list">
+                  {visibleHistory.map((session) => (
+                    <li key={session.session_id} className="player-history__item">
+                      <div className="player-history__item-heading">
+                        <div>
+                          <h2>{session.session_label}</h2>
+                          <p>
+                            {session.workout_kind === "running"
+                              ? buildRunningSummary(session)
+                              : session.summary || `${session.exercise_count} övningar`}
+                          </p>
+                        </div>
+                        <span>{formatDate(session.created_at)}</span>
+                      </div>
+                      <details className="player-history__date">
+                        <summary>Ändra träningsdatum</summary>
+                        <div>
+                          <input
+                            type="date"
+                            aria-label={`Träningsdatum för ${session.session_label}`}
+                            value={workoutDateDrafts[session.session_id] || ""}
+                            onChange={(event) => handleWorkoutDateDraftChange(session.session_id, event.target.value)}
+                            style={inputStyle}
+                          />
+                          <button
+                            type="button"
+                            className="player-design__secondary"
+                            onClick={() => handleSaveWorkoutDate(session)}
+                            disabled={savingWorkoutDateSessionId === session.session_id}
+                          >
+                            {savingWorkoutDateSessionId === session.session_id ? "Sparar..." : "Spara datum"}
+                          </button>
+                        </div>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </main>
+          )}
+
+          {!isWorkoutActive && playerView === "activity" && (
+            <main className="player-section">
+              <div className="player-design__view-heading">
+                <h1>Egen aktivitet</h1>
+                <button
+                  type="button"
+                  className="player-design__secondary"
+                  disabled={isSavingRunningSession}
+                  onClick={() => navigatePlayerSection(pendingFreeActivityCalendarEvent ? "calendar" : "overview")}
+                >
+                  {pendingFreeActivityCalendarEvent ? "Till kalendern" : "Till startsidan"}
+                </button>
+              </div>
+              {status && <p role="status" style={workoutStatusMessageStyle}>{status}</p>}
+              <div className="player-section__card">
+                {pendingFreeActivityCalendarEvent && (
+                  <p className="player-section__note">Loggar från kalendern: {pendingFreeActivityCalendarEvent.title}</p>
+                )}
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "10px",
+                    gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                  }}
+                >
+                  <input
+                    type="date"
+                    aria-label="Träningsdatum"
+                    value={runningDraft.log_date}
+                    onChange={(event) => handleRunningDraftChange("log_date", event.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  />
+                  <select
+                    aria-label="Aktivitet"
+                    value={runningDraft.free_activity_type}
+                    onChange={(event) => handleRunningDraftChange("free_activity_type", event.target.value)}
+                    style={{ ...inputStyle, width: "100%" }}
+                  >
+                    <option value="">Välj aktivitet</option>
+                    {FREE_ACTIVITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {!runningDraft.free_activity_type ? (
+                    <div
+                      style={{
+                        ...mutedTextStyle,
+                        gridColumn: isMobile ? "auto" : "span 2",
+                      }}
+                    >
+                      Börja med att välja aktivitet. Då visas rätt fält direkt under.
+                    </div>
+                  ) : runningDraft.free_activity_type === "running" ? (
+                    <select
+                      aria-label="Typ av löppass"
+                      value={runningDraft.running_type}
+                      onChange={(event) => handleRunningDraftChange("running_type", event.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    >
+                      <option value="distance">Distans</option>
+                      <option value="intervals">Intervaller</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      aria-label="Träningstid"
+                      placeholder="Tid, t.ex. 75 min"
+                      value={runningDraft.running_time}
+                      onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                      style={{ ...inputStyle, width: "100%" }}
+                    />
+                  )}
+
+                  {runningDraft.free_activity_type === "running" && runningDraft.running_type === "intervals" ? (
+                    <>
+                      <input
+                        type="text"
+                        aria-label="Tid per intervall"
+                        placeholder="Tid/intervall, t.ex. 45 sek"
+                        value={runningDraft.interval_time}
+                        onChange={(event) => handleRunningDraftChange("interval_time", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                      <input
+                        type="number"
+                        aria-label="Antal intervaller"
+                        placeholder="Antal intervaller"
+                        value={runningDraft.intervals_count}
+                        onChange={(event) => handleRunningDraftChange("intervals_count", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                    </>
+                  ) : runningDraft.free_activity_type === "running" ? (
+                    <>
+                      <input
+                        type="text"
+                        aria-label="Distans i kilometer"
+                        placeholder="Distans i km"
+                        value={runningDraft.running_distance}
+                        onChange={(event) => handleRunningDraftChange("running_distance", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                      <input
+                        type="text"
+                        aria-label="Löptid"
+                        placeholder="Tid, t.ex. 24:30"
+                        value={runningDraft.running_time}
+                        onChange={(event) => handleRunningDraftChange("running_time", event.target.value)}
+                        style={{ ...inputStyle, width: "100%" }}
+                      />
+                      <input
+                        type="number"
+                        aria-label="Snittpuls"
+                        placeholder="Snittpuls"
+                        value={runningDraft.average_pulse}
+                        onChange={(event) => handleRunningDraftChange("average_pulse", event.target.value)}
+                        style={{
+                          ...inputStyle,
+                          width: "100%",
+                          gridColumn: isMobile ? "auto" : "span 2",
+                        }}
+                      />
+                    </>
+                  ) : null}
+                  {runningDraft.free_activity_type === "custom" && (
+                    <input
+                      type="text"
+                      aria-label="Aktivitetens namn"
+                      placeholder="Vad gjorde du?"
+                      value={runningDraft.custom_activity_title}
+                      onChange={(event) => handleRunningDraftChange("custom_activity_title", event.target.value)}
+                      style={{
+                        ...inputStyle,
+                        width: "100%",
+                        gridColumn: isMobile ? "auto" : "span 2",
+                      }}
+                    />
+                  )}
+                  {runningDraft.free_activity_type && runningDraft.free_activity_type !== "running" && (
+                    <div
+                      style={{
+                        ...mutedTextStyle,
+                        marginTop: "-2px",
+                        gridColumn: isMobile ? "auto" : "span 2",
+                      }}
+                    >
+                      Börja enkelt: välj aktivitet och skriv ungefär hur länge du tränade.
+                    </div>
+                  )}
+                  {runningDraft.free_activity_type ? (
+                    <textarea
+                      rows={3}
+                      aria-label="Kommentar"
+                      placeholder="Kommentar, t.ex. hur det kändes eller vad du tränade"
+                      value={runningDraft.comment}
+                      onChange={(event) => handleRunningDraftChange("comment", event.target.value)}
+                      style={{
+                        ...inputStyle,
+                        width: "100%",
+                        minHeight: "96px",
+                        resize: "vertical",
+                        gridColumn: isMobile ? "auto" : "span 2",
+                      }}
+                    />
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveRunningSession}
+                  disabled={isSavingRunningSession}
+                  style={{
+                    ...playerPrimaryButtonStyle,
+                    width: isMobile ? "100%" : "auto",
+                    marginTop: "12px",
+                    opacity: isSavingRunningSession ? 0.7 : 1,
+                    cursor: isSavingRunningSession ? "default" : "pointer",
+                  }}
+                >
+                  {isSavingRunningSession ? "Sparar..." : "Spara aktivitet"}
+                </button>
+              </div>
             </main>
           )}
 
@@ -9136,7 +9076,7 @@ function TrainingApp() {
             />
           )}
 
-          {!isWorkoutActive && playerView === "pass" && (
+          {!isWorkoutActive && (playerView === "pass" || (playerView === "passDetail" && !playerPassDetail)) && (
             <>
               <div className="player-design__view-heading">
                 <h1>Dina pass</h1>
@@ -9167,25 +9107,20 @@ function TrainingApp() {
 
                       <div style={passCategoryListStyle}>
                         {group.entries.map(([key, workout], index) => {
-                          const isSelected = selectedWorkout === key
                           const passStatus = getPassStatus(latestPassDates[key])
                           const isRecommended = index === 0 && group.entries.length > 1
 
                           return (
                             <div
                               key={key}
-                              style={{
-                                ...passPickerItemStyle,
-                                borderColor: isSelected ? "#41849a" : passPickerItemStyle.borderColor,
-                                background: isSelected ? "#eaf6fb" : passPickerItemStyle.background,
-                              }}
+                              style={passPickerItemStyle}
                             >
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedWorkout((current) => (current === key ? null : key))
+                                  setSelectedWorkout(key)
+                                  navigatePlayerSection("passDetail")
                                 }}
-                                aria-pressed={isSelected}
                                 style={{
                                   ...pickerButtonStyle,
                                   marginBottom: 0,
@@ -9228,7 +9163,7 @@ function TrainingApp() {
                                     </div>
                                     <div style={pickerTitleStyle}>{workout.label}</div>
                                   </div>
-                                  <div style={pickerExpandIconStyle(isSelected)}>{isSelected ? "−" : "+"}</div>
+
                                 </div>
 
                                 <div style={pickerSummaryRowStyle}>
@@ -9252,69 +9187,11 @@ function TrainingApp() {
                                 </div>
 
                                 <div style={pickerActionHintStyle}>
-                                  {isSelected ? "Tryck igen för att stänga" : "Tryck för att visa passet"}
+                                  Visa pass
                                 </div>
                               </button>
 
-                              {isSelected && (
-                                <div
-                                  style={{
-                                    ...passPreviewCardStyle,
-                                    padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
-                                  }}
-                                >
-                                  <div style={passPreviewContentCardStyle}>
-                                    {workout.info && (
-                                      <div style={{ marginBottom: "14px" }}>
-                                        <div style={passPreviewStatLabelStyle}>Info om passet</div>
-                                        <PassInfoBlock info={workout.info} />
-                                      </div>
-                                    )}
 
-                                    <div style={passPreviewStatLabelStyle}>
-                                      {workout.workoutKind === "running" ? "Löppass" : "Övningar"}
-                                    </div>
-                                    <div style={passPreviewExerciseCountStyle}>
-                                      {workout.workoutKind === "running"
-                                        ? buildRunningSummary({
-                                            running_type: workout.runningType,
-                                            interval_time: workout.runningConfig?.interval_time,
-                                            intervals_count: workout.runningConfig?.intervals_count,
-                                            running_distance: workout.runningConfig?.running_distance,
-                                            running_time: workout.runningConfig?.running_time,
-                                          })
-                                        : `${workout.exercises.length} st`}
-                                    </div>
-
-                                    {workout.workoutKind !== "running" && workout.exercises.length > 0 && (
-                                      <div style={passPreviewListWrapStyle}>
-                                        <div style={passPreviewExerciseStackStyle}>
-                                          {workout.exercises.map((exercise, exerciseIndex) => (
-                                            <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
-                                              <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
-                                              <span style={passPreviewExerciseNameStyle}>
-                                                {exercise.displayName || exercise.name}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {workout.workoutKind !== "running" && workout.exercises.length === 0 && (
-                                      <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
-                                    )}
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => startWorkout(key)}
-                                    className="player-design__primary"
-                                  >
-                                    Starta pass
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           )
                         })}
@@ -9324,6 +9201,74 @@ function TrainingApp() {
                 </div>
               )}
             </>
+          )}
+
+          {!isWorkoutActive && playerPassDetail && (
+            <main className="player-section">
+              <div className="player-design__view-heading">
+                <h1>{playerPassDetail.label}</h1>
+                <button type="button" onClick={() => navigatePlayerSection("pass")} className="player-design__secondary">
+                  Till passlistan
+                </button>
+              </div>
+              <div
+                style={{
+                  ...passPreviewCardStyle,
+                  padding: isMobile ? "18px 16px" : passPreviewCardStyle.padding,
+                }}
+              >
+                <div style={passPreviewContentCardStyle}>
+                  {playerPassDetail.info && (
+                    <div style={{ marginBottom: "14px" }}>
+                      <div style={passPreviewStatLabelStyle}>Info om passet</div>
+                      <PassInfoBlock info={playerPassDetail.info} />
+                    </div>
+                  )}
+
+                  <div style={passPreviewStatLabelStyle}>
+                    {playerPassDetail.workoutKind === "running" ? "Löppass" : "Övningar"}
+                  </div>
+                  <div style={passPreviewExerciseCountStyle}>
+                    {playerPassDetail.workoutKind === "running"
+                      ? buildRunningSummary({
+                          running_type: playerPassDetail.runningType,
+                          interval_time: playerPassDetail.runningConfig?.interval_time,
+                          intervals_count: playerPassDetail.runningConfig?.intervals_count,
+                          running_distance: playerPassDetail.runningConfig?.running_distance,
+                          running_time: playerPassDetail.runningConfig?.running_time,
+                        })
+                      : `${playerPassDetail.exercises.length} st`}
+                  </div>
+
+                  {playerPassDetail.workoutKind !== "running" && playerPassDetail.exercises.length > 0 && (
+                    <div style={passPreviewListWrapStyle}>
+                      <div style={passPreviewExerciseStackStyle}>
+                        {playerPassDetail.exercises.map((exercise, exerciseIndex) => (
+                          <div key={exercise.id || exercise.name} style={passPreviewListItemStyle}>
+                            <span style={passPreviewExerciseIndexStyle}>{exerciseIndex + 1}</span>
+                            <span style={passPreviewExerciseNameStyle}>
+                              {exercise.displayName || exercise.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {playerPassDetail.workoutKind !== "running" && playerPassDetail.exercises.length === 0 && (
+                    <div style={passPreviewEmptyStyle}>Inga övningar tillagda ännu</div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => startWorkout(selectedWorkout)}
+                  className="player-design__primary"
+                >
+                  Starta pass
+                </button>
+              </div>
+            </main>
           )}
 
           {!isWorkoutActive && playerView === "stats" && (
@@ -9363,7 +9308,7 @@ function TrainingApp() {
                             setPlayerStatsPickerValue(nextExerciseId)
                             handleAddPlayerStatsExercise(nextExerciseId)
                           }}
-                          style={{ ...inputStyle, width: "100%", backgroundColor: "#ffffff", color: "#111827" }}
+                          style={{ ...inputStyle, width: "100%" }}
                         >
                           <option value="">Välj övning</option>
                           {unselectedPlayerStatsExercises.map((entry) => (
@@ -9474,7 +9419,9 @@ function TrainingApp() {
         <nav className="player-design__dock" aria-label="Spelarnavigering på mobil">
           {playerBottomTabs.map((tab) => {
             const isActive =
-              tab.key === "account" ? globalView === "account" : globalView === "app" && playerView === tab.key
+              tab.key === "account"
+                ? globalView === "account"
+                : globalView === "app" && playerTabIsActive(tab.key)
 
             return (
               <button
@@ -9497,8 +9444,8 @@ function TrainingApp() {
         </nav>
       )}
 
-      {status && (
-        <p role="status" style={isPlayerWorkout || isPlayerHome ? workoutStatusMessageStyle : statusStyle}>{status}</p>
+      {status && !(globalView === "app" && !isWorkoutActive && ["history", "activity"].includes(playerView)) && (
+        <p role="status" style={useCompactPlayerHeader ? workoutStatusMessageStyle : statusStyle}>{status}</p>
       )}
 
       {selectedWorkout && isWorkoutActive && (
@@ -10426,7 +10373,7 @@ function PlayerProgressChart({ entries }) {
 
   return (
     <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={playerChartSvgStyle} role="img" aria-label="Graf över viktutveckling">
-      <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="20" fill="#f4f9fc" />
+      <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="20" fill="var(--player-section-input, #f4f9fc)" />
 
       {axisLabels.map((value, index) => {
         const y =
@@ -10439,10 +10386,10 @@ function PlayerProgressChart({ entries }) {
               x2={chartWidth - padding.right}
               y1={y}
               y2={y}
-              stroke="#c9dbe7"
+              stroke="var(--player-section-line, #c9dbe7)"
               strokeDasharray="4 6"
             />
-            <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280" fontWeight="700">
+            <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="var(--player-section-muted, #6b7280)" fontWeight="700">
               {value} kg
             </text>
           </g>
@@ -10451,7 +10398,7 @@ function PlayerProgressChart({ entries }) {
 
       <polyline
         fill="none"
-        stroke="#216476"
+        stroke="var(--player-section-ice, #216476)"
         strokeWidth="4"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -10460,8 +10407,8 @@ function PlayerProgressChart({ entries }) {
 
       {chartPoints.map((point) => (
         <g key={`${point.created_at}-${point.top_weight}`}>
-          <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#216476" strokeWidth="3" />
-          <text x={point.x} y={chartHeight - 10} textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="700">
+          <circle cx={point.x} cy={point.y} r="5" fill="var(--player-section-input, #ffffff)" stroke="var(--player-section-ice, #216476)" strokeWidth="3" />
+          <text x={point.x} y={chartHeight - 10} textAnchor="middle" fontSize="11" fill="var(--player-section-muted, #6b7280)" fontWeight="700">
             {point.label}
           </text>
         </g>
@@ -10664,7 +10611,7 @@ const compactFieldLabelStyle = {
   marginBottom: "8px",
   fontSize: "13px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
 }
 
 const feedbackComposerCardStyle = {
@@ -10755,7 +10702,7 @@ const menuItemButtonStyle = {
   border: "none",
   borderRadius: "12px",
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
@@ -10807,7 +10754,7 @@ const workoutActionSectionStyle = {
 const sectionTitleStyle = {
   fontSize: "28px",
   marginBottom: "16px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   fontWeight: "900",
 }
 
@@ -10826,7 +10773,7 @@ const cardStyle = {
 const cardTitleStyle = {
   margin: "0 0 6px 0",
   fontSize: "20px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   fontWeight: "900",
 }
 
@@ -10885,7 +10832,7 @@ const subheadingStyle = {
 const mutedTextStyle = {
   margin: 0,
   fontSize: "14px",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   lineHeight: 1.6,
 }
 
@@ -11129,9 +11076,9 @@ const inputStyle = {
   border: `1px solid ${uiBorderStrong}`,
   fontSize: "14px",
   minWidth: "120px",
-  backgroundColor: uiSurface,
-  color: "#18202b",
-  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+  backgroundColor: "var(--player-section-input, var(--ghf-surface))",
+  color: "var(--player-section-ink, #18202b)",
+  boxShadow: "var(--player-section-input-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.7))",
 }
 
 const buttonStyle = {
@@ -11146,12 +11093,19 @@ const buttonStyle = {
   boxShadow: "0 14px 28px rgba(198, 40, 40, 0.22)",
 }
 
+const playerPrimaryButtonStyle = {
+  ...buttonStyle,
+  background: "#c9fb54",
+  color: "#192604",
+  boxShadow: "none",
+}
+
 const secondaryButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
   border: `1px solid ${uiBorderStrong}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   cursor: "pointer",
   fontSize: "14px",
   fontWeight: "800",
@@ -11186,14 +11140,14 @@ const passCategoryHeaderStyle = (isMobile) => ({
 const passCategoryTitleStyle = {
   fontSize: "20px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const passCategoryTextStyle = {
   fontSize: "14px",
   lineHeight: 1.5,
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
 }
 
 const passCategoryCountStyle = {
@@ -11204,7 +11158,7 @@ const passCategoryCountStyle = {
   borderRadius: "16px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   fontSize: "13px",
   fontWeight: "800",
   whiteSpace: "nowrap",
@@ -11261,25 +11215,10 @@ const pickerStatusPillStyle = {
   fontWeight: "800",
 }
 
-const pickerExpandIconStyle = (isSelected) => ({
-  width: "34px",
-  height: "34px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "999px",
-  border: `1px solid ${isSelected ? uiSelectedBorder : uiBorder}`,
-  backgroundColor: isSelected ? uiSelectedSurface : uiSurface,
-  color: isSelected ? "#b61e24" : "#6b7280",
-  fontSize: "22px",
-  fontWeight: "800",
-  flexShrink: 0,
-})
-
 const pickerTitleStyle = {
   fontWeight: "900",
   fontSize: "17px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
 }
 
 const pickerSummaryRowStyle = {
@@ -11293,7 +11232,7 @@ const pickerSummaryTextStyle = {
   fontSize: "13px",
   lineHeight: 1.4,
   fontWeight: "700",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   overflowWrap: "anywhere",
 }
 
@@ -11307,14 +11246,14 @@ const pickerSecondarySummaryStyle = {
   fontSize: "13px",
   lineHeight: 1.5,
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
 }
 
 const pickerActionHintStyle = {
   marginTop: "8px",
   fontSize: "12px",
   fontWeight: "700",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
 }
 
 const passPreviewCardStyle = {
@@ -11343,7 +11282,7 @@ const passPreviewStatLabelStyle = {
 
 const passPreviewInfoTextStyle = {
   fontSize: "14px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   fontWeight: "700",
   lineHeight: 1.5,
 }
@@ -11371,7 +11310,7 @@ const passVideoLinkStyle = {
 
 const passPreviewExerciseCountStyle = {
   fontSize: "22px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   fontWeight: "900",
   marginBottom: "10px",
 }
@@ -11394,7 +11333,7 @@ const passPreviewListItemStyle = {
   borderRadius: "14px",
   backgroundColor: uiSurfaceAlt,
   border: `1px solid ${uiBorder}`,
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   fontSize: "13px",
   fontWeight: "800",
 }
@@ -11406,8 +11345,8 @@ const passPreviewExerciseIndexStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "999px",
-  backgroundColor: "#eef4ff",
-  color: "#274690",
+  backgroundColor: "var(--player-section-surface-accent, #eef4ff)",
+  color: "var(--player-section-accent, #274690)",
   fontSize: "12px",
   fontWeight: "800",
 }
@@ -11419,13 +11358,13 @@ const passPreviewExerciseNameStyle = {
 
 const passPreviewEmptyStyle = {
   fontSize: "14px",
-  color: "#9ca3af",
+  color: "var(--player-section-muted, #9ca3af)",
   fontStyle: "italic",
 }
 
 const statusStyle = {
   fontSize: "14px",
-  color: "#991b1b",
+  color: "var(--player-section-accent, #991b1b)",
   marginTop: 0,
   marginBottom: "16px",
   fontWeight: "700",
@@ -11452,13 +11391,13 @@ const coachNavCardStyle = {
 const coachNavTitleStyle = {
   fontWeight: "900",
   fontSize: "18px",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "6px",
 }
 
 const coachNavTextStyle = {
   fontSize: "14px",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   lineHeight: 1.5,
 }
 
@@ -11496,14 +11435,14 @@ const accountPasswordCardStyle = {
 const accountPasswordTitleStyle = {
   fontSize: "14px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "6px",
 }
 
 const accountPasswordTextStyle = {
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#475569",
+  color: "var(--player-section-muted, #475569)",
   marginBottom: "12px",
 }
 
@@ -11524,7 +11463,7 @@ const accountInfoCardStyle = {
 const accountInfoLabelStyle = {
   fontSize: "12px",
   fontWeight: "800",
-  color: "#64748b",
+  color: "var(--player-section-muted, #64748b)",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   marginBottom: "6px",
@@ -11533,157 +11472,38 @@ const accountInfoLabelStyle = {
 const accountInfoValueStyle = {
   fontSize: "18px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
 }
 
 const accountWarningCardStyle = {
   marginTop: "16px",
   padding: "16px",
   borderRadius: "18px",
-  border: "1px solid #f3d1d1",
-  backgroundColor: "#fff7f7",
+  border: "1px solid var(--player-section-danger-line, #f3d1d1)",
+  backgroundColor: "var(--player-section-danger, #fff7f7)",
 }
 
 const accountWarningTitleStyle = {
   fontSize: "14px",
   fontWeight: "900",
-  color: "#991b1b",
+  color: "var(--player-section-danger-ink, #991b1b)",
   marginBottom: "6px",
 }
 
 const accountWarningTextStyle = {
   fontSize: "14px",
   lineHeight: 1.6,
-  color: "#5f2a2a",
+  color: "var(--player-section-danger-ink, #5f2a2a)",
 }
 
 const dangerActionButtonStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
-  border: "1px solid #efc7c7",
-  backgroundColor: "#fff1f1",
-  color: "#991b1b",
+  border: "1px solid var(--player-section-danger-line, #efc7c7)",
+  backgroundColor: "var(--player-section-danger, #fff1f1)",
+  color: "var(--player-section-danger-ink, #991b1b)",
   fontSize: "14px",
   fontWeight: "800",
-}
-
-const playerOverviewPanelStyle = {
-  padding: "18px",
-  borderRadius: "22px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-  boxShadow: uiShadowMd,
-}
-
-const playerOverviewPanelHeaderStyle = {
-  marginBottom: "14px",
-}
-
-const playerOverviewPanelRowStyle = {
-  gridColumn: "1 / -1",
-  minWidth: 0,
-}
-
-const playerAccordionContentStyle = {
-  marginTop: "14px",
-  display: "grid",
-  gap: "14px",
-}
-
-const playerOverviewPanelTitleStyle = {
-  fontSize: "20px",
-  fontWeight: "900",
-  color: "#18202b",
-  marginBottom: "4px",
-}
-
-const playerOverviewPanelTextStyle = {
-  fontSize: "14px",
-  lineHeight: 1.6,
-  color: "#566173",
-}
-
-const playerHistorySectionLabelStyle = {
-  marginBottom: "10px",
-  fontSize: "12px",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "#6b7280",
-}
-
-const playerHistoryItemStyle = {
-  padding: "14px",
-  borderRadius: "16px",
-  backgroundColor: uiSurface,
-  border: `1px solid ${uiBorder}`,
-}
-
-const playerHistoryItemHeaderStyle = (isMobile) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: isMobile ? "flex-start" : "center",
-  gap: "10px",
-  flexDirection: isMobile ? "column" : "row",
-  marginBottom: "10px",
-})
-
-const playerHistoryItemTitleStyle = {
-  fontWeight: "800",
-  color: "#18202b",
-  marginBottom: "4px",
-}
-
-const playerHistoryItemMetaStyle = {
-  fontSize: "13px",
-  color: "#566173",
-}
-
-const playerHistoryDateStyle = {
-  fontSize: "13px",
-  fontWeight: "700",
-  color: "#566173",
-}
-
-const playerHistoryActionRowStyle = (isMobile) => ({
-  display: "flex",
-  gap: "8px",
-  flexDirection: isMobile ? "column" : "row",
-  alignItems: isMobile ? "stretch" : "center",
-})
-
-const playerHistoryEmptyStyle = {
-  fontSize: "14px",
-  color: "#6b7280",
-}
-
-const playerHistoryHighlightsGridStyle = (isMobile) => ({
-  display: "grid",
-  gap: "10px",
-  gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(2, minmax(0, 1fr))",
-})
-
-const playerHistoryHighlightCardStyle = {
-  padding: "12px 14px",
-  borderRadius: "16px",
-  border: `1px solid ${uiBorder}`,
-  backgroundColor: uiSurface,
-}
-
-const playerHistoryHighlightLabelStyle = {
-  marginBottom: "6px",
-  fontSize: "12px",
-  fontWeight: "800",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "#6b7280",
-}
-
-const playerHistoryHighlightValueStyle = {
-  fontSize: "15px",
-  fontWeight: "800",
-  color: "#18202b",
-  lineHeight: 1.4,
 }
 
 const playerStatsLayoutStyle = {
@@ -11720,14 +11540,14 @@ const playerStatsSelectorLabelStyle = {
   fontWeight: "900",
   letterSpacing: "0.14em",
   textTransform: "uppercase",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   marginBottom: "4px",
 }
 
 const playerStatsSelectorTextStyle = {
   fontSize: "15px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
 }
 
 const playerStatsSelectorSummaryHintStyle = {
@@ -11736,8 +11556,8 @@ const playerStatsSelectorSummaryHintStyle = {
   justifyContent: "center",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  color: "var(--player-section-accent, #b61e24)",
   fontSize: "12px",
   fontWeight: "800",
   whiteSpace: "nowrap",
@@ -11752,20 +11572,20 @@ const playerStatsSelectorControlsStyle = {
 
 const playerStatsSelectorHelperStyle = {
   fontSize: "13px",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   lineHeight: 1.5,
 }
 
 const playerStatsExerciseTitleStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const playerStatsExerciseMetaStyle = {
   fontSize: "13px",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
 }
 
 const playerStatsSelectedChipsStyle = {
@@ -11781,8 +11601,8 @@ const playerStatsSelectedChipStyle = {
   padding: "10px 14px",
   borderRadius: "999px",
   border: `1px solid ${uiBorder}`,
-  backgroundColor: "#fff6f6",
-  color: "#18202b",
+  backgroundColor: "var(--player-section-surface-accent, #fff6f6)",
+  color: "var(--player-section-ink, #18202b)",
   fontSize: "13px",
   fontWeight: "800",
   cursor: "pointer",
@@ -11813,13 +11633,13 @@ const playerStatsHeaderStyle = (isMobile) => ({
 const playerStatsTitleStyle = {
   fontSize: "20px",
   fontWeight: "900",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const playerStatsTextStyle = {
   fontSize: "14px",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   lineHeight: 1.5,
 }
 
@@ -11827,8 +11647,8 @@ const playerStatsSummaryPillStyle = {
   display: "inline-flex",
   padding: "8px 12px",
   borderRadius: "999px",
-  backgroundColor: "#fff1f1",
-  color: "#b61e24",
+  backgroundColor: "var(--player-section-surface-accent, #fff1f1)",
+  color: "var(--player-section-accent, #b61e24)",
   fontSize: "13px",
   fontWeight: "800",
 }
@@ -11866,19 +11686,19 @@ const playerStatsRecentItemStyle = {
 const playerStatsRecentDateStyle = {
   fontSize: "14px",
   fontWeight: "800",
-  color: "#18202b",
+  color: "var(--player-section-ink, #18202b)",
   marginBottom: "4px",
 }
 
 const playerStatsRecentMetaStyle = {
   fontSize: "13px",
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
 }
 
 const playerStatsRecentValueStyle = {
   fontSize: "15px",
   fontWeight: "900",
-  color: "#b61e24",
+  color: "var(--player-section-accent, #b61e24)",
   whiteSpace: "nowrap",
 }
 
@@ -11887,7 +11707,7 @@ const playerStatsEmptyStyle = {
   borderRadius: "20px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   fontSize: "14px",
 }
 
@@ -11897,7 +11717,7 @@ const playerStatsEmptyInlineStyle = {
   borderRadius: "16px",
   border: `1px solid ${uiBorder}`,
   backgroundColor: uiSurface,
-  color: "#566173",
+  color: "var(--player-section-muted, #566173)",
   fontSize: "14px",
 }
 
