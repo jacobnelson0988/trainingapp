@@ -7712,7 +7712,7 @@ function TrainingApp() {
   const isPlayerHome =
     profile?.role === "player" && globalView === "app" && playerView === "overview" && !isWorkoutActive
   const isPlayerWorkout = profile?.role === "player" && isWorkoutActive
-  const useCompactPlayerHeader = isPlayerHome || isPlayerWorkout
+  const useCompactPlayerHeader = profile?.role === "player"
 
   const playerHeaderSubtitle =
     profile?.role === "head_admin"
@@ -7748,7 +7748,10 @@ function TrainingApp() {
         }}
       >
         {useCompactPlayerHeader ? (
-          <div className="player-design__brand">Starkare Gurra</div>
+          <div className="player-design__brand">
+            <span className="player-design__mark" aria-hidden="true" />
+            Starkare Gurra
+          </div>
         ) : (
           <div style={{ flex: 1 }}>
             <p style={eyebrowStyle}>
@@ -8579,7 +8582,7 @@ function TrainingApp() {
         >
           {!isWorkoutActive ? (
             !showPlayerBottomNav && (
-              <div style={coachTabsWrapStyle}>
+              <nav className="player-design__tabs" aria-label="Spelarnavigering">
                 {playerTabs.map((tab) => {
                   const isActive = playerView === tab.key
 
@@ -8587,18 +8590,14 @@ function TrainingApp() {
                     <button
                       key={tab.key}
                       type="button"
-                      onClick={() => setPlayerView(tab.key)}
-                      style={{
-                        ...coachTabButtonStyle,
-                        ...(isActive ? activeCoachTabButtonStyle : {}),
-                        width: isMobile ? "100%" : "auto",
-                      }}
+                      onClick={() => navigatePlayerSection(tab.key)}
+                      aria-current={isActive ? "page" : undefined}
                     >
                       {tab.label}
                     </button>
                   )
                 })}
-              </div>
+              </nav>
             )
           ) : (
             <section className="player-workout-heading" aria-labelledby="player-workout-title">
@@ -8680,10 +8679,16 @@ function TrainingApp() {
 
               <div className="player-home__actions">
                 <button type="button" onClick={() => navigatePlayerSection("pass")} className="player-home__action">
-                  Dina pass
+                  <span className="player-home__action-icon" aria-hidden="true">
+                    {renderCoachBottomNavIcon("pass", false)}
+                  </span>
+                  <span className="player-home__action-label">Dina pass</span>
                 </button>
                 <button type="button" onClick={() => navigatePlayerSection("stats")} className="player-home__action">
-                  Statistik
+                  <span className="player-home__action-icon" aria-hidden="true">
+                    {renderCoachBottomNavIcon("stats", false)}
+                  </span>
+                  <span className="player-home__action-label">Statistik</span>
                 </button>
                 <button
                   type="button"
@@ -8691,7 +8696,10 @@ function TrainingApp() {
                   className="player-home__action"
                   aria-expanded={playerOverviewPanel === "history"}
                 >
-                  Historik <span aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
+                  <span className="player-home__action-icon" aria-hidden="true">
+                    {renderCoachBottomNavIcon("calendar", false)}
+                  </span>
+                  <span className="player-home__action-label">Historik</span> <span aria-hidden="true">{playerOverviewPanel === "history" ? "−" : "+"}</span>
                 </button>
                 <button
                   type="button"
@@ -8699,7 +8707,10 @@ function TrainingApp() {
                   className="player-home__action"
                   aria-expanded={playerOverviewPanel === "running"}
                 >
-                  Egen aktivitet <span aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
+                  <span className="player-home__action-icon" aria-hidden="true">
+                    {renderCoachBottomNavIcon("players", false)}
+                  </span>
+                  <span className="player-home__action-label">Egen aktivitet</span> <span aria-hidden="true">{playerOverviewPanel === "running" ? "−" : "+"}</span>
                 </button>
 
                 {playerOverviewPanel === "history" && (
@@ -9070,13 +9081,9 @@ function TrainingApp() {
 
           {!isWorkoutActive && playerView === "pass" && (
             <>
-              <div style={playerPageIntroStyle}>
-                <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
-                  Dina pass
-                </h2>
-                <p style={mutedTextStyle}>
-                  Välj passet du vill köra. Du ser när du körde det senast innan du startar.
-                </p>
+              <div className="player-design__view-heading">
+                <h1>Dina pass</h1>
+                <p>Välj ett pass och se när du körde det senast.</p>
               </div>
 
               {groupedVisibleWorkoutEntries.length === 0 ? (
@@ -9090,27 +9097,15 @@ function TrainingApp() {
                       key={group.workoutKind}
                       style={{
                         ...passCategorySectionStyle,
-                        backgroundColor: group.theme.sectionBackground,
-                        borderColor: group.theme.sectionBorder,
+                        backgroundColor: uiSurfaceAlt,
                       }}
                     >
                       <div style={passCategoryHeaderStyle(isMobile)}>
                         <div>
-                          <div
-                            style={{
-                              ...passCategoryBadgeStyle,
-                              backgroundColor: group.theme.badgeBackground,
-                              color: group.theme.badgeColor,
-                            }}
-                          >
-                            {group.theme.title}
-                          </div>
                           <div style={passCategoryTitleStyle}>{group.theme.title}</div>
                           <div style={passCategoryTextStyle}>{group.theme.description}</div>
                         </div>
-                        <div style={passCategoryCountStyle}>
-                          {group.entries.length} {group.entries.length === 1 ? "pass" : "pass"}
-                        </div>
+                        <div style={passCategoryCountStyle}>{group.entries.length} pass</div>
                       </div>
 
                       <div style={passCategoryListStyle}>
@@ -9124,10 +9119,8 @@ function TrainingApp() {
                               key={key}
                               style={{
                                 ...passPickerItemStyle,
-                                borderColor: isSelected ? "#c62828" : passPickerItemStyle.borderColor,
-                                background: isSelected
-                                  ? "linear-gradient(180deg, rgba(255,245,245,1), rgba(255,250,250,0.98))"
-                                  : passPickerItemStyle.background,
+                                borderColor: isSelected ? "#41849a" : passPickerItemStyle.borderColor,
+                                background: isSelected ? "#eaf6fb" : passPickerItemStyle.background,
                               }}
                             >
                               <button
@@ -9257,8 +9250,9 @@ function TrainingApp() {
                                   </div>
 
                                   <button
+                                    type="button"
                                     onClick={() => startWorkout(key)}
-                                    style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                                    className="player-design__primary"
                                   >
                                     Starta pass
                                   </button>
@@ -9277,13 +9271,9 @@ function TrainingApp() {
 
           {!isWorkoutActive && playerView === "stats" && (
             <>
-              <div style={playerPageIntroStyle}>
-                <h2 style={{ ...sectionTitleStyle, fontSize: isMobile ? "24px" : "28px", marginBottom: "8px" }}>
-                  Din statistik
-                </h2>
-                <p style={mutedTextStyle}>
-                  Se vilka övningar du kört och följ utvecklingen över tid. Vikt visas tydligast när den finns loggad.
-                </p>
+              <div className="player-design__view-heading">
+                <h1>Din statistik</h1>
+                <p>Följ dina vikter och maxreps över tid.</p>
               </div>
 
               {isLoadingPlayerExerciseProgress ? (
@@ -9424,41 +9414,30 @@ function TrainingApp() {
       )}
 
       {showPlayerBottomNav && (
-        <div style={coachBottomNavWrapStyle}>
-          <div
-            style={{
-              ...coachBottomNavStyle,
-              gridTemplateColumns: `repeat(${playerBottomTabs.length}, minmax(0, 1fr))`,
-            }}
-          >
-            {playerBottomTabs.map((tab) => {
-              const isActive =
-                tab.key === "account" ? globalView === "account" : globalView === "app" && playerView === tab.key
+        <nav className="player-design__dock" aria-label="Spelarnavigering på mobil">
+          {playerBottomTabs.map((tab) => {
+            const isActive =
+              tab.key === "account" ? globalView === "account" : globalView === "app" && playerView === tab.key
 
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => navigatePlayerSection(tab.key)}
-                  style={{
-                    ...coachBottomNavButtonStyle,
-                    color: isActive ? "#b61e24" : "#6b7280",
-                  }}
-                >
-                  <span
-                    style={{
-                      ...coachBottomNavIconWrapStyle,
-                      backgroundColor: isActive ? "#fff1f1" : "transparent",
-                    }}
-                  >
-                    {renderCoachBottomNavIcon(tab.icon, isActive)}
-                  </span>
-                  <span style={coachBottomNavLabelStyle}>{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => navigatePlayerSection(tab.key)}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={tab.key === "messages" && unreadMessageCount
+                  ? `Meddelanden, ${unreadMessageCount} olästa`
+                  : tab.label}
+              >
+                <span className="player-design__dock-icon" aria-hidden="true">
+                  {renderCoachBottomNavIcon(tab.icon, false)}
+                  {tab.key === "messages" && unreadMessageCount > 0 && <span className="player-design__unread" />}
+                </span>
+                <span>{tab.key === "messages" ? "Inkorg" : tab.label}</span>
+              </button>
+            )
+          })}
+        </nav>
       )}
 
       {status && <p style={statusStyle}>{status}</p>}
@@ -9469,13 +9448,22 @@ function TrainingApp() {
             <div className="player-workout-status">
               {isMobile && (
                 <div className="player-workout-status__step">
-                  <span className="player-design__label">I passet</span>
-                  <strong>{activeWorkoutProgressSummary}</strong>
-                  <progress
+                  <div className="player-workout-status__position">
+                    <span>Steg {activeExerciseIndex + 1} av {activeWorkoutSlideCount}</span>
+                    <strong>{activeWorkoutProgressSummary}</strong>
+                  </div>
+                  <div
+                    className="player-workout-status__segments"
+                    role="progressbar"
                     aria-label="Position i passet"
-                    max={activeWorkoutSlideCount}
-                    value={activeExerciseIndex + 1}
-                  />
+                    aria-valuenow={activeExerciseIndex + 1}
+                    aria-valuemin={0}
+                    aria-valuemax={activeWorkoutSlideCount}
+                  >
+                    {Array.from({ length: activeWorkoutSlideCount }, (_, index) => (
+                      <span key={index} data-reached={index <= activeExerciseIndex} />
+                    ))}
+                  </div>
                 </div>
               )}
               {!isRunningWorkoutActive && (
@@ -9523,17 +9511,11 @@ function TrainingApp() {
           ) : null}
 
           {isMobile && activeWorkoutSlideCount > 1 && (
-            <div style={exerciseCarouselToolbarStyle}>
+            <div className="player-workout-controls">
               <button
                 type="button"
                 onClick={() => scrollToExerciseCard(Math.max(activeExerciseIndex - 1, 0))}
                 disabled={activeExerciseIndex === 0}
-                style={{
-                  ...secondaryButtonStyle,
-                  padding: "10px 14px",
-                  opacity: activeExerciseIndex === 0 ? 0.45 : 1,
-                  cursor: activeExerciseIndex === 0 ? "default" : "pointer",
-                }}
               >
                 Föregående
               </button>
@@ -9549,12 +9531,6 @@ function TrainingApp() {
                   )
                 }
                 disabled={activeExerciseIndex === activeWorkoutSlideCount - 1}
-                style={{
-                  ...secondaryButtonStyle,
-                  padding: "10px 14px",
-                  opacity: activeExerciseIndex === activeWorkoutSlideCount - 1 ? 0.45 : 1,
-                  cursor: activeExerciseIndex === activeWorkoutSlideCount - 1 ? "default" : "pointer",
-                }}
               >
                 Nästa
               </button>
@@ -10392,12 +10368,7 @@ function TrainingApp() {
                       }
                 }
               >
-                <div style={exerciseProgressStyle}>Avslut</div>
-
-                <h3 style={{ ...cardTitleStyle, marginBottom: "8px" }}>Sista kortet</h3>
-                <p style={{ ...mutedTextStyle, marginBottom: "14px" }}>
-                  Skriv en kort kommentar om hela passet och avsluta sedan härifrån.
-                </p>
+                <h3 className="player-workout-card__title">Avsluta passet</h3>
 
                 <div style={exerciseCommentCardStyle}>
                   <div style={exerciseCommentTitleStyle}>Kommentar på passet</div>
@@ -10413,9 +10384,9 @@ function TrainingApp() {
                 <button
                   type="button"
                   onClick={finishWorkout}
-                  style={{ ...buttonStyle, width: isMobile ? "100%" : "auto" }}
+                  className="player-design__primary"
                 >
-                  Spara kommentar och avsluta pass
+                  Spara och avsluta
                 </button>
               </div>
             </div>
@@ -10465,7 +10436,7 @@ function PlayerProgressChart({ entries }) {
 
   return (
     <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={playerChartSvgStyle} role="img" aria-label="Graf över viktutveckling">
-      <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="20" fill="#fffdfd" />
+      <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="20" fill="#f4f9fc" />
 
       {axisLabels.map((value, index) => {
         const y =
@@ -10478,7 +10449,7 @@ function PlayerProgressChart({ entries }) {
               x2={chartWidth - padding.right}
               y1={y}
               y2={y}
-              stroke="#e9d7d7"
+              stroke="#c9dbe7"
               strokeDasharray="4 6"
             />
             <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280" fontWeight="700">
@@ -10490,7 +10461,7 @@ function PlayerProgressChart({ entries }) {
 
       <polyline
         fill="none"
-        stroke="#b61e24"
+        stroke="#216476"
         strokeWidth="4"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -10499,7 +10470,7 @@ function PlayerProgressChart({ entries }) {
 
       {chartPoints.map((point) => (
         <g key={`${point.created_at}-${point.top_weight}`}>
-          <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#b61e24" strokeWidth="3" />
+          <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#216476" strokeWidth="3" />
           <text x={point.x} y={chartHeight - 10} textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="700">
             {point.label}
           </text>
@@ -10971,14 +10942,6 @@ const exerciseProgressStyle = {
   fontWeight: "800",
 }
 
-const exerciseCarouselToolbarStyle = {
-  marginBottom: "12px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "10px",
-}
-
 const exerciseCarouselViewportStyle = {
   width: "100%",
   overflowX: "auto",
@@ -11347,15 +11310,6 @@ const passCategoryHeaderStyle = (isMobile) => ({
   flexDirection: isMobile ? "column" : "row",
   gap: "10px",
 })
-
-const passCategoryBadgeStyle = {
-  display: "inline-flex",
-  marginBottom: "8px",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: "800",
-}
 
 const passCategoryTitleStyle = {
   fontSize: "20px",
@@ -11850,10 +11804,6 @@ const playerHistoryHighlightValueStyle = {
   fontWeight: "800",
   color: "#18202b",
   lineHeight: 1.4,
-}
-
-const playerPageIntroStyle = {
-  marginBottom: "4px",
 }
 
 const playerStatsLayoutStyle = {

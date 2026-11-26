@@ -1,29 +1,125 @@
+#root:has(.player-design) {
+  background: #eef2f6;
+}
+
 .player-design {
-  --player-accent: #a62132;
-  --player-ink: #211c25;
-  --player-muted: #645c68;
-  --player-line: #e5dee7;
-  --player-tint: #f4edf5;
+  --player-accent: #c9fb54;
+  --player-ice: #87dffb;
+  --player-dark: #111c2a;
+  --player-ink: #152235;
+  --player-muted: #506073;
+  --player-line: #d7e0e9;
+  --player-tint: #edf4f8;
   --ghf-line: var(--player-line);
-  --ghf-shadow-sm: 0 1px 2px rgb(33 28 37 / 5%);
+  --ghf-line-strong: #bdcbd9;
+  --ghf-surface-alt: #f5f8fb;
+  --ghf-shadow-sm: 0 2px 4px rgb(17 28 42 / 5%);
+  --ghf-shadow-md: 0 6px 20px rgb(17 28 42 / 7%);
+  --ghf-red: #216476;
+  --ghf-red-glow: rgb(33 100 118 / 18%);
   color: var(--player-ink);
 }
 
 .player-design__header {
-  min-height: 58px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--player-line);
+  min-height: 62px;
+  padding: 8px 12px 8px 14px;
+  border: 1px solid #28374b;
+  border-radius: 18px;
+  background: var(--player-dark);
+  color: #fff;
 }
 
 .player-design__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 1.125rem;
   font-weight: 900;
   letter-spacing: -0.025em;
 }
 
+.player-design__mark {
+  width: 26px;
+  height: 24px;
+  flex: none;
+  background: var(--player-accent);
+  clip-path: polygon(24% 0, 53% 0, 29% 100%, 0 100%, 75% 0, 100% 0, 76% 100%, 46% 100%);
+}
+
 .player-design button:focus-visible {
-  outline: 3px solid var(--player-accent);
+  outline: 3px solid #216476;
   outline-offset: 3px;
+}
+
+.player-design__header button:focus-visible,
+.player-home__featured button:focus-visible,
+.player-design__dock button:focus-visible {
+  outline-color: var(--player-ice);
+}
+
+.player-design__tabs,
+.player-design__dock {
+  display: flex;
+  background: var(--player-dark);
+  border: 1px solid #2d3e55;
+  border-radius: 16px;
+  padding: 5px;
+}
+
+.player-design__tabs {
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.player-design__tabs button,
+.player-design__dock button {
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #cedbea;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.player-design__tabs button[aria-current="page"],
+.player-design__dock button[aria-current="page"] {
+  background: #293b47;
+  color: var(--player-accent);
+}
+
+.player-design__dock {
+  position: fixed;
+  z-index: 30;
+  inset: auto 6px calc(6px + env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  box-shadow: 0 12px 30px rgb(11 23 40 / 25%);
+}
+
+.player-design__dock button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 5px;
+  min-height: 54px;
+  padding-inline: 0;
+  font-size: 0.75rem;
+}
+
+.player-design__dock-icon {
+  position: relative;
+}
+
+.player-design__unread {
+  position: absolute;
+  inset: 0 -4px auto auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--player-ice);
 }
 
 .player-home {
@@ -33,7 +129,7 @@
 }
 
 .player-home__greeting {
-  padding-block: 8px 4px;
+  padding-block: 12px 4px;
 }
 
 .player-home__greeting p {
@@ -45,77 +141,93 @@
 .player-home h1,
 .player-workout-heading h1 {
   margin: 0;
-  font-size: clamp(2rem, 6vw, 3.5rem);
-  line-height: 1.04;
+  font-size: clamp(2rem, 6vw, 3.65rem);
+  line-height: 1.03;
   letter-spacing: -0.055em;
   overflow-wrap: anywhere;
 }
 
 .player-home__featured {
-  padding: clamp(20px, 5vw, 42px);
-  border-radius: 24px;
-  background: radial-gradient(ellipse at top right, #50344d, #27212d 72%);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(22px, 5vw, 48px);
+  border: 1px solid #33495c;
+  border-radius: 25px;
+  background: linear-gradient(120deg, #111c2a 32%, #153852);
   color: #fff;
+}
+
+.player-home__featured::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    repeating-linear-gradient(115deg, transparent 0 30px, rgb(135 223 251 / 24%) 30px 32px, transparent 32px 53px),
+    linear-gradient(115deg, transparent 62%, rgb(201 251 84 / 25%) 62% 68%, transparent 68%);
+  mask-image: linear-gradient(100deg, transparent 42%, #000);
+  pointer-events: none;
+  content: "";
 }
 
 .player-design__label {
   margin: 0 0 8px;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .player-home__featured .player-design__label {
-  color: #edcce3;
+  color: var(--player-accent);
 }
 
 .player-home__featured h2 {
+  max-width: 24ch;
   margin: 0;
-  font-size: clamp(1.65rem, 5vw, 2.8rem);
-  line-height: 1.1;
+  font-size: clamp(1.75rem, 5vw, 3.2rem);
+  line-height: 1.05;
   letter-spacing: -0.035em;
   overflow-wrap: anywhere;
 }
 
 .player-home__featured-meta {
-  margin: 8px 0 22px;
-  color: #efe5f1;
+  margin: 10px 0 24px;
+  color: #d1e4f1;
 }
 
 .player-design__primary,
 .player-design__secondary,
-.player-home__action {
+.player-home__action,
+.player-workout-controls button {
   min-height: 46px;
   padding: 10px 16px;
   border: 1px solid var(--player-line);
   border-radius: 12px;
   background: #fff;
   color: var(--player-ink);
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
 }
 
 .player-design__primary {
-  background: #f5e4f2;
-  border-color: transparent;
+  background: var(--player-accent);
+  border-color: #729b20;
+  color: #192604;
 }
 
-.player-design__primary:hover,
-.player-home__action:hover {
-  background: #ecd5e6;
+.player-design__primary:hover {
+  background: #d9ff89;
 }
 
-.player-design__primary:focus-visible {
-  outline-color: #f5e4f2;
-}
-
-.player-design__secondary {
-  color: var(--player-accent);
+.player-design__secondary:hover,
+.player-home__action:hover,
+.player-workout-controls button:not(:disabled):hover {
+  background: #e9f5fc;
 }
 
 .player-home__stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   margin: 0;
 }
 
@@ -125,39 +237,55 @@
   justify-content: flex-end;
   gap: 4px;
   padding: 12px;
-  border: 1px solid var(--player-line);
-  border-radius: 16px;
-  background: #fff;
+  border: 1px solid #30435a;
+  border-radius: 15px;
+  background: #18273a;
 }
 
 .player-home__stats dt {
+  color: #d2e1ec;
   font-size: 0.875rem;
-  color: var(--player-muted);
+  overflow-wrap: anywhere;
 }
 
 .player-home__stats dd {
   margin: 0;
-  font-size: 1.65rem;
-  font-weight: 800;
+  color: var(--player-ice);
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
+}
+
+.player-home__stats > div:nth-child(2) dd {
+  color: var(--player-accent);
 }
 
 .player-home__actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .player-home__action {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  padding-inline: 10px;
   text-align: left;
 }
 
-.player-home__action span {
-  color: var(--player-accent);
+.player-home__action-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #e4f4fa;
+  color: #21556a;
+}
+
+.player-home__action-label {
+  flex: 1;
 }
 
 .player-workout-heading {
@@ -167,74 +295,119 @@
   justify-content: space-between;
   gap: 14px;
   width: 100%;
+  padding: clamp(17px, 4vw, 32px);
+  border-radius: 20px;
+  background: var(--player-dark);
+  color: #fff;
 }
 
 .player-workout-heading .player-design__label {
   color: var(--player-accent);
 }
 
+.player-workout-heading .player-design__secondary {
+  background: transparent;
+  color: #dfe9f3;
+  border-color: #60748a;
+}
+
+.player-workout-heading .player-design__secondary:hover {
+  background: #283b51;
+}
+
 .player-workout-status {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .player-workout-status__step,
 .player-workout-status__timer {
   display: grid;
   align-content: center;
-  gap: 4px;
+  gap: 8px;
   padding: 12px;
-  border: 1px solid var(--player-line);
-  border-radius: 16px;
+  border: 1px solid #30435a;
+  border-radius: 15px;
+  background: #18273a;
+  color: #fff;
 }
 
 .player-workout-status__step {
-  flex: 1 1 130px;
-  background: #fff;
+  flex: 1 1 145px;
+  min-width: 0;
 }
 
-.player-workout-status__step .player-design__label {
-  margin-bottom: 0;
-  color: var(--player-muted);
+.player-workout-status__position {
+  display: grid;
+  gap: 4px;
 }
 
-.player-workout-status progress {
-  width: 100%;
-  height: 8px;
-  margin-top: 4px;
-  accent-color: var(--player-accent);
+.player-workout-status__position span,
+.player-workout-status__timer span {
+  color: #d1e0ee;
+  font-size: 0.875rem;
+}
+
+.player-workout-status__segments {
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.player-workout-status__segments span {
+  flex: 1;
+  height: 6px;
+  background: #49617b;
+}
+
+.player-workout-status__segments span[data-reached="true"] {
+  background: var(--player-accent);
 }
 
 .player-workout-status__timer {
-  min-width: 115px;
-  border-color: transparent;
-  background: #302634;
-  color: #fff;
+  min-width: 112px;
+  gap: 4px;
   text-align: left;
   cursor: pointer;
 }
 
-.player-workout-status__timer span {
-  font-size: 0.875rem;
+.player-workout-status__timer:hover {
+  background: #243b50;
 }
 
 .player-workout-status__timer strong {
-  font-size: clamp(1.6rem, 6vw, 2.15rem);
+  color: var(--player-ice);
+  font-size: clamp(1.6rem, 6vw, 2.3rem);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.player-design .player-workout-card {
-  --ghf-surface-alt: #faf7fa;
-  --ghf-shadow-md: 0 1px 2px rgb(33 28 37 / 5%);
+.player-workout-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.player-workout-controls button:last-child:not(:disabled) {
+  background: var(--player-ice);
+  border-color: #579ab0;
+}
+
+.player-workout-controls button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
 }
 
 .player-workout-card__title {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: clamp(1.5rem, 5vw, 2rem);
   letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
 }
 
 .player-design .player-workout-set {
@@ -243,10 +416,38 @@
 
 .player-design .player-workout-set input {
   min-height: 44px;
+  background: #fff;
 }
 
 @media (max-width: 600px) {
   .player-design__primary {
     width: 100%;
   }
+}
+
+@media (max-width: 350px) {
+  .player-home__action {
+    gap: 5px;
+    padding-inline: 6px;
+  }
+}
+
+.player-design__view-heading {
+  width: 100%;
+  padding: clamp(16px, 3vw, 26px);
+  border-radius: 18px;
+  background: var(--player-dark);
+  color: #fff;
+}
+
+.player-design__view-heading h1 {
+  margin: 0 0 6px;
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.player-design__view-heading p {
+  margin: 0;
+  color: #cdddeb;
 }
