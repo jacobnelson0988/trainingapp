@@ -247,12 +247,6 @@ const getExerciseMeasurementLabelWithSide = (exerciseType, executionSide) => {
   return suffix ? `${baseLabel} (${suffix})` : baseLabel
 }
 
-const getExerciseMeasurementPlaceholder = (exerciseType, executionSide) => {
-  const baseLabel = getExerciseMeasurementLabel(exerciseType)
-  const suffix = getExercisePerSideSuffix(executionSide, exerciseType)
-  return suffix ? `${baseLabel} ${suffix}` : baseLabel
-}
-
 const getExerciseExecutionSideHint = (executionSide, exerciseType = "reps_only") => {
   const unitLabel = exerciseType === "seconds_only" ? "sekunder" : "reps"
 
@@ -9465,7 +9459,9 @@ function TrainingApp() {
         </nav>
       )}
 
-      {status && <p style={statusStyle}>{status}</p>}
+      {status && (
+        <p role="status" style={isPlayerWorkout ? workoutStatusMessageStyle : statusStyle}>{status}</p>
+      )}
 
       {selectedWorkout && isWorkoutActive && (
         <div style={activeWorkoutPageWrapStyle}>
@@ -11392,6 +11388,14 @@ const statusStyle = {
   marginTop: 0,
   marginBottom: "16px",
   fontWeight: "700",
+}
+
+const workoutStatusMessageStyle = {
+  ...statusStyle,
+  padding: "10px 14px",
+  borderRadius: "10px",
+  backgroundColor: "#fff6ed",
+  color: "#8a321c",
 }
 
 const coachNavCardStyle = {
